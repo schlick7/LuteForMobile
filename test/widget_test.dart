@@ -1,0 +1,12 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:lute_for_mobile/app.dart';
+
+void main() {
+  testWidgets('App smoke test', (WidgetTester tester) async {
+    await tester.pumpWidget(const ProviderScope(child: App()));
+
+    expect(find.text('Welcome to LuteForMobile'), findsOneWidget);
+  });
+}
