@@ -6,7 +6,7 @@ void main() {
     late ApiService apiService;
 
     setUp(() {
-      apiService = ApiService();
+      apiService = ApiService(baseUrl: 'http://localhost:5001');
     });
 
     test('should create ApiService instance', () {

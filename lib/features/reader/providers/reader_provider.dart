@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../models/page_data.dart';
 import '../repositories/reader_repository.dart';
+import '../../../core/network/content_service.dart';
+import '../../../core/network/api_service.dart';
 
 @immutable
 class ReaderState {
@@ -26,10 +29,6 @@ class ReaderState {
 
 class ReaderNotifier extends Notifier<ReaderState> {
   late ReaderRepository _repository;
-
-  void setRepository(ReaderRepository repository) {
-    _repository = repository;
-  }
 
   @override
   ReaderState build() {
@@ -56,8 +55,24 @@ class ReaderNotifier extends Notifier<ReaderState> {
   }
 }
 
+final apiServiceProvider = Provider<ApiService>((ref) {
+  final settings = ref.watch(settingsProvider);
+  return ApiService(baseUrl: settings.serverUrl);
+});
+
+final contentServiceProvider = Provider<ContentService>((ref) {
+  final apiService = ref.watch(apiServiceProvider);
+  return ContentService(apiService: apiService);
+});
+
 final readerRepositoryProvider = Provider<ReaderRepository>((ref) {
-  return ReaderRepository();
+  final settings = ref.watch(settingsProvider);
+  final contentService = ref.watch(contentServiceProvider);
+  return ReaderRepository(
+    contentService: contentService,
+    defaultBookId: settings.defaultBookId,
+    defaultPageId: settings.defaultPageId,
+  );
 });
 
 final readerProvider = NotifierProvider<ReaderNotifier, ReaderState>(() {

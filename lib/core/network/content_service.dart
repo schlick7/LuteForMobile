@@ -9,8 +9,8 @@ class ContentService {
   final ApiService _apiService;
   final HtmlParser _htmlParser;
 
-  ContentService({ApiService? apiService, HtmlParser? htmlParser})
-    : _apiService = apiService ?? ApiService(),
+  ContentService({required ApiService apiService, HtmlParser? htmlParser})
+    : _apiService = apiService,
       _htmlParser = htmlParser ?? HtmlParser();
 
   Future<PageData> getPageContent(

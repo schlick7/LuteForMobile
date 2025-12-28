@@ -1,16 +1,20 @@
 import '../../../core/network/content_service.dart';
-import '../../../config/app_config.dart';
 import '../models/page_data.dart';
 
 class ReaderRepository {
   final ContentService _contentService;
+  final int defaultBookId;
+  final int defaultPageId;
 
-  ReaderRepository({ContentService? contentService})
-    : _contentService = contentService ?? ContentService();
+  ReaderRepository({
+    required ContentService contentService,
+    this.defaultBookId = 18,
+    this.defaultPageId = 1,
+  }) : _contentService = contentService;
 
   Future<PageData> getPage({int? bookId, int? pageNum}) async {
-    final effectiveBookId = bookId ?? AppConfig.defaultBookId;
-    final effectivePageNum = pageNum ?? AppConfig.defaultPageId;
+    final effectiveBookId = bookId ?? defaultBookId;
+    final effectivePageNum = pageNum ?? defaultPageId;
 
     try {
       return await _contentService.getPageContent(

@@ -1,17 +1,16 @@
 import 'package:dio/dio.dart';
-import '../../config/app_config.dart';
 
 class ApiService {
   final Dio _dio;
 
-  ApiService({Dio? dio})
+  ApiService({required String baseUrl, Dio? dio})
     : _dio =
           dio ??
           Dio(
             BaseOptions(
-              baseUrl: AppConfig.serverUrl,
-              connectTimeout: AppConfig.defaultTimeout,
-              receiveTimeout: AppConfig.defaultTimeout,
+              baseUrl: baseUrl,
+              connectTimeout: const Duration(seconds: 30),
+              receiveTimeout: const Duration(seconds: 30),
               headers: {'Content-Type': 'text/html'},
             ),
           ) {
