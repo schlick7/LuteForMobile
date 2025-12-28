@@ -320,7 +320,7 @@ This document provides a comprehensive list of all API endpoints available in Lu
 
 ### `GET /read/<int:bookid>/page/<int:pagenum>`
 - **Description**: Read a specific page of a book - This is where text is called by ajax
-- **Parameters**: 
+- **Parameters**:
   - `bookid` - ID of the book
   - `pagenum` - Page number to read
 - **Response**: HTML template for reading interface
@@ -328,17 +328,38 @@ This document provides a comprehensive list of all API endpoints available in Lu
 
 ### `GET /read/<int:bookid>/peek/<int:pagenum>`
 - **Description**: Peek at a page without tracking as read
-- **Parameters**: 
+- **Parameters**:
   - `bookid` - ID of the book
   - `pagenum` - Page number to peek at
 - **Response**: HTML template for reading interface
 - **Data Exposed**: Book page content, language settings
+
+### `GET /read/start_reading/<int:bookid>/<int:pagenum>`
+- **Description**: Start reading a page (set start date and render content)
+- **Parameters**:
+  - `bookid` - ID of the book
+  - `pagenum` - Page number to start reading
+- **Response**: HTML template with parsed page content
+- **Data Used**: Page start date tracking
+- **Usage**: Used for page navigation (next/previous) to track reading
+
+### `GET /read/refresh_page/<int:bookid>/<int:pagenum>`
+- **Description**: Refresh page content without changing start date
+- **Parameters**:
+  - `bookid` - ID of the book
+  - `pagenum` - Page number to refresh
+- **Response**: HTML template with parsed page content
+- **Data Exposed**: Page content without updating start date
+- **Usage**: Used for page navigation when not tracking (e.g., peeking)
 
 ### `POST /read/page_done`
 - **Description**: Mark page as read
 - **Parameters**: JSON with bookid, pagenum, and restknown
 - **Response**: JSON confirmation
 - **Data Used**: Book page completion data
+- **restknown**:
+  - If `false`: Mark page as read only (call `markPageRead`)
+  - If `true`: Mark page as read AND set all unknown words (status 0) on the page to Well-Known (status 99) (call `markPageKnown`)
 
 ### `GET /read/delete_page/<int:bookid>/<int:pagenum>`
 - **Description**: Delete a page from a book

@@ -51,6 +51,14 @@ class ApiService {
     );
   }
 
+  Future<Response<String>> markPageRead(int bookId, int pageNum) async {
+    return await postPageDone(bookId, pageNum, false);
+  }
+
+  Future<Response<String>> markPageKnown(int bookId, int pageNum) async {
+    return await postPageDone(bookId, pageNum, true);
+  }
+
   Future<Response<String>> getTermPopup(int termId) async {
     return await _dio.get<String>('/read/termpopup/$termId');
   }
