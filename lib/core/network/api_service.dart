@@ -90,4 +90,8 @@ class ApiService {
   Future<Response<String>> getBookStats(int bookId) async {
     return await _dio.get<String>('/book/table_stats/$bookId');
   }
+
+  Future<Response<String>> getBookPageMetadata(int bookId, int pageNum) async {
+    return await _dio.get<String>('/read/$bookId/page/$pageNum');
+  }
 }

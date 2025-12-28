@@ -5,13 +5,19 @@ import '../../features/reader/models/paragraph.dart';
 import '../../features/reader/models/page_data.dart';
 
 class HtmlParser {
-  PageData parsePage(String htmlContent, int bookId, int pageNum) {
-    final document = html_parser.parse(htmlContent);
+  PageData parsePage(
+    String pageTextHtml,
+    String pageMetadataHtml, {
+    required int bookId,
+    required int pageNum,
+  }) {
+    final metadataDocument = html_parser.parse(pageMetadataHtml);
+    final textDocument = html_parser.parse(pageTextHtml);
 
-    final title = _extractTitle(document);
+    final title = _extractTitle(metadataDocument);
     final currentPage = pageNum;
-    final pageCount = _extractPageCount(document);
-    final paragraphs = _extractParagraphs(document);
+    final pageCount = _extractPageCount(metadataDocument);
+    final paragraphs = _extractParagraphs(textDocument);
 
     return PageData(
       bookId: bookId,
@@ -23,7 +29,7 @@ class HtmlParser {
   }
 
   String? _extractTitle(html.Document document) {
-    final titleElement = document.querySelector('#headertexttitle');
+    final titleElement = document.querySelector('#thetexttitle');
     return titleElement?.text.trim();
   }
 

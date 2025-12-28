@@ -18,10 +18,21 @@ class ContentService {
     int pageNum, {
     ContentMode mode = ContentMode.reading,
   }) async {
-    final response = await _getPageHtml(bookId, pageNum, mode);
-    final htmlContent = response.data ?? '';
+    final pageTextResponse = await _getPageHtml(bookId, pageNum, mode);
+    final pageTextHtml = pageTextResponse.data ?? '';
 
-    return _htmlParser.parsePage(htmlContent, bookId, pageNum);
+    final pageMetadataResponse = await _apiService.getBookPageMetadata(
+      bookId,
+      pageNum,
+    );
+    final pageMetadataHtml = pageMetadataResponse.data ?? '';
+
+    return _htmlParser.parsePage(
+      pageTextHtml,
+      pageMetadataHtml,
+      bookId: bookId,
+      pageNum: pageNum,
+    );
   }
 
   Future<PageData> markPageDone(int bookId, int pageNum, bool restKnown) async {
