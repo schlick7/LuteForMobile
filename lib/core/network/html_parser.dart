@@ -38,10 +38,11 @@ class HtmlParser {
 
   List<Paragraph> _extractParagraphs(html.Document document) {
     final theTextDiv = document.querySelector('#thetext');
-    if (theTextDiv == null) return [];
 
     final paragraphs = <Paragraph>[];
-    final sentences = theTextDiv.querySelectorAll('.textsentence');
+    final sentences =
+        theTextDiv?.querySelectorAll('.textsentence') ??
+        document.querySelectorAll('.textsentence');
 
     for (var i = 0; i < sentences.length; i++) {
       final sentence = sentences[i];

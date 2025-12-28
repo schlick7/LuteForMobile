@@ -15,7 +15,7 @@ class ReaderRepository {
     final effectiveBookId = bookId ?? AppConfig.defaultBookId;
     final effectivePageNum = pageNum ?? AppConfig.defaultPageId;
 
-    final path = '/read/$effectiveBookId/page/$effectivePageNum';
+    final path = '/read/start_reading/$effectiveBookId/$effectivePageNum';
 
     try {
       final response = await _apiClient.get(path);
