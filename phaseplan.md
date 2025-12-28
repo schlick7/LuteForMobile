@@ -404,17 +404,22 @@ Start simple and evolve as needed. Create basic API layer in Phase 2, but don't 
 - Logging interceptors
 
 ### Deliverables
-- [ ] API service with typed methods for Lute endpoints
-- [ ] Content service with endpoint selection logic
-- [ ] HTML parser for extracting `data-text` attributes
-- [ ] Error handling layer
-- [ ] Unit tests for API service
-- [ ] Integration tests with actual server
-- [ ] Error scenario testing
+- [x] API service with typed methods for Lute endpoints
+- [x] Content service with endpoint selection logic
+- [x] HTML parser for extracting `data-text` attributes
+- [x] Error handling layer
+- [x] Unit tests for API service
+- [x] Integration tests with actual server (smoke test passing)
+- [x] Error scenario testing (basic coverage in unit tests)
+
+### Testing
+- [x] Unit tests for API methods
+- [x] Integration tests with actual server (smoke test passing)
+- [x] Error scenario testing (basic coverage in unit tests)
 
 ### Testing
 - [ ] Unit tests for API methods
-- [ ] Integration tests with actual server
+- [x] Integration tests with actual server (smoke test passing)
 - [ ] Error scenario testing
 
 ### Notes
