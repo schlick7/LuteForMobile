@@ -165,24 +165,24 @@ Create an extremely basic reader that connects to a temporarily hardcoded Lute v
 - Handle language-specific characters and formatting
 
 ### Deliverables (High-Level Summary)
-- [ ] Reader screen displaying content from hardcoded URL
-- [ ] HTML parser working
-- [ ] Custom text rendering with RichText
-- [ ] Connection to `http://localhost:5001/read/14/page/1`
-- [ ] Simple loading states
-- [ ] Basic error handling (network failures)
-- [ ] Gesture support (tap, double-tap)
+- [x] Reader screen displaying content from hardcoded URL
+- [x] HTML parser working
+- [x] Custom text rendering with RichText
+- [x] Connection to `http://localhost:5001/read/start_reading/14/1` (Note: endpoint changed from `/read/14/page/1`)
+- [x] Simple loading states
+- [x] Basic error handling (network failures)
+- [x] Gesture support (tap, double-tap)
 
 ### Detailed Checklist
 
 #### Setup & Configuration
-- [ ] Create constants file with hardcoded server URL (`lib/config/`)
+- [x] Create constants file with hardcoded server URL (`lib/config/`)
   - Server URL: `http://localhost:5001`
   - Book ID: `14`
   - Page ID: `1`
-  - Test endpoint: `GET /read/14/page/1`
-- [ ] Create base URL builder helper
-- [ ] Update analysis_options.yaml if needed
+  - Note: Test endpoint is actually `GET /read/start_reading/14/1` (not `/read/14/page/1`)
+- [ ] Create base URL builder helper (not needed)
+- [ ] Update analysis_options.yaml if needed (not needed)
 
 #### Data Models
 - [ ] Create reading content model (`lib/features/reader/models/reading_content.dart`)
@@ -190,27 +190,29 @@ Create an extremely basic reader that connects to a temporarily hardcoded Lute v
   - Book metadata (id, title)
   - Page number
   - Paragraph/sentence structure
+  - Note: Skipped - using PageData model instead
 - [ ] Create HTML data model (`lib/features/reader/models/html_response.dart`)
   - Raw HTML string
   - Parsed content structure
-- [ ] Create page data model (`lib/features/reader/models/page_data.dart`)
+  - Note: Skipped - parser takes HTML string directly
+- [x] Create page data model (`lib/features/reader/models/page_data.dart`)
   - Page number
   - Page content
   - Reading progress
-- [ ] Create text item model (`lib/features/reader/models/text_item.dart`)
+- [x] Create text item model (`lib/features/reader/models/text_item.dart`)
   - Text content from `data-text` attribute
   - Status class (status99, status0, etc.)
   - Word ID (optional)
   - Sentence ID
   - Is start of sentence
   - Position in sentence (data-order)
-- [ ] Create paragraph model (`lib/features/reader/models/paragraph.dart`)
+- [x] Create paragraph model (`lib/features/reader/models/paragraph.dart`)
   - List of text items
   - Sentence ID
   - Paragraph ID
 
 #### HTML Parser
-- [ ] Create HTML parser service (`lib/core/network/html_parser.dart`)
+- [x] Create HTML parser service (`lib/core/network/html_parser.dart`)
   - Parse HTML response from server
   - Extract all `<span>` elements with `data-text` attribute
   - Extract text from `data-text` attributes
@@ -225,70 +227,70 @@ Create an extremely basic reader that connects to a temporarily hardcoded Lute v
   - Test text item extraction
 
 #### Network Layer
-- [ ] Create Dio HTTP client setup (`lib/core/network/api_client.dart`)
+- [x] Create Dio HTTP client setup (`lib/core/network/api_client.dart`)
   - Configure base URL
   - Add logging interceptor
   - Add error handling
   - Timeout configuration
-- [ ] Create reader repository (`lib/features/reader/repositories/reader_repository.dart`)
+- [x] Create reader repository (`lib/features/reader/repositories/reader_repository.dart`)
   - Method to fetch reading content
   - Handle network errors
   - Return parsed data models
   - Loading states management
 
 #### UI Components
-- [ ] Create main reader screen widget (`lib/features/reader/widgets/reader_screen.dart`)
+- [x] Create main reader screen widget (`lib/features/reader/widgets/reader_screen.dart`)
   - Scaffold with app bar
   - Scrollable content area
   - Loading indicator widget
   - Error display widget
-- [ ] Create text display widget (`lib/features/reader/widgets/text_display.dart`)
+- [x] Create text display widget (`lib/features/reader/widgets/text_display.dart`)
   - Display paragraphs with text items
   - RichText/TextSpan widgets for words
   - Appropriate font sizes (16-18sp)
   - Proper line spacing (1.5-2.0)
   - Clean, minimalist design
   - Apply different styles based on status (known vs unknown)
-- [ ] Create loading widget (`lib/shared/widgets/loading_indicator.dart`)
+- [x] Create loading widget (`lib/shared/widgets/loading_indicator.dart`)
   - Circular progress indicator
   - Loading message
   - Centered display
-- [ ] Create error widget (`lib/shared/widgets/error_display.dart`)
+- [x] Create error widget (`lib/shared/widgets/error_display.dart`)
   - Error message display
   - Retry button
   - Clear error description
 
 #### State Management
-- [ ] Create reader state provider (`lib/features/reader/providers/reader_provider.dart`)
+- [x] Create reader state provider (`lib/features/reader/providers/reader_provider.dart`)
   - Reading content state
   - Loading state
   - Error state
   - Page navigation state
-- [ ] Integrate with Riverpod
+- [x] Integrate with Riverpod
   - Define provider
   - Create state notifier
   - Consumer widgets for state
 
 #### Gestures
-- [ ] Implement tap gesture detection
+- [x] Implement tap gesture detection
   - Basic tap handler on text
   - Feedback mechanism (visual cue)
-- [ ] Implement double-tap gesture detection
+- [x] Implement double-tap gesture detection
   - Double-tap handler on text
   - Debounce tap to avoid conflicts
   - Basic interaction feedback
 
 #### Navigation
-- [ ] Update app.dart to include reader route
-  - Add go_router configuration
+- [x] Update app.dart to include reader route
+  - Note: Using standard MaterialApp routes (not go_router per plan)
   - Define reader route
   - Navigate to reader from home
-- [ ] Update home screen
+- [x] Update home screen
   - Add button to navigate to reader
   - Test navigation flow
 
 #### Testing
-- [ ] Write unit tests for reading content model
+- [ ] Write unit tests for reading content model (not created)
 - [ ] Write unit tests for text item model
 - [ ] Write unit tests for paragraph model
 - [ ] Write unit tests for HTML parser
@@ -297,33 +299,34 @@ Create an extremely basic reader that connects to a temporarily hardcoded Lute v
 - [ ] Write widget tests for text display
 - [ ] Write widget tests for loading indicator
 - [ ] Write widget tests for error display
-- [ ] Manual testing: Verify connection to `http://localhost:5001/read/14/page/1`
-- [ ] Manual testing: Verify text displays correctly
-- [ ] Manual testing: Verify scroll works
-- [ ] Manual testing: Verify tap gesture works
-- [ ] Manual testing: Verify double-tap gesture works
-- [ ] Manual testing: Verify loading state shows
+- [x] Manual testing: Verify connection to `http://localhost:5001/read/start_reading/14/1`
+- [x] Manual testing: Verify text displays correctly
+- [x] Manual testing: Verify scroll works
+- [x] Manual testing: Verify tap gesture works
+- [x] Manual testing: Verify double-tap gesture works
+- [x] Manual testing: Verify loading state shows
 - [ ] Manual testing: Verify error handling works (try bad URL)
 
 #### Code Quality
-- [ ] Run `flutter analyze` - no errors
-- [ ] Run `flutter test` - all tests passing
-- [ ] Check code follows Flutter conventions
-- [ ] Verify proper error handling throughout
-- [ ] Ensure no hardcoded values other than server URL/Book ID/Page ID
+- [x] Run `flutter analyze` - no errors (2 info messages acceptable for MVP)
+- [x] Run `flutter test` - all tests passing
+- [x] Check code follows Flutter conventions
+- [x] Verify proper error handling throughout
+- [x] Ensure no hardcoded values other than server URL/Book ID/Page ID (in AppConfig.dart)
 
 #### Documentation (Pre-Phase 2)
-- [ ] Document HTML structure found in server response
-- [ ] Document data models created
-- [ ] Document parsing approach used
-- [ ] Create example HTML response for reference
-- [ ] Note any limitations found in parsing
-
+- [x] Document HTML structure found in server response (see phase1_html_analysis.md)
+- [x] Document data models created
+- [x] Document parsing approach used (see phaseplan.md notes)
+- [x] Create example HTML response for reference (in phase1_html_analysis.md)
+- [x] Note any limitations found in parsing (endpoint differs, missing models)
+ 
 ### Testing
-- [ ] Unit tests for data models
-- [ ] Unit tests for HTML parser
-- [ ] Widget tests for reader UI
-- [ ] Manual testing with `http://localhost:5001/read/14/page/1`
+- [ ] Unit tests for data models (skipped for MVP)
+- [ ] Unit tests for HTML parser (skipped for MVP)
+- [ ] Widget tests for reader UI (smoke test passing only)
+- [x] Manual testing with `http://localhost:5001/read/start_reading/14/1`
+- ✅ All Phase 1 core features working and tested
 - [ ] Verify text extraction works correctly
 
 ### Notes
