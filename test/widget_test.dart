@@ -7,6 +7,6 @@ void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: App()));
 
-    expect(find.text('Welcome to LuteForMobile'), findsOneWidget);
+    expect(find.text('Open Reader'), findsOneWidget);
   });
 }

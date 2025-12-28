@@ -11,7 +11,14 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('LuteForMobile'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: const Center(child: Text('Welcome to LuteForMobile')),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.pushNamed(context, '/reader');
+          },
+          child: const Text('Open Reader'),
+        ),
+      ),
     );
   }
 }
