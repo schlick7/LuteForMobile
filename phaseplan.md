@@ -508,16 +508,15 @@ Create basic documentation for Lute API structures and data models based on real
 
 ---
 
-## Phase 5: Enhanced Reader Features
+## Phase 5.1: Enhanced Reader Features (Core)
 
 ### Goal
-Expand reader functionality to include all core reading features from PRD.
+Expand reader functionality to include core reading features from PRD, excluding web dictionary integration.
 
 ### Features
 
 #### Term Form
 - Display term details from server
-- Web dictionary integration (url_launcher)
 - Triggered by double-tap
 - Modal/sheet display
 
@@ -526,7 +525,6 @@ Expand reader functionality to include all core reading features from PRD.
 - Tap gesture to open
   - ontap - gettermpopup
 - Inline/non-intrusive display
-- Support for web dictionary links
 
 #### Text Rendering Improvements
 - RichText with TextSpan for interactive terms
@@ -535,7 +533,6 @@ Expand reader functionality to include all core reading features from PRD.
 - Improved readability (fonts, spacing)
 
 #### Sentence Translation
-- Integration with web dictionary
 - Placeholder for AI translation
 - User-configurable translation source (in settings)
 
@@ -543,15 +540,49 @@ Expand reader functionality to include all core reading features from PRD.
 - Enhanced reader widgets
 - Term form component
 - Translation popup component
-- Web dictionary integration (url_launcher)
 - API endpoints for term/translation data
 
 ### Deliverables
 - [ ] Term form display
 - [ ] Translation popup display
-- [ ] Web dictionary integration
 - [ ] Interactive text with term highlighting
 - [ ] Sentence-level translations
+
+---
+
+## Phase 5.2: Web Dictionary Integration
+
+### Goal
+Add web dictionary functionality to enhance term and sentence translations.
+
+### Features
+
+#### Web Dictionary for Terms
+- Web dictionary integration (url_launcher) for term forms
+- Support for multiple dictionary sources
+- Configurable dictionary preferences
+
+#### Web Dictionary for Sentences
+- Integration with web dictionary for sentence translations
+- Support for translation services
+- External translation provider options
+
+#### Enhanced Translation Features
+- Web dictionary links in translation popups
+- User-configurable web dictionary settings
+- Dictionary source management
+
+### Technical Implementation
+- Web dictionary integration (url_launcher)
+- Dictionary service abstraction layer
+- Configuration management for dictionary sources
+- Enhanced translation components with web support
+
+### Deliverables
+- [ ] Web dictionary integration for terms
+- [ ] Web dictionary integration for sentences
+- [ ] Dictionary configuration settings
+- [ ] Enhanced translation components with web support
 
 ---
 
