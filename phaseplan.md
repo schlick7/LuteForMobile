@@ -501,10 +501,10 @@ Create basic documentation for Lute API structures and data models based on real
 - Document basic API endpoints used
 
 ### Deliverables
-- [ ] Basic API documentation
-- [ ] Data model documentation
-- [ ] Example JSON responses
-- [ ] Endpoint usage examples
+- [x] Basic API documentation
+- [x] Data model documentation
+- [x] Example JSON responses
+- [x] Endpoint usage examples
 
 ---
 
@@ -524,6 +524,7 @@ Expand reader functionality to include all core reading features from PRD.
 #### Translation Popup
 - Server-provided translations
 - Tap gesture to open
+  - ontap - gettermpopup
 - Inline/non-intrusive display
 - Support for web dictionary links
 
