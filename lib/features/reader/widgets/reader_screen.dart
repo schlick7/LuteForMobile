@@ -30,10 +30,29 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       appBar: AppBar(
         title: Text(state.pageData?.title ?? 'Reader'),
         actions: [
-          if (state.pageData != null)
+          if (state.pageData != null && state.pageData!.pageCount > 1)
             Padding(
               padding: const EdgeInsets.only(right: 16),
-              child: Center(child: Text(state.pageData!.pageIndicator)),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: state.pageData!.currentPage > 1
+                        ? () => _goToPage(state.pageData!.currentPage - 1)
+                        : null,
+                    tooltip: 'Previous page',
+                  ),
+                  Text(state.pageData!.pageIndicator),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed:
+                        state.pageData!.currentPage < state.pageData!.pageCount
+                        ? () => _goToPage(state.pageData!.currentPage + 1)
+                        : null,
+                    tooltip: 'Next page',
+                  ),
+                ],
+              ),
             ),
         ],
       ),
@@ -77,5 +96,12 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   void _handleDoubleTap(TextItem item) {
     print('Double-tapped: ${item.text}');
+  }
+
+  void _goToPage(int pageNum) {
+    final bookId = ref.read(readerProvider).pageData?.bookId ?? 18;
+    ref
+        .read(readerProvider.notifier)
+        .loadPage(bookId: bookId, pageNum: pageNum);
   }
 }
