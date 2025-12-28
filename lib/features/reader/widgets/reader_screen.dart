@@ -7,7 +7,7 @@ import '../models/term_popup.dart';
 import '../models/term_form.dart';
 import '../providers/reader_provider.dart';
 import 'text_display.dart';
-import 'term_popup.dart';
+import 'term_tooltip.dart';
 import 'term_form.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -18,12 +18,22 @@ class ReaderScreen extends ConsumerStatefulWidget {
 }
 
 class ReaderScreenState extends ConsumerState<ReaderScreen> {
+  OverlayEntry? _overlayEntry;
+  OverlayEntry? _dismissOverlay;
+
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
       ref.read(readerProvider.notifier).loadPage();
     });
+  }
+
+  @override
+  void dispose() {
+    _removeTermTooltip();
+    _removeDismissOverlay();
+    super.dispose();
   }
 
   void reloadPage() {
@@ -64,7 +74,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
             ),
         ],
       ),
-      body: _buildBody(state),
+      body: Stack(children: [_buildBody(state)]),
     );
   }
 
@@ -89,8 +99,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return TextDisplay(
       paragraphs: state.pageData!.paragraphs,
-      onTap: (item) {
-        _handleTap(item);
+      onTap: (item, position) {
+        _handleTap(item, position);
       },
       onDoubleTap: (item) {
         _handleDoubleTap(item);
@@ -98,52 +108,76 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  void _handleTap(TextItem item) async {
+  void _handleTap(TextItem item, Offset position) async {
     if (item.wordId == null) return;
 
     final termPopup = await ref
         .read(readerProvider.notifier)
         .fetchTermPopup(item.wordId!);
     if (termPopup != null && mounted) {
-      _showTermPopup(termPopup);
+      _showTermTooltip(termPopup, position);
+      _setupDismissOverlay();
     }
   }
 
   void _handleDoubleTap(TextItem item) async {
+    _removeTermTooltip();
+    _removeDismissOverlay();
+
     if (item.langId == null) return;
 
     final termForm = await ref
         .read(readerProvider.notifier)
         .fetchTermForm(item.langId!, item.text);
     if (termForm != null && mounted) {
-      _showTermForm(termForm);
+      _showTermForm(termForm!);
     }
   }
 
-  void _showTermPopup(TermPopup termPopup) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => TermPopupWidget(
+  void _showTermTooltip(TermPopup termPopup, Offset position) {
+    _removeTermTooltip();
+
+    final overlay = Overlay.of(context);
+    _overlayEntry = OverlayEntry(
+      builder: (context) => TermTooltip(
         termPopup: termPopup,
-        onClose: () => Navigator.of(context).pop(),
-        onEdit: () {
-          Navigator.of(context).pop();
-          _showTermFormFromPopup(termPopup);
+        position: position,
+        onDismiss: () {
+          _removeTermTooltip();
+          _removeDismissOverlay();
         },
       ),
     );
+
+    overlay.insert(_overlayEntry!);
   }
 
-  void _showTermFormFromPopup(TermPopup termPopup) async {
-    final langId = termPopup.languageId ?? 1;
-    final termForm = await ref
-        .read(readerProvider.notifier)
-        .fetchTermForm(langId, termPopup.term);
-    if (termForm != null && mounted) {
-      _showTermForm(termForm);
-    }
+  void _removeTermTooltip() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  void _setupDismissOverlay() {
+    _removeDismissOverlay();
+
+    final overlay = Overlay.of(context);
+    _dismissOverlay = OverlayEntry(
+      builder: (context) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () {
+          _removeTermTooltip();
+          _removeDismissOverlay();
+        },
+        child: Container(color: Colors.transparent),
+      ),
+    );
+
+    overlay.insert(_dismissOverlay!);
+  }
+
+  void _removeDismissOverlay() {
+    _dismissOverlay?.remove();
+    _dismissOverlay = null;
   }
 
   void _showTermForm(TermForm termForm) {
