@@ -1,17 +1,51 @@
+import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import '../models/text_item.dart';
 import '../models/paragraph.dart';
 
-class TextDisplay extends StatelessWidget {
+class TextDisplay extends StatefulWidget {
   final List<Paragraph> paragraphs;
   final void Function(TextItem)? onTap;
+  final void Function(TextItem)? onDoubleTap;
 
   const TextDisplay({
     super.key,
     required this.paragraphs,
     this.onTap,
+    this.onDoubleTap,
   });
+
+  @override
+  State<TextDisplay> createState() => _TextDisplayState();
+}
+
+class _TextDisplayState extends State<TextDisplay> {
+  Timer? _doubleTapTimer;
+  TextItem? _lastTappedItem;
+
+  void _handleTap(TextItem item) {
+    if (_lastTappedItem == item &&
+        _doubleTapTimer != null &&
+        _doubleTapTimer!.isActive) {
+      _doubleTapTimer?.cancel();
+      widget.onDoubleTap?.call(item);
+    } else {
+      _lastTappedItem = item;
+      _doubleTapTimer?.cancel();
+      _doubleTapTimer = Timer(const Duration(milliseconds: 300), () {
+        widget.onTap?.call(item);
+        _doubleTapTimer = null;
+        _lastTappedItem = null;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _doubleTapTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +53,7 @@ class TextDisplay extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: paragraphs.map((paragraph) {
+        children: widget.paragraphs.map((paragraph) {
           return _buildParagraph(context, paragraph);
         }).toList(),
       ),
@@ -57,12 +91,8 @@ class TextDisplay extends StatelessWidget {
     }
 
     final recognizer = TapGestureRecognizer();
-    recognizer.onTap = () => onTap?.call(item);
+    recognizer.onTap = () => _handleTap(item);
 
-    return TextSpan(
-      text: item.text,
-      style: style,
-      recognizer: recognizer,
-    );
+    return TextSpan(text: item.text, style: style, recognizer: recognizer);
   }
 }

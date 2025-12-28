@@ -65,10 +65,17 @@ class _ReaderScreenState extends ConsumerState<ReaderScreen> {
       onTap: (item) {
         _handleTap(item);
       },
+      onDoubleTap: (item) {
+        _handleDoubleTap(item);
+      },
     );
   }
 
   void _handleTap(TextItem item) {
     print('Tapped: ${item.text}');
+  }
+
+  void _handleDoubleTap(TextItem item) {
+    print('Double-tapped: ${item.text}');
   }
 }
