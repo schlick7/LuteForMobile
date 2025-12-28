@@ -10,16 +10,20 @@ class ReaderScreen extends ConsumerStatefulWidget {
   const ReaderScreen({super.key});
 
   @override
-  ConsumerState<ReaderScreen> createState() => _ReaderScreenState();
+  ConsumerState<ReaderScreen> createState() => ReaderScreenState();
 }
 
-class _ReaderScreenState extends ConsumerState<ReaderScreen> {
+class ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
       ref.read(readerProvider.notifier).loadPage();
     });
+  }
+
+  void reloadPage() {
+    ref.read(readerProvider.notifier).loadPage();
   }
 
   @override

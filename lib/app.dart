@@ -31,13 +31,18 @@ class MainNavigation extends ConsumerStatefulWidget {
 
 class _MainNavigationState extends ConsumerState<MainNavigation> {
   int _currentIndex = 0;
+  final GlobalKey<ReaderScreenState> _readerKey =
+      GlobalKey<ReaderScreenState>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: const [ReaderScreen(), SettingsScreen()],
+        children: [
+          ReaderScreen(key: _readerKey),
+          const SettingsScreen(),
+        ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
@@ -45,6 +50,9 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           setState(() {
             _currentIndex = index;
           });
+          if (index == 0 && _readerKey.currentState != null) {
+            _readerKey.currentState!.reloadPage();
+          }
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.book), label: 'Reader'),
