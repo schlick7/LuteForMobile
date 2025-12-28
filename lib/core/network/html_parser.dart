@@ -3,6 +3,8 @@ import 'package:html/dom.dart' as html;
 import '../../features/reader/models/text_item.dart';
 import '../../features/reader/models/paragraph.dart';
 import '../../features/reader/models/page_data.dart';
+import '../../features/reader/models/term_popup.dart';
+import '../../features/reader/models/term_form.dart';
 
 class HtmlParser {
   PageData parsePage(
@@ -100,5 +102,132 @@ class HtmlParser {
   int? _extractIntAttribute(html.Element element, String attributeName) {
     final value = element.attributes[attributeName];
     return value != null ? int.tryParse(value) : null;
+  }
+
+  TermPopup parseTermPopup(String htmlContent) {
+    final document = html_parser.parse(htmlContent);
+
+    final termElement = document.querySelector('.term-popup h3');
+    final term = termElement?.text.trim() ?? '';
+
+    final translationElement = document.querySelector(
+      '.term-popup .translation',
+    );
+    final translation = translationElement?.text.trim();
+
+    final termIdInput = document.querySelector('input[name="termid"]');
+    final termId = termIdInput != null
+        ? int.tryParse(termIdInput.attributes['value'] ?? '')
+        : null;
+
+    final statusInput = document.querySelector('select[name="status"]');
+    String status = '99';
+    if (statusInput != null) {
+      final selectedOption = statusInput.querySelector('option[selected]');
+      status = selectedOption?.attributes['value'] ?? '99';
+    }
+
+    final sentences = <String>[];
+    final sentenceElements = document.querySelectorAll(
+      '.term-popup .sentences li',
+    );
+    for (final sentenceElement in sentenceElements) {
+      final sentence = sentenceElement.text.trim();
+      if (sentence.isNotEmpty) {
+        sentences.add(sentence);
+      }
+    }
+
+    final langIdInput = document.querySelector('input[name="langid"]');
+    final languageId = langIdInput != null
+        ? int.tryParse(langIdInput.attributes['value'] ?? '')
+        : null;
+
+    final parents = <TermParent>[];
+    final parentElements = document.querySelectorAll('.term-popup .parents li');
+    for (final parentElement in parentElements) {
+      final parentTerm = parentElement.text.trim();
+      if (parentTerm.isNotEmpty) {
+        parents.add(TermParent(term: parentTerm));
+      }
+    }
+
+    final children = <TermChild>[];
+    final childElements = document.querySelectorAll('.term-popup .children li');
+    for (final childElement in childElements) {
+      final childTerm = childElement.text.trim();
+      if (childTerm.isNotEmpty) {
+        children.add(TermChild(term: childTerm));
+      }
+    }
+
+    return TermPopup(
+      term: term,
+      translation: translation,
+      termId: termId,
+      status: status,
+      sentences: sentences,
+      languageId: languageId,
+      parents: parents,
+      children: children,
+    );
+  }
+
+  TermForm parseTermForm(String htmlContent) {
+    final document = html_parser.parse(htmlContent);
+
+    final termInput = document.querySelector('input[name="text"]');
+    final term = termInput?.attributes['value']?.trim() ?? '';
+
+    final translationInput = document.querySelector(
+      'input[name="translation"]',
+    );
+    final translation = translationInput?.attributes['value']?.trim();
+
+    final termIdInput = document.querySelector('input[name="termid"]');
+    final termId = termIdInput != null
+        ? int.tryParse(termIdInput.attributes['value'] ?? '')
+        : null;
+
+    final langIdInput = document.querySelector('input[name="langid"]');
+    final languageId = langIdInput != null
+        ? (int.tryParse(langIdInput.attributes['value'] ?? '') ?? 0)
+        : 0;
+
+    final statusInput = document.querySelector('select[name="status"]');
+    String status = '99';
+    if (statusInput != null) {
+      final selectedOption = statusInput.querySelector('option[selected]');
+      status = selectedOption?.attributes['value'] ?? '99';
+    }
+
+    final tagsInput = document.querySelector('input[name="tags"]');
+    String? tags = tagsInput?.attributes['value']?.trim();
+    final tagList = tags?.isNotEmpty == true ? tags!.split(',') : null;
+
+    final romanizationInput = document.querySelector(
+      'input[name="romanization"]',
+    );
+    final romanization = romanizationInput?.attributes['value']?.trim();
+
+    final dictionaries = <String>[];
+    final dictElements = document.querySelectorAll('.dictionary-list li');
+    for (final dictElement in dictElements) {
+      final dict = dictElement.text.trim();
+      if (dict.isNotEmpty) {
+        dictionaries.add(dict);
+      }
+    }
+
+    return TermForm(
+      term: term,
+      translation: translation,
+      termId: termId,
+      languageId: languageId,
+      status: status,
+      tags: tagList,
+      romanization: romanization,
+      dictionaries: dictionaries,
+    );
   }
 }

@@ -6,12 +6,14 @@ class Settings {
   final int defaultBookId;
   final int defaultPageId;
   final bool isUrlValid;
+  final String translationProvider;
 
   const Settings({
     required this.serverUrl,
     this.defaultBookId = 18,
     this.defaultPageId = 1,
     this.isUrlValid = true,
+    this.translationProvider = 'local',
   });
 
   Settings copyWith({
@@ -19,12 +21,14 @@ class Settings {
     int? defaultBookId,
     int? defaultPageId,
     bool? isUrlValid,
+    String? translationProvider,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
       defaultBookId: defaultBookId ?? this.defaultBookId,
       defaultPageId: defaultPageId ?? this.defaultPageId,
       isUrlValid: isUrlValid ?? this.isUrlValid,
+      translationProvider: translationProvider ?? this.translationProvider,
     );
   }
 
@@ -34,6 +38,7 @@ class Settings {
       defaultBookId: 18,
       defaultPageId: 1,
       isUrlValid: true,
+      translationProvider: 'local',
     );
   }
 

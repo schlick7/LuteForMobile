@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../features/reader/models/page_data.dart';
+import '../../features/reader/models/term_popup.dart';
+import '../../features/reader/models/term_form.dart';
 import 'api_service.dart';
 import 'html_parser.dart';
 
@@ -54,5 +56,29 @@ class ContentService {
       case ContentMode.refresh:
         return await _apiService.refreshBookPage(bookId, pageNum);
     }
+  }
+
+  Future<TermPopup> getTermPopup(int termId) async {
+    final response = await _apiService.getTermPopup(termId);
+    final htmlContent = response.data ?? '';
+    return _htmlParser.parseTermPopup(htmlContent);
+  }
+
+  Future<TermForm> getTermForm(int langId, String text) async {
+    final response = await _apiService.getTermForm(langId, text);
+    final htmlContent = response.data ?? '';
+    return _htmlParser.parseTermForm(htmlContent);
+  }
+
+  Future<void> saveTermForm(
+    int langId,
+    String text,
+    Map<String, dynamic> data,
+  ) async {
+    await _apiService.postTermForm(langId, text, data);
+  }
+
+  Future<void> editTerm(int termId, Map<String, dynamic> data) async {
+    await _apiService.editTerm(termId, data);
   }
 }

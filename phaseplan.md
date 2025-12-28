@@ -543,10 +543,10 @@ Expand reader functionality to include core reading features from PRD, excluding
 - API endpoints for term/translation data
 
 ### Deliverables
-- [ ] Term form display
-- [ ] Translation popup display
-- [ ] Interactive text with term highlighting
-- [ ] Sentence-level translations
+- [x] Term form display
+- [x] Translation popup display
+- [x] Interactive text with term highlighting
+- [x] Sentence-level translations
 
 ---
 
