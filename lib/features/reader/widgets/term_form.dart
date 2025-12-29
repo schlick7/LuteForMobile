@@ -244,6 +244,10 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   ) {
     final isSelected = _selectedStatus == statusValue;
 
+    final labelColor = !isSelected && statusValue == '5'
+        ? _getStatusColor('4')
+        : (isSelected ? Theme.of(context).colorScheme.onPrimary : statusColor);
+
     return InkWell(
       onTap: () {
         setState(() {
@@ -268,9 +272,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: isSelected
-                  ? Theme.of(context).colorScheme.onPrimary
-                  : statusColor,
+              color: labelColor,
             ),
           ),
         ),
