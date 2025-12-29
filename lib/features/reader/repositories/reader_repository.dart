@@ -4,7 +4,7 @@ import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
 
 class ReaderRepository {
-  final ContentService _contentService;
+  final ContentService contentService;
   final int defaultBookId;
   final int defaultPageId;
 
@@ -12,14 +12,14 @@ class ReaderRepository {
     required ContentService contentService,
     this.defaultBookId = 18,
     this.defaultPageId = 1,
-  }) : _contentService = contentService;
+  }) : contentService = contentService;
 
   Future<PageData> getPage({int? bookId, int? pageNum}) async {
     final effectiveBookId = bookId ?? defaultBookId;
     final effectivePageNum = pageNum ?? defaultPageId;
 
     try {
-      return await _contentService.getPageContent(
+      return await contentService.getPageContent(
         effectiveBookId,
         effectivePageNum,
       );
@@ -30,7 +30,7 @@ class ReaderRepository {
 
   Future<TermTooltip> getTermTooltip(int termId) async {
     try {
-      return await _contentService.getTermTooltip(termId);
+      return await contentService.getTermTooltip(termId);
     } catch (e) {
       throw Exception('Failed to load term tooltip: $e');
     }
@@ -38,7 +38,7 @@ class ReaderRepository {
 
   Future<TermForm> getTermForm(int langId, String text) async {
     try {
-      return await _contentService.getTermForm(langId, text);
+      return await contentService.getTermForm(langId, text);
     } catch (e) {
       throw Exception('Failed to load term form: $e');
     }
@@ -46,7 +46,7 @@ class ReaderRepository {
 
   Future<TermForm> getTermFormById(int termId) async {
     try {
-      return await _contentService.getTermFormById(termId);
+      return await contentService.getTermFormById(termId);
     } catch (e) {
       throw Exception('Failed to load term form: $e');
     }
@@ -58,7 +58,7 @@ class ReaderRepository {
     Map<String, dynamic> data,
   ) async {
     try {
-      await _contentService.saveTermForm(langId, text, data);
+      await contentService.saveTermForm(langId, text, data);
     } catch (e) {
       throw Exception('Failed to save term: $e');
     }
@@ -66,9 +66,17 @@ class ReaderRepository {
 
   Future<void> editTerm(int termId, Map<String, dynamic> data) async {
     try {
-      await _contentService.editTerm(termId, data);
+      await contentService.editTerm(termId, data);
     } catch (e) {
       throw Exception('Failed to edit term: $e');
+    }
+  }
+
+  Future<void> createTerm(int langId, String term) async {
+    try {
+      await contentService.createTerm(langId, term);
+    } catch (e) {
+      throw Exception('Failed to create term: $e');
     }
   }
 }

@@ -23,6 +23,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   String? _tempFont;
   double _tempFontWeight = 2.0;
   bool? _tempIsItalic;
+  TermForm? _currentTermForm;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -215,31 +216,39 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   void _showTermForm(TermForm termForm) {
+    _currentTermForm = termForm;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => TermFormWidget(
-        termForm: termForm,
-        onSave: (updatedForm) async {
-          final success = await ref
-              .read(readerProvider.notifier)
-              .saveTerm(updatedForm);
-          if (success && mounted) {
-            Navigator.of(context).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Term saved successfully')),
-            );
-          } else {
-            if (mounted) {
+      builder: (context) {
+        final repository = ref.read(readerRepositoryProvider);
+        return TermFormWidget(
+          termForm: _currentTermForm ?? termForm,
+          contentService: repository.contentService,
+          onUpdate: (updatedForm) {
+            _currentTermForm = updatedForm;
+          },
+          onSave: (updatedForm) async {
+            final success = await ref
+                .read(readerProvider.notifier)
+                .saveTerm(updatedForm);
+            if (success && mounted) {
+              Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Failed to save term')),
+                const SnackBar(content: Text('Term saved successfully')),
               );
+            } else {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Failed to save term')),
+                );
+              }
             }
-          }
-        },
-        onCancel: () => Navigator.of(context).pop(),
-      ),
+          },
+          onCancel: () => Navigator.of(context).pop(),
+        );
+      },
     );
   }
 

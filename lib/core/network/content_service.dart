@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
@@ -86,5 +87,18 @@ class ContentService {
 
   Future<void> editTerm(int termId, Map<String, dynamic> data) async {
     await _apiService.editTerm(termId, data);
+  }
+
+  Future<List<SearchResultTerm>> searchTerms(String text, int langId) async {
+    final response = await _apiService.searchTerms(text, langId);
+    final jsonString = response.data ?? '[]';
+    final List<dynamic> jsonList = json.decode(jsonString);
+    return jsonList
+        .map((json) => SearchResultTerm.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> createTerm(int langId, String term) async {
+    await _apiService.createTerm(langId, term);
   }
 }

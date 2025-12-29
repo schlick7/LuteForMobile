@@ -103,4 +103,18 @@ class ApiService {
   Future<Response<String>> getBookPageMetadata(int bookId, int pageNum) async {
     return await _dio.get<String>('/read/$bookId/page/$pageNum');
   }
+
+  Future<Response<String>> searchTerms(String text, int langId) async {
+    final encodedText = Uri.encodeComponent(text);
+    return await _dio.get<String>('/term/search/$encodedText/$langId');
+  }
+
+  Future<Response<String>> createTerm(int langId, String term) async {
+    final encodedTerm = Uri.encodeComponent(term);
+    return await _dio.post<String>(
+      '/read/termform/$langId/$encodedTerm',
+      data: {'text': term},
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+  }
 }

@@ -50,10 +50,11 @@ class TermTooltip {
 }
 
 class TermParent {
+  final int? id;
   final String term;
   final String? translation;
 
-  TermParent({required this.term, this.translation});
+  TermParent({this.id, required this.term, this.translation});
 }
 
 class TermChild {

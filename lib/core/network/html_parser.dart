@@ -152,7 +152,7 @@ class HtmlParser {
     for (final parentElement in parentElements) {
       final parentTerm = parentElement.text.trim();
       if (parentTerm.isNotEmpty) {
-        parents.add(TermParent(term: parentTerm));
+        parents.add(TermParent(id: null, term: parentTerm));
       }
     }
 
@@ -233,6 +233,34 @@ class HtmlParser {
       }
     }
 
+    final parents = <TermParent>[];
+    final parentElements = document.querySelectorAll(
+      '.parents-container .parent-item',
+    );
+    for (final parentElement in parentElements) {
+      final parentTextElement = parentElement.querySelector('.parent-term');
+      final parentTranslationElement = parentElement.querySelector(
+        '.parent-translation',
+      );
+      final parentIdElement = parentElement.querySelector(
+        'input[name="parent_ids"]',
+      );
+
+      final parentId = parentIdElement != null
+          ? int.tryParse(parentIdElement.attributes['value'] ?? '')
+          : null;
+
+      if (parentId != null && parentTextElement != null) {
+        parents.add(
+          TermParent(
+            id: parentId,
+            term: parentTextElement.text.trim(),
+            translation: parentTranslationElement?.text.trim(),
+          ),
+        );
+      }
+    }
+
     return TermForm(
       term: term,
       translation: translation,
@@ -242,6 +270,7 @@ class HtmlParser {
       tags: tagList,
       romanization: romanization,
       dictionaries: dictionaries,
+      parents: parents,
     );
   }
 }

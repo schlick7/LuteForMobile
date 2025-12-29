@@ -1,20 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term_form.dart';
+import '../models/term_tooltip.dart';
 import '../../settings/providers/settings_provider.dart'
     show termFormSettingsProvider;
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../core/network/content_service.dart';
+import 'parent_search.dart';
 
 class TermFormWidget extends ConsumerStatefulWidget {
   final TermForm termForm;
   final void Function(TermForm) onSave;
+  final void Function(TermForm) onUpdate;
   final VoidCallback onCancel;
+  final ContentService contentService;
 
   const TermFormWidget({
     super.key,
     required this.termForm,
     required this.onSave,
+    required this.onUpdate,
     required this.onCancel,
+    required this.contentService,
   });
 
   @override
@@ -61,6 +68,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
           .where((tag) => tag.isNotEmpty)
           .toList(),
       romanization: _romanizationController.text.trim(),
+      parents: widget.termForm.parents,
     );
     widget.onSave(updatedForm);
   }
@@ -115,30 +123,34 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(context),
-          const SizedBox(height: 16),
-          _buildTranslationField(context),
-          const SizedBox(height: 16),
-          _buildStatusField(context),
-          if (settings.showRomanization) ...[
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(context),
             const SizedBox(height: 16),
-            _buildRomanizationField(context),
-          ],
-          if (settings.showTags) ...[
+            _buildTranslationField(context),
             const SizedBox(height: 16),
-            _buildTagsField(context),
-          ],
-          if (widget.termForm.dictionaries.isNotEmpty) ...[
+            _buildStatusField(context),
+            if (settings.showRomanization) ...[
+              const SizedBox(height: 16),
+              _buildRomanizationField(context),
+            ],
+            if (settings.showTags) ...[
+              const SizedBox(height: 16),
+              _buildTagsField(context),
+            ],
+            if (widget.termForm.dictionaries.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _buildDictionariesSection(context),
+            ],
             const SizedBox(height: 16),
-            _buildDictionariesSection(context),
+            _buildParentsSection(context),
+            const SizedBox(height: 20),
+            _buildButtons(context),
           ],
-          const SizedBox(height: 20),
-          _buildButtons(context),
-        ],
+        ),
       ),
     );
   }
@@ -358,6 +370,152 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         ),
       ],
     );
+  }
+
+  Widget _buildParentsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Parent Terms',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (widget.termForm.parents.isNotEmpty)
+              TextButton.icon(
+                onPressed: () => _showAddParentDialog(context),
+                icon: const Icon(Icons.add),
+                label: const Text('Add Parent'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (widget.termForm.parents.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.account_tree,
+                    size: 48,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.3),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'No parent terms added',
+                    style: TextStyle(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _showAddParentDialog(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Parent Term'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        if (widget.termForm.parents.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: widget.termForm.parents.map((parent) {
+              return _buildParentChip(context, parent);
+            }).toList(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildParentChip(BuildContext context, TermParent parent) {
+    return Chip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(parent.term),
+          if (parent.translation != null) ...[
+            const SizedBox(width: 4),
+            Text(
+              '(${parent.translation})',
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+          ],
+        ],
+      ),
+      avatar: _getParentStatusIcon(context, parent.id),
+      onDeleted: () => _removeParent(parent),
+    );
+  }
+
+  Widget _getParentStatusIcon(BuildContext context, int? parentId) {
+    return Container(
+      width: 24,
+      height: 24,
+      decoration: BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
+      child: const Icon(Icons.account_tree, color: Colors.white, size: 14),
+    );
+  }
+
+  void _showAddParentDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Parent Term'),
+        content: ParentSearchWidget(
+          languageId: widget.termForm.languageId,
+          existingParentIds: widget.termForm.parents.map((p) => p.id!).toList(),
+          onParentSelected: (parent) {
+            _addParent(parent);
+            Navigator.of(context).pop();
+          },
+          contentService: widget.contentService,
+          onDone: () {
+            Navigator.of(context).pop();
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addParent(TermParent parent) {
+    final updatedForm = widget.termForm.copyWith(
+      parents: [...widget.termForm.parents, parent],
+    );
+    widget.onUpdate(updatedForm);
+  }
+
+  void _removeParent(TermParent parent) {
+    final updatedForm = widget.termForm.copyWith(
+      parents: widget.termForm.parents.where((p) => p.id != parent.id).toList(),
+    );
+    widget.onUpdate(updatedForm);
   }
 
   Widget _buildButtons(BuildContext context) {
