@@ -553,36 +553,43 @@ Expand reader functionality to include core reading features from PRD, excluding
 ## Phase 5.2: Web Dictionary Integration
 
 ### Goal
-Add web dictionary functionality to enhance term and sentence translations.
+Add web dictionary functionality to enhance term and sentence translations by launching external dictionary websites.
 
 ### Features
 
 #### Web Dictionary for Terms
-- Web dictionary integration (url_launcher) for term forms
-- Support for multiple dictionary sources
-- Configurable dictionary preferences
+- Search button (magnifying glass icon) in translation textbox of term form
+- Dictionary URL templates pulled from Lute server language settings (server is source of truth)
+- Launch external dictionary websites using url_launcher or flutter_inappwebview
+- User navigates to website, can copy text, closes and returns to app
+- Support for multiple dictionary URLs per language
 
 #### Web Dictionary for Sentences
-- Integration with web dictionary for sentence translations
-- Support for translation services
-- External translation provider options
+- Search button in sentence translation popup
+- Dictionary URL templates from Lute server language settings
+- Launch external translation/dictionary websites
+- User workflow: navigate → lookup → copy → close → return
 
-#### Enhanced Translation Features
-- Web dictionary links in translation popups
-- User-configurable web dictionary settings
-- Dictionary source management
+#### External Website Integration
+- No API integration, no response parsing
+- Simple URL launching with term/sentence substitution
+- Use flutter_inappwebview for in-app browser or url_launcher for external browser
 
 ### Technical Implementation
-- Web dictionary integration (url_launcher)
-- Dictionary service abstraction layer
-- Configuration management for dictionary sources
-- Enhanced translation components with web support
+- Fetch language settings from Lute server to extract dictionary URL templates
+- Dictionary service for URL construction (substitute {term} or {sentence} placeholders)
+- Add search button widget to translation field in TermFormWidget
+- Add search button to SentenceTranslationWidget
+- url_launcher/flutter_inappwebview integration for website navigation
+- URL pattern: dictionary URL from server with {term} or {sentence} replacement
 
 ### Deliverables
-- [ ] Web dictionary integration for terms
-- [ ] Web dictionary integration for sentences
-- [ ] Dictionary configuration settings
-- [ ] Enhanced translation components with web support
+- [ ] Search button (magnifying glass icon) in term form translation field
+- [ ] Fetch dictionary URL templates from Lute server language settings
+- [ ] Dictionary service for URL construction and launching
+- [ ] Launch external dictionary websites for terms
+- [ ] Search button in sentence translation popup
+- [ ] Launch external dictionary/translation websites for sentences
 
 ---
 
