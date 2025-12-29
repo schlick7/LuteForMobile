@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/sentence_translation.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class SentenceTranslationWidget extends StatelessWidget {
   final String sentence;
@@ -199,7 +200,9 @@ class SentenceTranslationWidget extends StatelessWidget {
   }
 
   Widget _buildProviderBadge(BuildContext context, String provider) {
-    final badgeColor = provider == 'ai' ? Colors.purple : Colors.blue;
+    final badgeColor = provider == 'ai'
+        ? Theme.of(context).colorScheme.aiProvider
+        : Theme.of(context).colorScheme.localProvider;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

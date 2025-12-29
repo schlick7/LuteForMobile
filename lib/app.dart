@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
+import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 
 class App extends StatelessWidget {
   const App({super.key});
@@ -12,10 +13,9 @@ class App extends StatelessWidget {
       child: MaterialApp(
         title: 'LuteForMobile',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.system,
         home: const MainNavigation(),
       ),
     );

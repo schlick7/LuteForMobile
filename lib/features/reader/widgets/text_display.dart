@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/text_item.dart';
 import '../models/paragraph.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class TextDisplay extends StatefulWidget {
   final List<Paragraph> paragraphs;
@@ -124,7 +125,7 @@ class _TextDisplayState extends State<TextDisplay> {
 
     final textStyle = TextStyle(
       color: item.isKnown
-          ? Colors.green.shade700
+          ? Theme.of(context).colorScheme.success
           : Theme.of(context).textTheme.bodyLarge?.color,
       fontWeight: item.isKnown ? FontWeight.bold : FontWeight.normal,
       fontSize: 18,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../providers/settings_provider.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -132,11 +133,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ? null
                             : 'Invalid URL format',
                         suffixIcon: settings.isUrlValid
-                            ? const Icon(
+                            ? Icon(
                                 Icons.check_circle,
-                                color: Colors.green,
+                                color: Theme.of(context).colorScheme.connected,
                               )
-                            : const Icon(Icons.error, color: Colors.red),
+                            : Icon(
+                                Icons.error,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                       ),
                       keyboardType: TextInputType.url,
                       validator: (value) {
@@ -228,13 +232,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: _connectionStatus!.contains('successful')
-                              ? Colors.green.shade100
-                              : Colors.red.shade100,
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.success.withValues(alpha: 0.1)
+                              : Theme.of(
+                                  context,
+                                ).colorScheme.error.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: _connectionStatus!.contains('successful')
-                                ? Colors.green
-                                : Colors.red,
+                                ? Theme.of(context).colorScheme.success
+                                : Theme.of(context).colorScheme.error,
                           ),
                         ),
                         child: Row(
@@ -244,8 +252,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   ? Icons.check_circle
                                   : Icons.error,
                               color: _connectionStatus!.contains('successful')
-                                  ? Colors.green
-                                  : Colors.red,
+                                  ? Theme.of(context).colorScheme.success
+                                  : Theme.of(context).colorScheme.error,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -254,8 +262,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 style: TextStyle(
                                   color:
                                       _connectionStatus!.contains('successful')
-                                      ? Colors.green.shade900
-                                      : Colors.red.shade900,
+                                      ? Theme.of(context).colorScheme.success
+                                      : Theme.of(context).colorScheme.error,
                                 ),
                               ),
                             ),
@@ -306,9 +314,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
-                    const Text(
+                    Text(
                       'This will reset all settings to their default values.',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
                     ),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -364,7 +376,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         icon: const Icon(Icons.restore),
                         label: const Text('Reset to Defaults'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
+                          foregroundColor: Theme.of(context).colorScheme.error,
                         ),
                       ),
                     ),
@@ -389,7 +401,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(color: Colors.grey),
+              style: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
             ),
           ),
         ],

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term_form.dart';
 import '../../settings/providers/settings_provider.dart'
     show termFormSettingsProvider;
+import '../../../shared/theme/theme_extensions.dart';
 
 class TermFormWidget extends ConsumerStatefulWidget {
   final TermForm termForm;
@@ -232,24 +233,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Color _getStatusColor(String status) {
-    switch (status) {
-      case '1':
-        return const Color(0xFFb46b7a);
-      case '2':
-        return const Color(0xFFBA8050);
-      case '3':
-        return const Color(0xFFBD9C7B);
-      case '4':
-        return const Color(0xFF756D6B);
-      case '5':
-        return Colors.grey.shade400;
-      case '99':
-        return const Color(0xFF419252);
-      case '98':
-        return const Color(0xFF8095FF);
-      default:
-        return Colors.grey;
-    }
+    return Theme.of(context).colorScheme.getStatusColor(status);
   }
 
   Widget _buildStatusButton(
@@ -270,7 +254,11 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         width: 48,
         height: 48,
         decoration: BoxDecoration(
-          color: isSelected ? statusColor : statusColor.withValues(alpha: 0.1),
+          color: isSelected
+              ? statusColor
+              : Theme.of(
+                  context,
+                ).colorScheme.getStatusColorWithOpacity(statusValue),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: statusColor, width: isSelected ? 2 : 1),
         ),
@@ -280,7 +268,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: isSelected ? Colors.white : statusColor,
+              color: isSelected
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : statusColor,
             ),
           ),
         ),
