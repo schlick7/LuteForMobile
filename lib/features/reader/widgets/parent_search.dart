@@ -222,7 +222,7 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
                         if (result.translation != null)
                           Text(
                             '(${result.translation!})',
-                            style: Theme.of(context).textTheme.bodyMedium,
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
                       ],
                     ),
