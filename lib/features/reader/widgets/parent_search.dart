@@ -56,7 +56,11 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
 
       setState(() {
         _searchResults = results
-            .where((result) => !widget.existingParentIds.contains(result.id))
+            .where(
+              (result) =>
+                  result.id != null &&
+                  !widget.existingParentIds.contains(result.id),
+            )
             .toList();
       });
     } catch (e) {
@@ -84,7 +88,7 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
         widget.languageId,
       );
 
-      if (results.isNotEmpty) {
+      if (results.isNotEmpty && results.first.id != null) {
         final result = results.first;
         widget.onParentSelected(
           TermParent(
@@ -94,6 +98,8 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
           ),
         );
         widget.onDone();
+      } else {
+        print('Error: Created term not found or has no ID');
       }
     } catch (e) {
       print('Error creating parent term: $e');

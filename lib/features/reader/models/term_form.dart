@@ -1,31 +1,31 @@
 import 'term_tooltip.dart';
 
 class SearchResultTerm {
-  final int id;
+  final int? id;
   final String text;
   final String? translation;
-  final int status;
-  final int langId;
+  final int? status;
+  final int? langId;
 
   SearchResultTerm({
-    required this.id,
+    this.id,
     required this.text,
     this.translation,
-    required this.status,
-    required this.langId,
+    this.status,
+    this.langId,
   });
 
   factory SearchResultTerm.fromJson(Map<String, dynamic> json) {
     return SearchResultTerm(
-      id: json['id'] as int,
-      text: json['text'] as String,
+      id: json['id'] as int?,
+      text: json['text'] as String? ?? '',
       translation: json['translation'] as String?,
-      status: json['status'] as int,
-      langId: json['lang_id'] as int,
+      status: json['status'] as int?,
+      langId: json['lang_id'] as int?,
     );
   }
 
-  String get statusString => status.toString();
+  String get statusString => status?.toString() ?? '';
 }
 
 class TermForm {

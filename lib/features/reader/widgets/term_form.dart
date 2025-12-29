@@ -484,7 +484,11 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         title: const Text('Add Parent Term'),
         content: ParentSearchWidget(
           languageId: widget.termForm.languageId,
-          existingParentIds: widget.termForm.parents.map((p) => p.id!).toList(),
+          existingParentIds: widget.termForm.parents
+              .map((p) => p.id)
+              .where((id) => id != null)
+              .cast<int>()
+              .toList(),
           onParentSelected: (parent) {
             _addParent(parent);
             Navigator.of(context).pop();
@@ -513,7 +517,12 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
   void _removeParent(TermParent parent) {
     final updatedForm = widget.termForm.copyWith(
-      parents: widget.termForm.parents.where((p) => p.id != parent.id).toList(),
+      parents: widget.termForm.parents.where((p) {
+        if (parent.id == null || p.id == null) {
+          return p.term != parent.term;
+        }
+        return p.id != parent.id;
+      }).toList(),
     );
     widget.onUpdate(updatedForm);
   }

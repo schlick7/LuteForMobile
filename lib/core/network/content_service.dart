@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:html/parser.dart' as html_parser;
 import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
@@ -10,11 +11,11 @@ enum ContentMode { reading, peeking, refresh }
 
 class ContentService {
   final ApiService _apiService;
-  final HtmlParser _htmlParser;
+  final HtmlParser parser;
 
   ContentService({required ApiService apiService, HtmlParser? htmlParser})
     : _apiService = apiService,
-      _htmlParser = htmlParser ?? HtmlParser();
+      parser = htmlParser ?? HtmlParser();
 
   Future<PageData> getPageContent(
     int bookId,
@@ -30,7 +31,7 @@ class ContentService {
     );
     final pageMetadataHtml = pageMetadataResponse.data ?? '';
 
-    return _htmlParser.parsePage(
+    return parser.parsePage(
       pageTextHtml,
       pageMetadataHtml,
       bookId: bookId,
@@ -62,19 +63,19 @@ class ContentService {
   Future<TermTooltip> getTermTooltip(int termId) async {
     final response = await _apiService.getTermTooltip(termId);
     final htmlContent = response.data ?? '';
-    return _htmlParser.parseTermTooltip(htmlContent);
+    return parser.parseTermTooltip(htmlContent);
   }
 
   Future<TermForm> getTermForm(int langId, String text) async {
     final response = await _apiService.getTermForm(langId, text);
     final htmlContent = response.data ?? '';
-    return _htmlParser.parseTermForm(htmlContent);
+    return parser.parseTermForm(htmlContent);
   }
 
   Future<TermForm> getTermFormById(int termId) async {
     final response = await _apiService.getTermFormById(termId);
     final htmlContent = response.data ?? '';
-    return _htmlParser.parseTermForm(htmlContent);
+    return parser.parseTermForm(htmlContent);
   }
 
   Future<void> saveTermForm(
@@ -98,7 +99,23 @@ class ContentService {
         .toList();
   }
 
-  Future<void> createTerm(int langId, String term) async {
-    await _apiService.createTerm(langId, term);
+  Future<int?> createTerm(int langId, String term) async {
+    try {
+      final response = await _apiService.createTerm(langId, term);
+      final htmlContent = response.data ?? '';
+
+      final document = html_parser.parse(htmlContent);
+      final termIdInput = document.querySelector('input[name="termid"]');
+
+      if (termIdInput != null) {
+        final id = termIdInput.attributes['value'];
+        return int.tryParse(id ?? '');
+      }
+
+      return null;
+    } catch (e) {
+      print('Error creating term: $e');
+      return null;
+    }
   }
 }
