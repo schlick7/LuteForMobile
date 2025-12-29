@@ -243,9 +243,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                     .saveTerm(updatedForm);
                 if (success && mounted) {
                   Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Term saved successfully')),
-                  );
                 } else {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
