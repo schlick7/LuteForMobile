@@ -21,13 +21,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   static const List<Color> _accentColorOptions = [
     Color(0xFF1976D2), // Blue
-    Color(0xFF9C27B0), // Teal
+    Color(0xFF9C27B0), // Purple
     Color(0xFF4CAF50), // Green
     Color(0xFFFF9800), // Orange
-    Color(0xFF9E9E80), // Red
+    Color(0xFF9E9E80), // Brown
     Color(0xFF6750A4), // Purple
     Color(0xFF795548), // Brown
     Color(0xFF607D8B), // Grey
+    Color(0xFF49454F), // Light gray (text secondary)
+    Color(0xFF938F99), // Lighter Gray
+    Color(0xFFBA1A1A), // Red
   ];
 
   @override
@@ -140,6 +143,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       decoration: InputDecoration(
                         labelText: 'Server URL',
                         hintText: 'http://localhost:5001',
+                        labelStyle: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: context.customColors.accentLabelColor,
+                            ),
                         border: const OutlineInputBorder(),
                         errorText: settings.isUrlValid
                             ? null
@@ -177,10 +184,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _bookIdController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Default Book ID',
                         hintText: '18',
-                        border: OutlineInputBorder(),
+                        labelStyle: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: context.customColors.accentLabelColor,
+                            ),
+                        border: const OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
@@ -196,10 +207,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _pageIdController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Default Page ID',
                         hintText: '1',
-                        border: OutlineInputBorder(),
+                        labelStyle: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: context.customColors.accentLabelColor,
+                            ),
+                        border: const OutlineInputBorder(),
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
