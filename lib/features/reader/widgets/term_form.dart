@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term_form.dart';
-import '../../settings/providers/settings_provider.dart';
+import '../../settings/providers/settings_provider.dart'
+    show fieldSettingsProvider, FieldSettings;
 
 class TermFormWidget extends ConsumerStatefulWidget {
   final TermForm termForm;
@@ -64,7 +65,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   void _showSettingsMenu() {
-    final settings = ref.watch(settingsProvider);
+    final settings = ref.watch(fieldSettingsProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -77,7 +78,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               value: settings.showRomanization,
               onChanged: (value) {
                 ref
-                    .read(settingsProvider.notifier)
+                    .read(fieldSettingsProvider.notifier)
                     .updateShowRomanization(value);
                 Navigator.of(context).pop();
               },
@@ -86,7 +87,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               title: const Text('Show Tags'),
               value: settings.showTags,
               onChanged: (value) {
-                ref.read(settingsProvider.notifier).updateShowTags(value);
+                ref.read(fieldSettingsProvider.notifier).updateShowTags(value);
                 Navigator.of(context).pop();
               },
             ),
@@ -104,7 +105,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider);
+    final settings = ref.watch(fieldSettingsProvider);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(

@@ -7,8 +7,6 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyBookId = 'default_book_id';
   static const String _keyPageId = 'default_page_id';
   static const String _keyTranslationProvider = 'translation_provider';
-  static const String _keyShowRomanization = 'show_romanization';
-  static const String _keyShowTags = 'show_tags';
 
   @override
   Settings build() {
@@ -23,8 +21,6 @@ class SettingsNotifier extends Notifier<Settings> {
     final pageId = prefs.getInt(_keyPageId) ?? 1;
     final translationProvider =
         prefs.getString(_keyTranslationProvider) ?? 'local';
-    final showRomanization = prefs.getBool(_keyShowRomanization) ?? true;
-    final showTags = prefs.getBool(_keyShowTags) ?? true;
 
     state = Settings(
       serverUrl: serverUrl,
@@ -32,8 +28,6 @@ class SettingsNotifier extends Notifier<Settings> {
       defaultPageId: pageId,
       isUrlValid: _isValidUrl(serverUrl),
       translationProvider: translationProvider,
-      showRomanization: showRomanization,
-      showTags: showTags,
     );
   }
 
@@ -68,20 +62,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setString(_keyTranslationProvider, provider);
   }
 
-  Future<void> updateShowRomanization(bool show) async {
-    state = state.copyWith(showRomanization: show);
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyShowRomanization, show);
-  }
-
-  Future<void> updateShowTags(bool show) async {
-    state = state.copyWith(showTags: show);
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyShowTags, show);
-  }
-
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -99,8 +79,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyBookId);
     await prefs.remove(_keyPageId);
     await prefs.remove(_keyTranslationProvider);
-    await prefs.remove(_keyShowRomanization);
-    await prefs.remove(_keyShowTags);
 
     state = Settings.defaultSettings();
   }
@@ -109,3 +87,60 @@ class SettingsNotifier extends Notifier<Settings> {
 final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(() {
   return SettingsNotifier();
 });
+
+class FieldSettings {
+  final bool showRomanization;
+  final bool showTags;
+
+  const FieldSettings({this.showRomanization = true, this.showTags = true});
+
+  FieldSettings copyWith({bool? showRomanization, bool? showTags}) {
+    return FieldSettings(
+      showRomanization: showRomanization ?? this.showRomanization,
+      showTags: showTags ?? this.showTags,
+    );
+  }
+
+  static const FieldSettings defaultSettings = FieldSettings();
+}
+
+class FieldSettingsNotifier extends Notifier<FieldSettings> {
+  static const String _keyShowRomanization = 'show_romanization';
+  static const String _keyShowTags = 'show_tags';
+
+  @override
+  FieldSettings build() {
+    _loadSettings();
+    return FieldSettings.defaultSettings;
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final showRomanization = prefs.getBool(_keyShowRomanization) ?? true;
+    final showTags = prefs.getBool(_keyShowTags) ?? true;
+
+    state = FieldSettings(
+      showRomanization: showRomanization,
+      showTags: showTags,
+    );
+  }
+
+  Future<void> updateShowRomanization(bool show) async {
+    state = state.copyWith(showRomanization: show);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowRomanization, show);
+  }
+
+  Future<void> updateShowTags(bool show) async {
+    state = state.copyWith(showTags: show);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowTags, show);
+  }
+}
+
+final fieldSettingsProvider =
+    NotifierProvider<FieldSettingsNotifier, FieldSettings>(() {
+      return FieldSettingsNotifier();
+    });
