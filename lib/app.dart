@@ -12,6 +12,9 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeSettings = ref.watch(themeSettingsProvider);
+    print(
+      'DEBUG: App.build called, themeSettings.accentLabelColor: ${themeSettings.accentLabelColor}',
+    );
     return MaterialApp(
       title: 'LuteForMobile',
       debugShowCheckedModeBanner: false,

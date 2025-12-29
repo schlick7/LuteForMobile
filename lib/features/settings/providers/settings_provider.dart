@@ -283,35 +283,48 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
 
   @override
   ThemeSettings build() {
-    _loadSettings();
-    return ThemeSettings.defaultSettings;
+    final initialSettings = ThemeSettings.defaultSettings;
+    _loadSettingsInBackground(initialSettings);
+    return initialSettings;
   }
 
-  Future<void> _loadSettings() async {
+  void _loadSettingsInBackground(ThemeSettings currentSettings) async {
     final prefs = await SharedPreferences.getInstance();
     final accentLabelColorValue = prefs.getInt(_keyAccentLabelColor);
     final accentButtonColorValue = prefs.getInt(_keyAccentButtonColor);
 
-    state = ThemeSettings(
+    final loadedSettings = ThemeSettings(
       accentLabelColor: accentLabelColorValue != null
-          ? Color(accentLabelColorValue)
+          ? Color(accentLabelColorValue!)
           : ThemeSettings.defaultSettings.accentLabelColor,
       accentButtonColor: accentButtonColorValue != null
-          ? Color(accentButtonColorValue)
+          ? Color(accentButtonColorValue!)
           : ThemeSettings.defaultSettings.accentButtonColor,
     );
+
+    if (loadedSettings.accentLabelColor.value !=
+            currentSettings.accentLabelColor.value ||
+        loadedSettings.accentButtonColor.value !=
+            currentSettings.accentButtonColor.value) {
+      state = loadedSettings;
+      print('DEBUG: Updated settings from storage: $loadedSettings');
+    }
   }
 
   Future<void> updateAccentLabelColor(Color color) async {
+    print('DEBUG: updateAccentLabelColor called with color: $color');
     state = state.copyWith(accentLabelColor: color);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentLabelColor, color.value);
+    print('DEBUG: Saved accentLabelColor.value = ${color.value}');
   }
 
   Future<void> updateAccentButtonColor(Color color) async {
+    print('DEBUG: updateAccentButtonColor called with color: $color');
     state = state.copyWith(accentButtonColor: color);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentButtonColor, color.value);
+    print('DEBUG: Saved accentButtonColor.value = ${color.value}');
   }
 }
 

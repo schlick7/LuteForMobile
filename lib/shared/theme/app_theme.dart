@@ -197,6 +197,9 @@ class AppTheme {
   }
 
   static ThemeData darkTheme(ThemeSettings themeSettings) {
+    print(
+      'DEBUG: AppTheme.darkTheme() called with accentLabelColor: ${themeSettings.accentLabelColor}',
+    );
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -322,6 +325,14 @@ class AppTheme {
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+      extensions: [
+        CustomThemeExtension(
+          colors: CustomThemeColors(
+            accentLabelColor: themeSettings.accentLabelColor,
+            accentButtonColor: themeSettings.accentButtonColor,
+          ),
+        ),
+      ],
     );
   }
 }
