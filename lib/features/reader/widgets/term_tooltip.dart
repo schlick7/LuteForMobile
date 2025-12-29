@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/term_popup.dart';
 
-class TermTooltip extends StatelessWidget {
+class TermTooltip extends StatefulWidget {
   final TermPopup termPopup;
   final VoidCallback onDismiss;
   final Offset position;
@@ -14,16 +15,66 @@ class TermTooltip extends StatelessWidget {
   });
 
   @override
+  State<TermTooltip> createState() => _TermTooltipState();
+}
+
+class _TermTooltipState extends State<TermTooltip> {
+  final _containerKey = GlobalKey();
+  OverlayEntry? _dismissEntry;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupDismissOverlay();
+  }
+
+  void _setupDismissOverlay() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (!mounted) return;
+      final container = _containerKey.currentContext;
+      if (container == null) return;
+
+      final renderObject = container.findRenderObject();
+      if (renderObject is! RenderBox) return;
+
+      final overlay = Overlay.of(context);
+      final dismissEntry = OverlayEntry(
+        builder: (ctx) => Positioned(
+          left: 0,
+          top: 0,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: widget.onDismiss,
+            excludeFromSemantics: true,
+            child: Container(color: Colors.transparent),
+          ),
+        ),
+      );
+      overlay.insert(dismissEntry);
+
+      setState(() {
+        _dismissEntry = dismissEntry;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _dismissEntry?.remove();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
     final tooltipWidth = 200.0;
-    final tooltipHeight = termPopup.translation != null ? 120.0 : 80.0;
+    final tooltipHeight = widget.termPopup.translation != null ? 120.0 : 80.0;
 
-    double top = position.dy - tooltipHeight - 8;
-    double left = position.dx - tooltipWidth / 2;
+    double top = widget.position.dy - tooltipHeight - 8;
+    double left = widget.position.dx - tooltipWidth / 2;
 
     if (top < 0) {
-      top = position.dy + 30;
+      top = widget.position.dy + 30;
     }
 
     if (left < 0) {
@@ -37,72 +88,71 @@ class TermTooltip extends StatelessWidget {
       left: left,
       child: Material(
         color: Colors.transparent,
-        child: IgnorePointer(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 200),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-              border: Border.all(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: 0.2),
-                width: 1,
+        child: Container(
+          key: _containerKey,
+          constraints: const BoxConstraints(maxWidth: 200),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
+            ],
+            border: Border.all(
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.2),
+              width: 1,
             ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          ),
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.termPopup.term,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (widget.termPopup.translation != null) ...[
+                const SizedBox(height: 4),
                 Text(
-                  termPopup.term,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                  maxLines: 2,
+                  widget.termPopup.translation!,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontStyle: FontStyle.italic,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                  maxLines: 3,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (termPopup.translation != null) ...[
-                  const SizedBox(height: 4),
+              ],
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    _getStatusIcon(widget.termPopup.status),
+                    size: 14,
+                    color: _getStatusColor(context, widget.termPopup.status),
+                  ),
+                  const SizedBox(width: 4),
                   Text(
-                    termPopup.translation!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontStyle: FontStyle.italic,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    widget.termPopup.statusLabel,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: _getStatusColor(context, widget.termPopup.status),
                     ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      _getStatusIcon(termPopup.status),
-                      size: 14,
-                      color: _getStatusColor(context, termPopup.status),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      termPopup.statusLabel,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: _getStatusColor(context, termPopup.status),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

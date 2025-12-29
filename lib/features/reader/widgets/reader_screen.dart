@@ -19,7 +19,6 @@ class ReaderScreen extends ConsumerStatefulWidget {
 
 class ReaderScreenState extends ConsumerState<ReaderScreen> {
   OverlayEntry? _overlayEntry;
-  OverlayEntry? _dismissOverlay;
 
   @override
   void initState() {
@@ -32,7 +31,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   void dispose() {
     _removeTermTooltip();
-    _removeDismissOverlay();
     super.dispose();
   }
 
@@ -116,13 +114,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
         .fetchTermPopup(item.wordId!);
     if (termPopup != null && mounted) {
       _showTermTooltip(termPopup, position);
-      _setupDismissOverlay();
     }
   }
 
   void _handleDoubleTap(TextItem item) async {
     _removeTermTooltip();
-    _removeDismissOverlay();
 
     if (item.langId == null) return;
 
@@ -130,7 +126,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
         .read(readerProvider.notifier)
         .fetchTermForm(item.langId!, item.text);
     if (termForm != null && mounted) {
-      _showTermForm(termForm!);
+      _showTermForm(termForm);
     }
   }
 
@@ -144,7 +140,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
         position: position,
         onDismiss: () {
           _removeTermTooltip();
-          _removeDismissOverlay();
         },
       ),
     );
@@ -155,29 +150,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   void _removeTermTooltip() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-  }
-
-  void _setupDismissOverlay() {
-    _removeDismissOverlay();
-
-    final overlay = Overlay.of(context);
-    _dismissOverlay = OverlayEntry(
-      builder: (context) => GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () {
-          _removeTermTooltip();
-          _removeDismissOverlay();
-        },
-        child: Container(color: Colors.transparent),
-      ),
-    );
-
-    overlay.insert(_dismissOverlay!);
-  }
-
-  void _removeDismissOverlay() {
-    _dismissOverlay?.remove();
-    _dismissOverlay = null;
   }
 
   void _showTermForm(TermForm termForm) {
