@@ -238,7 +238,8 @@ class HtmlParser {
     final romanization = romanizationInput?.attributes['value']?.trim();
 
     final syncStatusInput = document.querySelector('input[name="sync_status"]');
-    bool? syncStatus = syncStatusInput?.attributes['checked'] == 'true';
+    final hasCheckedAttr = syncStatusInput?.attributes.containsKey('checked');
+    bool? syncStatus = hasCheckedAttr ?? false;
 
     final dictionaries = <String>[];
     final dictElements = document.querySelectorAll('.dictionary-list li');

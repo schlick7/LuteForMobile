@@ -107,6 +107,8 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
             id: result.id,
             term: result.text,
             translation: result.translation,
+            status: result.status,
+            syncStatus: result.syncStatus,
           ),
         );
         widget.onDone();
@@ -199,6 +201,7 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
                         term: result.text,
                         translation: result.translation,
                         status: result.status,
+                        syncStatus: result.syncStatus,
                       ),
                     );
                     widget.onDone();

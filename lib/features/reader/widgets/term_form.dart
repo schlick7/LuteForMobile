@@ -414,8 +414,13 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               children: [
                 IconButton(
                   onPressed: () => _showParentLinkMenu(context),
-                  icon: const Icon(Icons.link),
-                  tooltip: 'Link/Unlink parent',
+                  icon: Icon(
+                    Icons.link,
+                    color: _getParentSyncStatus() ? Colors.green : Colors.grey,
+                  ),
+                  tooltip: _getParentSyncStatus()
+                      ? 'Linked to parent'
+                      : 'Not linked to parent',
                   iconSize: 20,
                   constraints: const BoxConstraints(
                     minWidth: 40,
@@ -702,6 +707,10 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       }).toList(),
     );
     widget.onUpdate(updatedForm);
+  }
+
+  bool _getParentSyncStatus() {
+    return widget.termForm.syncStatus == true;
   }
 
   Widget _buildButtons(BuildContext context) {
