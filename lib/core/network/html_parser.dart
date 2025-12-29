@@ -8,6 +8,10 @@ import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
 
 class HtmlParser {
+  final Function(String, int)? searchTermsProvider;
+
+  HtmlParser({this.searchTermsProvider});
+
   PageData parsePage(
     String pageTextHtml,
     String pageMetadataHtml, {
@@ -257,9 +261,15 @@ class HtmlParser {
           for (final item in jsonList) {
             final parentData = item as Map<String, dynamic>;
             final parentTerm = parentData['value'] as String?;
+            print('Parent from HTML: $parentData');
             if (parentTerm != null && parentTerm.isNotEmpty) {
               parents.add(
-                TermParent(id: null, term: parentTerm, translation: null),
+                TermParent(
+                  id: null,
+                  term: parentTerm,
+                  translation: null,
+                  status: parentData['status'] as int?,
+                ),
               );
             }
           }

@@ -205,7 +205,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
       } else {
         termForm = await ref
             .read(readerProvider.notifier)
-            .fetchTermForm(item.langId!, item.text);
+            .fetchTermFormWithDetails(item.langId!, item.text);
       }
       if (termForm != null && mounted) {
         _showTermForm(termForm);

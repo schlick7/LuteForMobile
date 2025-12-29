@@ -190,12 +190,15 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
               children: _searchResults.map((result) {
                 return InkWell(
                   onTap: () {
-                    print('Term clicked: ${result.text}');
+                    print(
+                      'Term clicked: ${result.text}, status: ${result.status}',
+                    );
                     widget.onParentSelected(
                       TermParent(
                         id: result.id,
                         term: result.text,
                         translation: result.translation,
+                        status: result.status,
                       ),
                     );
                     widget.onDone();

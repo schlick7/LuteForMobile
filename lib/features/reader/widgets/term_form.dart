@@ -391,6 +391,12 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Widget _buildParentsSection(BuildContext context) {
+    print(
+      '_buildParentsSection called with ${widget.termForm.parents.length} parents',
+    );
+    for (final p in widget.termForm.parents) {
+      print('  Parent: term=${p.term}, status=${p.status}, id=${p.id}');
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -425,13 +431,16 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Widget _buildParentChip(BuildContext context, TermParent parent) {
+    print(
+      '_buildParentChip called for parent: term=${parent.term}, status=${parent.status}, translation=${parent.translation}',
+    );
     return Chip(
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(parent.term),
-          if (parent.translation != null) ...[
-            const SizedBox(width: 4),
+          if (parent.translation != null) const SizedBox(width: 4),
+          if (parent.translation != null)
             Text(
               '(${parent.translation})',
               style: TextStyle(
@@ -441,21 +450,30 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
-          ],
         ],
       ),
-      avatar: _getParentStatusIcon(context, parent.id),
+      avatar: _getParentStatusIcon(context, parent),
       onDeleted: () => _removeParent(parent),
     );
   }
 
-  Widget _getParentStatusIcon(BuildContext context, int? parentId) {
+  Widget _getParentStatusIcon(BuildContext context, TermParent parent) {
+    print(
+      '_getParentStatusIcon called for parent: ${parent.term}, status: ${parent.status}',
+    );
+    final statusColor = _getParentStatusColor(context, parent.status);
     return Container(
       width: 24,
       height: 24,
-      decoration: BoxDecoration(color: Colors.blue, shape: BoxShape.circle),
+      decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
       child: const Icon(Icons.account_tree, color: Colors.white, size: 14),
     );
+  }
+
+  Color _getParentStatusColor(BuildContext context, int? status) {
+    print('_getParentStatusColor called with status: $status');
+    if (status == null) return Colors.grey;
+    return Theme.of(context).colorScheme.getStatusColor(status.toString());
   }
 
   void _showAddParentDialog(BuildContext context) {

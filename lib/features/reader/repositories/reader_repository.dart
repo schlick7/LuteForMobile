@@ -52,6 +52,22 @@ class ReaderRepository {
     }
   }
 
+  Future<TermForm> getTermFormWithParentDetails(int langId, String text) async {
+    try {
+      return await contentService.getTermFormWithParentDetails(langId, text);
+    } catch (e) {
+      throw Exception('Failed to load term form with parent details: $e');
+    }
+  }
+
+  Future<TermForm> getTermFormByIdWithParentDetails(int termId) async {
+    try {
+      return await contentService.getTermFormByIdWithParentDetails(termId);
+    } catch (e) {
+      throw Exception('Failed to load term form with parent details: $e');
+    }
+  }
+
   Future<void> saveTermForm(
     int langId,
     String text,

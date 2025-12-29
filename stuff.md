@@ -9,4 +9,8 @@ add parents and parent linking
  - use parents status if it has one
 - double tap opens term form of parent - WITHOUT closeing/canceling the orignal termform. Closing parent termform returns you to the termform you came from. 
 
-Text boxs with the labels built into the border to save space.
+compact style text boxs with the labels built into the border to save space.
+
+add accent color theme option
+  - one for buttons
+  - one for labels?

@@ -99,6 +99,56 @@ class ContentService {
         .toList();
   }
 
+  Future<TermForm> getTermFormWithParentDetails(int langId, String text) async {
+    final termForm = await getTermForm(langId, text);
+    if (termForm.parents.isEmpty) {
+      return termForm;
+    }
+    final parentsWithDetails = <TermParent>[];
+    for (final parent in termForm.parents) {
+      final searchResults = await searchTerms(parent.term, langId);
+      if (searchResults.isNotEmpty) {
+        final result = searchResults.first;
+        parentsWithDetails.add(
+          TermParent(
+            id: result.id,
+            term: result.text,
+            translation: result.translation,
+            status: result.status,
+          ),
+        );
+      } else {
+        parentsWithDetails.add(parent);
+      }
+    }
+    return termForm.copyWith(parents: parentsWithDetails);
+  }
+
+  Future<TermForm> getTermFormByIdWithParentDetails(int termId) async {
+    final termForm = await getTermFormById(termId);
+    if (termForm.parents.isEmpty) {
+      return termForm;
+    }
+    final parentsWithDetails = <TermParent>[];
+    for (final parent in termForm.parents) {
+      final searchResults = await searchTerms(parent.term, termForm.languageId);
+      if (searchResults.isNotEmpty) {
+        final result = searchResults.first;
+        parentsWithDetails.add(
+          TermParent(
+            id: result.id,
+            term: result.text,
+            translation: result.translation,
+            status: result.status,
+          ),
+        );
+      } else {
+        parentsWithDetails.add(parent);
+      }
+    }
+    return termForm.copyWith(parents: parentsWithDetails);
+  }
+
   Future<int?> createTerm(int langId, String term) async {
     try {
       final response = await _apiService.createTerm(langId, term);
