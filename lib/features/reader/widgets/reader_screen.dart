@@ -105,22 +105,30 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   void _handleTap(TextItem item, Offset position) async {
     if (item.wordId == null) return;
 
-    final termPopup = await ref
-        .read(readerProvider.notifier)
-        .fetchTermPopup(item.wordId!);
-    if (termPopup != null && mounted) {
-      TermTooltipClass.show(context, termPopup, position);
+    try {
+      final termPopup = await ref
+          .read(readerProvider.notifier)
+          .fetchTermPopup(item.wordId!);
+      if (termPopup != null && mounted) {
+        TermTooltipClass.show(context, termPopup, position);
+      }
+    } catch (e) {
+      return;
     }
   }
 
   void _handleDoubleTap(TextItem item) async {
     if (item.langId == null) return;
 
-    final termForm = await ref
-        .read(readerProvider.notifier)
-        .fetchTermForm(item.langId!, item.text);
-    if (termForm != null && mounted) {
-      _showTermForm(termForm);
+    try {
+      final termForm = await ref
+          .read(readerProvider.notifier)
+          .fetchTermForm(item.langId!, item.text);
+      if (termForm != null && mounted) {
+        _showTermForm(termForm);
+      }
+    } catch (e) {
+      return;
     }
   }
 

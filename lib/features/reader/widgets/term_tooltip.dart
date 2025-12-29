@@ -4,11 +4,22 @@ import '../models/term_popup.dart';
 
 class TermTooltipClass {
   static void show(BuildContext context, TermPopup termPopup, Offset position) {
+    try {
+      _showInternal(context, termPopup, position);
+    } catch (e) {
+      return;
+    }
+  }
+
+  static void _showInternal(
+    BuildContext context,
+    TermPopup termPopup,
+    Offset position,
+  ) {
     final screenSize = MediaQuery.of(context).size;
     final tooltipWidth = 200.0;
-    final tooltipHeight = termPopup.translation != null ? 120.0 : 80.0;
 
-    double top = position.dy - tooltipHeight - 8;
+    double top = position.dy - 80.0 - 8;
     double left = position.dx - tooltipWidth / 2;
 
     if (top < 0) {
@@ -90,23 +101,6 @@ class TermTooltipClass {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            _getStatusIcon(termPopup.status),
-                            size: 14,
-                            color: _getStatusColor(ctx, termPopup.status),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            termPopup.statusLabel,
-                            style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
-                              color: _getStatusColor(ctx, termPopup.status),
-                            ),
-                          ),
-                        ],
-                      ),
                     ],
                   ),
                 ),
@@ -124,45 +118,5 @@ class TermTooltipClass {
         Navigator.of(context).pop();
       }
     });
-  }
-
-  static Color _getStatusColor(BuildContext context, String status) {
-    switch (status) {
-      case '99':
-        return Colors.green.shade700;
-      case '0':
-        return Colors.blue.shade600;
-      case '1':
-        return Colors.pink.shade700;
-      case '2':
-        return Colors.orange.shade700;
-      case '3':
-        return Colors.amber.shade700;
-      case '4':
-        return Colors.grey.shade600;
-      case '5':
-        return Colors.grey.shade400;
-      default:
-        return Theme.of(context).colorScheme.primary;
-    }
-  }
-
-  static IconData _getStatusIcon(String status) {
-    switch (status) {
-      case '99':
-        return Icons.check_circle;
-      case '0':
-        return Icons.block;
-      case '1':
-        return Icons.school;
-      case '2':
-        return Icons.auto_stories;
-      case '3':
-        return Icons.menu_book;
-      case '4':
-        return Icons.book;
-      default:
-        return Icons.help_outline;
-    }
   }
 }
