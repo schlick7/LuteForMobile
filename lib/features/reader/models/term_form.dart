@@ -98,7 +98,8 @@ class TermForm {
       'romanization': romanization ?? '',
     };
 
-    if (syncStatus == true) {
+    final canSync = parents.length <= 1;
+    if (syncStatus == true && canSync) {
       data['sync_status'] = 'y';
     }
 

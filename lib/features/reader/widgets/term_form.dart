@@ -73,6 +73,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   void _handleSave() {
+    final canSync = widget.termForm.parents.length <= 1;
     final updatedForm = widget.termForm.copyWith(
       translation: _translationController.text.trim(),
       status: _selectedStatus,
@@ -84,6 +85,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
           .toList(),
       romanization: _romanizationController.text.trim(),
       parents: widget.termForm.parents,
+      syncStatus: canSync ? widget.termForm.syncStatus : false,
     );
     widget.onSave(updatedForm);
   }
@@ -412,20 +414,25 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             ),
             Row(
               children: [
-                IconButton(
-                  onPressed: () => _showParentLinkMenu(context),
-                  icon: Icon(
-                    Icons.link,
-                    color: _getParentSyncStatus() ? Colors.green : Colors.grey,
-                  ),
-                  tooltip: _getParentSyncStatus()
-                      ? 'Sync with parent: ON'
-                      : 'Sync with parent: OFF',
-                  iconSize: 20,
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    minHeight: 40,
-                  ),
+                Stack(
+                  children: [
+                    IconButton(
+                      onPressed: _canSyncWithParent()
+                          ? () => _showParentLinkMenu(context)
+                          : null,
+                      icon: Icon(Icons.link, color: _getLinkIconColor()),
+                      tooltip: _getLinkTooltip(),
+                      iconSize: 20,
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                    ),
+                    if (_hasMultipleParents())
+                      Positioned.fill(
+                        child: CustomPaint(painter: _StrikethroughPainter()),
+                      ),
+                  ],
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
@@ -453,7 +460,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   void _showParentLinkMenu(BuildContext context) {
     if (widget.termForm.parents.isEmpty) {
       _showLinkDialog(context);
-    } else {
+    } else if (widget.termForm.parents.length == 1) {
       final updatedForm = widget.termForm.copyWith(
         syncStatus: widget.termForm.syncStatus == true ? false : true,
       );
@@ -671,6 +678,30 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     return widget.termForm.syncStatus == true;
   }
 
+  bool _canSyncWithParent() {
+    return widget.termForm.parents.length <= 1;
+  }
+
+  bool _hasMultipleParents() {
+    return widget.termForm.parents.length > 1;
+  }
+
+  Color _getLinkIconColor() {
+    if (_hasMultipleParents()) {
+      return Colors.grey;
+    }
+    return _getParentSyncStatus() ? Colors.green : Colors.grey;
+  }
+
+  String _getLinkTooltip() {
+    if (_hasMultipleParents()) {
+      return 'Cannot sync - multiple parents';
+    }
+    return _getParentSyncStatus()
+        ? 'Sync with parent: ON'
+        : 'Sync with parent: OFF';
+  }
+
   Widget _buildButtons(BuildContext context) {
     return Row(
       children: [
@@ -691,4 +722,25 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       ],
     );
   }
+}
+
+class _StrikethroughPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.grey
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
+
+    final offset = 8.0;
+
+    canvas.drawLine(
+      Offset(offset, offset),
+      Offset(size.width - offset, size.height - offset),
+      paint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_StrikethroughPainter oldDelegate) => false;
 }
