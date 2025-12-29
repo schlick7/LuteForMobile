@@ -2,58 +2,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/term_popup.dart';
 
-class TermTooltip extends StatefulWidget {
-  final TermPopup termPopup;
-  final VoidCallback onDismiss;
-  final Offset position;
-
-  const TermTooltip({
-    super.key,
-    required this.termPopup,
-    required this.onDismiss,
-    required this.position,
-  });
-
-  @override
-  State<TermTooltip> createState() => _TermTooltipState();
-}
-
-class _TermTooltipState extends State<TermTooltip> {
-  final _containerKey = GlobalKey();
-  Timer? _dismissTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _setupAutoDismiss();
-  }
-
-  void _setupAutoDismiss() {
-    _dismissTimer?.cancel();
-    _dismissTimer = Timer(const Duration(seconds: 5), () {
-      if (mounted) {
-        widget.onDismiss();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _dismissTimer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+class TermTooltipClass {
+  static void show(BuildContext context, TermPopup termPopup, Offset position) {
     final screenSize = MediaQuery.of(context).size;
     final tooltipWidth = 200.0;
-    final tooltipHeight = widget.termPopup.translation != null ? 120.0 : 80.0;
+    final tooltipHeight = termPopup.translation != null ? 120.0 : 80.0;
 
-    double top = widget.position.dy - tooltipHeight - 8;
-    double left = widget.position.dx - tooltipWidth / 2;
+    double top = position.dy - tooltipHeight - 8;
+    double left = position.dx - tooltipWidth / 2;
 
     if (top < 0) {
-      top = widget.position.dy + 30;
+      top = position.dy + 30;
     }
 
     if (left < 0) {
@@ -62,89 +21,112 @@ class _TermTooltipState extends State<TermTooltip> {
       left = screenSize.width - tooltipWidth - 8;
     }
 
-    return Positioned(
-      top: top,
-      left: left,
-      child: GestureDetector(
-        onTap: widget.onDismiss,
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            key: _containerKey,
-            constraints: const BoxConstraints(maxWidth: 200),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-              border: Border.all(
-                color: Theme.of(
-                  context,
-                ).colorScheme.outline.withValues(alpha: 0.2),
-                width: 1,
+    _setupAutoDismiss(context);
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.transparent,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () => Navigator.of(ctx).pop(),
+                excludeFromSemantics: true,
+                child: Container(color: Colors.transparent),
               ),
             ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.termPopup.term,
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (widget.termPopup.translation != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.termPopup.translation!,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontStyle: FontStyle.italic,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(
-                      _getStatusIcon(widget.termPopup.status),
-                      size: 14,
-                      color: _getStatusColor(context, widget.termPopup.status),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      widget.termPopup.statusLabel,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: _getStatusColor(
-                          context,
-                          widget.termPopup.status,
-                        ),
+            Positioned(
+              top: top,
+              left: left,
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 200),
+                  decoration: BoxDecoration(
+                    color: Theme.of(ctx).colorScheme.surface,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
+                    ],
+                    border: Border.all(
+                      color: Theme.of(
+                        ctx,
+                      ).colorScheme.outline.withValues(alpha: 0.2),
+                      width: 1,
                     ),
-                  ],
+                  ),
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        termPopup.term,
+                        style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (termPopup.translation != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          termPopup.translation!,
+                          style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: Theme.of(
+                              ctx,
+                            ).colorScheme.onSurface.withValues(alpha: 0.7),
+                          ),
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            _getStatusIcon(termPopup.status),
+                            size: 14,
+                            color: _getStatusColor(ctx, termPopup.status),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            termPopup.statusLabel,
+                            style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
+                              color: _getStatusColor(ctx, termPopup.status),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
+          ],
+        );
+      },
     );
   }
 
-  Color _getStatusColor(BuildContext context, String status) {
+  static void _setupAutoDismiss(BuildContext context) {
+    Timer(const Duration(seconds: 5), () {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  static Color _getStatusColor(BuildContext context, String status) {
     switch (status) {
       case '99':
         return Colors.green.shade700;
@@ -165,7 +147,7 @@ class _TermTooltipState extends State<TermTooltip> {
     }
   }
 
-  IconData _getStatusIcon(String status) {
+  static IconData _getStatusIcon(String status) {
     switch (status) {
       case '99':
         return Icons.check_circle;

@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../models/text_item.dart';
-import '../models/term_popup.dart';
 import '../models/term_form.dart';
 import '../providers/reader_provider.dart';
+import '../widgets/term_tooltip.dart';
 import 'text_display.dart';
-import 'term_tooltip.dart';
 import 'term_form.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -18,8 +17,6 @@ class ReaderScreen extends ConsumerStatefulWidget {
 }
 
 class ReaderScreenState extends ConsumerState<ReaderScreen> {
-  OverlayEntry? _overlayEntry;
-
   @override
   void initState() {
     super.initState();
@@ -30,7 +27,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
 
   @override
   void dispose() {
-    _removeTermTooltip();
     super.dispose();
   }
 
@@ -113,13 +109,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
         .read(readerProvider.notifier)
         .fetchTermPopup(item.wordId!);
     if (termPopup != null && mounted) {
-      _showTermTooltip(termPopup, position);
+      TermTooltipClass.show(context, termPopup, position);
     }
   }
 
   void _handleDoubleTap(TextItem item) async {
-    _removeTermTooltip();
-
     if (item.langId == null) return;
 
     final termForm = await ref
@@ -128,28 +122,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     if (termForm != null && mounted) {
       _showTermForm(termForm);
     }
-  }
-
-  void _showTermTooltip(TermPopup termPopup, Offset position) {
-    _removeTermTooltip();
-
-    final overlay = Overlay.of(context);
-    _overlayEntry = OverlayEntry(
-      builder: (context) => TermTooltip(
-        termPopup: termPopup,
-        position: position,
-        onDismiss: () {
-          _removeTermTooltip();
-        },
-      ),
-    );
-
-    overlay.insert(_overlayEntry!);
-  }
-
-  void _removeTermTooltip() {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
   }
 
   void _showTermForm(TermForm termForm) {
