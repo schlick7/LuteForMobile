@@ -108,25 +108,4 @@ class TermForm {
 
     return data;
   }
-    final data = {
-      'text': term,
-      'translation': translation ?? '',
-      'status': status,
-      'tags': tags?.join(',') ?? '',
-      'romanization': romanization ?? '',
-    };
-
-    if (syncStatus) {
-      data['sync_status'] = 'y';
-    }
-
-    if (parents.isNotEmpty) {
-      final parentsList = parents.map((p) => {'value': p.term}).toList();
-      final parentsListJson = jsonEncode(parentsList);
-      data['parentslist'] = parentsListJson;
-      print('Sending parentslist: $parentsListJson');
-    }
-
-    return data;
-  }
 }
