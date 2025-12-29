@@ -434,13 +434,21 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     print(
       '_buildParentChip called for parent: term=${parent.term}, status=${parent.status}, translation=${parent.translation}',
     );
+    final status = parent.status?.toString() ?? '0';
+    final textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
+    final backgroundColor = Theme.of(
+      context,
+    ).colorScheme.getStatusBackgroundColor(status);
+    final statusColor = Theme.of(context).colorScheme.getStatusColor(status);
+
     return Chip(
+      backgroundColor: backgroundColor,
       label: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(parent.term),
-          if (parent.translation != null) const SizedBox(width: 4),
-          if (parent.translation != null)
+          Text(parent.term, style: TextStyle(color: textColor)),
+          if (parent.translation != null) ...[
+            const SizedBox(width: 4),
             Text(
               '(${parent.translation})',
               style: TextStyle(
@@ -450,30 +458,16 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 ).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
+          ],
         ],
       ),
-      avatar: _getParentStatusIcon(context, parent),
+      avatar: CircleAvatar(
+        backgroundColor: statusColor,
+        radius: 12,
+        child: const Icon(Icons.account_tree, color: Colors.white, size: 12),
+      ),
       onDeleted: () => _removeParent(parent),
     );
-  }
-
-  Widget _getParentStatusIcon(BuildContext context, TermParent parent) {
-    print(
-      '_getParentStatusIcon called for parent: ${parent.term}, status: ${parent.status}',
-    );
-    final statusColor = _getParentStatusColor(context, parent.status);
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
-      child: const Icon(Icons.account_tree, color: Colors.white, size: 14),
-    );
-  }
-
-  Color _getParentStatusColor(BuildContext context, int? status) {
-    print('_getParentStatusColor called with status: $status');
-    if (status == null) return Colors.grey;
-    return Theme.of(context).colorScheme.getStatusColor(status.toString());
   }
 
   void _showAddParentDialog(BuildContext context) {
