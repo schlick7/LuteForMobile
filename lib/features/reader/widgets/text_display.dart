@@ -29,6 +29,8 @@ class _TextDisplayState extends State<TextDisplay> {
         _doubleTapTimer!.isActive) {
       _doubleTapTimer?.cancel();
       widget.onDoubleTap?.call(item);
+      _doubleTapTimer = null;
+      _lastTappedItem = null;
     } else {
       _lastTappedItem = item;
       _doubleTapTimer?.cancel();
@@ -75,15 +77,12 @@ class _TextDisplayState extends State<TextDisplay> {
 
   Widget _buildInteractiveWord(BuildContext context, TextItem item) {
     if (item.isSpace) {
-      return GestureDetector(
-        onTapDown: (details) => _handleTap(item, details.globalPosition),
-        child: Text(
-          item.text,
-          style: TextStyle(
-            fontSize: 18,
-            height: 1.5,
-            color: Theme.of(context).textTheme.bodyLarge?.color,
-          ),
+      return Text(
+        item.text,
+        style: TextStyle(
+          fontSize: 18,
+          height: 1.5,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
         ),
       );
     }
@@ -98,6 +97,7 @@ class _TextDisplayState extends State<TextDisplay> {
     );
 
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTapDown: (details) => _handleTap(item, details.globalPosition),
       child: Text(item.text, style: textStyle),
     );

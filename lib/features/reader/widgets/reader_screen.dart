@@ -93,7 +93,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: () => _closeTooltips(),
+      onTap: () => TermTooltipClass.close(),
       child: TextDisplay(
         paragraphs: state.pageData!.paragraphs,
         onTap: (item, position) {
@@ -106,16 +106,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  void _closeTooltips() {
-    if (Navigator.of(context).canPop()) {
-      Navigator.of(context).pop();
-    }
-  }
-
   void _handleTap(TextItem item, Offset position) async {
     if (item.isSpace) return;
 
-    _closeTooltips();
+    TermTooltipClass.close();
 
     try {
       if (item.wordId == null) return;
