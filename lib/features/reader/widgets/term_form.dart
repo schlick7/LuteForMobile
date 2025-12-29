@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term_form.dart';
+import '../../settings/providers/settings_provider.dart';
 
-class TermFormWidget extends StatefulWidget {
+class TermFormWidget extends ConsumerStatefulWidget {
   final TermForm termForm;
   final void Function(TermForm) onSave;
   final VoidCallback onCancel;
@@ -14,10 +16,10 @@ class TermFormWidget extends StatefulWidget {
   });
 
   @override
-  State<TermFormWidget> createState() => _TermFormWidgetState();
+  ConsumerState<TermFormWidget> createState() => _TermFormWidgetState();
 }
 
-class _TermFormWidgetState extends State<TermFormWidget> {
+class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   late TextEditingController _translationController;
   late String _status;
   late TextEditingController _tagsController;
@@ -61,8 +63,48 @@ class _TermFormWidgetState extends State<TermFormWidget> {
     widget.onSave(updatedForm);
   }
 
+  void _showSettingsMenu() {
+    final settings = ref.watch(settingsProvider);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Field Settings'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SwitchListTile(
+              title: const Text('Show Romanization'),
+              value: settings.showRomanization,
+              onChanged: (value) {
+                ref
+                    .read(settingsProvider.notifier)
+                    .updateShowRomanization(value);
+                Navigator.of(context).pop();
+              },
+            ),
+            SwitchListTile(
+              title: const Text('Show Tags'),
+              value: settings.showTags,
+              onChanged: (value) {
+                ref.read(settingsProvider.notifier).updateShowTags(value);
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(settingsProvider);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -80,10 +122,14 @@ class _TermFormWidgetState extends State<TermFormWidget> {
           _buildTranslationField(context),
           const SizedBox(height: 16),
           _buildStatusField(context),
-          const SizedBox(height: 16),
-          _buildRomanizationField(context),
-          const SizedBox(height: 16),
-          _buildTagsField(context),
+          if (settings.showRomanization) ...[
+            const SizedBox(height: 16),
+            _buildRomanizationField(context),
+          ],
+          if (settings.showTags) ...[
+            const SizedBox(height: 16),
+            _buildTagsField(context),
+          ],
           if (widget.termForm.dictionaries.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildDictionariesSection(context),
@@ -105,10 +151,19 @@ class _TermFormWidgetState extends State<TermFormWidget> {
             context,
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
-        IconButton(
-          onPressed: widget.onCancel,
-          icon: const Icon(Icons.close),
-          tooltip: 'Close',
+        Row(
+          children: [
+            IconButton(
+              onPressed: _showSettingsMenu,
+              icon: const Icon(Icons.settings),
+              tooltip: 'Field Settings',
+            ),
+            IconButton(
+              onPressed: widget.onCancel,
+              icon: const Icon(Icons.close),
+              tooltip: 'Close',
+            ),
+          ],
         ),
       ],
     );
