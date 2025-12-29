@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'term_tooltip.dart';
 
 class SearchResultTerm {
@@ -76,6 +77,11 @@ class TermForm {
   }
 
   Map<String, dynamic> toFormData() {
+    print('Converting term form to form data');
+    print('Parents count: ${parents.length}');
+    for (final p in parents) {
+      print('Parent: id=${p.id}, term=${p.term}, translation=${p.translation}');
+    }
     final data = {
       'text': term,
       'translation': translation ?? '',
@@ -85,23 +91,10 @@ class TermForm {
     };
 
     if (parents.isNotEmpty) {
-      final existingParentIds = parents
-          .where((p) => p.id != null)
-          .map((p) => p.id)
-          .join(',');
-
-      final newParentTerms = parents
-          .where((p) => p.id == null)
-          .map((p) => p.term)
-          .join(',');
-
-      if (existingParentIds.isNotEmpty) {
-        data['parent_ids'] = existingParentIds;
-      }
-
-      if (newParentTerms.isNotEmpty) {
-        data['parent_texts'] = newParentTerms;
-      }
+      final parentsList = parents.map((p) => {'value': p.term}).toList();
+      final parentsListJson = jsonEncode(parentsList);
+      data['parentslist'] = parentsListJson;
+      print('Sending parentslist: $parentsListJson');
     }
 
     return data;

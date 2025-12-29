@@ -1,4 +1,5 @@
 import 'package:html/parser.dart' as html_parser;
+import 'dart:convert';
 import 'package:html/dom.dart' as html;
 import '../../features/reader/models/text_item.dart';
 import '../../features/reader/models/paragraph.dart';
@@ -178,7 +179,15 @@ class HtmlParser {
   }
 
   TermForm parseTermForm(String htmlContent) {
+    print('Parsing term form HTML...');
+    print('HTML length: ${htmlContent.length}');
     final document = html_parser.parse(htmlContent);
+    print('Searching for parent elements...');
+    final previewLength = htmlContent.length > 2000 ? 2000 : htmlContent.length;
+    print(
+      'HTML snippet (first $previewLength chars): ${htmlContent.substring(0, previewLength)}',
+    );
+    print('Searching for parent elements...');
 
     final termInput = document.querySelector('input[name="text"]');
     final term = termInput?.attributes['value']?.trim() ?? '';
@@ -234,30 +243,30 @@ class HtmlParser {
     }
 
     final parents = <TermParent>[];
-    final parentElements = document.querySelectorAll(
-      '.parents-container .parent-item',
+    final parentsListInput = document.querySelector(
+      'input[name="parentslist"]',
     );
-    for (final parentElement in parentElements) {
-      final parentTextElement = parentElement.querySelector('.parent-term');
-      final parentTranslationElement = parentElement.querySelector(
-        '.parent-translation',
-      );
-      final parentIdElement = parentElement.querySelector(
-        'input[name="parent_ids"]',
-      );
-
-      final parentId = parentIdElement != null
-          ? int.tryParse(parentIdElement.attributes['value'] ?? '')
-          : null;
-
-      if (parentId != null && parentTextElement != null) {
-        parents.add(
-          TermParent(
-            id: parentId,
-            term: parentTextElement.text.trim(),
-            translation: parentTranslationElement?.text.trim(),
-          ),
-        );
+    if (parentsListInput != null) {
+      final parentsListValue = parentsListInput.attributes['value'];
+      print('Found parentslist input with value: $parentsListValue');
+      if (parentsListValue != null && parentsListValue.isNotEmpty) {
+        try {
+          final decoded = Uri.decodeComponent(parentsListValue);
+          print('Decoded parents list: $decoded');
+          final jsonList = jsonDecode(decoded) as List;
+          for (final item in jsonList) {
+            final parentData = item as Map<String, dynamic>;
+            final parentTerm = parentData['value'] as String?;
+            if (parentTerm != null && parentTerm.isNotEmpty) {
+              parents.add(
+                TermParent(id: null, term: parentTerm, translation: null),
+              );
+            }
+          }
+          print('Parsed ${parents.length} parents');
+        } catch (e) {
+          print('Error parsing parents list: $e');
+        }
       }
     }
 

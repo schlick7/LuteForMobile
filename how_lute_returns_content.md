@@ -4,7 +4,6 @@
 
 The Lute v3 server returns book content through **HTML with embedded data attributes**, NOT JSON.
 
-## Critical Endpoints for Phase 1
 
 ### Endpoint to Use
 ```
@@ -72,9 +71,8 @@ Returns HTML with `<span>` elements containing actual text:
 | `data-order` | Position within sentence |
 | `class` | CSS classes: `textitem`, `sentencestart`, `click` |
 
-## Phase 1 HTML Parser Requirements
+## HTML Parser Requirements
 
-For the reader MVP, we need to parse:
 
 1. **Extract all `<span>` elements** with `data-text` attribute
 2. **Extract text** from each `data-text` attribute
@@ -93,44 +91,3 @@ For the reader MVP, we need to parse:
 - Clickable words: Each word in its own TextSpan
 - Word status: "Érase" (status99=known), "una" (status0=ignored), "muchacho" (status99=known)
 - Space preservation: Handle empty spans between words
-
-## Updated Phase 1 Checklist
-
-### HTML Parser
-- [ ] Create HTML parser service
-  - [ ] Parse HTML from `/read/start_reading/14/1`
-  - [ ] Extract all `<span>` elements with `data-text` attribute
-  - [ ] Extract text from `data-text` attributes
-  - [ ] Extract status from `data-status-class`
-  - [ ] Extract word IDs from `data-wid`
-  - [ ] Parse sentence structure (sentencestart, word order)
-  - [ ] Handle empty spans/spaces
-  - [ ] Group words by sentence
-
-### Data Models
-- [ ] Create text item model
-  - [ ] Text content
-  - [ ] Status class (status99, status0- status1, etc.)
-  - [ ] Word ID (optional)
-  - [ ] Sentence ID
-  - [ ] Is start of sentence
-  - [ ] Position in sentence (data-order)
-- [ ] Create paragraph model
-  - [ ] List of text items
-  - [ ] Sentence ID
-  - [ ] Paragraph ID
-
-### UI Components
-- [ ] Create sentence widget
-  - [ ] Display words as individual TextSpans
-  - [ ] Apply different styles based on status (known vs unknown)
-  - [ ] Add tap/double-tap gesture handlers
-- [ ] Create paragraph widget
-  - [ ] Display sentences with proper spacing
-  - [ ] Handle RTL/LTR languages
-
-### Network Layer
-- [ ] Update reader repository
-  - [ ] Call `/read/start_reading/14/1` instead of `/read/14`
-  - [ ] Parse HTML response
-  - [ ] Return parsed data models
