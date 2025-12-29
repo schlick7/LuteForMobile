@@ -73,7 +73,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   void _handleSave() {
-    final canSync = widget.termForm.parents.length <= 1;
     final updatedForm = widget.termForm.copyWith(
       translation: _translationController.text.trim(),
       status: _selectedStatus,
@@ -85,7 +84,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
           .toList(),
       romanization: _romanizationController.text.trim(),
       parents: widget.termForm.parents,
-      syncStatus: canSync ? widget.termForm.syncStatus : false,
     );
     widget.onSave(updatedForm);
   }
