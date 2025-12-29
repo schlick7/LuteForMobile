@@ -419,8 +419,8 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                     color: _getParentSyncStatus() ? Colors.green : Colors.grey,
                   ),
                   tooltip: _getParentSyncStatus()
-                      ? 'Linked to parent'
-                      : 'Not linked to parent',
+                      ? 'Sync with parent: ON'
+                      : 'Sync with parent: OFF',
                   iconSize: 20,
                   constraints: const BoxConstraints(
                     minWidth: 40,
@@ -451,19 +451,13 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   void _showParentLinkMenu(BuildContext context) {
-    if (widget.termForm.termId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please save the term first before linking'),
-        ),
-      );
-      return;
-    }
-
     if (widget.termForm.parents.isEmpty) {
       _showLinkDialog(context);
     } else {
-      _showUnlinkDialog(context);
+      final updatedForm = widget.termForm.copyWith(
+        syncStatus: widget.termForm.syncStatus == true ? false : true,
+      );
+      widget.onUpdate(updatedForm);
     }
   }
 
@@ -491,40 +485,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         ],
       ),
     );
-  }
-
-  void _showUnlinkDialog(BuildContext context) {
-    final parentTerm = widget.termForm.parents.isNotEmpty
-        ? widget.termForm.parents.first.term
-        : 'parent';
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Unlink Parent'),
-        content: Text(
-          'Are you sure you want to unlink from "$parentTerm"?\n\n'
-          'This term will no longer be a child of that parent.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _unlinkFromParent();
-            },
-            child: const Text('Unlink'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _unlinkFromParent() {
-    final updatedForm = widget.termForm.copyWith(parents: []);
-    widget.onUpdate(updatedForm);
   }
 
   void _showParentSearchForLinking(BuildContext context) {
@@ -618,10 +578,8 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove Parent'),
-        content: Text(
-          'Are you sure you want to remove "${parent.term}" as a parent term?',
-        ),
+        title: const Text('Unlink Parent'),
+        content: Text('Are you sure you want to unlink from "${parent.term}"?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -632,7 +590,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               Navigator.of(context).pop();
               _removeParent(parent);
             },
-            child: const Text('Remove'),
+            child: const Text('Unlink'),
           ),
         ],
       ),
