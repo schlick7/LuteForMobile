@@ -221,7 +221,7 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
                         _buildStatusHighlight(context, result),
                         if (result.translation != null)
                           Text(
-                            result.translation!,
+                            '(${result.translation!})',
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                       ],
