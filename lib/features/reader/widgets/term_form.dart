@@ -410,10 +410,25 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            ElevatedButton.icon(
-              onPressed: () => _showAddParentDialog(context),
-              icon: const Icon(Icons.add),
-              label: const Text('Add Parent Term'),
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () => _showParentLinkMenu(context),
+                  icon: const Icon(Icons.link),
+                  tooltip: 'Link/Unlink parent',
+                  iconSize: 20,
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddParentDialog(context),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Parent Term'),
+                ),
+              ],
             ),
           ],
         ),
@@ -428,6 +443,134 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
           ),
       ],
     );
+  }
+
+  void _showParentLinkMenu(BuildContext context) {
+    if (widget.termForm.termId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please save the term first before linking'),
+        ),
+      );
+      return;
+    }
+
+    if (widget.termForm.parents.isEmpty) {
+      _showLinkDialog(context);
+    } else {
+      _showUnlinkDialog(context);
+    }
+  }
+
+  void _showLinkDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Link Parent Term'),
+        content: const Text(
+          'This term will inherit the status of the parent term.\n\n'
+          'The parent term will show this term as a child.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _showParentSearchForLinking(context);
+            },
+            child: const Text('Link'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showUnlinkDialog(BuildContext context) {
+    final parentTerm = widget.termForm.parents.isNotEmpty
+        ? widget.termForm.parents.first.term
+        : 'parent';
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unlink Parent'),
+        content: Text(
+          'Are you sure you want to unlink from "$parentTerm"?\n\n'
+          'This term will no longer be a child of that parent.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _unlinkFromParent();
+            },
+            child: const Text('Unlink'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _unlinkFromParent() {
+    final updatedForm = widget.termForm.copyWith(parents: []);
+    widget.onUpdate(updatedForm);
+  }
+
+  void _showParentSearchForLinking(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Link to Parent Term',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                ParentSearchWidget(
+                  languageId: widget.termForm.languageId,
+                  existingParentIds: widget.termForm.parents
+                      .map((p) => p.id)
+                      .where((id) => id != null)
+                      .cast<int>()
+                      .toList(),
+                  onParentSelected: (parent) {
+                    _linkToParent(parent);
+                  },
+                  contentService: widget.contentService,
+                  onDone: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _linkToParent(TermParent parent) {
+    final updatedForm = widget.termForm.copyWith(parents: [parent]);
+    widget.onUpdate(updatedForm);
   }
 
   Widget _buildParentChip(BuildContext context, TermParent parent) {
