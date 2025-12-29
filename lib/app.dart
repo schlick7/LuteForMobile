@@ -53,7 +53,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
             _readerKey.currentState!.reloadPage();
           }
         },
-        isSettingsView: _currentIndex == 1,
       ),
       body: IndexedStack(
         index: _currentIndex,

@@ -5,26 +5,24 @@ import 'package:lute_for_mobile/features/settings/providers/settings_provider.da
 class AppDrawer extends ConsumerWidget {
   final int currentIndex;
   final Function(int) onNavigate;
-  final bool isSettingsView;
 
   const AppDrawer({
     super.key,
     required this.currentIndex,
     required this.onNavigate,
-    this.isSettingsView = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return SizedBox(
-      width: isSettingsView ? 80 : 320,
-      child: Drawer(
-        child: Row(
-          children: [
-            _buildNavigationColumn(context),
-            if (!isSettingsView) _buildSettingsColumn(context, ref),
-          ],
-        ),
+    final settingsContent = _buildSettingsContent(context, ref);
+
+    return Drawer(
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildNavigationColumn(context),
+          if (settingsContent != null) settingsContent,
+        ],
       ),
     );
   }
@@ -72,7 +70,16 @@ class AppDrawer extends ConsumerWidget {
     );
   }
 
-  Widget _buildSettingsColumn(BuildContext context, WidgetRef ref) {
+  Widget? _buildSettingsContent(BuildContext context, WidgetRef ref) {
+    switch (currentIndex) {
+      case 0:
+        return _buildReaderSettings(context, ref);
+      default:
+        return null;
+    }
+  }
+
+  Widget _buildReaderSettings(BuildContext context, WidgetRef ref) {
     final textSettings = ref.watch(textFormattingSettingsProvider);
 
     return Expanded(
