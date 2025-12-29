@@ -27,6 +27,10 @@ extension AppColorSchemeExtension on ColorScheme {
   Color get aiProvider => AppColors.aiProvider;
   Color get localProvider => AppColors.localProvider;
 
+  // Accent colors
+  Color get accentLabel => AppColors.accentLabel;
+  Color get accentButton => AppColors.accentButton;
+
   // Get status color by status string for text styling
   Color getStatusTextColor(String status) {
     switch (status) {

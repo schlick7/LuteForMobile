@@ -68,7 +68,7 @@ class SentenceTranslationWidget extends StatelessWidget {
         Text(
           'Original',
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
+            color: Theme.of(context).colorScheme.accentLabel,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -103,7 +103,7 @@ class SentenceTranslationWidget extends StatelessWidget {
               Text(
                 'Translation',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: Theme.of(context).colorScheme.accentLabel,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -122,7 +122,7 @@ class SentenceTranslationWidget extends StatelessWidget {
               border: Border.all(
                 color: Theme.of(
                   context,
-                ).colorScheme.primary.withValues(alpha: 0.5),
+                ).colorScheme.accentButton.withValues(alpha: 0.5),
                 width: 1,
               ),
             ),
@@ -143,7 +143,7 @@ class SentenceTranslationWidget extends StatelessWidget {
           Text(
             'Translation',
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
+              color: Theme.of(context).colorScheme.accentLabel,
               fontWeight: FontWeight.w600,
             ),
           ),

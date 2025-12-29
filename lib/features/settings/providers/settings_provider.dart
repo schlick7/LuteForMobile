@@ -276,3 +276,46 @@ final textFormattingSettingsProvider =
         return TextFormattingSettingsNotifier();
       },
     );
+
+class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
+  static const String _keyAccentLabelColor = 'accent_label_color';
+  static const String _keyAccentButtonColor = 'accent_button_color';
+
+  @override
+  ThemeSettings build() {
+    _loadSettings();
+    return ThemeSettings.defaultSettings;
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final accentLabelColorValue = prefs.getInt(_keyAccentLabelColor);
+    final accentButtonColorValue = prefs.getInt(_keyAccentButtonColor);
+
+    state = ThemeSettings(
+      accentLabelColor: accentLabelColorValue != null
+          ? Color(accentLabelColorValue)
+          : ThemeSettings.defaultSettings.accentLabelColor,
+      accentButtonColor: accentButtonColorValue != null
+          ? Color(accentButtonColorValue)
+          : ThemeSettings.defaultSettings.accentButtonColor,
+    );
+  }
+
+  Future<void> updateAccentLabelColor(Color color) async {
+    state = state.copyWith(accentLabelColor: color);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyAccentLabelColor, color.value);
+  }
+
+  Future<void> updateAccentButtonColor(Color color) async {
+    state = state.copyWith(accentButtonColor: color);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyAccentButtonColor, color.value);
+  }
+}
+
+final themeSettingsProvider =
+    NotifierProvider<ThemeSettingsNotifier, ThemeSettings>(() {
+      return ThemeSettingsNotifier();
+    });

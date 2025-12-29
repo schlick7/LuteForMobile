@@ -3,21 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
+import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
+import 'package:lute_for_mobile/features/settings/models/settings.dart';
 
-class App extends StatelessWidget {
+class App extends ConsumerWidget {
   const App({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ProviderScope(
-      child: MaterialApp(
-        title: 'LuteForMobile',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: ThemeMode.system,
-        home: const MainNavigation(),
-      ),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeSettings = ref.watch(themeSettingsProvider);
+    return MaterialApp(
+      title: 'LuteForMobile',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme(themeSettings),
+      darkTheme: AppTheme.darkTheme(themeSettings),
+      themeMode: ThemeMode.system,
+      home: const MainNavigation(),
     );
   }
 }

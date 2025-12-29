@@ -19,6 +19,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isTesting = false;
   String? _connectionStatus;
 
+  static const List<Color> _accentColorOptions = [
+    Color(0xFF1976D2), // Blue
+    Color(0xFF9C27B0), // Teal
+    Color(0xFF4CAF50), // Green
+    Color(0xFFFF9800), // Orange
+    Color(0xFF9E9E80), // Red
+    Color(0xFF6750A4), // Purple
+    Color(0xFF795548), // Brown
+    Color(0xFF607D8B), // Grey
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -103,6 +114,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
+    final themeSettings = ref.watch(themeSettingsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings'), elevation: 2),
@@ -310,6 +322,39 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
+                      'Accent Colors',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildAccentColorSetting(
+                      context,
+                      'Accent Label Color',
+                      themeSettings.accentLabelColor,
+                      (color) => ref
+                          .read(themeSettingsProvider.notifier)
+                          .updateAccentLabelColor(color),
+                    ),
+                    _buildAccentColorSetting(
+                      context,
+                      'Accent Button Color',
+                      themeSettings.accentButtonColor,
+                      (color) => ref
+                          .read(themeSettingsProvider.notifier)
+                          .updateAccentButtonColor(color),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       'Reset Settings',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
@@ -410,6 +455,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildAccentColorSetting(
+    BuildContext context,
+    String label,
+    Color currentColor,
+    Function(Color) onColorSelected,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _accentColorOptions.map((color) {
+            final isSelected = color.r == currentColor.r;
+            return InkWell(
+              onTap: () => onColorSelected(color),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.onSurface
+                        : Colors.transparent,
+                    width: 2,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: isSelected
+                    ? const Icon(Icons.check, color: Colors.white)
+                    : null,
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 }

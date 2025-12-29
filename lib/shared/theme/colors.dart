@@ -55,4 +55,8 @@ class AppColors {
   static const Color textPrimary = Color(0xFF1C1B1F);
   static const Color textSecondary = Color(0xFF49454F);
   static const Color textDisabled = Color(0xFF938F99);
+
+  // Accent colors
+  static const Color accentLabel = Color(0xFF1976D2); // Blue
+  static const Color accentButton = Color(0xFF6750A4); // Purple
 }

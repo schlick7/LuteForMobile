@@ -1,4 +1,4 @@
-import 'package:meta/meta.dart';
+import 'package:flutter/material.dart';
 
 @immutable
 class Settings {
@@ -52,4 +52,24 @@ class Settings {
       return false;
     }
   }
+}
+
+@immutable
+class ThemeSettings {
+  final Color accentLabelColor;
+  final Color accentButtonColor;
+
+  const ThemeSettings({
+    this.accentLabelColor = const Color(0xFF1976D2),
+    this.accentButtonColor = const Color(0xFF6750A4),
+  });
+
+  ThemeSettings copyWith({Color? accentLabelColor, Color? accentButtonColor}) {
+    return ThemeSettings(
+      accentLabelColor: accentLabelColor ?? this.accentLabelColor,
+      accentButtonColor: accentButtonColor ?? this.accentButtonColor,
+    );
+  }
+
+  static const ThemeSettings defaultSettings = ThemeSettings();
 }

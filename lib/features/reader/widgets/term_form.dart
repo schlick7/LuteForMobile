@@ -202,7 +202,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       decoration: InputDecoration(
         labelText: 'Translation',
         labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+          color: Theme.of(context).colorScheme.accentLabel,
           fontWeight: FontWeight.w600,
         ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -286,7 +286,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       decoration: InputDecoration(
         labelText: 'Romanization',
         labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+          color: Theme.of(context).colorScheme.accentLabel,
           fontWeight: FontWeight.w600,
         ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -305,7 +305,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       decoration: InputDecoration(
         labelText: 'Tags',
         labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Theme.of(context).colorScheme.primary,
+          color: Theme.of(context).colorScheme.accentLabel,
           fontWeight: FontWeight.w600,
         ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -325,7 +325,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         Text(
           'Dictionaries',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
+            color: Theme.of(context).colorScheme.accentLabel,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -360,7 +360,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             Text(
               'Parent Terms',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
+                color: Theme.of(context).colorScheme.accentLabel,
                 fontWeight: FontWeight.w600,
               ),
             ),
