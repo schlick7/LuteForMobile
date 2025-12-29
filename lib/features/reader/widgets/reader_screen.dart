@@ -24,11 +24,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   String _selectedFont = 'Roboto';
   final List<String> _availableFonts = [
     'Roboto',
-    'Georgia',
-    'Arial',
-    'Times New Roman',
-    'Courier New',
-    'Verdana',
+    'AtkinsonHyperlegibleNext',
+    'Vollkorn',
+    'LinBiolinum',
+    'Literata',
   ];
 
   @override
