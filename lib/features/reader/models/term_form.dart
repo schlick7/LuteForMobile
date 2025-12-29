@@ -40,6 +40,7 @@ class TermForm {
   final String status;
   final List<String>? tags;
   final String? romanization;
+  final bool showRomanization;
   final List<String> dictionaries;
   final List<TermParent> parents;
   final bool? syncStatus;
@@ -52,6 +53,7 @@ class TermForm {
     this.status = '99',
     this.tags,
     this.romanization,
+    this.showRomanization = true,
     this.dictionaries = const [],
     this.parents = const [],
     required this.syncStatus,
@@ -65,6 +67,7 @@ class TermForm {
     String? status,
     List<String>? tags,
     String? romanization,
+    bool? showRomanization,
     List<String>? dictionaries,
     List<TermParent>? parents,
     bool? syncStatus,
@@ -77,6 +80,7 @@ class TermForm {
       status: status ?? this.status,
       tags: tags ?? this.tags,
       romanization: romanization ?? this.romanization,
+      showRomanization: showRomanization ?? this.showRomanization,
       dictionaries: dictionaries ?? this.dictionaries,
       parents: parents ?? this.parents,
       syncStatus: syncStatus ?? this.syncStatus,

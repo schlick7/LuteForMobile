@@ -100,16 +100,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
           mainAxisSize: MainAxisSize.min,
           children: [
             SwitchListTile(
-              title: const Text('Show Romanization'),
-              value: settings.showRomanization,
-              onChanged: (value) {
-                ref
-                    .read(termFormSettingsProvider.notifier)
-                    .updateShowRomanization(value);
-                Navigator.of(context).pop();
-              },
-            ),
-            SwitchListTile(
               title: const Text('Show Tags'),
               value: settings.showTags,
               onChanged: (value) {
@@ -153,7 +143,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             _buildTranslationField(context),
             const SizedBox(height: 12),
             _buildStatusField(context),
-            if (settings.showRomanization) ...[
+            if (widget.termForm.showRomanization) ...[
               const SizedBox(height: 12),
               _buildRomanizationField(context),
             ],

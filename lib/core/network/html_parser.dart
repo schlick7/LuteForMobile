@@ -237,6 +237,14 @@ class HtmlParser {
     );
     final romanization = romanizationInput?.attributes['value']?.trim();
 
+    final romanizationParent = romanizationInput?.parent;
+    bool showRomanization = true;
+    if (romanizationParent != null && romanizationParent is html.Element) {
+      final parentElement = romanizationParent as html.Element;
+      final displayStyle = parentElement.attributes['style'];
+      showRomanization = displayStyle?.contains('display:none;') != true;
+    }
+
     final syncStatusInput = document.querySelector('input[name="sync_status"]');
     final hasCheckedAttr = syncStatusInput?.attributes.containsKey('checked');
     bool? syncStatus = hasCheckedAttr ?? false;
@@ -293,6 +301,7 @@ class HtmlParser {
       status: status,
       tags: tagList,
       romanization: romanization,
+      showRomanization: showRomanization,
       dictionaries: dictionaries,
       parents: parents,
       syncStatus: syncStatus,
