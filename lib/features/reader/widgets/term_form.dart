@@ -439,34 +439,55 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     final backgroundColor = Theme.of(
       context,
     ).colorScheme.getStatusBackgroundColor(status);
-    final statusColor = Theme.of(context).colorScheme.getStatusColor(status);
 
-    return Chip(
-      backgroundColor: backgroundColor,
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(parent.term, style: TextStyle(color: textColor)),
-          if (parent.translation != null) ...[
-            const SizedBox(width: 4),
-            Text(
-              '(${parent.translation})',
-              style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.7),
+    return GestureDetector(
+      onLongPress: () => _showDeleteParentConfirmation(context, parent),
+      child: Chip(
+        backgroundColor: backgroundColor,
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(parent.term, style: TextStyle(color: textColor)),
+            if (parent.translation != null) ...[
+              const SizedBox(width: 4),
+              Text(
+                '(${parent.translation})',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
               ),
-            ),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteParentConfirmation(BuildContext context, TermParent parent) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Parent'),
+        content: Text(
+          'Are you sure you want to remove "${parent.term}" as a parent term?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _removeParent(parent);
+            },
+            child: const Text('Remove'),
+          ),
         ],
       ),
-      avatar: CircleAvatar(
-        backgroundColor: statusColor,
-        radius: 12,
-        child: const Icon(Icons.account_tree, color: Colors.white, size: 12),
-      ),
-      onDeleted: () => _removeParent(parent),
     );
   }
 
