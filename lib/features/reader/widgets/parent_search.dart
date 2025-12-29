@@ -140,9 +140,10 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
         Text(
           'Add Parent Term',
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(context).colorScheme.accentLabel,
+            color: context.customColors.accentLabelColor,
             fontWeight: FontWeight.w600,
           ),
+        ),
         ),
         const SizedBox(height: 8),
         TextField(

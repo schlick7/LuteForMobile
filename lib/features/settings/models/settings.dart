@@ -71,5 +71,16 @@ class ThemeSettings {
     );
   }
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is ThemeSettings &&
+        other.accentLabelColor.hashCode == accentLabelColor.hashCode &&
+        other.accentButtonColor.hashCode == accentButtonColor.hashCode;
+  }
+
+  @override
+  int get hashCode => accentLabelColor.hashCode ^ accentButtonColor.hashCode;
+
   static const ThemeSettings defaultSettings = ThemeSettings();
 }

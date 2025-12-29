@@ -2,6 +2,62 @@ import 'package:flutter/material.dart';
 import 'colors.dart';
 import '../../features/settings/models/settings.dart';
 
+@immutable
+class CustomThemeColors {
+  final Color accentLabelColor;
+  final Color accentButtonColor;
+
+  const CustomThemeColors({
+    required this.accentLabelColor,
+    required this.accentButtonColor,
+  });
+}
+
+class CustomThemeExtension extends ThemeExtension<CustomThemeExtension> {
+  final CustomThemeColors colors;
+
+  const CustomThemeExtension({required this.colors});
+
+  @override
+  CustomThemeExtension copyWith({CustomThemeColors? colors}) {
+    return CustomThemeExtension(colors: colors ?? this.colors);
+  }
+
+  @override
+  CustomThemeExtension lerp(
+    covariant ThemeExtension<CustomThemeExtension>? other,
+    double t,
+  ) {
+    if (other is! CustomThemeExtension) {
+      return this;
+    }
+    final otherColors = (other as CustomThemeExtension).colors;
+    return CustomThemeExtension(
+      colors: CustomThemeColors(
+        accentLabelColor: Color.lerp(
+          colors.accentLabelColor,
+          otherColors.accentLabelColor,
+          t,
+        )!,
+        accentButtonColor: Color.lerp(
+          colors.accentButtonColor,
+          otherColors.accentButtonColor,
+          t,
+        )!,
+      ),
+    );
+  }
+
+  static CustomThemeColors of(BuildContext context) {
+    final theme = Theme.of(context);
+    return theme.extension<CustomThemeExtension>()?.colors ??
+        const CustomThemeColors(
+          accentLabelColor: Color(0xFF1976D2),
+          accentButtonColor: Color(0xFF6750A4),
+        );
+  }
+}
+
 class AppTheme {
   static ThemeData lightTheme(ThemeSettings themeSettings) {
     return ThemeData(
@@ -129,6 +185,14 @@ class AppTheme {
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
+      extensions: [
+        CustomThemeExtension(
+          colors: CustomThemeColors(
+            accentLabelColor: themeSettings.accentLabelColor,
+            accentButtonColor: themeSettings.accentButtonColor,
+          ),
+        ),
+      ],
     );
   }
 

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'colors.dart';
 import 'status_colors.dart';
+import 'app_theme.dart';
+
+extension CustomThemeColorsExtension on BuildContext {
+  CustomThemeColors get customColors => CustomThemeExtension.of(this);
+}
 
 extension AppColorSchemeExtension on ColorScheme {
   // Status colors
@@ -26,10 +31,6 @@ extension AppColorSchemeExtension on ColorScheme {
   // Provider badge colors
   Color get aiProvider => AppColors.aiProvider;
   Color get localProvider => AppColors.localProvider;
-
-  // Accent colors
-  Color get accentLabel => AppColors.accentLabel;
-  Color get accentButton => AppColors.accentButton;
 
   // Get status color by status string for text styling
   Color getStatusTextColor(String status) {
