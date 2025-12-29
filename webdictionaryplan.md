@@ -14,7 +14,7 @@ Add in-app dictionary browser to TermForm with swipe navigation, using Lute serv
 1. User taps search button → TermForm expands to top of screen
 2. Romanization and Tags fields hidden
 3. Status buttons hidden
-4. Parents section hidden
+4. Parents section not hidden
 5. DictionaryView slides in smoothly (200-300ms) between translation field and where status buttons were
 6. Search button highlights with accent color
 7. Narrow header shows current dictionary name

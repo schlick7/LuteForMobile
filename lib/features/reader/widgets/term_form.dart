@@ -6,7 +6,9 @@ import '../../settings/providers/settings_provider.dart'
     show termFormSettingsProvider;
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../core/network/content_service.dart';
+import '../../../core/network/dictionary_service.dart';
 import 'parent_search.dart';
+import 'dictionary_view.dart';
 
 class TermFormWidget extends ConsumerStatefulWidget {
   final TermForm termForm;
@@ -35,10 +37,14 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   late TextEditingController _tagsController;
   late TextEditingController _romanizationController;
   late String _selectedStatus;
+  late DictionaryService _dictionaryService;
+  bool _isDictionaryOpen = false;
+  List<DictionarySource> _dictionaries = [];
 
   @override
   void initState() {
     super.initState();
+    _dictionaryService = DictionaryService();
     _translationController = TextEditingController(
       text: widget.termForm.translation ?? '',
     );
@@ -49,6 +55,18 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     _romanizationController = TextEditingController(
       text: widget.termForm.romanization ?? '',
     );
+    _loadDictionaries();
+  }
+
+  Future<void> _loadDictionaries() async {
+    final dictionaries = await _dictionaryService.getDictionariesForLanguage(
+      widget.termForm.languageId,
+    );
+    if (mounted) {
+      setState(() {
+        _dictionaries = dictionaries;
+      });
+    }
   }
 
   @override
@@ -127,41 +145,58 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       'build called with parents: ${widget.termForm.parents.map((p) => p.term).toList()}',
     );
     final settings = ref.watch(termFormSettingsProvider);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      constraints: BoxConstraints(
+        maxHeight: _isDictionaryOpen ? double.infinity : 600,
       ),
       child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(context),
-            const SizedBox(height: 12),
-            _buildTranslationField(context),
-            const SizedBox(height: 12),
-            _buildStatusField(context),
-            if (widget.termForm.showRomanization) ...[
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
               const SizedBox(height: 12),
-              _buildRomanizationField(context),
-            ],
-            if (settings.showTags) ...[
+              _buildTranslationField(context),
               const SizedBox(height: 12),
-              _buildTagsField(context),
+              if (_isDictionaryOpen) ...[_buildDictionaryView(context)],
+              if (!_isDictionaryOpen) ...[
+                _buildStatusField(context),
+                if (widget.termForm.showRomanization) ...[
+                  const SizedBox(height: 12),
+                  _buildRomanizationField(context),
+                ],
+                if (settings.showTags) ...[
+                  const SizedBox(height: 12),
+                  _buildTagsField(context),
+                ],
+                const SizedBox(height: 12),
+                _buildParentsSection(context),
+                const SizedBox(height: 16),
+                _buildButtons(context),
+              ],
             ],
-            if (widget.termForm.dictionaries.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _buildDictionariesSection(context),
-            ],
-            const SizedBox(height: 12),
-            _buildParentsSection(context),
-            const SizedBox(height: 16),
-            _buildButtons(context),
-          ],
+          ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDictionaryView(BuildContext context) {
+    return DictionaryView(
+      term: widget.termForm.term,
+      dictionaries: _dictionaries,
+      languageId: widget.termForm.languageId,
+      onClose: _toggleDictionary,
+      isVisible: _isDictionaryOpen,
+      dictionaryService: _dictionaryService,
     );
   }
 
@@ -197,23 +232,65 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Widget _buildTranslationField(BuildContext context) {
-    return TextFormField(
-      controller: _translationController,
-      decoration: InputDecoration(
-        labelText: 'Translation',
-        labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: context.customColors.accentLabelColor,
-          fontWeight: FontWeight.w600,
+    final accentColor = _isDictionaryOpen
+        ? context.customColors.accentButtonColor
+        : Theme.of(context).colorScheme.outline;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: TextFormField(
+            controller: _translationController,
+            decoration: InputDecoration(
+              labelText: 'Translation',
+              labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: context.customColors.accentLabelColor,
+                fontWeight: FontWeight.w600,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              hintText: 'Enter translation',
+              hintStyle: TextStyle(
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+            ),
+            maxLines: 2,
+          ),
         ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        hintText: 'Enter translation',
-        hintStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 56,
+          height: 56,
+          child: ElevatedButton(
+            onPressed: _toggleDictionary,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accentColor,
+              foregroundColor: _isDictionaryOpen
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : Theme.of(context).colorScheme.onSurface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Icon(Icons.search, size: 28),
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      maxLines: 2,
+      ],
     );
+  }
+
+  void _toggleDictionary() {
+    setState(() {
+      _isDictionaryOpen = !_isDictionaryOpen;
+    });
   }
 
   Widget _buildStatusField(BuildContext context) {
@@ -315,32 +392,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
-    );
-  }
-
-  Widget _buildDictionariesSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Dictionaries',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: context.customColors.accentLabelColor,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: widget.termForm.dictionaries.map((dict) {
-            return Chip(
-              label: Text(dict),
-              avatar: const Icon(Icons.book, size: 18),
-            );
-          }).toList(),
-        ),
-      ],
     );
   }
 
