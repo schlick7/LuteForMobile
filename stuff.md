@@ -4,10 +4,12 @@ clicking empty space/background (Anywhere without text) always triggers a close 
 
 
 add parents and parent linking
-- if parent doesn't exist create the parent term in database
 - auto link term when adding parent
- - use parents status if it has one
 - double tap opens term form of parent - WITHOUT closeing/canceling the orignal termform. Closing parent termform returns you to the termform you came from. 
+
+Green when synced
+gray when not synced
+gray with a line through icon when there are multiple terms (server doesn't support linking multiple terms)
 
 compact style text boxs with the labels built into the border to save space.
 

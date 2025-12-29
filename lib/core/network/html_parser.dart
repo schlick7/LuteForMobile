@@ -237,6 +237,9 @@ class HtmlParser {
     );
     final romanization = romanizationInput?.attributes['value']?.trim();
 
+    final syncStatusInput = document.querySelector('input[name="sync_status"]');
+    bool? syncStatus = syncStatusInput?.attributes['checked'] == 'true';
+
     final dictionaries = <String>[];
     final dictElements = document.querySelectorAll('.dictionary-list li');
     for (final dictElement in dictElements) {
@@ -290,6 +293,7 @@ class HtmlParser {
       romanization: romanization,
       dictionaries: dictionaries,
       parents: parents,
+      syncStatus: syncStatus,
     );
   }
 }

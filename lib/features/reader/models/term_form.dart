@@ -39,6 +39,7 @@ class TermForm {
   final String? romanization;
   final List<String> dictionaries;
   final List<TermParent> parents;
+  final bool? syncStatus;
 
   TermForm({
     required this.term,
@@ -50,6 +51,7 @@ class TermForm {
     this.romanization,
     this.dictionaries = const [],
     this.parents = const [],
+    required this.syncStatus,
   });
 
   TermForm copyWith({
@@ -62,6 +64,7 @@ class TermForm {
     String? romanization,
     List<String>? dictionaries,
     List<TermParent>? parents,
+    bool? syncStatus,
   }) {
     return TermForm(
       term: term ?? this.term,
@@ -73,12 +76,14 @@ class TermForm {
       romanization: romanization ?? this.romanization,
       dictionaries: dictionaries ?? this.dictionaries,
       parents: parents ?? this.parents,
+      syncStatus: syncStatus ?? this.syncStatus,
     );
   }
 
   Map<String, dynamic> toFormData() {
     print('Converting term form to form data');
     print('Parents count: ${parents.length}');
+    print('Sync status: $syncStatus');
     for (final p in parents) {
       print('Parent: id=${p.id}, term=${p.term}, translation=${p.translation}');
     }
@@ -89,6 +94,31 @@ class TermForm {
       'tags': tags?.join(',') ?? '',
       'romanization': romanization ?? '',
     };
+
+    if (syncStatus == true) {
+      data['sync_status'] = 'y';
+    }
+
+    if (parents.isNotEmpty) {
+      final parentsList = parents.map((p) => {'value': p.term}).toList();
+      final parentsListJson = jsonEncode(parentsList);
+      data['parentslist'] = parentsListJson;
+      print('Sending parentslist: $parentsListJson');
+    }
+
+    return data;
+  }
+    final data = {
+      'text': term,
+      'translation': translation ?? '',
+      'status': status,
+      'tags': tags?.join(',') ?? '',
+      'romanization': romanization ?? '',
+    };
+
+    if (syncStatus) {
+      data['sync_status'] = 'y';
+    }
 
     if (parents.isNotEmpty) {
       final parentsList = parents.map((p) => {'value': p.term}).toList();
