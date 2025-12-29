@@ -20,47 +20,26 @@ class TermTooltip extends StatefulWidget {
 
 class _TermTooltipState extends State<TermTooltip> {
   final _containerKey = GlobalKey();
-  OverlayEntry? _dismissEntry;
+  Timer? _dismissTimer;
 
   @override
   void initState() {
     super.initState();
-    _setupDismissOverlay();
+    _setupAutoDismiss();
   }
 
-  void _setupDismissOverlay() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (!mounted) return;
-      final container = _containerKey.currentContext;
-      if (container == null) return;
-
-      final renderObject = container.findRenderObject();
-      if (renderObject is! RenderBox) return;
-
-      final overlay = Overlay.of(context);
-      final dismissEntry = OverlayEntry(
-        builder: (ctx) => Positioned(
-          left: 0,
-          top: 0,
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: widget.onDismiss,
-            excludeFromSemantics: true,
-            child: Container(color: Colors.transparent),
-          ),
-        ),
-      );
-      overlay.insert(dismissEntry);
-
-      setState(() {
-        _dismissEntry = dismissEntry;
-      });
+  void _setupAutoDismiss() {
+    _dismissTimer?.cancel();
+    _dismissTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        widget.onDismiss();
+      }
     });
   }
 
   @override
   void dispose() {
-    _dismissEntry?.remove();
+    _dismissTimer?.cancel();
     super.dispose();
   }
 
@@ -86,73 +65,79 @@ class _TermTooltipState extends State<TermTooltip> {
     return Positioned(
       top: top,
       left: left,
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          key: _containerKey,
-          constraints: const BoxConstraints(maxWidth: 200),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-            border: Border.all(
-              color: Theme.of(
-                context,
-              ).colorScheme.outline.withValues(alpha: 0.2),
-              width: 1,
-            ),
-          ),
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                widget.termPopup.term,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              if (widget.termPopup.translation != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  widget.termPopup.translation!,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontStyle: FontStyle.italic,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
+      child: GestureDetector(
+        onTap: widget.onDismiss,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            key: _containerKey,
+            constraints: const BoxConstraints(maxWidth: 200),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
               ],
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    _getStatusIcon(widget.termPopup.status),
-                    size: 14,
-                    color: _getStatusColor(context, widget.termPopup.status),
-                  ),
-                  const SizedBox(width: 4),
+              border: Border.all(
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.2),
+                width: 1,
+              ),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.termPopup.term,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (widget.termPopup.translation != null) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    widget.termPopup.statusLabel,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: _getStatusColor(context, widget.termPopup.status),
+                    widget.termPopup.translation!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontStyle: FontStyle.italic,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
-              ),
-            ],
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      _getStatusIcon(widget.termPopup.status),
+                      size: 14,
+                      color: _getStatusColor(context, widget.termPopup.status),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      widget.termPopup.statusLabel,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: _getStatusColor(
+                          context,
+                          widget.termPopup.status,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
