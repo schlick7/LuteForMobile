@@ -163,7 +163,7 @@ class _TextDisplayState extends State<TextDisplay> {
         decoration: backgroundColor != null
             ? BoxDecoration(
                 color: backgroundColor,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(4),
               )
             : null,
         child: Text(item.text, style: textStyle),
