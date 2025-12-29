@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../../../core/network/content_service.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class ParentSearchWidget extends ConsumerStatefulWidget {
   final int languageId;
@@ -190,7 +191,7 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
                   mainAxisSize: MainAxisSize.min,
                   children: _searchResults.map((result) {
                     return ListTile(
-                      title: Text(result.text),
+                      title: _buildStatusHighlight(context, result),
                       subtitle: result.translation != null
                           ? Text(result.translation!)
                           : null,
@@ -218,5 +219,26 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
         ],
       ],
     );
+  }
+
+  Widget _buildStatusHighlight(BuildContext context, SearchResultTerm result) {
+    final status = result.status?.toString() ?? '0';
+    final textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
+    final backgroundColor = Theme.of(
+      context,
+    ).colorScheme.getStatusBackgroundColor(status);
+
+    if (backgroundColor != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 2.0),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(result.text, style: TextStyle(color: textColor)),
+      );
+    }
+
+    return Text(result.text, style: TextStyle(color: textColor));
   }
 }
