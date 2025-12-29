@@ -38,9 +38,9 @@ void main() {
         }
       });
 
-      test('getTermPopup should construct correct URL', () async {
+      test('getTermTooltip should construct correct URL', () async {
         try {
-          await apiService.getTermPopup(123);
+          await apiService.getTermTooltip(123);
         } catch (e) {
           expect(e, isA<Exception>());
         }

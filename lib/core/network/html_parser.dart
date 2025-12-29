@@ -3,7 +3,7 @@ import 'package:html/dom.dart' as html;
 import '../../features/reader/models/text_item.dart';
 import '../../features/reader/models/paragraph.dart';
 import '../../features/reader/models/page_data.dart';
-import '../../features/reader/models/term_popup.dart';
+import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
 
 class HtmlParser {
@@ -104,16 +104,20 @@ class HtmlParser {
     return value != null ? int.tryParse(value) : null;
   }
 
-  TermPopup parseTermPopup(String htmlContent) {
+  TermTooltip parseTermTooltip(String htmlContent) {
     final document = html_parser.parse(htmlContent);
 
-    final termElement = document.querySelector('.term-popup h3');
+    final termElement = document.querySelector('b');
     final term = termElement?.text.trim() ?? '';
 
-    final translationElement = document.querySelector(
-      '.term-popup .translation',
-    );
-    final translation = translationElement?.text.trim();
+    final paragraphs = document.querySelectorAll('p');
+    String? translation;
+    if (paragraphs.length > 1) {
+      translation = paragraphs[1].text.trim();
+      if (translation.isEmpty) {
+        translation = null;
+      }
+    }
 
     final termIdInput = document.querySelector('input[name="termid"]');
     final termId = termIdInput != null
@@ -161,7 +165,7 @@ class HtmlParser {
       }
     }
 
-    return TermPopup(
+    return TermTooltip(
       term: term,
       translation: translation,
       termId: termId,

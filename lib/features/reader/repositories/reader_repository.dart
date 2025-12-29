@@ -1,6 +1,6 @@
 import '../../../core/network/content_service.dart';
 import '../models/page_data.dart';
-import '../models/term_popup.dart';
+import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
 
 class ReaderRepository {
@@ -28,11 +28,11 @@ class ReaderRepository {
     }
   }
 
-  Future<TermPopup> getTermPopup(int termId) async {
+  Future<TermTooltip> getTermTooltip(int termId) async {
     try {
-      return await _contentService.getTermPopup(termId);
+      return await _contentService.getTermTooltip(termId);
     } catch (e) {
-      throw Exception('Failed to load term popup: $e');
+      throw Exception('Failed to load term tooltip: $e');
     }
   }
 

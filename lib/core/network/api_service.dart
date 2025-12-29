@@ -58,7 +58,7 @@ class ApiService {
     return await postPageDone(bookId, pageNum, true);
   }
 
-  Future<Response<String>> getTermPopup(int termId) async {
+  Future<Response<String>> getTermTooltip(int termId) async {
     return await _dio.get<String>('/read/termpopup/$termId');
   }
 

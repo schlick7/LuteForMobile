@@ -106,11 +106,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     if (item.wordId == null) return;
 
     try {
-      final termPopup = await ref
+      final termTooltip = await ref
           .read(readerProvider.notifier)
-          .fetchTermPopup(item.wordId!);
-      if (termPopup != null && mounted) {
-        TermTooltipClass.show(context, termPopup, position);
+          .fetchTermTooltip(item.wordId!);
+      if (termTooltip != null && mounted) {
+        TermTooltipClass.show(context, termTooltip, position);
       }
     } catch (e) {
       return;

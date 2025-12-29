@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../features/reader/models/page_data.dart';
-import '../../features/reader/models/term_popup.dart';
+import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
 import 'api_service.dart';
 import 'html_parser.dart';
@@ -58,10 +58,10 @@ class ContentService {
     }
   }
 
-  Future<TermPopup> getTermPopup(int termId) async {
-    final response = await _apiService.getTermPopup(termId);
+  Future<TermTooltip> getTermTooltip(int termId) async {
+    final response = await _apiService.getTermTooltip(termId);
     final htmlContent = response.data ?? '';
-    return _htmlParser.parseTermPopup(htmlContent);
+    return _htmlParser.parseTermTooltip(htmlContent);
   }
 
   Future<TermForm> getTermForm(int langId, String text) async {

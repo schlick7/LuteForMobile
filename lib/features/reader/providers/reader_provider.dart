@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/page_data.dart';
-import '../models/term_popup.dart';
+import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
 import '../repositories/reader_repository.dart';
 import '../../../core/network/content_service.dart';
@@ -13,14 +13,14 @@ class ReaderState {
   final bool isLoading;
   final PageData? pageData;
   final String? errorMessage;
-  final bool isTermPopupLoading;
+  final bool isTermTooltipLoading;
   final bool isTermFormLoading;
 
   const ReaderState({
     this.isLoading = false,
     this.pageData,
     this.errorMessage,
-    this.isTermPopupLoading = false,
+    this.isTermTooltipLoading = false,
     this.isTermFormLoading = false,
   });
 
@@ -28,14 +28,14 @@ class ReaderState {
     bool? isLoading,
     PageData? pageData,
     String? errorMessage,
-    bool? isTermPopupLoading,
+    bool? isTermTooltipLoading,
     bool? isTermFormLoading,
   }) {
     return ReaderState(
       isLoading: isLoading ?? this.isLoading,
       pageData: pageData ?? this.pageData,
       errorMessage: errorMessage,
-      isTermPopupLoading: isTermPopupLoading ?? this.isTermPopupLoading,
+      isTermTooltipLoading: isTermTooltipLoading ?? this.isTermTooltipLoading,
       isTermFormLoading: isTermFormLoading ?? this.isTermFormLoading,
     );
   }
@@ -68,17 +68,17 @@ class ReaderNotifier extends Notifier<ReaderState> {
     state = state.copyWith(errorMessage: null);
   }
 
-  Future<TermPopup?> fetchTermPopup(int termId) async {
+  Future<TermTooltip?> fetchTermTooltip(int termId) async {
     final previousState = state;
-    state = state.copyWith(isTermPopupLoading: true);
+    state = state.copyWith(isTermTooltipLoading: true);
     try {
-      final result = await _repository.getTermPopup(termId);
+      final result = await _repository.getTermTooltip(termId);
       return result;
     } catch (e) {
-      print('fetchTermPopup error: $e');
+      print('fetchTermTooltip error: $e');
       return null;
     } finally {
-      final newState = state.copyWith(isTermPopupLoading: false);
+      final newState = state.copyWith(isTermTooltipLoading: false);
       print(
         'State change: pageData=${newState.pageData != null}, errorMessage=${newState.errorMessage}',
       );

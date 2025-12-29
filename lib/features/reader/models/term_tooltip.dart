@@ -1,4 +1,4 @@
-class TermPopup {
+class TermTooltip {
   final String term;
   final String? translation;
   final int? termId;
@@ -10,7 +10,7 @@ class TermPopup {
   final List<TermParent> parents;
   final List<TermChild> children;
 
-  TermPopup({
+  TermTooltip({
     required this.term,
     this.translation,
     this.termId,

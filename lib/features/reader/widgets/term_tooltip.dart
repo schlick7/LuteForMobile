@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../models/term_popup.dart';
+import '../models/term_tooltip.dart';
 
 class TermTooltipClass {
-  static void show(BuildContext context, TermPopup termPopup, Offset position) {
+  static void show(
+    BuildContext context,
+    TermTooltip termTooltip,
+    Offset position,
+  ) {
     try {
-      _showInternal(context, termPopup, position);
+      _showInternal(context, termTooltip, position);
     } catch (e) {
       return;
     }
@@ -13,7 +17,7 @@ class TermTooltipClass {
 
   static void _showInternal(
     BuildContext context,
-    TermPopup termPopup,
+    TermTooltip termTooltip,
     Offset position,
   ) {
     final screenSize = MediaQuery.of(context).size;
@@ -80,17 +84,17 @@ class TermTooltipClass {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        termPopup.term,
+                        termTooltip.term,
                         style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      if (termPopup.translation != null) ...[
+                      if (termTooltip.translation != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          termPopup.translation!,
+                          termTooltip.translation!,
                           style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
                             fontStyle: FontStyle.italic,
                             color: Theme.of(
