@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term_form.dart';
 import '../../settings/providers/settings_provider.dart'
-    show fieldSettingsProvider, FieldSettings;
+    show termFormSettingsProvider;
 
 class TermFormWidget extends ConsumerStatefulWidget {
   final TermForm termForm;
@@ -65,11 +65,11 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   void _showSettingsMenu() {
-    final settings = ref.watch(fieldSettingsProvider);
+    final settings = ref.watch(termFormSettingsProvider);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Field Settings'),
+        title: const Text('Term Form Settings'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -78,7 +78,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               value: settings.showRomanization,
               onChanged: (value) {
                 ref
-                    .read(fieldSettingsProvider.notifier)
+                    .read(termFormSettingsProvider.notifier)
                     .updateShowRomanization(value);
                 Navigator.of(context).pop();
               },
@@ -87,7 +87,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               title: const Text('Show Tags'),
               value: settings.showTags,
               onChanged: (value) {
-                ref.read(fieldSettingsProvider.notifier).updateShowTags(value);
+                ref
+                    .read(termFormSettingsProvider.notifier)
+                    .updateShowTags(value);
                 Navigator.of(context).pop();
               },
             ),
@@ -105,7 +107,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(fieldSettingsProvider);
+    final settings = ref.watch(termFormSettingsProvider);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -157,7 +159,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             IconButton(
               onPressed: _showSettingsMenu,
               icon: const Icon(Icons.settings),
-              tooltip: 'Field Settings',
+              tooltip: 'Term Form Settings',
             ),
             IconButton(
               onPressed: widget.onCancel,

@@ -88,30 +88,30 @@ final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(() {
   return SettingsNotifier();
 });
 
-class FieldSettings {
+class TermFormSettings {
   final bool showRomanization;
   final bool showTags;
 
-  const FieldSettings({this.showRomanization = true, this.showTags = true});
+  const TermFormSettings({this.showRomanization = true, this.showTags = true});
 
-  FieldSettings copyWith({bool? showRomanization, bool? showTags}) {
-    return FieldSettings(
+  TermFormSettings copyWith({bool? showRomanization, bool? showTags}) {
+    return TermFormSettings(
       showRomanization: showRomanization ?? this.showRomanization,
       showTags: showTags ?? this.showTags,
     );
   }
 
-  static const FieldSettings defaultSettings = FieldSettings();
+  static const TermFormSettings defaultSettings = TermFormSettings();
 }
 
-class FieldSettingsNotifier extends Notifier<FieldSettings> {
+class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
   static const String _keyShowRomanization = 'show_romanization';
   static const String _keyShowTags = 'show_tags';
 
   @override
-  FieldSettings build() {
+  TermFormSettings build() {
     _loadSettings();
-    return FieldSettings.defaultSettings;
+    return TermFormSettings.defaultSettings;
   }
 
   Future<void> _loadSettings() async {
@@ -119,7 +119,7 @@ class FieldSettingsNotifier extends Notifier<FieldSettings> {
     final showRomanization = prefs.getBool(_keyShowRomanization) ?? true;
     final showTags = prefs.getBool(_keyShowTags) ?? true;
 
-    state = FieldSettings(
+    state = TermFormSettings(
       showRomanization: showRomanization,
       showTags: showTags,
     );
@@ -140,7 +140,7 @@ class FieldSettingsNotifier extends Notifier<FieldSettings> {
   }
 }
 
-final fieldSettingsProvider =
-    NotifierProvider<FieldSettingsNotifier, FieldSettings>(() {
-      return FieldSettingsNotifier();
+final termFormSettingsProvider =
+    NotifierProvider<TermFormSettingsNotifier, TermFormSettings>(() {
+      return TermFormSettingsNotifier();
     });
