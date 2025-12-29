@@ -16,12 +16,15 @@ class AppDrawer extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Drawer(
-      child: Row(
-        children: [
-          _buildNavigationColumn(context),
-          if (!isSettingsView) _buildSettingsColumn(context, ref),
-        ],
+    return SizedBox(
+      width: isSettingsView ? 80 : 320,
+      child: Drawer(
+        child: Row(
+          children: [
+            _buildNavigationColumn(context),
+            if (!isSettingsView) _buildSettingsColumn(context, ref),
+          ],
+        ),
       ),
     );
   }
