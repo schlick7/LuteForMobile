@@ -11,6 +11,8 @@ class TextDisplay extends StatefulWidget {
   final double textSize;
   final double lineSpacing;
   final String fontFamily;
+  final FontWeight fontWeight;
+  final bool isItalic;
 
   const TextDisplay({
     super.key,
@@ -20,6 +22,8 @@ class TextDisplay extends StatefulWidget {
     this.textSize = 18.0,
     this.lineSpacing = 1.5,
     this.fontFamily = 'Roboto',
+    this.fontWeight = FontWeight.normal,
+    this.isItalic = false,
   });
 
   @override
@@ -125,6 +129,8 @@ class _TextDisplayState extends State<TextDisplay> {
           fontSize: widget.textSize,
           height: widget.lineSpacing,
           fontFamily: widget.fontFamily,
+          fontWeight: widget.fontWeight,
+          fontStyle: widget.isItalic ? FontStyle.italic : FontStyle.normal,
           color: Theme.of(context).textTheme.bodyLarge?.color,
         ),
       );
@@ -132,7 +138,7 @@ class _TextDisplayState extends State<TextDisplay> {
 
     Color? textColor;
     Color? backgroundColor;
-    FontWeight fontWeight = FontWeight.normal;
+    FontWeight fontWeight = widget.fontWeight;
 
     // Extract status number from statusClass (e.g., "status1" -> "1")
     final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
@@ -150,6 +156,7 @@ class _TextDisplayState extends State<TextDisplay> {
       fontSize: widget.textSize,
       height: widget.lineSpacing,
       fontFamily: widget.fontFamily,
+      fontStyle: widget.isItalic ? FontStyle.italic : FontStyle.normal,
       backgroundColor: backgroundColor,
     );
 

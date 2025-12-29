@@ -122,94 +122,92 @@ flutter:
   fonts:
     - family: AtkinsonHyperlegibleNext
       fonts:
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-Regular.otf
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-Bold.otf
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-Regular.otf
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-RegularItalic.otf
+          style: italic
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-Bold.otf
           weight: 700
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-Italic.otf
-          style: italic
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-BoldItalic.otf
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-BoldItalic.otf
           weight: 700
           style: italic
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-Light.otf
-          weight: 300
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-LightItalic.otf
-          weight: 300
-          style: italic
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-Medium.otf
-          weight: 500
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-MediumItalic.otf
-          weight: 500
-          style: italic
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-SemiBold.otf
-          weight: 600
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-SemiBoldItalic.otf
-          weight: 600
-          style: italic
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-ExtraBold.otf
-          weight: 800
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-ExtraBoldItalic.otf
-          weight: 800
-          style: italic
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-ExtraLight.otf
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-ExtraLight.otf
           weight: 200
-        - asset: assets/fonts/AtkinsonHyperlegibleNext-ExtraLightItalic.otf
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-ExtraLightItalic.otf
           weight: 200
+          style: italic
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-Light.otf
+          weight: 300
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-LightItalic.otf
+          weight: 300
+          style: italic
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-Medium.otf
+          weight: 500
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-MediumItalic.otf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-SemiBold.otf
+          weight: 600
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-SemiBoldItalic.otf
+          weight: 600
+          style: italic
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-ExtraBold.otf
+          weight: 800
+        - asset: assets/fonts/AtkinsonHyperlegibleNext/AtkinsonHyperlegibleNext-ExtraBoldItalic.otf
+          weight: 800
           style: italic
 
     - family: Vollkorn
       fonts:
-        - asset: assets/fonts/Vollkorn-Regular.otf
-        - asset: assets/fonts/Vollkorn-Bold.otf
+        - asset: assets/fonts/VollkornPS/Vollkorn-Regular.otf
+        - asset: assets/fonts/VollkornPS/Vollkorn-Italic.otf
+          style: italic
+        - asset: assets/fonts/VollkornPS/Vollkorn-Bold.otf
           weight: 700
-        - asset: assets/fonts/Vollkorn-Italic.otf
-          style: italic
-        - asset: assets/fonts/Vollkorn-BoldItalic.otf
+        - asset: assets/fonts/VollkornPS/Vollkorn-BoldItalic.otf
           weight: 700
           style: italic
-        - asset: assets/fonts/Vollkorn-Medium.otf
-          weight: 500
-        - asset: assets/fonts/Vollkorn-MediumItalic.otf
+        - asset: assets/fonts/VollkornPS/Vollkorn-Medium.otf
+        - asset: assets/fonts/VollkornPS/Vollkorn-MediumItalic.otf
           weight: 500
           style: italic
-        - asset: assets/fonts/Vollkorn-SemiBold.otf
+        - asset: assets/fonts/VollkornPS/Vollkorn-SemiBold.otf
           weight: 600
-        - asset: assets/fonts/Vollkorn-SemiBoldItalic.otf
+        - asset: assets/fonts/VollkornPS/Vollkorn-SemiBoldItalic.otf
           weight: 600
           style: italic
-        - asset: assets/fonts/Vollkorn-Black.otf
+        - asset: assets/fonts/VollkornPS/Vollkorn-Black.otf
           weight: 900
-        - asset: assets/fonts/Vollkorn-BlackItalic.otf
+        - asset: assets/fonts/VollkornPS/Vollkorn-BlackItalic.otf
           weight: 900
           style: italic
 
     - family: LinBiolinum
       fonts:
-        - asset: assets/fonts/LinBiolinum_R.otf
-        - asset: assets/fonts/LinBiolinum_RB.otf
-          weight: 700
-        - asset: assets/fonts/LinBiolinum_RI.otf
-          weight: 700
+        - asset: assets/fonts/linux-biolinum/LinBiolinum_R.otf
+        - asset: assets/fonts/linux-biolinum/LinBiolinum_RI.otf
           style: italic
+        - asset: assets/fonts/linux-biolinum/LinBiolinum_RB.otf
+          weight: 700
 
     - family: Literata
       fonts:
-        - asset: assets/fonts/Literata-Regular.ttf
-        - asset: assets/fonts/Literata-Bold.ttf
-          weight: 700
-        - asset: assets/fonts/Literata-Italic.ttf
+        - asset: assets/fonts/literata/Literata-Regular.ttf
+        - asset: assets/fonts/literata/Literata-Italic.ttf
           style: italic
-        - asset: assets/fonts/Literata-BoldItalic.ttf
-          weight: 700
-          style: italic
-        - asset: assets/fonts/Literata-Medium.ttf
+        - asset: assets/fonts/literata/Literata-Medium.ttf
           weight: 500
-        - asset: assets/fonts/Literata-MediumItalic.ttf
+        - asset: assets/fonts/literata/Literata-MediumItalic.ttf
           weight: 500
           style: italic
-        - asset: assets/fonts/Literata-SemiBold.ttf
+        - asset: assets/fonts/literata/Literata-SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/Literata-SemiBoldItalic.ttf
+        - asset: assets/fonts/literata/Literata-SemiBoldItalic.ttf
           weight: 600
+          style: italic
+        - asset: assets/fonts/literata/Literata-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/literata/Literata-BoldItalic.ttf
+          weight: 700
           style: italic
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package

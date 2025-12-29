@@ -22,6 +22,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   double _tempTextSize = 18.0;
   double _tempLineSpacing = 1.5;
   String _selectedFont = 'Roboto';
+  FontWeight _fontWeight = FontWeight.normal;
+  bool _isItalic = false;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -29,6 +31,24 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     'LinBiolinum',
     'Literata',
   ];
+  final List<FontWeight> _availableWeights = [
+    FontWeight.w200,
+    FontWeight.w300,
+    FontWeight.normal,
+    FontWeight.w500,
+    FontWeight.w600,
+    FontWeight.bold,
+    FontWeight.w800,
+  ];
+  final Map<FontWeight, String> _weightLabels = {
+    FontWeight.w200: 'Extra Light',
+    FontWeight.w300: 'Light',
+    FontWeight.normal: 'Regular',
+    FontWeight.w500: 'Medium',
+    FontWeight.w600: 'Semi Bold',
+    FontWeight.bold: 'Bold',
+    FontWeight.w800: 'Extra Bold',
+  };
 
   @override
   void initState() {
@@ -136,6 +156,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
         textSize: _textSize,
         lineSpacing: _lineSpacing,
         fontFamily: _selectedFont,
+        fontWeight: _fontWeight,
+        isItalic: _isItalic,
       ),
     );
   }
@@ -315,6 +337,48 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                           setState(() {});
                         }
                       },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Font weight dropdown
+                    const Text('Weight'),
+                    DropdownButton<FontWeight>(
+                      value: _fontWeight,
+                      isExpanded: true,
+                      items: _availableWeights.map((FontWeight weight) {
+                        return DropdownMenuItem<FontWeight>(
+                          value: weight,
+                          child: Text(
+                            _weightLabels[weight] ?? weight.toString(),
+                          ),
+                        );
+                      }).toList(),
+                      onChanged: (FontWeight? newValue) {
+                        if (newValue != null) {
+                          dialogSetState(() {
+                            _fontWeight = newValue;
+                          });
+                          setState(() {});
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Italic toggle
+                    Row(
+                      children: [
+                        const Text('Italic'),
+                        const Spacer(),
+                        Switch(
+                          value: _isItalic,
+                          onChanged: (value) {
+                            dialogSetState(() {
+                              _isItalic = value;
+                            });
+                            setState(() {});
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
 
