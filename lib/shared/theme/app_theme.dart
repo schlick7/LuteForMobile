@@ -143,8 +143,8 @@ class AppTheme {
       onTertiary: Color(0xFFFFD8E4),
       tertiaryContainer: Color(0xFF8E7266),
       onTertiaryContainer: Color(0xFFFFD8E4),
-      surface: Color(0xFF121212),
-      onSurface: Color(0xFFE6E1E5),
+      surface: Color(0xFF48484a), // Dark grey paper from Lute theme
+      onSurface: Color(0xFFEBEBEB), // Light grey font from Lute theme
       surfaceContainerHighest: Color(0xFF49454F),
       onSurfaceVariant: Color(0xFFCAC4D0),
       outline: Color(0xFF938F99),
