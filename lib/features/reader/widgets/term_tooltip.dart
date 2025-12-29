@@ -41,19 +41,11 @@ class TermTooltipClass {
     showDialog(
       context: context,
       barrierColor: Colors.transparent,
-      barrierDismissible: true,
+      barrierDismissible: false,
       builder: (ctx) {
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () => Navigator.of(ctx).pop(),
-                excludeFromSemantics: true,
-                child: Container(color: Colors.transparent),
-              ),
-            ),
             Positioned(
               top: top,
               left: left,

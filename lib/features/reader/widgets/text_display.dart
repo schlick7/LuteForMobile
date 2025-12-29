@@ -75,12 +75,15 @@ class _TextDisplayState extends State<TextDisplay> {
 
   Widget _buildInteractiveWord(BuildContext context, TextItem item) {
     if (item.isSpace) {
-      return Text(
-        item.text,
-        style: TextStyle(
-          fontSize: 18,
-          height: 1.5,
-          color: Theme.of(context).textTheme.bodyLarge?.color,
+      return GestureDetector(
+        onTapDown: (details) => _handleTap(item, details.globalPosition),
+        child: Text(
+          item.text,
+          style: TextStyle(
+            fontSize: 18,
+            height: 1.5,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
         ),
       );
     }

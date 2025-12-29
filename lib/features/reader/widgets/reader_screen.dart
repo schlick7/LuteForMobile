@@ -91,21 +91,35 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
       return const ErrorDisplay(message: 'No content available');
     }
 
-    return TextDisplay(
-      paragraphs: state.pageData!.paragraphs,
-      onTap: (item, position) {
-        _handleTap(item, position);
-      },
-      onDoubleTap: (item) {
-        _handleDoubleTap(item);
-      },
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => _closeTooltips(),
+      child: TextDisplay(
+        paragraphs: state.pageData!.paragraphs,
+        onTap: (item, position) {
+          _handleTap(item, position);
+        },
+        onDoubleTap: (item) {
+          _handleDoubleTap(item);
+        },
+      ),
     );
   }
 
+  void _closeTooltips() {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+  }
+
   void _handleTap(TextItem item, Offset position) async {
-    if (item.wordId == null) return;
+    if (item.isSpace) return;
+
+    _closeTooltips();
 
     try {
+      if (item.wordId == null) return;
+
       final termTooltip = await ref
           .read(readerProvider.notifier)
           .fetchTermTooltip(item.wordId!);
