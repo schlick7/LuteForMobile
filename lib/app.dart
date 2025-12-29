@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
+import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.dart';
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
@@ -40,6 +41,28 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateDrawerSettings();
+    });
+  }
+
+  void _updateDrawerSettings() {
+    switch (_currentIndex) {
+      case 0:
+        ref
+            .read(currentViewDrawerSettingsProvider.notifier)
+            .updateSettings(const ReaderDrawerSettings());
+        break;
+      default:
+        ref
+            .read(currentViewDrawerSettingsProvider.notifier)
+            .updateSettings(null);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       key: _scaffoldKey,
@@ -49,6 +72,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           setState(() {
             _currentIndex = index;
           });
+          _updateDrawerSettings();
           if (index == 0 && _readerKey.currentState != null) {
             _readerKey.currentState!.reloadPage();
           }
@@ -67,6 +91,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           setState(() {
             _currentIndex = index;
           });
+          _updateDrawerSettings();
           if (index == 0 && _readerKey.currentState != null) {
             _readerKey.currentState!.reloadPage();
           }

@@ -3,6 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
 
+typedef DrawerSettingsBuilder =
+    Widget Function(BuildContext context, WidgetRef ref);
+
+class ViewDrawerSettings {
+  final Widget? settingsContent;
+
+  const ViewDrawerSettings({this.settingsContent});
+
+  const ViewDrawerSettings.none() : settingsContent = null;
+}
+
 class SettingsNotifier extends Notifier<Settings> {
   static const String _keyServerUrl = 'server_url';
   static const String _keyBookId = 'default_book_id';
@@ -331,4 +342,18 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
 final themeSettingsProvider =
     NotifierProvider<ThemeSettingsNotifier, ThemeSettings>(() {
       return ThemeSettingsNotifier();
+    });
+
+class CurrentViewDrawerSettingsNotifier extends Notifier<Widget?> {
+  @override
+  Widget? build() => null;
+
+  void updateSettings(Widget? settingsWidget) {
+    state = settingsWidget;
+  }
+}
+
+final currentViewDrawerSettingsProvider =
+    NotifierProvider<CurrentViewDrawerSettingsNotifier, Widget?>(() {
+      return CurrentViewDrawerSettingsNotifier();
     });
