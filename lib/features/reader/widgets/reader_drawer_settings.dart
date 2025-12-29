@@ -5,9 +5,42 @@ import 'package:lute_for_mobile/features/settings/providers/settings_provider.da
 class ReaderDrawerSettings extends ConsumerWidget {
   const ReaderDrawerSettings({super.key});
 
+  final List<FontWeight> _availableWeights = const [
+    FontWeight.w200,
+    FontWeight.w300,
+    FontWeight.normal,
+    FontWeight.w500,
+    FontWeight.w600,
+    FontWeight.bold,
+    FontWeight.w800,
+  ];
+
+  final List<String> _weightLabels = const [
+    'Extra Light',
+    'Light',
+    'Regular',
+    'Medium',
+    'Semi Bold',
+    'Bold',
+    'Extra Bold',
+  ];
+
+  FontWeight _getWeightFromIndex(double index) {
+    final idx = index.round().clamp(0, _availableWeights.length - 1);
+    return _availableWeights[idx];
+  }
+
+  String _getWeightLabel(double index) {
+    final idx = index.round().clamp(0, _weightLabels.length - 1);
+    return _weightLabels[idx];
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textSettings = ref.watch(textFormattingSettingsProvider);
+    final weightIndex = _availableWeights
+        .indexOf(textSettings.fontWeight)
+        .toDouble();
 
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -25,6 +58,10 @@ class ReaderDrawerSettings extends ConsumerWidget {
           _buildLineSpacingSlider(context, ref, textSettings),
           const SizedBox(height: 16),
           _buildFontDropdown(context, ref, textSettings),
+          const SizedBox(height: 16),
+          _buildFontWeightSlider(context, ref, textSettings, weightIndex),
+          const SizedBox(height: 16),
+          _buildItalicToggle(context, ref, textSettings),
         ],
       ),
     );
@@ -114,6 +151,56 @@ class ReaderDrawerSettings extends ConsumerWidget {
                   .read(textFormattingSettingsProvider.notifier)
                   .updateFontFamily(newValue);
             }
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFontWeightSlider(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic textSettings,
+    double weightIndex,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Weight: ${_getWeightLabel(weightIndex)}',
+          style: Theme.of(context).textTheme.labelLarge,
+        ),
+        Slider(
+          value: weightIndex,
+          min: 0,
+          max: _availableWeights.length - 1,
+          divisions: _availableWeights.length - 1,
+          label: _getWeightLabel(weightIndex),
+          onChanged: (value) {
+            ref
+                .read(textFormattingSettingsProvider.notifier)
+                .updateFontWeight(_getWeightFromIndex(value));
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildItalicToggle(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic textSettings,
+  ) {
+    return Row(
+      children: [
+        const Text('Italic', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Spacer(),
+        Switch(
+          value: textSettings.isItalic,
+          onChanged: (value) {
+            ref
+                .read(textFormattingSettingsProvider.notifier)
+                .updateIsItalic(value);
           },
         ),
       ],
