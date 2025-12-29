@@ -138,7 +138,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     );
     final settings = ref.watch(termFormSettingsProvider);
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -149,25 +149,25 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeader(context),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildTranslationField(context),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildStatusField(context),
             if (settings.showRomanization) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _buildRomanizationField(context),
             ],
             if (settings.showTags) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _buildTagsField(context),
             ],
             if (widget.termForm.dictionaries.isNotEmpty) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               _buildDictionariesSection(context),
             ],
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _buildParentsSection(context),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _buildButtons(context),
           ],
         ),
@@ -207,31 +207,22 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Widget _buildTranslationField(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Translation',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
+    return TextFormField(
+      controller: _translationController,
+      decoration: InputDecoration(
+        labelText: 'Translation',
+        labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.w600,
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _translationController,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            hintText: 'Enter translation',
-            hintStyle: TextStyle(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-          ),
-          maxLines: 2,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        hintText: 'Enter translation',
+        hintStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
-      ],
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+      maxLines: 2,
     );
   }
 
@@ -241,12 +232,12 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       children: [
         Text(
           'Status',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: Theme.of(context).colorScheme.primary,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -311,58 +302,40 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Widget _buildRomanizationField(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Romanization',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
+    return TextFormField(
+      controller: _romanizationController,
+      decoration: InputDecoration(
+        labelText: 'Romanization',
+        labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.w600,
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _romanizationController,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            hintText: 'Enter romanization (optional)',
-            hintStyle: TextStyle(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-          ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        hintText: 'Enter romanization (optional)',
+        hintStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
-      ],
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
     );
   }
 
   Widget _buildTagsField(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Tags',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
+    return TextFormField(
+      controller: _tagsController,
+      decoration: InputDecoration(
+        labelText: 'Tags',
+        labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+          color: Theme.of(context).colorScheme.primary,
+          fontWeight: FontWeight.w600,
         ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: _tagsController,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            hintText: 'Enter tags separated by commas',
-            hintStyle: TextStyle(
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.5),
-            ),
-          ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        hintText: 'Enter tags separated by commas',
+        hintStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
-      ],
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
     );
   }
 
@@ -372,12 +345,12 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       children: [
         Text(
           'Dictionaries',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             color: Theme.of(context).colorScheme.primary,
             fontWeight: FontWeight.w600,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -407,7 +380,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
           children: [
             Text(
               'Parent Terms',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Theme.of(context).colorScheme.primary,
                 fontWeight: FontWeight.w600,
               ),
@@ -433,13 +406,13 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 ElevatedButton.icon(
                   onPressed: () => _showAddParentDialog(context),
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Parent Term'),
+                  label: const Text('Add Parent'),
                 ),
               ],
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         if (widget.termForm.parents.isNotEmpty)
           Wrap(
             spacing: 8,
