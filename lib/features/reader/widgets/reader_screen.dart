@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../features/settings/providers/settings_provider.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../providers/reader_provider.dart';
@@ -17,13 +18,11 @@ class ReaderScreen extends ConsumerStatefulWidget {
 }
 
 class ReaderScreenState extends ConsumerState<ReaderScreen> {
-  double _textSize = 18.0;
-  double _lineSpacing = 1.5;
   double _tempTextSize = 18.0;
   double _tempLineSpacing = 1.5;
-  String _selectedFont = 'Roboto';
-  FontWeight _fontWeight = FontWeight.normal;
-  bool _isItalic = false;
+  String? _tempFont;
+  FontWeight? _tempFontWeight;
+  bool? _tempIsItalic;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -142,6 +141,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
       return const ErrorDisplay(message: 'No content available');
     }
 
+    final textSettings = ref.watch(textFormattingSettingsProvider);
+
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () => TermTooltipClass.close(),
@@ -153,11 +154,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
         onDoubleTap: (item) {
           _handleDoubleTap(item);
         },
-        textSize: _textSize,
-        lineSpacing: _lineSpacing,
-        fontFamily: _selectedFont,
-        fontWeight: _fontWeight,
-        isItalic: _isItalic,
+        textSize: textSettings.textSize,
+        lineSpacing: textSettings.lineSpacing,
+        fontFamily: textSettings.fontFamily,
+        fontWeight: textSettings.fontWeight,
+        isItalic: textSettings.isItalic,
       ),
     );
   }
@@ -240,9 +241,13 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   void _showTextFormattingOptions() {
-    // Initialize temp values
-    _tempTextSize = _textSize;
-    _tempLineSpacing = _lineSpacing;
+    final settings = ref.read(textFormattingSettingsProvider);
+
+    _tempTextSize = settings.textSize;
+    _tempLineSpacing = settings.lineSpacing;
+    _tempFont = settings.fontFamily;
+    _tempFontWeight = settings.fontWeight;
+    _tempIsItalic = settings.isItalic;
 
     showDialog(
       context: context,
@@ -290,9 +295,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                         });
                       },
                       onChangeEnd: (value) {
-                        setState(() {
-                          _textSize = value;
-                        });
+                        ref
+                            .read(textFormattingSettingsProvider.notifier)
+                            .updateTextSize(value);
                       },
                     ),
                     const SizedBox(height: 16),
@@ -311,9 +316,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                         });
                       },
                       onChangeEnd: (value) {
-                        setState(() {
-                          _lineSpacing = value;
-                        });
+                        ref
+                            .read(textFormattingSettingsProvider.notifier)
+                            .updateLineSpacing(value);
                       },
                     ),
                     const SizedBox(height: 16),
@@ -321,7 +326,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                     // Font dropdown
                     const Text('Font'),
                     DropdownButton<String>(
-                      value: _selectedFont,
+                      value: _tempFont ?? 'Roboto',
                       isExpanded: true,
                       items: _availableFonts.map((String font) {
                         return DropdownMenuItem<String>(
@@ -332,9 +337,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                       onChanged: (String? newValue) {
                         if (newValue != null) {
                           dialogSetState(() {
-                            _selectedFont = newValue;
+                            _tempFont = newValue;
                           });
-                          setState(() {});
+                          ref
+                              .read(textFormattingSettingsProvider.notifier)
+                              .updateFontFamily(newValue);
                         }
                       },
                     ),
@@ -343,7 +350,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                     // Font weight dropdown
                     const Text('Weight'),
                     DropdownButton<FontWeight>(
-                      value: _fontWeight,
+                      value: _tempFontWeight ?? FontWeight.normal,
                       isExpanded: true,
                       items: _availableWeights.map((FontWeight weight) {
                         return DropdownMenuItem<FontWeight>(
@@ -356,9 +363,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                       onChanged: (FontWeight? newValue) {
                         if (newValue != null) {
                           dialogSetState(() {
-                            _fontWeight = newValue;
+                            _tempFontWeight = newValue;
                           });
-                          setState(() {});
+                          ref
+                              .read(textFormattingSettingsProvider.notifier)
+                              .updateFontWeight(newValue);
                         }
                       },
                     ),
@@ -370,12 +379,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                         const Text('Italic'),
                         const Spacer(),
                         Switch(
-                          value: _isItalic,
+                          value: _tempIsItalic ?? false,
                           onChanged: (value) {
                             dialogSetState(() {
-                              _isItalic = value;
+                              _tempIsItalic = value;
                             });
-                            setState(() {});
+                            ref
+                                .read(textFormattingSettingsProvider.notifier)
+                                .updateIsItalic(value);
                           },
                         ),
                       ],

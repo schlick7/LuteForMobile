@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
@@ -144,3 +145,134 @@ final termFormSettingsProvider =
     NotifierProvider<TermFormSettingsNotifier, TermFormSettings>(() {
       return TermFormSettingsNotifier();
     });
+
+class TextFormattingSettings {
+  final double textSize;
+  final double lineSpacing;
+  final String fontFamily;
+  final FontWeight fontWeight;
+  final bool isItalic;
+
+  const TextFormattingSettings({
+    this.textSize = 18.0,
+    this.lineSpacing = 1.5,
+    this.fontFamily = 'Roboto',
+    this.fontWeight = FontWeight.normal,
+    this.isItalic = false,
+  });
+
+  TextFormattingSettings copyWith({
+    double? textSize,
+    double? lineSpacing,
+    String? fontFamily,
+    FontWeight? fontWeight,
+    bool? isItalic,
+  }) {
+    return TextFormattingSettings(
+      textSize: textSize ?? this.textSize,
+      lineSpacing: lineSpacing ?? this.lineSpacing,
+      fontFamily: fontFamily ?? this.fontFamily,
+      fontWeight: fontWeight ?? this.fontWeight,
+      isItalic: isItalic ?? this.isItalic,
+    );
+  }
+
+  static const TextFormattingSettings defaultSettings =
+      TextFormattingSettings();
+}
+
+class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
+  static const String _keyTextSize = 'text_size';
+  static const String _keyLineSpacing = 'line_spacing';
+  static const String _keyFontFamily = 'font_family';
+  static const String _keyFontWeight = 'font_weight';
+  static const String _keyIsItalic = 'is_italic';
+
+  @override
+  TextFormattingSettings build() {
+    _loadSettings();
+    return TextFormattingSettings.defaultSettings;
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final textSize = prefs.getDouble(_keyTextSize) ?? 18.0;
+    final lineSpacing = prefs.getDouble(_keyLineSpacing) ?? 1.5;
+    final fontFamily = prefs.getString(_keyFontFamily) ?? 'Roboto';
+    final fontWeightIndex = prefs.getInt(_keyFontWeight) ?? 0;
+    final isItalic = prefs.getBool(_keyIsItalic) ?? false;
+
+    final fontWeightMap = [
+      FontWeight.w200,
+      FontWeight.w300,
+      FontWeight.normal,
+      FontWeight.w500,
+      FontWeight.w600,
+      FontWeight.bold,
+      FontWeight.w800,
+    ];
+
+    state = TextFormattingSettings(
+      textSize: textSize,
+      lineSpacing: lineSpacing,
+      fontFamily: fontFamily,
+      fontWeight:
+          fontWeightMap[fontWeightIndex.clamp(0, fontWeightMap.length - 1)],
+      isItalic: isItalic,
+    );
+  }
+
+  Future<void> updateTextSize(double size) async {
+    state = state.copyWith(textSize: size);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keyTextSize, size);
+  }
+
+  Future<void> updateLineSpacing(double spacing) async {
+    state = state.copyWith(lineSpacing: spacing);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_keyLineSpacing, spacing);
+  }
+
+  Future<void> updateFontFamily(String family) async {
+    state = state.copyWith(fontFamily: family);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyFontFamily, family);
+  }
+
+  Future<void> updateFontWeight(FontWeight weight) async {
+    state = state.copyWith(fontWeight: weight);
+
+    final prefs = await SharedPreferences.getInstance();
+    final fontWeightMap = [
+      FontWeight.w200,
+      FontWeight.w300,
+      FontWeight.normal,
+      FontWeight.w500,
+      FontWeight.w600,
+      FontWeight.bold,
+      FontWeight.w800,
+    ];
+    final index = fontWeightMap.indexOf(weight);
+    if (index >= 0) {
+      await prefs.setInt(_keyFontWeight, index);
+    }
+  }
+
+  Future<void> updateIsItalic(bool italic) async {
+    state = state.copyWith(isItalic: italic);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyIsItalic, italic);
+  }
+}
+
+final textFormattingSettingsProvider =
+    NotifierProvider<TextFormattingSettingsNotifier, TextFormattingSettings>(
+      () {
+        return TextFormattingSettingsNotifier();
+      },
+    );
