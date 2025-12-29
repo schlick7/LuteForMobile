@@ -129,6 +129,23 @@ class ReaderNotifier extends Notifier<ReaderState> {
       return false;
     }
   }
+
+  Future<bool> saveTerm(TermForm termForm) async {
+    try {
+      if (termForm.termId != null) {
+        await _repository.editTerm(termForm.termId!, termForm.toFormData());
+      } else {
+        await _repository.saveTermForm(
+          termForm.languageId,
+          termForm.term,
+          termForm.toFormData(),
+        );
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
 }
 
 final apiServiceProvider = Provider<ApiService>((ref) {

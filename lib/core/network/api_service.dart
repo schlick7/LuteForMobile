@@ -80,11 +80,16 @@ class ApiService {
     return await _dio.post<String>(
       '/read/termform/$langId/$encodedText',
       data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
     );
   }
 
   Future<Response<String>> editTerm(int termId, dynamic data) async {
-    return await _dio.post<String>('/read/edit_term/$termId', data: data);
+    return await _dio.post<String>(
+      '/read/edit_term/$termId',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
   }
 
   Future<Response<String>> getActiveBooks() async {

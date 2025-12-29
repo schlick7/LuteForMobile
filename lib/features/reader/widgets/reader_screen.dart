@@ -157,11 +157,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
         onSave: (updatedForm) async {
           final success = await ref
               .read(readerProvider.notifier)
-              .saveTermForm(
-                updatedForm.languageId,
-                updatedForm.term,
-                updatedForm.toFormData(),
-              );
+              .saveTerm(updatedForm);
           if (success && mounted) {
             Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
