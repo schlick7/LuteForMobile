@@ -123,19 +123,40 @@ class _TextDisplayState extends State<TextDisplay> {
       );
     }
 
+    Color? textColor;
+    Color? backgroundColor;
+    FontWeight fontWeight = FontWeight.normal;
+
+    // Extract status number from statusClass (e.g., "status1" -> "1")
+    final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
+    final status = statusMatch?.group(1) ?? '0';
+
+    // Use theme methods for consistent styling
+    textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
+    backgroundColor = Theme.of(
+      context,
+    ).colorScheme.getStatusBackgroundColor(status);
+
     final textStyle = TextStyle(
-      color: item.isKnown
-          ? Theme.of(context).colorScheme.success
-          : Theme.of(context).textTheme.bodyLarge?.color,
-      fontWeight: item.isKnown ? FontWeight.bold : FontWeight.normal,
+      color: textColor,
+      fontWeight: fontWeight,
       fontSize: 18,
       height: 1.5,
+      backgroundColor: backgroundColor,
     );
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (details) => _handleTap(item, details.globalPosition),
-      child: Text(item.text, style: textStyle),
+      child: Container(
+        decoration: backgroundColor != null
+            ? BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(2),
+              )
+            : null,
+        child: Text(item.text, style: textStyle),
+      ),
     );
   }
 }

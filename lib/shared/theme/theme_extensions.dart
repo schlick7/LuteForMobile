@@ -27,12 +27,46 @@ extension AppColorSchemeExtension on ColorScheme {
   Color get aiProvider => AppColors.aiProvider;
   Color get localProvider => AppColors.localProvider;
 
-  // Get status color by status string
+  // Get status color by status string for text styling
+  Color getStatusTextColor(String status) {
+    switch (status) {
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '98':
+      case '99':
+        return onSurface; // Default text color for these statuses
+      case '0':
+      default:
+        return AppStatusColors.status98; // Light blue for unknown
+    }
+  }
+
+  // Get status background color for highlighting
+  Color? getStatusBackgroundColor(String status) {
+    switch (status) {
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+        return AppStatusColors.getStatusColor(status).withValues(alpha: 0.3);
+      case '0':
+      case '98':
+      case '99':
+      default:
+        return null; // No background for these statuses
+    }
+  }
+
+  // Get status color by status string (legacy method)
   Color getStatusColor(String status) {
     return AppStatusColors.getStatusColor(status);
   }
 
-  // Get status color with opacity
+  // Get status color with opacity (legacy method)
   Color getStatusColorWithOpacity(String status, {double opacity = 0.1}) {
     return AppStatusColors.getStatusColorWithOpacity(status, opacity: opacity);
   }
