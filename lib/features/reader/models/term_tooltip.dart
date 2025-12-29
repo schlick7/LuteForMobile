@@ -54,8 +54,15 @@ class TermParent {
   final String term;
   final String? translation;
   final int? status;
+  final bool? syncStatus;
 
-  TermParent({this.id, required this.term, this.translation, this.status});
+  TermParent({
+    this.id,
+    required this.term,
+    this.translation,
+    this.status,
+    this.syncStatus,
+  });
 }
 
 class TermChild {

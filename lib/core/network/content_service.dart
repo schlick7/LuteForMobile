@@ -115,6 +115,7 @@ class ContentService {
             term: result.text,
             translation: result.translation,
             status: result.status,
+            syncStatus: result.syncStatus,
           ),
         );
       } else {
@@ -140,6 +141,7 @@ class ContentService {
             term: result.text,
             translation: result.translation,
             status: result.status,
+            syncStatus: result.syncStatus,
           ),
         );
       } else {

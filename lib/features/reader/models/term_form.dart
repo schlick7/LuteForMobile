@@ -7,6 +7,7 @@ class SearchResultTerm {
   final String? translation;
   final int? status;
   final int? langId;
+  final bool? syncStatus;
 
   SearchResultTerm({
     this.id,
@@ -14,6 +15,7 @@ class SearchResultTerm {
     this.translation,
     this.status,
     this.langId,
+    this.syncStatus,
   });
 
   factory SearchResultTerm.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class SearchResultTerm {
       translation: json['translation'] as String?,
       status: json['status'] as int?,
       langId: json['lang_id'] as int?,
+      syncStatus: json['sync_status'] as bool?,
     );
   }
 

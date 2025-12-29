@@ -272,6 +272,7 @@ class HtmlParser {
                   term: parentTerm,
                   translation: null,
                   status: parentData['status'] as int?,
+                  syncStatus: parentData['sync_status'] as bool?,
                 ),
               );
             }
