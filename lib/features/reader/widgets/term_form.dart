@@ -414,25 +414,20 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             ),
             Row(
               children: [
-                Stack(
-                  children: [
-                    IconButton(
-                      onPressed: _canSyncWithParent()
-                          ? () => _showParentLinkMenu(context)
-                          : null,
-                      icon: Icon(Icons.link, color: _getLinkIconColor()),
-                      tooltip: _getLinkTooltip(),
-                      iconSize: 20,
-                      constraints: const BoxConstraints(
-                        minWidth: 40,
-                        minHeight: 40,
-                      ),
-                    ),
-                    if (_hasMultipleParents())
-                      Positioned.fill(
-                        child: CustomPaint(painter: _StrikethroughPainter()),
-                      ),
-                  ],
+                IconButton(
+                  onPressed: _canSyncWithParent()
+                      ? () => _showParentLinkMenu(context)
+                      : null,
+                  icon: Icon(
+                    _hasMultipleParents() ? Icons.link_off : Icons.link,
+                    color: _getLinkIconColor(),
+                  ),
+                  tooltip: _getLinkTooltip(),
+                  iconSize: 20,
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
@@ -687,9 +682,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Color _getLinkIconColor() {
-    if (_hasMultipleParents()) {
-      return Colors.grey;
-    }
     return _getParentSyncStatus() ? Colors.green : Colors.grey;
   }
 
@@ -722,25 +714,4 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       ],
     );
   }
-}
-
-class _StrikethroughPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.grey
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
-
-    final offset = 8.0;
-
-    canvas.drawLine(
-      Offset(offset, offset),
-      Offset(size.width - offset, size.height - offset),
-      paint,
-    );
-  }
-
-  @override
-  bool shouldRepaint(_StrikethroughPainter oldDelegate) => false;
 }
