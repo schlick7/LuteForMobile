@@ -480,30 +480,46 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   void _showAddParentDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Parent Term'),
-        content: ParentSearchWidget(
-          languageId: widget.termForm.languageId,
-          existingParentIds: widget.termForm.parents
-              .map((p) => p.id)
-              .where((id) => id != null)
-              .cast<int>()
-              .toList(),
-          onParentSelected: (parent) {
-            _addParent(parent);
-            Navigator.of(context).pop();
-          },
-          contentService: widget.contentService,
-          onDone: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+      builder: (context) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'Add Parent Term',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 16),
+                ParentSearchWidget(
+                  languageId: widget.termForm.languageId,
+                  existingParentIds: widget.termForm.parents
+                      .map((p) => p.id)
+                      .where((id) => id != null)
+                      .cast<int>()
+                      .toList(),
+                  onParentSelected: (parent) {
+                    _addParent(parent);
+                    Navigator.of(context).pop();
+                  },
+                  contentService: widget.contentService,
+                  onDone: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }

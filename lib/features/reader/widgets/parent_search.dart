@@ -180,40 +180,50 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
         if (_searchResults.isNotEmpty) ...[
           const SizedBox(height: 8),
           Container(
-            height: 300,
             decoration: BoxDecoration(
               border: Border.all(color: Theme.of(context).dividerColor),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Scrollbar(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: _searchResults.map((result) {
-                    return ListTile(
-                      title: _buildStatusHighlight(context, result),
-                      subtitle: result.translation != null
-                          ? Text(result.translation!)
-                          : null,
-                      onTap: () {
-                        widget.onParentSelected(
-                          TermParent(
-                            id: result.id,
-                            term: result.text,
-                            translation: result.translation,
-                          ),
-                        );
-                        _searchController.clear();
-                        if (mounted) {
-                          setState(() {
-                            _searchResults = [];
-                          });
-                        }
-                      },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: _searchResults.map((result) {
+                return InkWell(
+                  onTap: () {
+                    widget.onParentSelected(
+                      TermParent(
+                        id: result.id,
+                        term: result.text,
+                        translation: result.translation,
+                      ),
                     );
-                  }).toList(),
-                ),
-              ),
+                    _searchController.clear();
+                    if (mounted) {
+                      setState(() {
+                        _searchResults = [];
+                      });
+                    }
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildStatusHighlight(context, result),
+                        if (result.translation != null)
+                          Text(
+                            result.translation!,
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
           ),
         ],
