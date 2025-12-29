@@ -144,7 +144,6 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        ),
         const SizedBox(height: 8),
         TextField(
           controller: _searchController,
@@ -180,8 +179,7 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
               foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
             ),
           ),
-        if (_searchResults.isNotEmpty) ...[
-          const SizedBox(height: 8),
+        if (_searchResults.isNotEmpty)
           Container(
             decoration: BoxDecoration(
               border: Border.all(color: Theme.of(context).dividerColor),
@@ -235,7 +233,6 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
               }).toList(),
             ),
           ),
-        ],
       ],
     );
   }
@@ -249,15 +246,15 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
 
     if (backgroundColor != null) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 2.0),
+        padding: const EdgeInsets.symmetric(horizontal: 2),
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Text(result.text, style: TextStyle(color: textColor)),
       );
+    } else {
+      return Text(result.text, style: TextStyle(color: textColor));
     }
-
-    return Text(result.text, style: TextStyle(color: textColor));
   }
 }
