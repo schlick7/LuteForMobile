@@ -22,9 +22,9 @@ class TermFormWidget extends ConsumerStatefulWidget {
 
 class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   late TextEditingController _translationController;
-  late String _status;
   late TextEditingController _tagsController;
   late TextEditingController _romanizationController;
+  late String _selectedStatus;
 
   @override
   void initState() {
@@ -32,7 +32,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     _translationController = TextEditingController(
       text: widget.termForm.translation ?? '',
     );
-    _status = widget.termForm.status;
+    _selectedStatus = widget.termForm.status;
     _tagsController = TextEditingController(
       text: widget.termForm.tags?.join(', ') ?? '',
     );
@@ -52,7 +52,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   void _handleSave() {
     final updatedForm = widget.termForm.copyWith(
       translation: _translationController.text.trim(),
-      status: _status,
+      status: _selectedStatus,
       tags: _tagsController.text
           .trim()
           .split(',')
@@ -243,29 +243,77 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
           ),
         ),
         const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          initialValue: _status,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-          items: const [
-            DropdownMenuItem(value: '99', child: Text('Well Known')),
-            DropdownMenuItem(value: '0', child: Text('Ignored')),
-            DropdownMenuItem(value: '1', child: Text('Learning 1')),
-            DropdownMenuItem(value: '2', child: Text('Learning 2')),
-            DropdownMenuItem(value: '3', child: Text('Learning 3')),
-            DropdownMenuItem(value: '4', child: Text('Learning 4')),
-            DropdownMenuItem(value: '5', child: Text('Ignored (dotted)')),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _buildStatusButton(context, '1', '1', _getStatusColor('1')),
+            _buildStatusButton(context, '2', '2', _getStatusColor('2')),
+            _buildStatusButton(context, '3', '3', _getStatusColor('3')),
+            _buildStatusButton(context, '4', '4', _getStatusColor('4')),
+            _buildStatusButton(context, '5', '5', _getStatusColor('5')),
+            _buildStatusButton(context, '99', '✓', _getStatusColor('99')),
+            _buildStatusButton(context, '0', '✕', _getStatusColor('0')),
           ],
-          onChanged: (value) {
-            if (value != null) {
-              setState(() {
-                _status = value;
-              });
-            }
-          },
         ),
       ],
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case '1':
+        return const Color(0xFFb46b7a);
+      case '2':
+        return const Color(0xFFBA8050);
+      case '3':
+        return const Color(0xFFBD9C7B);
+      case '4':
+        return const Color(0xFF756D6B);
+      case '5':
+        return Colors.grey.shade400;
+      case '99':
+        return const Color(0xFF419252);
+      case '0':
+        return const Color(0xFF8095FF);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Widget _buildStatusButton(
+    BuildContext context,
+    String statusValue,
+    String label,
+    Color statusColor,
+  ) {
+    final isSelected = _selectedStatus == statusValue;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _selectedStatus = statusValue;
+        });
+      },
+      child: Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: isSelected ? statusColor : statusColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: statusColor, width: isSelected ? 2 : 1),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: isSelected ? Colors.white : statusColor,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
