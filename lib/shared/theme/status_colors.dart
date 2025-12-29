@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
 
 class AppStatusColors {
+  static const Color status0 = Color(0xFF8095FF); // Light blue - unknown
   static const Color status1 = Color(0xFFb46b7a); // Rosy brown - hardest
   static const Color status2 = Color(0xFFBA8050); // Burnt orange
   static const Color status3 = Color(0xFFBD9C7B); // Tan
   static const Color status4 = Color(0xFF756D6B); // Dark gray
-  static const Color status5 = Color(0xFF9E9E9E); // Medium gray
-  static const Color status98 = Color(0xFF8095FF); // Light blue - ignored
+  static const Color status5 =
+      Colors.transparent; // Transparent - with dashed underline
+  static const Color status98 = Color(
+    0xFF8095FF,
+  ); // Light blue - ignored (same as status0)
   static const Color status99 = Color(0xFF419252); // Green - known/completed
-  static const Color status0 = Color(0xFF757575); // Gray - unknown
+
+  // Text color for highlighted backgrounds
+  static const Color highlightedText = Color(
+    0xFFeff1f2,
+  ); // Light text on colored backgrounds
 
   // Get status color by status string
   static Color getStatusColor(String status) {

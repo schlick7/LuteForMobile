@@ -149,6 +149,9 @@ class _TextDisplayState extends State<TextDisplay> {
       behavior: HitTestBehavior.opaque,
       onTapDown: (details) => _handleTap(item, details.globalPosition),
       child: Container(
+        padding: backgroundColor != null
+            ? const EdgeInsets.symmetric(horizontal: 2.0)
+            : null,
         decoration: backgroundColor != null
             ? BoxDecoration(
                 color: backgroundColor,

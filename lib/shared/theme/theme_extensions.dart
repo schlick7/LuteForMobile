@@ -34,13 +34,15 @@ extension AppColorSchemeExtension on ColorScheme {
       case '2':
       case '3':
       case '4':
+        return AppStatusColors
+            .highlightedText; // Light text on colored backgrounds
       case '5':
       case '98':
       case '99':
         return onSurface; // Default text color for these statuses
       case '0':
       default:
-        return AppStatusColors.status98; // Light blue for unknown
+        return AppStatusColors.status0; // Light blue for unknown
     }
   }
 
