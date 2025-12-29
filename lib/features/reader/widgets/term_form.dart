@@ -217,30 +217,17 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Widget _buildStatusField(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
-        Text(
-          'Status',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            _buildStatusButton(context, '1', '1', _getStatusColor('1')),
-            _buildStatusButton(context, '2', '2', _getStatusColor('2')),
-            _buildStatusButton(context, '3', '3', _getStatusColor('3')),
-            _buildStatusButton(context, '4', '4', _getStatusColor('4')),
-            _buildStatusButton(context, '5', '5', _getStatusColor('5')),
-            _buildStatusButton(context, '99', '✓', _getStatusColor('99')),
-            _buildStatusButton(context, '98', '✕', _getStatusColor('98')),
-          ],
-        ),
+        _buildStatusButton(context, '1', '1', _getStatusColor('1')),
+        _buildStatusButton(context, '2', '2', _getStatusColor('2')),
+        _buildStatusButton(context, '3', '3', _getStatusColor('3')),
+        _buildStatusButton(context, '4', '4', _getStatusColor('4')),
+        _buildStatusButton(context, '5', '5', _getStatusColor('5')),
+        _buildStatusButton(context, '99', '✓', _getStatusColor('99')),
+        _buildStatusButton(context, '98', '✕', _getStatusColor('98')),
       ],
     );
   }
