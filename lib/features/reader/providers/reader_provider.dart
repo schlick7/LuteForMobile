@@ -97,6 +97,17 @@ class ReaderNotifier extends Notifier<ReaderState> {
     }
   }
 
+  Future<TermForm?> fetchTermFormById(int termId) async {
+    state = state.copyWith(isTermFormLoading: true);
+    try {
+      return await _repository.getTermFormById(termId);
+    } catch (e) {
+      return null;
+    } finally {
+      state = state.copyWith(isTermFormLoading: false);
+    }
+  }
+
   Future<bool> saveTermForm(
     int langId,
     String text,

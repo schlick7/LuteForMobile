@@ -253,7 +253,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             _buildStatusButton(context, '4', '4', _getStatusColor('4')),
             _buildStatusButton(context, '5', '5', _getStatusColor('5')),
             _buildStatusButton(context, '99', '✓', _getStatusColor('99')),
-            _buildStatusButton(context, '0', '✕', _getStatusColor('0')),
+            _buildStatusButton(context, '98', '✕', _getStatusColor('98')),
           ],
         ),
       ],
@@ -274,7 +274,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         return Colors.grey.shade400;
       case '99':
         return const Color(0xFF419252);
-      case '0':
+      case '98':
         return const Color(0xFF8095FF);
       default:
         return Colors.grey;

@@ -67,6 +67,10 @@ class ApiService {
     return await _dio.get<String>('/read/termform/$langId/$encodedText');
   }
 
+  Future<Response<String>> getTermFormById(int termId) async {
+    return await _dio.get<String>('/read/edit_term/$termId');
+  }
+
   Future<Response<String>> postTermForm(
     int langId,
     String text,

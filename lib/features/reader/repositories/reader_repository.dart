@@ -44,6 +44,14 @@ class ReaderRepository {
     }
   }
 
+  Future<TermForm> getTermFormById(int termId) async {
+    try {
+      return await _contentService.getTermFormById(termId);
+    } catch (e) {
+      throw Exception('Failed to load term form: $e');
+    }
+  }
+
   Future<void> saveTermForm(
     int langId,
     String text,

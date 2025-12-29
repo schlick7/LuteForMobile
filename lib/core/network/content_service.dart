@@ -70,6 +70,12 @@ class ContentService {
     return _htmlParser.parseTermForm(htmlContent);
   }
 
+  Future<TermForm> getTermFormById(int termId) async {
+    final response = await _apiService.getTermFormById(termId);
+    final htmlContent = response.data ?? '';
+    return _htmlParser.parseTermForm(htmlContent);
+  }
+
   Future<void> saveTermForm(
     int langId,
     String text,

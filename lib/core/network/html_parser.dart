@@ -183,29 +183,39 @@ class HtmlParser {
     final termInput = document.querySelector('input[name="text"]');
     final term = termInput?.attributes['value']?.trim() ?? '';
 
-    final translationInput = document.querySelector(
-      'input[name="translation"]',
+    final translationTextarea = document.querySelector(
+      'textarea[name="translation"]',
     );
-    final translation = translationInput?.attributes['value']?.trim();
+    final translation = translationTextarea?.text.trim();
 
     final termIdInput = document.querySelector('input[name="termid"]');
     final termId = termIdInput != null
         ? int.tryParse(termIdInput.attributes['value'] ?? '')
         : null;
 
-    final langIdInput = document.querySelector('input[name="langid"]');
+    final langIdInput = document.querySelector('select[name="language_id"]');
     final languageId = langIdInput != null
-        ? (int.tryParse(langIdInput.attributes['value'] ?? '') ?? 0)
+        ? (int.tryParse(
+                langIdInput
+                        .querySelector('option[selected]')
+                        ?.attributes['value'] ??
+                    '',
+              ) ??
+              0)
         : 0;
 
-    final statusInput = document.querySelector('select[name="status"]');
     String status = '99';
-    if (statusInput != null) {
-      final selectedOption = statusInput.querySelector('option[selected]');
-      status = selectedOption?.attributes['value'] ?? '99';
+    final statusRadioInputs = document.querySelectorAll(
+      'input[name="status"][type="radio"]',
+    );
+    for (final radio in statusRadioInputs) {
+      if (radio.attributes['checked'] != null) {
+        status = radio.attributes['value'] ?? '99';
+        break;
+      }
     }
 
-    final tagsInput = document.querySelector('input[name="tags"]');
+    final tagsInput = document.querySelector('input[name="termtagslist"]');
     String? tags = tagsInput?.attributes['value']?.trim();
     final tagList = tags?.isNotEmpty == true ? tags!.split(',') : null;
 
