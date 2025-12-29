@@ -4,7 +4,7 @@ import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
-import 'package:lute_for_mobile/features/settings/models/settings.dart';
+import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
 
 class App extends ConsumerWidget {
   const App({super.key});
@@ -37,15 +37,29 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   int _currentIndex = 0;
   final GlobalKey<ReaderScreenState> _readerKey =
       GlobalKey<ReaderScreenState>();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: AppDrawer(
+        currentIndex: _currentIndex,
+        onNavigate: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+          if (index == 0 && _readerKey.currentState != null) {
+            _readerKey.currentState!.reloadPage();
+          }
+        },
+        isSettingsView: _currentIndex == 1,
+      ),
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          ReaderScreen(key: _readerKey),
-          const SettingsScreen(),
+          ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
+          SettingsScreen(scaffoldKey: _scaffoldKey),
         ],
       ),
       bottomNavigationBar: NavigationBar(

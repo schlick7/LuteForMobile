@@ -11,7 +11,9 @@ import 'text_display.dart';
 import 'term_form.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
-  const ReaderScreen({super.key});
+  final GlobalKey<ScaffoldState>? scaffoldKey;
+
+  const ReaderScreen({super.key, this.scaffoldKey});
 
   @override
   ConsumerState<ReaderScreen> createState() => ReaderScreenState();
@@ -83,23 +85,18 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: PopupMenuButton<String>(
-          icon: const Icon(Icons.menu),
-          onSelected: (value) {
-            switch (value) {
-              case 'text_formatting':
-                _showTextFormattingOptions();
-                break;
-            }
-          },
-          itemBuilder: (BuildContext context) {
-            return [
-              const PopupMenuItem<String>(
-                value: 'text_formatting',
-                child: Text('Text Formatting'),
-              ),
-            ];
-          },
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              if (widget.scaffoldKey != null &&
+                  widget.scaffoldKey!.currentState != null) {
+                widget.scaffoldKey!.currentState!.openDrawer();
+              } else {
+                Scaffold.of(context).openDrawer();
+              }
+            },
+          ),
         ),
         title: Text(state.pageData?.title ?? 'Reader'),
         actions: [

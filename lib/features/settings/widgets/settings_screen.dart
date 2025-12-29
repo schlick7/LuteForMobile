@@ -5,7 +5,9 @@ import '../providers/settings_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
-  const SettingsScreen({super.key});
+  final GlobalKey<ScaffoldState>? scaffoldKey;
+
+  const SettingsScreen({super.key, this.scaffoldKey});
 
   @override
   ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
@@ -120,7 +122,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final themeSettings = ref.watch(themeSettingsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Settings'), elevation: 2),
+      appBar: AppBar(
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu),
+            onPressed: () {
+              if (widget.scaffoldKey != null &&
+                  widget.scaffoldKey!.currentState != null) {
+                widget.scaffoldKey!.currentState!.openDrawer();
+              } else {
+                Scaffold.of(context).openDrawer();
+              }
+            },
+          ),
+        ),
+        title: const Text('Settings'),
+        elevation: 2,
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
