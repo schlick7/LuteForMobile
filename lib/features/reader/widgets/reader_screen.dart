@@ -223,30 +223,40 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         final repository = ref.read(readerRepositoryProvider);
-        return TermFormWidget(
-          termForm: _currentTermForm ?? termForm,
-          contentService: repository.contentService,
-          onUpdate: (updatedForm) {
-            _currentTermForm = updatedForm;
-          },
-          onSave: (updatedForm) async {
-            final success = await ref
-                .read(readerProvider.notifier)
-                .saveTerm(updatedForm);
-            if (success && mounted) {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Term saved successfully')),
-              );
-            } else {
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Failed to save term')),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return TermFormWidget(
+              termForm: _currentTermForm ?? termForm,
+              contentService: repository.contentService,
+              onUpdate: (updatedForm) {
+                print(
+                  'onUpdate called with parents: ${updatedForm.parents.map((p) => p.term).toList()}',
                 );
-              }
-            }
+                setState(() {
+                  _currentTermForm = updatedForm;
+                });
+                setModalState(() {});
+              },
+              onSave: (updatedForm) async {
+                final success = await ref
+                    .read(readerProvider.notifier)
+                    .saveTerm(updatedForm);
+                if (success && mounted) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Term saved successfully')),
+                  );
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to save term')),
+                    );
+                  }
+                }
+              },
+              onCancel: () => Navigator.of(context).pop(),
+            );
           },
-          onCancel: () => Navigator.of(context).pop(),
         );
       },
     );

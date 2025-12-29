@@ -190,6 +190,7 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
               children: _searchResults.map((result) {
                 return InkWell(
                   onTap: () {
+                    print('Term clicked: ${result.text}');
                     widget.onParentSelected(
                       TermParent(
                         id: result.id,
@@ -197,6 +198,7 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
                         translation: result.translation,
                       ),
                     );
+                    widget.onDone();
                     _searchController.clear();
                     if (mounted) {
                       setState(() {

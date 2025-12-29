@@ -15,7 +15,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
   final VoidCallback onCancel;
   final ContentService contentService;
 
-  const TermFormWidget({
+  TermFormWidget({
     super.key,
     required this.termForm,
     required this.onSave,
@@ -47,6 +47,21 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     _romanizationController = TextEditingController(
       text: widget.termForm.romanization ?? '',
     );
+  }
+
+  @override
+  void didUpdateWidget(TermFormWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    print('didUpdateWidget called');
+    print(
+      'old parents: ${oldWidget.termForm.parents.map((p) => p.term).toList()}',
+    );
+    print(
+      'new parents: ${widget.termForm.parents.map((p) => p.term).toList()}',
+    );
+    if (oldWidget.termForm.parents != widget.termForm.parents) {
+      setState(() {});
+    }
   }
 
   @override
@@ -116,6 +131,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
   @override
   Widget build(BuildContext context) {
+    print(
+      'build called with parents: ${widget.termForm.parents.map((p) => p.term).toList()}',
+    );
     final settings = ref.watch(termFormSettingsProvider);
     return Container(
       padding: const EdgeInsets.all(20),
@@ -386,51 +404,14 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            if (widget.termForm.parents.isNotEmpty)
-              TextButton.icon(
-                onPressed: () => _showAddParentDialog(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Add Parent'),
-              ),
+            ElevatedButton.icon(
+              onPressed: () => _showAddParentDialog(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Parent Term'),
+            ),
           ],
         ),
         const SizedBox(height: 8),
-        if (widget.termForm.parents.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Center(
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.account_tree,
-                    size: 48,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withValues(alpha: 0.3),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'No parent terms added',
-                    style: TextStyle(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ElevatedButton.icon(
-                    onPressed: () => _showAddParentDialog(context),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Add Parent Term'),
-                  ),
-                ],
-              ),
-            ),
-          ),
         if (widget.termForm.parents.isNotEmpty)
           Wrap(
             spacing: 8,
@@ -504,7 +485,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                       .toList(),
                   onParentSelected: (parent) {
                     _addParent(parent);
-                    Navigator.of(context).pop();
                   },
                   contentService: widget.contentService,
                   onDone: () {
@@ -528,6 +508,11 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     final updatedForm = widget.termForm.copyWith(
       parents: [...widget.termForm.parents, parent],
     );
+    print('Adding parent: ${parent.term}');
+    print(
+      'Parents before: ${widget.termForm.parents.map((p) => p.term).toList()}',
+    );
+    print('Parents after: ${updatedForm.parents.map((p) => p.term).toList()}');
     widget.onUpdate(updatedForm);
   }
 
