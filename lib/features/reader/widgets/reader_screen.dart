@@ -21,7 +21,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   double _tempTextSize = 18.0;
   double _tempLineSpacing = 1.5;
   String? _tempFont;
-  FontWeight? _tempFontWeight;
+  double _tempFontWeight = 2.0;
   bool? _tempIsItalic;
   final List<String> _availableFonts = [
     'Roboto',
@@ -39,15 +39,25 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     FontWeight.bold,
     FontWeight.w800,
   ];
-  final Map<FontWeight, String> _weightLabels = {
-    FontWeight.w200: 'Extra Light',
-    FontWeight.w300: 'Light',
-    FontWeight.normal: 'Regular',
-    FontWeight.w500: 'Medium',
-    FontWeight.w600: 'Semi Bold',
-    FontWeight.bold: 'Bold',
-    FontWeight.w800: 'Extra Bold',
-  };
+  final List<String> _weightLabels = [
+    'Extra Light',
+    'Light',
+    'Regular',
+    'Medium',
+    'Semi Bold',
+    'Bold',
+    'Extra Bold',
+  ];
+
+  FontWeight _getWeightFromIndex(double index) {
+    final idx = index.round().clamp(0, _availableWeights.length - 1);
+    return _availableWeights[idx];
+  }
+
+  String _getWeightLabel(double index) {
+    final idx = index.round().clamp(0, _weightLabels.length - 1);
+    return _weightLabels[idx];
+  }
 
   @override
   void initState() {
@@ -246,7 +256,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     _tempTextSize = settings.textSize;
     _tempLineSpacing = settings.lineSpacing;
     _tempFont = settings.fontFamily;
-    _tempFontWeight = settings.fontWeight;
+    _tempFontWeight = _availableWeights.indexOf(settings.fontWeight).toDouble();
     _tempIsItalic = settings.isItalic;
 
     showDialog(
@@ -347,28 +357,23 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Font weight dropdown
+                    // Font weight slider
                     const Text('Weight'),
-                    DropdownButton<FontWeight>(
-                      value: _tempFontWeight ?? FontWeight.normal,
-                      isExpanded: true,
-                      items: _availableWeights.map((FontWeight weight) {
-                        return DropdownMenuItem<FontWeight>(
-                          value: weight,
-                          child: Text(
-                            _weightLabels[weight] ?? weight.toString(),
-                          ),
-                        );
-                      }).toList(),
-                      onChanged: (FontWeight? newValue) {
-                        if (newValue != null) {
-                          dialogSetState(() {
-                            _tempFontWeight = newValue;
-                          });
-                          ref
-                              .read(textFormattingSettingsProvider.notifier)
-                              .updateFontWeight(newValue);
-                        }
+                    Slider(
+                      value: _tempFontWeight,
+                      min: 0,
+                      max: _availableWeights.length - 1,
+                      divisions: _availableWeights.length - 1,
+                      label: _getWeightLabel(_tempFontWeight),
+                      onChanged: (value) {
+                        dialogSetState(() {
+                          _tempFontWeight = value;
+                        });
+                      },
+                      onChangeEnd: (value) {
+                        ref
+                            .read(textFormattingSettingsProvider.notifier)
+                            .updateFontWeight(_getWeightFromIndex(value));
                       },
                     ),
                     const SizedBox(height: 16),
