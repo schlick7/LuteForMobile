@@ -33,7 +33,7 @@ class ReaderState {
   }) {
     return ReaderState(
       isLoading: isLoading ?? this.isLoading,
-      pageData: pageData,
+      pageData: pageData ?? this.pageData,
       errorMessage: errorMessage,
       isTermPopupLoading: isTermPopupLoading ?? this.isTermPopupLoading,
       isTermFormLoading: isTermFormLoading ?? this.isTermFormLoading,
@@ -69,13 +69,20 @@ class ReaderNotifier extends Notifier<ReaderState> {
   }
 
   Future<TermPopup?> fetchTermPopup(int termId) async {
+    final previousState = state;
     state = state.copyWith(isTermPopupLoading: true);
     try {
-      return await _repository.getTermPopup(termId);
+      final result = await _repository.getTermPopup(termId);
+      return result;
     } catch (e) {
+      print('fetchTermPopup error: $e');
       return null;
     } finally {
-      state = state.copyWith(isTermPopupLoading: false);
+      final newState = state.copyWith(isTermPopupLoading: false);
+      print(
+        'State change: pageData=${newState.pageData != null}, errorMessage=${newState.errorMessage}',
+      );
+      state = newState;
     }
   }
 
