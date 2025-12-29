@@ -252,6 +252,67 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                 }
               },
               onCancel: () => Navigator.of(context).pop(),
+              onParentDoubleTap: (parent) async {
+                if (parent.id != null) {
+                  final parentTermForm = await ref
+                      .read(readerProvider.notifier)
+                      .fetchTermFormById(parent.id!);
+                  if (parentTermForm != null && mounted) {
+                    _showParentTermForm(parentTermForm);
+                  }
+                }
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showParentTermForm(TermForm termForm) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final repository = ref.read(readerRepositoryProvider);
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            TermForm? currentForm = termForm;
+            return TermFormWidget(
+              termForm: currentForm,
+              contentService: repository.contentService,
+              onUpdate: (updatedForm) {
+                setState(() {
+                  currentForm = updatedForm;
+                });
+                setModalState(() {});
+              },
+              onSave: (updatedForm) async {
+                final success = await ref
+                    .read(readerProvider.notifier)
+                    .saveTerm(updatedForm);
+                if (success && mounted) {
+                  Navigator.of(context).pop();
+                } else {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to save term')),
+                    );
+                  }
+                }
+              },
+              onCancel: () => Navigator.of(context).pop(),
+              onParentDoubleTap: (parent) async {
+                if (parent.id != null) {
+                  final parentTermForm = await ref
+                      .read(readerProvider.notifier)
+                      .fetchTermFormById(parent.id!);
+                  if (parentTermForm != null && mounted) {
+                    _showParentTermForm(parentTermForm);
+                  }
+                }
+              },
             );
           },
         );

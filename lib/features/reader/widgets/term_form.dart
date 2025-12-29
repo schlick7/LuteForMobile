@@ -14,6 +14,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
   final void Function(TermForm) onUpdate;
   final VoidCallback onCancel;
   final ContentService contentService;
+  final void Function(TermParent)? onParentDoubleTap;
 
   TermFormWidget({
     super.key,
@@ -22,6 +23,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
     required this.onUpdate,
     required this.onCancel,
     required this.contentService,
+    this.onParentDoubleTap,
   });
 
   @override
@@ -550,6 +552,11 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
     return GestureDetector(
       onLongPress: () => _showDeleteParentConfirmation(context, parent),
+      onDoubleTap: () {
+        if (widget.onParentDoubleTap != null) {
+          widget.onParentDoubleTap!(parent);
+        }
+      },
       child: Chip(
         backgroundColor: backgroundColor,
         label: Row(
