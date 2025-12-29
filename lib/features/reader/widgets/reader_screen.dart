@@ -19,6 +19,8 @@ class ReaderScreen extends ConsumerStatefulWidget {
 class ReaderScreenState extends ConsumerState<ReaderScreen> {
   double _textSize = 18.0;
   double _lineSpacing = 1.5;
+  double _tempTextSize = 18.0;
+  double _tempLineSpacing = 1.5;
   String _selectedFont = 'Roboto';
   final List<String> _availableFonts = [
     'Roboto',
@@ -217,6 +219,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   void _showTextFormattingOptions() {
+    // Initialize temp values
+    _tempTextSize = _textSize;
+    _tempLineSpacing = _lineSpacing;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -252,16 +258,20 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                     // Text size slider
                     const Text('Text Size'),
                     Slider(
-                      value: _textSize,
+                      value: _tempTextSize,
                       min: 12,
-                      max: 24,
-                      divisions: 12,
-                      label: _textSize.round().toString(),
+                      max: 30,
+                      divisions: 18,
+                      label: _tempTextSize.round().toString(),
                       onChanged: (value) {
                         dialogSetState(() {
+                          _tempTextSize = value;
+                        });
+                      },
+                      onChangeEnd: (value) {
+                        setState(() {
                           _textSize = value;
                         });
-                        setState(() {});
                       },
                     ),
                     const SizedBox(height: 16),
@@ -269,16 +279,20 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                     // Line spacing slider
                     const Text('Line Spacing'),
                     Slider(
-                      value: _lineSpacing,
-                      min: 1.0,
+                      value: _tempLineSpacing,
+                      min: 0.6,
                       max: 2.0,
-                      divisions: 10,
-                      label: _lineSpacing.toStringAsFixed(1),
+                      divisions: 14,
+                      label: _tempLineSpacing.toStringAsFixed(1),
                       onChanged: (value) {
                         dialogSetState(() {
+                          _tempLineSpacing = value;
+                        });
+                      },
+                      onChangeEnd: (value) {
+                        setState(() {
                           _lineSpacing = value;
                         });
-                        setState(() {});
                       },
                     ),
                     const SizedBox(height: 16),
