@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../../../core/network/content_service.dart';
-import '../../../shared/theme/theme_extensions.dart';
 
 class ParentSearchWidget extends ConsumerStatefulWidget {
   final int languageId;
@@ -38,15 +37,20 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
 
   Future<void> _searchTerms(String query) async {
     if (query.trim().isEmpty) {
-      setState(() {
-        _searchResults = [];
-      });
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+          _isSearching = false;
+        });
+      }
       return;
     }
 
-    setState(() {
-      _isSearching = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isSearching = true;
+      });
+    }
 
     try {
       final results = await widget.contentService.searchTerms(
@@ -54,21 +58,26 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
         widget.languageId,
       );
 
-      setState(() {
-        _searchResults = results
-            .where(
-              (result) =>
-                  result.id != null &&
-                  !widget.existingParentIds.contains(result.id),
-            )
-            .toList();
-      });
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+          _searchResults = results
+              .where(
+                (result) =>
+                    result.id != null &&
+                    !widget.existingParentIds.contains(result.id),
+              )
+              .take(10)
+              .toList();
+        });
+      }
     } catch (e) {
       print('Error searching terms: $e');
-    } finally {
-      setState(() {
-        _isSearching = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
     }
   }
 
@@ -76,9 +85,11 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
     final termText = _searchController.text.trim();
     if (termText.isEmpty) return;
 
-    setState(() {
-      _isSearching = true;
-    });
+    if (mounted) {
+      setState(() {
+        _isSearching = true;
+      });
+    }
 
     try {
       await widget.contentService.createTerm(widget.languageId, termText);
@@ -104,13 +115,17 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
     } catch (e) {
       print('Error creating parent term: $e');
     } finally {
-      setState(() {
-        _isSearching = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
       _searchController.clear();
-      setState(() {
-        _searchResults = [];
-      });
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+        });
+      }
     }
   }
 
@@ -164,60 +179,44 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
         if (_searchResults.isNotEmpty) ...[
           const SizedBox(height: 8),
           Container(
-            constraints: const BoxConstraints(maxHeight: 200),
+            height: 300,
             decoration: BoxDecoration(
               border: Border.all(color: Theme.of(context).dividerColor),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: _searchResults.length,
-              itemBuilder: (context, index) {
-                final result = _searchResults[index];
-                return ListTile(
-                  title: Text(result.text),
-                  subtitle: result.translation != null
-                      ? Text(result.translation!)
-                      : null,
-                  trailing: _getStatusIcon(context, result.statusString),
-                  onTap: () {
-                    widget.onParentSelected(
-                      TermParent(
-                        id: result.id,
-                        term: result.text,
-                        translation: result.translation,
-                      ),
+            child: Scrollbar(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: _searchResults.map((result) {
+                    return ListTile(
+                      title: Text(result.text),
+                      subtitle: result.translation != null
+                          ? Text(result.translation!)
+                          : null,
+                      onTap: () {
+                        widget.onParentSelected(
+                          TermParent(
+                            id: result.id,
+                            term: result.text,
+                            translation: result.translation,
+                          ),
+                        );
+                        _searchController.clear();
+                        if (mounted) {
+                          setState(() {
+                            _searchResults = [];
+                          });
+                        }
+                      },
                     );
-                    _searchController.clear();
-                    setState(() {
-                      _searchResults = [];
-                    });
-                  },
-                );
-              },
+                  }).toList(),
+                ),
+              ),
             ),
           ),
         ],
       ],
-    );
-  }
-
-  Widget _getStatusIcon(BuildContext context, String status) {
-    final color = Theme.of(context).colorScheme.getStatusColor(status);
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      child: Center(
-        child: Text(
-          status == '99' ? '✓' : status,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
     );
   }
 }
