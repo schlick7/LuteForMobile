@@ -119,8 +119,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildHeader(context),
-          const SizedBox(height: 20),
-          _buildTermField(context),
           const SizedBox(height: 16),
           _buildTranslationField(context),
           const SizedBox(height: 16),
@@ -148,11 +146,14 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          'Edit Term',
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+        Expanded(
+          child: Text(
+            widget.termForm.term,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         Row(
           children: [
@@ -167,36 +168,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               tooltip: 'Close',
             ),
           ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTermField(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Term',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: Theme.of(context).colorScheme.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          initialValue: widget.termForm.term,
-          readOnly: true,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-            filled: true,
-            fillColor: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-          ),
-          style: Theme.of(
-            context,
-          ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
       ],
     );
