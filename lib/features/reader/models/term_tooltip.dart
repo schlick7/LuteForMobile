@@ -23,6 +23,10 @@ class TermTooltip {
     this.children = const [],
   });
 
+  bool get hasData {
+    return term.isNotEmpty;
+  }
+
   String get statusLabel {
     switch (status) {
       case '99':

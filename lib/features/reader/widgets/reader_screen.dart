@@ -109,7 +109,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
       final termTooltip = await ref
           .read(readerProvider.notifier)
           .fetchTermTooltip(item.wordId!);
-      if (termTooltip != null && mounted) {
+      if (termTooltip != null && termTooltip.hasData && mounted) {
         TermTooltipClass.show(context, termTooltip, position);
       }
     } catch (e) {
