@@ -9,8 +9,8 @@ class ApiService {
           Dio(
             BaseOptions(
               baseUrl: baseUrl,
-              connectTimeout: const Duration(seconds: 30),
-              receiveTimeout: const Duration(seconds: 30),
+              connectTimeout: const Duration(seconds: 10),
+              receiveTimeout: const Duration(seconds: 10),
               headers: {'Content-Type': 'text/html'},
             ),
           ) {

@@ -22,8 +22,19 @@ class TextDisplay extends StatefulWidget {
 class _TextDisplayState extends State<TextDisplay> {
   Timer? _doubleTapTimer;
   TextItem? _lastTappedItem;
+  ScrollController? _scrollController;
+  double _startY = 0;
+  bool _isDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
 
   void _handleTap(TextItem item, Offset position) {
+    if (_isDragging) return;
+
     if (_lastTappedItem == item &&
         _doubleTapTimer != null &&
         _doubleTapTimer!.isActive) {
@@ -35,7 +46,9 @@ class _TextDisplayState extends State<TextDisplay> {
       _lastTappedItem = item;
       _doubleTapTimer?.cancel();
       _doubleTapTimer = Timer(const Duration(milliseconds: 300), () {
-        widget.onTap?.call(item, position);
+        if (!_isDragging) {
+          widget.onTap?.call(item, position);
+        }
         _doubleTapTimer = null;
         _lastTappedItem = null;
       });
@@ -45,18 +58,40 @@ class _TextDisplayState extends State<TextDisplay> {
   @override
   void dispose() {
     _doubleTapTimer?.cancel();
+    _scrollController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: widget.paragraphs.map((paragraph) {
-          return _buildParagraph(context, paragraph);
-        }).toList(),
+    return GestureDetector(
+      onVerticalDragStart: (details) {
+        _startY = details.globalPosition.dy;
+        _isDragging = false;
+      },
+      onVerticalDragUpdate: (details) {
+        final deltaY = details.globalPosition.dy - _startY;
+        if (deltaY.abs() > 10 && _scrollController != null) {
+          _isDragging = true;
+          _scrollController!.jumpTo(_scrollController!.offset - deltaY);
+          _startY = details.globalPosition.dy;
+        }
+      },
+      onVerticalDragEnd: (_) {
+        Future.delayed(const Duration(milliseconds: 100), () {
+          _isDragging = false;
+        });
+      },
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: widget.paragraphs.map((paragraph) {
+            return _buildParagraph(context, paragraph);
+          }).toList(),
+        ),
       ),
     );
   }

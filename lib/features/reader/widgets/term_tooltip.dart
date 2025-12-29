@@ -98,7 +98,7 @@ class TermTooltipClass {
 
   static void _setupAutoDismiss() {
     _dismissTimer?.cancel();
-    _dismissTimer = Timer(const Duration(seconds: 5), () {
+    _dismissTimer = Timer(const Duration(seconds: 3), () {
       close();
     });
   }
