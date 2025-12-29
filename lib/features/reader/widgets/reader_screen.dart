@@ -17,6 +17,18 @@ class ReaderScreen extends ConsumerStatefulWidget {
 }
 
 class ReaderScreenState extends ConsumerState<ReaderScreen> {
+  double _textSize = 18.0;
+  double _lineSpacing = 1.5;
+  String _selectedFont = 'Roboto';
+  final List<String> _availableFonts = [
+    'Roboto',
+    'Georgia',
+    'Arial',
+    'Times New Roman',
+    'Courier New',
+    'Verdana',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +52,24 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: PopupMenuButton<String>(
+          icon: const Icon(Icons.menu),
+          onSelected: (value) {
+            switch (value) {
+              case 'text_formatting':
+                _showTextFormattingOptions();
+                break;
+            }
+          },
+          itemBuilder: (BuildContext context) {
+            return [
+              const PopupMenuItem<String>(
+                value: 'text_formatting',
+                child: Text('Text Formatting'),
+              ),
+            ];
+          },
+        ),
         title: Text(state.pageData?.title ?? 'Reader'),
         actions: [
           if (state.pageData != null && state.pageData!.pageCount > 1)
@@ -102,6 +132,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
         onDoubleTap: (item) {
           _handleDoubleTap(item);
         },
+        textSize: _textSize,
+        lineSpacing: _lineSpacing,
+        fontFamily: _selectedFont,
       ),
     );
   }
@@ -181,5 +214,119 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     ref
         .read(readerProvider.notifier)
         .loadPage(bookId: bookId, pageNum: pageNum);
+  }
+
+  void _showTextFormattingOptions() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, dialogSetState) {
+            return Dialog(
+              child: Container(
+                width: 300,
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header with close button
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Text Formatting',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Text size slider
+                    const Text('Text Size'),
+                    Slider(
+                      value: _textSize,
+                      min: 12,
+                      max: 24,
+                      divisions: 12,
+                      label: _textSize.round().toString(),
+                      onChanged: (value) {
+                        dialogSetState(() {
+                          _textSize = value;
+                        });
+                        setState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Line spacing slider
+                    const Text('Line Spacing'),
+                    Slider(
+                      value: _lineSpacing,
+                      min: 1.0,
+                      max: 2.0,
+                      divisions: 10,
+                      label: _lineSpacing.toStringAsFixed(1),
+                      onChanged: (value) {
+                        dialogSetState(() {
+                          _lineSpacing = value;
+                        });
+                        setState(() {});
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Font dropdown
+                    const Text('Font'),
+                    DropdownButton<String>(
+                      value: _selectedFont,
+                      isExpanded: true,
+                      items: _availableFonts.map((String font) {
+                        return DropdownMenuItem<String>(
+                          value: font,
+                          child: Text(font),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          dialogSetState(() {
+                            _selectedFont = newValue;
+                          });
+                          setState(() {});
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Apply button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Formatting applied!'),
+                            ),
+                          );
+                        },
+                        child: const Text('Apply'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

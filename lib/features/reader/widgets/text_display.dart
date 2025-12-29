@@ -8,12 +8,18 @@ class TextDisplay extends StatefulWidget {
   final List<Paragraph> paragraphs;
   final void Function(TextItem, Offset)? onTap;
   final void Function(TextItem)? onDoubleTap;
+  final double textSize;
+  final double lineSpacing;
+  final String fontFamily;
 
   const TextDisplay({
     super.key,
     required this.paragraphs,
     this.onTap,
     this.onDoubleTap,
+    this.textSize = 18.0,
+    this.lineSpacing = 1.5,
+    this.fontFamily = 'Roboto',
   });
 
   @override
@@ -116,8 +122,9 @@ class _TextDisplayState extends State<TextDisplay> {
       return Text(
         item.text,
         style: TextStyle(
-          fontSize: 18,
-          height: 1.5,
+          fontSize: widget.textSize,
+          height: widget.lineSpacing,
+          fontFamily: widget.fontFamily,
           color: Theme.of(context).textTheme.bodyLarge?.color,
         ),
       );
@@ -140,8 +147,9 @@ class _TextDisplayState extends State<TextDisplay> {
     final textStyle = TextStyle(
       color: textColor,
       fontWeight: fontWeight,
-      fontSize: 18,
-      height: 1.5,
+      fontSize: widget.textSize,
+      height: widget.lineSpacing,
+      fontFamily: widget.fontFamily,
       backgroundColor: backgroundColor,
     );
 
