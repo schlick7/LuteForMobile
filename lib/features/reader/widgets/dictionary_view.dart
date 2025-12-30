@@ -76,22 +76,25 @@ class _DictionaryViewState extends State<DictionaryView> {
     return Column(
       children: [
         _buildNarrowHeader(context),
-        Expanded(child: _buildSwipeableContent(context)),
+        Flexible(child: _buildSwipeableContent(context)),
       ],
     );
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Container(
-      height: double.infinity,
+    return Align(
       alignment: Alignment.center,
-      padding: const EdgeInsets.all(24),
-      child: Text(
-        'No dictionaries configured',
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          'No dictionaries configured',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+          textAlign: TextAlign.center,
         ),
-        textAlign: TextAlign.center,
       ),
     );
   }
