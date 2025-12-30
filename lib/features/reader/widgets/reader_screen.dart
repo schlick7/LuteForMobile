@@ -7,8 +7,10 @@ import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../providers/reader_provider.dart';
 import '../widgets/term_tooltip.dart';
+import '../models/sentence_translation.dart';
 import 'text_display.dart';
 import 'term_form.dart';
+import 'sentence_translation.dart';
 import '../../../core/network/dictionary_service.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -163,6 +165,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
         onDoubleTap: (item) {
           _handleDoubleTap(item);
         },
+        onLongPress: (item) {
+          _handleLongPress(item);
+        },
         textSize: textSettings.textSize,
         lineSpacing: textSettings.lineSpacing,
         fontFamily: textSettings.fontFamily,
@@ -219,6 +224,35 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
       print('_handleDoubleTap error: $e');
       return;
     }
+  }
+
+  void _handleLongPress(TextItem item) {
+    if (item.langId == null) return;
+
+    final sentence = _extractSentence(item);
+    if (sentence.isNotEmpty) {
+      _showSentenceTranslation(sentence, item.langId!);
+    }
+  }
+
+  String _extractSentence(TextItem item) {
+    final state = ref.read(readerProvider);
+    if (state.pageData == null) return '';
+
+    for (final paragraph in state.pageData!.paragraphs) {
+      final sentenceItems = <TextItem>[];
+      for (final textItem in paragraph.textItems) {
+        if (textItem.sentenceId == item.sentenceId) {
+          sentenceItems.add(textItem);
+        } else if (sentenceItems.isNotEmpty) {
+          break;
+        }
+      }
+      if (sentenceItems.isNotEmpty) {
+        return sentenceItems.map((i) => i.text).join();
+      }
+    }
+    return '';
   }
 
   void _showTermForm(TermForm termForm) {
@@ -326,6 +360,29 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
               },
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showSentenceTranslation(String sentence, int languageId) {
+    final repository = ref.read(readerRepositoryProvider);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SentenceTranslationWidget(
+          sentence: sentence,
+          translation: null,
+          translationProvider: 'local',
+          languageId: languageId,
+          dictionaryService: DictionaryService(
+            fetchLanguageSettingsHtml: (langId) =>
+                repository.contentService.getLanguageSettingsHtml(langId),
+          ),
+          onClose: () => Navigator.of(context).pop(),
         );
       },
     );

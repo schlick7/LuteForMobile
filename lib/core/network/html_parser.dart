@@ -345,6 +345,45 @@ class HtmlParser {
     return dictionaries;
   }
 
+  List<DictionarySource> parseSentenceDictionaries(String htmlContent) {
+    final document = html_parser.parse(htmlContent);
+    final dictionaries = <DictionarySource>[];
+
+    final dictEntries = document.querySelectorAll('.dict_entry');
+    for (final entry in dictEntries) {
+      final uriInput = entry.querySelector('input[name*="dicturi"]');
+      final useforSelect = entry.querySelector('select[name*="usefor"]');
+      final dicttypeSelect = entry.querySelector('select[name*="dicttype"]');
+      final isActiveCheckbox = entry.querySelector('input[name*="is_active"]');
+
+      if (uriInput == null) continue;
+
+      final uri = uriInput.attributes['value']?.trim() ?? '';
+      if (uri.isEmpty || uri == '__TEMPLATE__') continue;
+
+      final usefor =
+          useforSelect
+              ?.querySelector('option[selected]')
+              ?.attributes['value'] ??
+          '';
+      final dicttype =
+          dicttypeSelect
+              ?.querySelector('option[selected]')
+              ?.attributes['value'] ??
+          '';
+      final isActive = isActiveCheckbox?.attributes['checked'] != null;
+
+      if (!isActive) continue;
+      if (usefor != 'sentences') continue;
+
+      String displayName = _extractDictionaryName(uri);
+
+      dictionaries.add(DictionarySource(name: displayName, urlTemplate: uri));
+    }
+
+    return dictionaries;
+  }
+
   String _extractDictionaryName(String uri) {
     try {
       final uriLower = uri.toLowerCase();

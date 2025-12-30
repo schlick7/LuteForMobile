@@ -9,6 +9,7 @@ class TextDisplay extends StatefulWidget {
   final List<Paragraph> paragraphs;
   final void Function(TextItem, Offset)? onTap;
   final void Function(TextItem)? onDoubleTap;
+  final void Function(TextItem)? onLongPress;
   final double textSize;
   final double lineSpacing;
   final String fontFamily;
@@ -20,6 +21,7 @@ class TextDisplay extends StatefulWidget {
     required this.paragraphs,
     this.onTap,
     this.onDoubleTap,
+    this.onLongPress,
     this.textSize = 18.0,
     this.lineSpacing = 1.5,
     this.fontFamily = 'Roboto',
@@ -133,6 +135,7 @@ class _TextDisplayState extends State<TextDisplay> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTapDown: (details) => _handleTap(item, details.globalPosition),
+      onLongPress: () => widget.onLongPress?.call(item),
       child: Container(
         padding: backgroundColor != null
             ? const EdgeInsets.symmetric(horizontal: 2.0)

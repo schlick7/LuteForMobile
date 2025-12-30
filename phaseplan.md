@@ -584,12 +584,11 @@ Add web dictionary functionality to enhance term and sentence translations by la
 - URL pattern: dictionary URL from server with {term} or {sentence} replacement
 
 ### Deliverables
-- [ ] Search button (magnifying glass icon) in term form translation field
-- [ ] Fetch dictionary URL templates from Lute server language settings
-- [ ] Dictionary service for URL construction and launching
-- [ ] Launch external dictionary websites for terms
-- [ ] Search button in sentence translation popup
-- [ ] Launch external dictionary/translation websites for sentences
+- [x] Search button (magnifying glass icon) in term form translation field
+- [x] Fetch dictionary URL templates from Lute server language settings
+- [x] Dictionary service for URL construction and launching
+- [x] Launch dictionary websites for terms
+- [ ] Launch dictionary/translation websites for sentences
 
 ---
 
