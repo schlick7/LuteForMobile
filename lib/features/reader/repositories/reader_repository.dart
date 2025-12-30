@@ -87,13 +87,17 @@ class ReaderRepository {
 
   Future<void> saveAudioPlayerData({
     required int bookId,
-    required Duration position,
+    required int page,
+    required double position,
+    required double duration,
     required List<double> bookmarks,
   }) async {
     try {
       await contentService.saveAudioPlayerData(
         bookId: bookId,
+        page: page,
         position: position,
+        duration: duration,
         bookmarks: bookmarks,
       );
     } catch (e) {

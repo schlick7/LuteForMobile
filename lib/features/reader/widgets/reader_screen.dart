@@ -78,25 +78,23 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     super.dispose();
   }
 
-  void _loadAudioIfNeeded() {
+  void _loadAudioIfNeeded() async {
     final pageData = ref.read(readerProvider).pageData;
     final settings = ref.read(settingsProvider);
-    final audioState = ref.read(audioPlayerProvider);
 
     if (pageData == null || !settings.showAudioPlayer) return;
 
     if (pageData.hasAudio && pageData.audioFilename != null) {
-      if (audioState.bookId != pageData.bookId ||
-          audioState.audioFilename != pageData.audioFilename) {
-        ref
-            .read(audioPlayerProvider.notifier)
-            .loadAudio(
-              pageData.audioFilename!,
-              pageData.bookId,
-              initialPosition: pageData.audioCurrentPos,
-              bookmarks: pageData.audioBookmarks,
-            );
-      }
+      final audioUrl =
+          '${settings.serverUrl}/audio/stream/${pageData.audioFilename}';
+      await ref
+          .read(audioPlayerProvider.notifier)
+          .loadAudio(
+            audioUrl: audioUrl,
+            bookId: pageData.bookId,
+            page: pageData.currentPage,
+            bookmarks: pageData.audioBookmarks,
+          );
     }
   }
 
@@ -174,8 +172,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
         children: [
           Column(
             children: [
-              if (ref.watch(settingsProvider).showAudioPlayer)
-                const AudioPlayerWidget(),
+              if (ref.watch(settingsProvider).showAudioPlayer &&
+                  state.pageData?.hasAudio == true)
+                AudioPlayerWidget(
+                  audioUrl:
+                      '${ref.read(settingsProvider).serverUrl}/audio/stream/${state.pageData!.audioFilename}',
+                  bookId: state.pageData!.bookId,
+                  page: state.pageData!.currentPage,
+                  bookmarks: state.pageData?.audioBookmarks,
+                ),
               Expanded(child: _buildBody(state)),
             ],
           ),

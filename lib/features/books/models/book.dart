@@ -15,9 +15,10 @@ class Book {
   final List<String>? tags;
   final String? lastRead;
   final bool isCompleted;
+  final String? audioFilename;
 
   bool get hasStats => distinctTerms != null && statusDistribution != null;
-  bool get hasAudio => false;
+  bool get hasAudio => audioFilename != null && audioFilename!.isNotEmpty;
 
   Book({
     required this.id,
@@ -34,6 +35,7 @@ class Book {
     this.tags,
     this.lastRead,
     this.isCompleted = false,
+    this.audioFilename,
   });
 
   String? get formattedLastRead {
@@ -82,6 +84,7 @@ class Book {
     final lastOpened = json['LastOpenedDate'];
     final pageCount = json['PageCount'] as int;
     final pageNum = json['PageNum'] as int;
+    final audioFilename = json['audio_filename'] as String?;
 
     List<int>? parsedStatusDist;
     if (statusDist is String && statusDist.isNotEmpty && statusDist != 'null') {
@@ -112,6 +115,7 @@ class Book {
           ? lastOpened
           : null,
       isCompleted: isCompleted,
+      audioFilename: audioFilename,
     );
   }
 
@@ -165,6 +169,7 @@ class Book {
     List<String>? tags,
     String? lastRead,
     bool? isCompleted,
+    String? audioFilename,
   }) {
     return Book(
       id: id ?? this.id,
@@ -181,6 +186,7 @@ class Book {
       tags: tags ?? this.tags,
       lastRead: lastRead ?? this.lastRead,
       isCompleted: isCompleted ?? this.isCompleted,
+      audioFilename: audioFilename ?? this.audioFilename,
     );
   }
 }
