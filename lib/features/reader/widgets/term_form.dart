@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../../settings/providers/settings_provider.dart'
-    show termFormSettingsProvider, settingsProvider;
+    show termFormSettingsProvider;
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/dictionary_service.dart';
@@ -62,10 +62,8 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
   Future<void> _loadDictionaries() async {
     final languageId = widget.termForm.languageId;
-    final settings = ref.watch(settingsProvider);
     final dictionaries = await _dictionaryService.getDictionariesForLanguage(
       languageId,
-      settings.serverUrl,
     );
     if (mounted) {
       setState(() {

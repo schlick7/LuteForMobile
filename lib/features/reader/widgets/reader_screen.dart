@@ -226,7 +226,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
             return TermFormWidget(
               termForm: _currentTermForm ?? termForm,
               contentService: repository.contentService,
-              dictionaryService: DictionaryService(),
+              dictionaryService: DictionaryService(
+                fetchLanguageSettingsHtml: (langId) =>
+                    repository.contentService.getLanguageSettingsHtml(langId),
+              ),
               onUpdate: (updatedForm) {
                 print(
                   'onUpdate called with parents: ${updatedForm.parents.map((p) => p.term).toList()}',
@@ -281,7 +284,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
             return TermFormWidget(
               termForm: currentForm,
               contentService: repository.contentService,
-              dictionaryService: DictionaryService(),
+              dictionaryService: DictionaryService(
+                fetchLanguageSettingsHtml: (langId) =>
+                    repository.contentService.getLanguageSettingsHtml(langId),
+              ),
               onUpdate: (updatedForm) {
                 setState(() {
                   currentForm = updatedForm;
