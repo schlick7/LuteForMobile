@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.dart';
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
+import 'package:lute_for_mobile/features/books/widgets/books_screen.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
@@ -55,6 +56,16 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
             .read(currentViewDrawerSettingsProvider.notifier)
             .updateSettings(const ReaderDrawerSettings());
         break;
+      case 1:
+        ref
+            .read(currentViewDrawerSettingsProvider.notifier)
+            .updateSettings(null);
+        break;
+      case 2:
+        ref
+            .read(currentViewDrawerSettingsProvider.notifier)
+            .updateSettings(null);
+        break;
       default:
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
@@ -82,6 +93,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         index: _currentIndex,
         children: [
           ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
+          BooksScreen(scaffoldKey: _scaffoldKey),
           SettingsScreen(scaffoldKey: _scaffoldKey),
         ],
       ),

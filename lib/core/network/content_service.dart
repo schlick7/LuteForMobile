@@ -4,6 +4,8 @@ import 'package:html/parser.dart' as html_parser;
 import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
+import '../../features/books/models/book.dart';
+import '../../features/books/models/datatables_response.dart';
 import 'api_service.dart';
 import 'html_parser.dart';
 
@@ -174,5 +176,51 @@ class ContentService {
   Future<String> getLanguageSettingsHtml(int langId) async {
     final response = await _apiService.getLanguageSettings(langId);
     return response.data ?? '';
+  }
+
+  Future<DataTablesResponse<Book>> getActiveBooks({
+    int start = 0,
+    int length = 100,
+    String? search,
+    int draw = 1,
+  }) async {
+    final response = await _apiService.getActiveBooks(
+      draw: draw,
+      start: start,
+      length: length,
+      search: search,
+    );
+
+    final jsonString = response.data ?? '';
+    final jsonData = json.decode(jsonString) as Map<String, dynamic>;
+    return DataTablesResponse.fromJson(jsonData, (json) => Book.fromJson(json));
+  }
+
+  Future<DataTablesResponse<Book>> getArchivedBooks({
+    int start = 0,
+    int length = 100,
+    String? search,
+    int draw = 1,
+  }) async {
+    final response = await _apiService.getArchivedBooks(
+      draw: draw,
+      start: start,
+      length: length,
+      search: search,
+    );
+
+    final jsonString = response.data ?? '';
+    final jsonData = json.decode(jsonString) as Map<String, dynamic>;
+    return DataTablesResponse.fromJson(jsonData, (json) => Book.fromJson(json));
+  }
+
+  Future<List<Book>> getAllActiveBooks() async {
+    final response = await getActiveBooks(start: 0, length: 10000);
+    return response.data;
+  }
+
+  Future<List<Book>> getAllArchivedBooks() async {
+    final response = await getArchivedBooks(start: 0, length: 10000);
+    return response.data;
   }
 }

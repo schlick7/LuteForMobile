@@ -92,8 +92,44 @@ class ApiService {
     );
   }
 
-  Future<Response<String>> getActiveBooks() async {
-    return await _dio.get<String>('/book/datatables/active');
+  Future<Response<String>> getActiveBooks({
+    int draw = 1,
+    int start = 0,
+    int length = 100,
+    String? search,
+  }) async {
+    final data = {
+      'draw': draw,
+      'start': start,
+      'length': length,
+      if (search != null) 'search[value]': search,
+    };
+
+    return await _dio.post<String>(
+      '/book/datatables/active',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+  }
+
+  Future<Response<String>> getArchivedBooks({
+    int draw = 1,
+    int start = 0,
+    int length = 100,
+    String? search,
+  }) async {
+    final data = {
+      'draw': draw,
+      'start': start,
+      'length': length,
+      if (search != null) 'search[value]': search,
+    };
+
+    return await _dio.post<String>(
+      '/book/datatables/Archived',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
   }
 
   Future<Response<String>> getBookStats(int bookId) async {

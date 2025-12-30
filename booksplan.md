@@ -1206,6 +1206,7 @@ status1  → AppStatusColors.status1  (Pink:   #b46b7a)
 status2  → AppStatusColors.status2  (Orange: #BA8050)
 status3  → AppStatusColors.status3  (Yellow: #BD9C7B)
 status4  → AppStatusColors.status4  (Gray:   #756D6B)
+status5                             (Dark Gray)
 status99 → AppStatusColors.status99 (Green:  #419252)
 ```
 

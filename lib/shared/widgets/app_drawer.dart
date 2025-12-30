@@ -43,7 +43,8 @@ class AppDrawer extends ConsumerWidget {
         children: [
           const SizedBox(height: 16),
           _buildNavItem(context, Icons.book, 0, 'Reader'),
-          _buildNavItem(context, Icons.settings, 1, 'Settings'),
+          _buildNavItem(context, Icons.collections_bookmark, 1, 'Books'),
+          _buildNavItem(context, Icons.settings, 2, 'Settings'),
         ],
       ),
     );

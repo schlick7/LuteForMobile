@@ -631,6 +631,9 @@ Create a books management screen to access reading materials.
 
 ### Features
 
+add Books to hamburger nav menu
+  - icon should be the spines/backs of a few books stacked together like on a shelf
+  
 #### Books List
 - Card-based UI
 - Display book metadata (title, language, progress)
