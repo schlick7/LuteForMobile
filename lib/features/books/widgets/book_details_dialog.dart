@@ -197,23 +197,15 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
   }
 
   Widget _buildStatusDistributionDetails(BuildContext context, List<int> dist) {
-    final statusColors = [
-      AppStatusColors.status0,
-      AppStatusColors.status1,
-      AppStatusColors.status2,
-      AppStatusColors.status3,
-      AppStatusColors.status4,
-      AppStatusColors.status5,
-      AppStatusColors.status98,
-      AppStatusColors.status99,
-    ];
-
-    final statusNumbers = [0, 1, 2, 3, 4, 5, 98, 99];
+    final displayOrder = [98, 0, 1, 2, 3, 4, 5, 99];
 
     return Column(
-      children: List.generate(
-        dist.length,
-        (index) => Padding(
+      children: displayOrder.map((statusNum) {
+        final distIndex = [0, 1, 2, 3, 4, 5, 98, 99].indexOf(statusNum);
+        final count = dist[distIndex];
+        final isIgnored = statusNum == 98;
+
+        return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             children: [
@@ -221,31 +213,47 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                 width: 12,
                 height: 12,
                 decoration: BoxDecoration(
-                  color: statusColors[index],
+                  color: isIgnored
+                      ? Colors.transparent
+                      : AppStatusColors.getStatusColor(statusNum.toString()),
                   borderRadius: BorderRadius.circular(2),
                   border: Border.all(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                     width: 1,
                   ),
                 ),
+                child: isIgnored
+                    ? Center(
+                        child: Text(
+                          '×',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  AppStatusColors.getStatusLabel(statusNumbers[index]),
+                  AppStatusColors.getStatusLabel(statusNum),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
               Text(
-                '${dist[index]}',
+                '$count',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
               ),
             ],
           ),
-        ),
-      ),
+        );
+      }).toList(),
     );
   }
 }
