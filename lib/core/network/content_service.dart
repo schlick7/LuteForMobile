@@ -170,4 +170,9 @@ class ContentService {
       return null;
     }
   }
+
+  Future<String> getLanguageSettingsHtml(int langId) async {
+    final response = await _apiService.getLanguageSettings(langId);
+    return response.data ?? '';
+  }
 }

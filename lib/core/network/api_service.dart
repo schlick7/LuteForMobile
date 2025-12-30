@@ -117,4 +117,8 @@ class ApiService {
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );
   }
+
+  Future<Response<String>> getLanguageSettings(int langId) async {
+    return await _dio.get<String>('/language/edit/$langId');
+  }
 }

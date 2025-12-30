@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'html_parser.dart';
 
 class DictionarySource {
   final String name;
@@ -23,14 +25,18 @@ class DictionarySource {
 class DictionaryService {
   final Map<int, List<DictionarySource>> _dictionariesCache = {};
   final Map<String, InAppWebViewController> _webviewCache = {};
+  final HtmlParser _htmlParser = HtmlParser();
 
   String buildUrl(String term, String urlTemplate) {
     final encodedTerm = Uri.encodeComponent(term);
-    return urlTemplate.replaceAll('{term}', encodedTerm);
+    return urlTemplate
+        .replaceAll('[LUTE]', encodedTerm)
+        .replaceAll('{term}', encodedTerm);
   }
 
   Future<List<DictionarySource>> getDictionariesForLanguage(
     int languageId,
+    String? serverUrl,
   ) async {
     if (_dictionariesCache.containsKey(languageId)) {
       return _dictionariesCache[languageId]!;
@@ -39,17 +45,59 @@ class DictionaryService {
     final prefs = await SharedPreferences.getInstance();
     final dictionariesJson = prefs.getString('dictionaries_$languageId');
 
-    if (dictionariesJson == null) {
-      return [];
+    if (dictionariesJson != null) {
+      final List<dynamic> decoded = jsonDecode(dictionariesJson);
+      final dictionaries = decoded
+          .map(
+            (json) => DictionarySource.fromJson(json as Map<String, dynamic>),
+          )
+          .toList();
+
+      _dictionariesCache[languageId] = dictionaries;
+      return dictionaries;
     }
 
-    final List<dynamic> decoded = jsonDecode(dictionariesJson);
-    final dictionaries = decoded
-        .map((json) => DictionarySource.fromJson(json as Map<String, dynamic>))
-        .toList();
+    if (serverUrl != null) {
+      final dictionaries = await _fetchAndCacheDictionaries(
+        languageId,
+        serverUrl,
+      );
+      if (dictionaries.isNotEmpty) {
+        return dictionaries;
+      }
+    }
 
-    _dictionariesCache[languageId] = dictionaries;
-    return dictionaries;
+    return [];
+  }
+
+  Future<List<DictionarySource>> _fetchAndCacheDictionaries(
+    int languageId,
+    String serverUrl,
+  ) async {
+    try {
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: serverUrl,
+          connectTimeout: const Duration(seconds: 10),
+          receiveTimeout: const Duration(seconds: 10),
+          headers: {'Content-Type': 'text/html'},
+        ),
+      );
+
+      final response = await dio.get<String>('/language/edit/$languageId');
+      final htmlContent = response.data ?? '';
+
+      final dictionaries = _htmlParser.parseLanguageDictionaries(htmlContent);
+
+      if (dictionaries.isNotEmpty) {
+        await setDictionariesForLanguage(languageId, dictionaries);
+      }
+
+      return dictionaries;
+    } catch (e) {
+      print('Error fetching dictionaries for language $languageId: $e');
+      return [];
+    }
   }
 
   Future<void> setDictionariesForLanguage(

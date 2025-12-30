@@ -6,6 +6,7 @@ import '../../features/reader/models/paragraph.dart';
 import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
+import 'dictionary_service.dart';
 
 class HtmlParser {
   final Function(String, int)? searchTermsProvider;
@@ -306,5 +307,110 @@ class HtmlParser {
       parents: parents,
       syncStatus: syncStatus,
     );
+  }
+
+  List<DictionarySource> parseLanguageDictionaries(String htmlContent) {
+    final document = html_parser.parse(htmlContent);
+    final dictionaries = <DictionarySource>[];
+
+    final dictEntries = document.querySelectorAll('.dict_entry');
+    for (final entry in dictEntries) {
+      final uriInput = entry.querySelector('input[name*="dicturi"]');
+      final useforSelect = entry.querySelector('select[name*="usefor"]');
+      final dicttypeSelect = entry.querySelector('select[name*="dicttype"]');
+      final isActiveCheckbox = entry.querySelector('input[name*="is_active"]');
+
+      if (uriInput == null) continue;
+
+      final uri = uriInput.attributes['value']?.trim() ?? '';
+      if (uri.isEmpty || uri == '__TEMPLATE__') continue;
+
+      final usefor =
+          useforSelect
+              ?.querySelector('option[selected]')
+              ?.attributes['value'] ??
+          '';
+      final dicttype =
+          dicttypeSelect
+              ?.querySelector('option[selected]')
+              ?.attributes['value'] ??
+          '';
+      final isActive = isActiveCheckbox?.attributes['checked'] != null;
+
+      if (!isActive) continue;
+      if (usefor != 'terms') continue;
+
+      String displayName = _extractDictionaryName(uri);
+
+      dictionaries.add(DictionarySource(name: displayName, urlTemplate: uri));
+    }
+
+    return dictionaries;
+  }
+
+  String _extractDictionaryName(String uri) {
+    try {
+      final uriLower = uri.toLowerCase();
+
+      final uriParsed = Uri.parse(uri);
+      final host = uriParsed.host.replaceAll('www.', '');
+
+      final pathSegments = uriParsed.pathSegments
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      if (uriLower.contains('wiktionary')) {
+        final langMatch = RegExp(
+          r'wiktionary\.org/w/index\.php\?search=\[LUTE\]#(\w+)',
+        ).firstMatch(uriLower);
+        if (langMatch != null && langMatch.group(1) != null) {
+          return 'Wiktionary (${langMatch.group(1)!})';
+        }
+        return 'Wiktionary';
+      }
+      if (uriLower.contains('reverso')) {
+        return 'Reverso';
+      }
+      if (uriLower.contains('deepl')) {
+        return 'DeepL';
+      }
+      if (uriLower.contains('google.com/translator')) {
+        return 'Google Translate';
+      }
+      if (uriLower.contains('translate.google')) {
+        return 'Google Translate';
+      }
+      if (uriLower.contains('livingarabic')) {
+        return 'Living Arabic';
+      }
+      if (uriLower.contains('arabicstudentsdictionary')) {
+        return 'Arabic Students Dictionary';
+      }
+      if (pathSegments.isNotEmpty) {
+        final lastSegment = pathSegments.last.toLowerCase();
+        if (lastSegment == 'search' ||
+            lastSegment == 'translate' ||
+            lastSegment == 'w' ||
+            lastSegment == 'wiki') {
+          return host
+              .split('.')
+              .take(2)
+              .map((s) => s[0].toUpperCase() + s.substring(1))
+              .join('.');
+        }
+      }
+
+      final cleanHost = host.split('.').take(2).join('.');
+      final words = cleanHost.split('.');
+      final formattedWords = words
+          .map((w) => w[0].toUpperCase() + w.substring(1))
+          .toList();
+      if (formattedWords.length >= 2) {
+        return formattedWords.join(' ');
+      }
+      return formattedWords.first;
+    } catch (e) {
+      return 'Dictionary';
+    }
   }
 }
