@@ -295,6 +295,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   void _handleDoubleTap(TextItem item) async {
+    // Only handle double tap for terms from the server (items with wordId)
+    if (item.wordId == null) return;
     if (item.langId == null) return;
 
     print(
@@ -302,16 +304,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
 
     try {
-      TermForm? termForm;
-      if (item.wordId != null) {
-        termForm = await ref
-            .read(readerProvider.notifier)
-            .fetchTermFormById(item.wordId!);
-      } else {
-        termForm = await ref
-            .read(readerProvider.notifier)
-            .fetchTermFormWithDetails(item.langId!, item.text);
-      }
+      final termForm = await ref
+          .read(readerProvider.notifier)
+          .fetchTermFormById(item.wordId!);
       if (termForm != null && mounted) {
         print(
           'Got termForm: term="${termForm.term}", termId=${termForm.termId}',
@@ -325,6 +320,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   void _handleLongPress(TextItem item) {
+    // Only handle long press for terms from the server (items with wordId)
+    if (item.wordId == null) return;
     if (item.langId == null) return;
 
     final sentence = _extractSentence(item);

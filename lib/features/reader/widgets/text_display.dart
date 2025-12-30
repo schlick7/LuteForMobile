@@ -112,18 +112,21 @@ class _TextDisplayState extends State<TextDisplay> {
     Color? backgroundColor;
     FontWeight fontWeight = widget.fontWeight;
 
-    // Extract status number from statusClass (e.g., "status1" -> "1")
-    final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
-    final status = statusMatch?.group(1) ?? '0';
+    // Only apply status highlighting for terms from the server (items with wordId)
+    if (item.wordId != null) {
+      // Extract status number from statusClass (e.g., "status1" -> "1")
+      final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
+      final status = statusMatch?.group(1) ?? '0';
 
-    // Use theme methods for consistent styling
-    textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
-    backgroundColor = Theme.of(
-      context,
-    ).colorScheme.getStatusBackgroundColor(status);
+      // Use theme methods for consistent styling
+      textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
+      backgroundColor = Theme.of(
+        context,
+      ).colorScheme.getStatusBackgroundColor(status);
+    }
 
     final textStyle = TextStyle(
-      color: textColor,
+      color: textColor ?? Theme.of(context).textTheme.bodyLarge?.color,
       fontWeight: fontWeight,
       fontSize: widget.textSize,
       height: widget.lineSpacing,
@@ -132,22 +135,29 @@ class _TextDisplayState extends State<TextDisplay> {
       backgroundColor: backgroundColor,
     );
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (details) => _handleTap(item, details.globalPosition),
-      onLongPress: () => widget.onLongPress?.call(item),
-      child: Container(
-        padding: backgroundColor != null
-            ? const EdgeInsets.symmetric(horizontal: 2.0)
-            : null,
-        decoration: backgroundColor != null
-            ? BoxDecoration(
-                color: backgroundColor,
-                borderRadius: BorderRadius.circular(4),
-              )
-            : null,
-        child: Text(item.text, style: textStyle),
-      ),
+    final textWidget = Container(
+      padding: backgroundColor != null
+          ? const EdgeInsets.symmetric(horizontal: 2.0)
+          : null,
+      decoration: backgroundColor != null
+          ? BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(4),
+            )
+          : null,
+      child: Text(item.text, style: textStyle),
     );
+
+    // Only make terms from the server clickable (items with wordId)
+    if (item.wordId != null) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (details) => _handleTap(item, details.globalPosition),
+        onLongPress: () => widget.onLongPress?.call(item),
+        child: textWidget,
+      );
+    }
+
+    return textWidget;
   }
 }
