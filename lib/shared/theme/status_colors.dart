@@ -6,8 +6,9 @@ class AppStatusColors {
   static const Color status2 = Color(0xFFBA8050); // Burnt orange
   static const Color status3 = Color(0xFFBD9C7B); // Tan
   static const Color status4 = Color(0xFF756D6B); // Dark gray
-  static const Color status5 =
-      Colors.transparent; // Transparent - with dashed underline
+  static const Color status5 = Color(
+    0x80756D6B,
+  ); // Dark gray with 50% transparency
   static const Color status98 = Color(
     0xFF8095FF,
   ); // Light blue - ignored (same as status0)
