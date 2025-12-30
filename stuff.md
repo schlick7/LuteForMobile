@@ -1,5 +1,7 @@
 vivaldi --disable-web-security --user-data-dir=/tmp/vivaldi_dev
 
-clicking empty space/background (Anywhere without text) always triggers a close tooltip command. When a ontap is triggered it always sends out a close all tooltip command then continues on with the normal ontap method. when a tooltip is open it should not block or consume ANY tap events
+Add Books Screen
+- Remove book/page hardcoding from settings
+ - Need to make sure that we are using the page location as its saved on the server
 
-make sure tags and romanization actually work
+ Add padding at the top of the menu opened by the hamburger button to account for the top of mobile phones status bars. The top nav button or settings option should start about where the hamburger menu sits

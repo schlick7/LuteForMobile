@@ -33,8 +33,9 @@ class TextDisplay extends StatefulWidget {
 class _TextDisplayState extends State<TextDisplay> {
   Timer? _doubleTapTimer;
   TextItem? _lastTappedItem;
+  Offset? _lastTapPosition;
 
-  void _handleTap(TextItem item, Offset position) {
+  void _handleTap(TextItem item, Offset tapPosition) {
     if (_lastTappedItem == item &&
         _doubleTapTimer != null &&
         _doubleTapTimer!.isActive) {
@@ -42,13 +43,18 @@ class _TextDisplayState extends State<TextDisplay> {
       widget.onDoubleTap?.call(item);
       _doubleTapTimer = null;
       _lastTappedItem = null;
+      _lastTapPosition = null;
     } else {
       _lastTappedItem = item;
+      _lastTapPosition = tapPosition;
       _doubleTapTimer?.cancel();
       _doubleTapTimer = Timer(const Duration(milliseconds: 300), () {
-        widget.onTap?.call(item, position);
+        if (_lastTapPosition != null) {
+          widget.onTap?.call(item, _lastTapPosition!);
+        }
         _doubleTapTimer = null;
         _lastTappedItem = null;
+        _lastTapPosition = null;
       });
     }
   }
