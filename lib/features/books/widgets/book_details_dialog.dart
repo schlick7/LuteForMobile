@@ -53,24 +53,28 @@ class BookDetailsDialog extends ConsumerWidget {
                 context,
                 Icons.list_alt,
                 'Distinct Terms',
-                book.distinctTerms.toString(),
+                book.distinctTerms?.toString() ?? '—',
               ),
               const SizedBox(height: 12),
               _buildDetailRow(
                 context,
                 Icons.help_outline,
                 'Unknown Words',
-                '${book.unknownPct.toStringAsFixed(1)}%',
+                book.unknownPct != null
+                    ? '${book.unknownPct!.toStringAsFixed(1)}%'
+                    : '—',
               ),
-              const SizedBox(height: 24),
-              Text(
-                'Status Distribution',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              _buildStatusDistributionDetails(context),
+              if (book.hasStats) ...[
+                const SizedBox(height: 24),
+                Text(
+                  'Status Distribution',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildStatusDistributionDetails(context),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -146,9 +150,14 @@ class BookDetailsDialog extends ConsumerWidget {
       AppStatusColors.status99,
     ];
 
+    final dist = book.statusDistribution;
+    if (dist == null) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       children: List.generate(
-        book.statusDistribution.length,
+        dist.length,
         (index) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
@@ -169,7 +178,7 @@ class BookDetailsDialog extends ConsumerWidget {
                 ),
               ),
               Text(
-                '${book.statusDistribution[index]}',
+                '${dist[index]}',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),

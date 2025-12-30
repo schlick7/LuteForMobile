@@ -9,9 +9,11 @@ class Book {
   final int currentPage;
   final int percent;
   final int wordCount;
-  final int distinctTerms;
-  final double unknownPct;
-  final List<int> statusDistribution;
+  final int? distinctTerms;
+  final double? unknownPct;
+  final List<int>? statusDistribution;
+
+  bool get hasStats => distinctTerms != null && statusDistribution != null;
 
   Book({
     required this.id,
@@ -33,6 +35,11 @@ class Book {
     final unknownPercent = json['UnknownPercent'];
     final statusDist = json['StatusDistribution'];
 
+    List<int>? parsedStatusDist;
+    if (statusDist is String && statusDist.isNotEmpty && statusDist != 'null') {
+      parsedStatusDist = _parseStatusDist(statusDist);
+    }
+
     return Book(
       id: json['BkID'] as int,
       title: json['BkTitle'] as String,
@@ -42,11 +49,9 @@ class Book {
       currentPage: json['PageNum'] as int,
       percent: ((isCompleted is int ? isCompleted : 0) * 100),
       wordCount: json['WordCount'] as int,
-      distinctTerms: (distinctCount is int ? distinctCount : 0),
-      unknownPct: (unknownPercent is num ? unknownPercent.toDouble() : 0.0),
-      statusDistribution: _parseStatusDist(
-        (statusDist is String ? statusDist : ''),
-      ),
+      distinctTerms: (distinctCount is int) ? distinctCount : null,
+      unknownPct: (unknownPercent is num) ? unknownPercent.toDouble() : null,
+      statusDistribution: parsedStatusDist,
     );
   }
 

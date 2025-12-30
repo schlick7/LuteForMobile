@@ -84,7 +84,14 @@ class BookCard extends ConsumerWidget {
                   Text('•', style: Theme.of(context).textTheme.bodySmall),
                   const SizedBox(width: 8),
                   Text(
-                    '${book.distinctTerms} terms',
+                    '${book.wordCount} words',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(width: 8),
+                  Text('•', style: Theme.of(context).textTheme.bodySmall),
+                  const SizedBox(width: 8),
+                  Text(
+                    book.hasStats ? '${book.distinctTerms} terms' : '— terms',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
@@ -99,7 +106,11 @@ class BookCard extends ConsumerWidget {
   }
 
   Widget _buildStatusDistributionBar(BuildContext context) {
-    final totalTerms = book.statusDistribution.reduce((a, b) => a + b);
+    if (!book.hasStats || book.statusDistribution == null) {
+      return const SizedBox.shrink();
+    }
+
+    final totalTerms = book.statusDistribution!.reduce((a, b) => a + b);
     if (totalTerms == 0) {
       return const SizedBox.shrink();
     }
@@ -117,8 +128,8 @@ class BookCard extends ConsumerWidget {
       AppStatusColors.status99,
     ];
 
-    for (int i = 0; i < book.statusDistribution.length; i++) {
-      final count = book.statusDistribution[i];
+    for (int i = 0; i < book.statusDistribution!.length; i++) {
+      final count = book.statusDistribution![i];
       if (count > 0) {
         final width = (count / totalTerms) * screenWidth;
         segments.add(
@@ -134,7 +145,7 @@ class BookCard extends ConsumerWidget {
                         topLeft: Radius.circular(4),
                         bottomLeft: Radius.circular(4),
                       )
-                    : i == book.statusDistribution.length - 1
+                    : i == book.statusDistribution!.length - 1
                     ? const BorderRadius.only(
                         topRight: Radius.circular(4),
                         bottomRight: Radius.circular(4),

@@ -5,3 +5,6 @@ Add Books Screen
  - Need to make sure that we are using the page location as its saved on the server
 
  Audio player support in Reader
+
+
+The server has a refresh books endpoint right? what happens if we trigger that?
