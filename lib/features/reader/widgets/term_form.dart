@@ -19,7 +19,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
   final void Function(TermParent)? onParentDoubleTap;
   final DictionaryService dictionaryService;
 
-  TermFormWidget({
+  const TermFormWidget({
     super.key,
     required this.termForm,
     required this.onSave,

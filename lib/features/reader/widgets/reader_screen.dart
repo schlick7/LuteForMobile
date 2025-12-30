@@ -9,6 +9,7 @@ import '../providers/reader_provider.dart';
 import '../widgets/term_tooltip.dart';
 import 'text_display.dart';
 import 'term_form.dart';
+import '../../../core/network/dictionary_service.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -225,6 +226,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
             return TermFormWidget(
               termForm: _currentTermForm ?? termForm,
               contentService: repository.contentService,
+              dictionaryService: DictionaryService(),
               onUpdate: (updatedForm) {
                 print(
                   'onUpdate called with parents: ${updatedForm.parents.map((p) => p.term).toList()}',
@@ -279,6 +281,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
             return TermFormWidget(
               termForm: currentForm,
               contentService: repository.contentService,
+              dictionaryService: DictionaryService(),
               onUpdate: (updatedForm) {
                 setState(() {
                   currentForm = updatedForm;
