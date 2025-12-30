@@ -653,10 +653,10 @@ add Books to hamburger nav menu
 - Navigation to reader with selected book
 
 ### Deliverables
-- [ ] Books list screen
-- [ ] Book cards with metadata
-- [ ] Fetch books from server
-- [ ] Navigate to reader with book
+- [x] Books list screen
+- [x] Book cards with metadata
+- [x] Fetch books from server
+- [x] Navigate to reader with book
 
 ---
 
