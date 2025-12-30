@@ -12,6 +12,8 @@ class Book {
   final int? distinctTerms;
   final double? unknownPct;
   final List<int>? statusDistribution;
+  final List<String>? tags;
+  final String? lastRead;
 
   bool get hasStats => distinctTerms != null && statusDistribution != null;
 
@@ -27,17 +29,63 @@ class Book {
     required this.distinctTerms,
     required this.unknownPct,
     required this.statusDistribution,
+    this.tags,
+    this.lastRead,
   });
+
+  String? get formattedLastRead {
+    if (lastRead == null || lastRead!.isEmpty) return null;
+    return _formatRelativeTime(lastRead!);
+  }
+
+  String _formatRelativeTime(String dateStr) {
+    try {
+      final now = DateTime.now();
+      final date = DateTime.parse(dateStr).toLocal();
+      final difference = now.difference(date);
+
+      if (difference.inSeconds < 60) {
+        return 'just now';
+      } else if (difference.inMinutes < 60) {
+        final mins = difference.inMinutes;
+        return '$mins minute${mins != 1 ? "s" : ""} ago';
+      } else if (difference.inHours < 24) {
+        final hours = difference.inHours;
+        return '$hours hour${hours != 1 ? "s" : ""} ago';
+      } else if (difference.inDays < 7) {
+        final days = difference.inDays;
+        return '$days day${days != 1 ? "s" : ""} ago';
+      } else if (difference.inDays < 30) {
+        final weeks = (difference.inDays / 7).floor();
+        return '$weeks week${weeks != 1 ? "s" : ""} ago';
+      } else if (difference.inDays < 365) {
+        final months = (difference.inDays / 30).floor();
+        return '$months month${months != 1 ? "s" : ""} ago';
+      } else {
+        final years = (difference.inDays / 365).floor();
+        return '$years year${years != 1 ? "s" : ""} ago';
+      }
+    } catch (e) {
+      return '';
+    }
+  }
 
   factory Book.fromJson(Map<String, dynamic> json) {
     final isCompleted = json['IsCompleted'];
     final distinctCount = json['DistinctCount'];
     final unknownPercent = json['UnknownPercent'];
     final statusDist = json['StatusDistribution'];
+    final tagList = json['TagList'];
+    final lastOpened = json['LastOpenedDate'];
 
     List<int>? parsedStatusDist;
     if (statusDist is String && statusDist.isNotEmpty && statusDist != 'null') {
       parsedStatusDist = _parseStatusDist(statusDist);
+    }
+
+    List<String>? parsedTags;
+    if (tagList is String && tagList.isNotEmpty && tagList != 'null') {
+      parsedTags = tagList.split(',').map((t) => t.trim()).toList();
     }
 
     return Book(
@@ -52,6 +100,10 @@ class Book {
       distinctTerms: (distinctCount is int) ? distinctCount : null,
       unknownPct: (unknownPercent is num) ? unknownPercent.toDouble() : null,
       statusDistribution: parsedStatusDist,
+      tags: parsedTags,
+      lastRead: (lastOpened is String && lastOpened.isNotEmpty)
+          ? lastOpened
+          : null,
     );
   }
 
@@ -102,6 +154,8 @@ class Book {
     int? distinctTerms,
     double? unknownPct,
     List<int>? statusDistribution,
+    List<String>? tags,
+    String? lastRead,
   }) {
     return Book(
       id: id ?? this.id,
@@ -115,6 +169,8 @@ class Book {
       distinctTerms: distinctTerms ?? this.distinctTerms,
       unknownPct: unknownPct ?? this.unknownPct,
       statusDistribution: statusDistribution ?? this.statusDistribution,
+      tags: tags ?? this.tags,
+      lastRead: lastRead ?? this.lastRead,
     );
   }
 }

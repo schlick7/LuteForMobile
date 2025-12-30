@@ -19,6 +19,7 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyBookId = 'default_book_id';
   static const String _keyPageId = 'default_page_id';
   static const String _keyTranslationProvider = 'translation_provider';
+  static const String _keyShowTags = 'show_tags';
 
   @override
   Settings build() {
@@ -34,6 +35,7 @@ class SettingsNotifier extends Notifier<Settings> {
     final pageId = prefs.getInt(_keyPageId) ?? 1;
     final translationProvider =
         prefs.getString(_keyTranslationProvider) ?? 'local';
+    final showTags = prefs.getBool(_keyShowTags) ?? true;
 
     state = Settings(
       serverUrl: serverUrl,
@@ -41,6 +43,7 @@ class SettingsNotifier extends Notifier<Settings> {
       defaultPageId: pageId,
       isUrlValid: _isValidUrl(serverUrl),
       translationProvider: translationProvider,
+      showTags: showTags,
     );
   }
 
@@ -75,6 +78,13 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setString(_keyTranslationProvider, provider);
   }
 
+  Future<void> updateShowTags(bool show) async {
+    state = state.copyWith(showTags: show);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowTags, show);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -92,6 +102,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyBookId);
     await prefs.remove(_keyPageId);
     await prefs.remove(_keyTranslationProvider);
+    await prefs.remove(_keyShowTags);
 
     state = Settings.defaultSettings();
   }

@@ -170,6 +170,64 @@ class BooksNotifier extends Notifier<BooksState> {
       }
     }
   }
+
+  Future<void> archiveBook(int bookId) async {
+    try {
+      await _repository.archiveBook(bookId);
+      final bookToRemove = state.activeBooks.firstWhere(
+        (b) => b.id == bookId,
+        orElse: () => throw Exception('Book not found'),
+      );
+      final updatedArchivedBooks = [bookToRemove, ...state.archivedBooks];
+      final updatedActiveBooks = state.activeBooks
+          .where((b) => b.id != bookId)
+          .toList();
+      state = state.copyWith(
+        activeBooks: updatedActiveBooks,
+        archivedBooks: updatedArchivedBooks,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
+  }
+
+  Future<void> unarchiveBook(int bookId) async {
+    try {
+      await _repository.unarchiveBook(bookId);
+      final bookToRestore = state.archivedBooks.firstWhere(
+        (b) => b.id == bookId,
+        orElse: () => throw Exception('Book not found'),
+      );
+      final updatedActiveBooks = [bookToRestore, ...state.activeBooks];
+      final updatedArchivedBooks = state.archivedBooks
+          .where((b) => b.id != bookId)
+          .toList();
+      state = state.copyWith(
+        activeBooks: updatedActiveBooks,
+        archivedBooks: updatedArchivedBooks,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
+  }
+
+  Future<void> deleteBook(int bookId) async {
+    try {
+      await _repository.deleteBook(bookId);
+      final updatedActiveBooks = state.activeBooks
+          .where((b) => b.id != bookId)
+          .toList();
+      final updatedArchivedBooks = state.archivedBooks
+          .where((b) => b.id != bookId)
+          .toList();
+      state = state.copyWith(
+        activeBooks: updatedActiveBooks,
+        archivedBooks: updatedArchivedBooks,
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
+  }
 }
 
 final booksRepositoryProvider = Provider<BooksRepository>((ref) {

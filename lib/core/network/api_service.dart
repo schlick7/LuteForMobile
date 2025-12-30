@@ -235,4 +235,16 @@ class ApiService {
   Future<Response<String>> refreshBookStats(int bookId) async {
     return await _dio.get<String>('/book/table_stats/$bookId');
   }
+
+  Future<Response<String>> archiveBook(int bookId) async {
+    return await _dio.post<String>('/book/archive/$bookId');
+  }
+
+  Future<Response<String>> unarchiveBook(int bookId) async {
+    return await _dio.post<String>('/book/unarchive/$bookId');
+  }
+
+  Future<Response<String>> deleteBook(int bookId) async {
+    return await _dio.post<String>('/book/delete/$bookId');
+  }
 }

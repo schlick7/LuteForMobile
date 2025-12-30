@@ -41,4 +41,28 @@ class BooksRepository {
       }
     }
   }
+
+  Future<void> archiveBook(int bookId) async {
+    try {
+      await contentService.archiveBook(bookId);
+    } catch (e) {
+      throw Exception('Failed to archive book: $e');
+    }
+  }
+
+  Future<void> unarchiveBook(int bookId) async {
+    try {
+      await contentService.unarchiveBook(bookId);
+    } catch (e) {
+      throw Exception('Failed to unarchive book: $e');
+    }
+  }
+
+  Future<void> deleteBook(int bookId) async {
+    try {
+      await contentService.deleteBook(bookId);
+    } catch (e) {
+      throw Exception('Failed to delete book: $e');
+    }
+  }
 }

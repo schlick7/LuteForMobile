@@ -126,6 +126,50 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                     ? '${book.unknownPct!.toStringAsFixed(1)}%'
                     : '—',
               ),
+              const SizedBox(height: 12),
+              _buildDetailRow(
+                context,
+                Icons.access_time,
+                'Last Read',
+                book.lastRead ?? 'Never',
+              ),
+              if (book.tags != null && book.tags!.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.local_offer,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Tags',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.only(left: 32),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: book.tags!
+                        .map(
+                          (tag) => Chip(
+                            label: Text(tag),
+                            backgroundColor: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+              ],
               if (book.hasStats) ...[
                 const SizedBox(height: 24),
                 Text(
@@ -157,6 +201,53 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final confirmed = await _showConfirmDialog(
+                          context,
+                          'Archive Book',
+                          'Are you sure you want to archive "${book.title}"?',
+                        );
+                        if (confirmed && context.mounted) {
+                          await ref
+                              .read(booksProvider.notifier)
+                              .archiveBook(book.id);
+                          if (context.mounted) Navigator.of(context).pop();
+                        }
+                      },
+                      icon: const Icon(Icons.archive),
+                      label: const Text('Archive'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        final confirmed = await _showConfirmDialog(
+                          context,
+                          'Delete Book',
+                          'Are you sure you want to delete "${book.title}"? This action cannot be undone.',
+                        );
+                        if (confirmed && context.mounted) {
+                          await ref
+                              .read(booksProvider.notifier)
+                              .deleteBook(book.id);
+                          if (context.mounted) Navigator.of(context).pop();
+                        }
+                      },
+                      icon: const Icon(Icons.delete),
+                      label: const Text('Delete'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -253,5 +344,33 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
         );
       }).toList(),
     );
+  }
+
+  Future<bool> _showConfirmDialog(
+    BuildContext context,
+    String title,
+    String message,
+  ) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 }

@@ -227,4 +227,16 @@ class ContentService {
   Future<void> refreshBookStats(int bookId) async {
     await _apiService.refreshBookStats(bookId);
   }
+
+  Future<void> archiveBook(int bookId) async {
+    await _apiService.archiveBook(bookId);
+  }
+
+  Future<void> unarchiveBook(int bookId) async {
+    await _apiService.unarchiveBook(bookId);
+  }
+
+  Future<void> deleteBook(int bookId) async {
+    await _apiService.deleteBook(bookId);
+  }
 }

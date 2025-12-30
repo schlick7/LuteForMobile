@@ -7,6 +7,7 @@ class Settings {
   final int defaultPageId;
   final bool isUrlValid;
   final String translationProvider;
+  final bool showTags;
 
   const Settings({
     required this.serverUrl,
@@ -14,6 +15,7 @@ class Settings {
     this.defaultPageId = 1,
     this.isUrlValid = true,
     this.translationProvider = 'local',
+    this.showTags = true,
   });
 
   Settings copyWith({
@@ -22,6 +24,7 @@ class Settings {
     int? defaultPageId,
     bool? isUrlValid,
     String? translationProvider,
+    bool? showTags,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -29,6 +32,7 @@ class Settings {
       defaultPageId: defaultPageId ?? this.defaultPageId,
       isUrlValid: isUrlValid ?? this.isUrlValid,
       translationProvider: translationProvider ?? this.translationProvider,
+      showTags: showTags ?? this.showTags,
     );
   }
 
@@ -39,6 +43,7 @@ class Settings {
       defaultPageId: 1,
       isUrlValid: true,
       translationProvider: 'local',
+      showTags: true,
     );
   }
 
