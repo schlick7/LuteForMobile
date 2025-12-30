@@ -41,6 +41,13 @@ class BookCard extends ConsumerWidget {
                       color: AppColors.success,
                     ),
                   if (book.isCompleted) const SizedBox(width: 8),
+                  if (book.hasAudio)
+                    Icon(
+                      Icons.volume_up,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  if (book.hasAudio) const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       book.title,

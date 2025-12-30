@@ -240,6 +240,28 @@ class ContentService {
     await _apiService.deleteBook(bookId);
   }
 
+  Future<String?> getBookAudioFilename(int bookId) async {
+    try {
+      final response = await _apiService.getBookEdit(bookId);
+      final htmlContent = response.data ?? '';
+
+      final document = html_parser.parse(htmlContent);
+
+      final audioInput = document.querySelector('input[name="audio_filename"]');
+      if (audioInput != null) {
+        final audioValue = audioInput.attributes['value'];
+        if (audioValue != null && audioValue.isNotEmpty) {
+          return audioValue;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      print('Error getting book audio filename: $e');
+      return null;
+    }
+  }
+
   Future<void> saveAudioPlayerData({
     required int bookId,
     required int page,

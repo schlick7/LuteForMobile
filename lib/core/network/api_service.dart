@@ -248,6 +248,10 @@ class ApiService {
     return await _dio.post<String>('/book/delete/$bookId');
   }
 
+  Future<Response<String>> getBookEdit(int bookId) async {
+    return await _dio.get<String>('/book/edit/$bookId');
+  }
+
   Future<Response<String>> postPlayerData(
     int bookId,
     double position,
