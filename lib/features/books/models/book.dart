@@ -57,13 +57,13 @@ class Book {
 
   static List<int> _parseStatusDist(String dist) {
     if (dist.isEmpty || dist == 'null') {
-      return List.generate(6, (i) => 0);
+      return List.generate(7, (i) => 0);
     }
 
     try {
       final dynamic parsed = jsonDecode(dist);
       if (parsed is! Map<String, dynamic>) {
-        return List.generate(6, (i) => 0);
+        return List.generate(7, (i) => 0);
       }
       return [
         _getInt(parsed, '0'),
@@ -72,9 +72,11 @@ class Book {
         _getInt(parsed, '3'),
         _getInt(parsed, '4'),
         _getInt(parsed, '5'),
+        _getInt(parsed, '98'),
+        _getInt(parsed, '99'),
       ];
     } catch (e) {
-      return List.generate(6, (i) => 0);
+      return List.generate(7, (i) => 0);
     }
   }
 

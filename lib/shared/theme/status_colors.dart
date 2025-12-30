@@ -41,6 +41,30 @@ class AppStatusColors {
     }
   }
 
+  // Get label for status (for dialogs)
+  static String getStatusLabel(int status) {
+    switch (status) {
+      case 0:
+        return 'Unknown (0)';
+      case 1:
+        return 'Learning (1)';
+      case 2:
+        return 'Learning (2)';
+      case 3:
+        return 'Learning (3)';
+      case 4:
+        return 'Learning (4)';
+      case 5:
+        return 'Learning (5)';
+      case 98:
+        return 'Ignored (98)';
+      case 99:
+        return 'Known (99)';
+      default:
+        return 'Unknown';
+    }
+  }
+
   // Get status color with opacity for backgrounds
   static Color getStatusColorWithOpacity(
     String status, {

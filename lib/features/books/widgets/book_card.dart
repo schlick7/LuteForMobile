@@ -118,10 +118,12 @@ class BookCard extends ConsumerWidget {
       AppStatusColors.status2,
       AppStatusColors.status3,
       AppStatusColors.status4,
+      AppStatusColors.status5,
+      AppStatusColors.status98,
       AppStatusColors.status99,
     ];
 
-    for (int i = 0; i < book.statusDistribution!.length; i++) {
+    for (int i = 0; i < statusColors.length; i++) {
       final count = book.statusDistribution![i];
       if (count > 0) {
         final width = (count / totalTerms) * screenWidth;
@@ -138,7 +140,7 @@ class BookCard extends ConsumerWidget {
                         topLeft: Radius.circular(4),
                         bottomLeft: Radius.circular(4),
                       )
-                    : i == book.statusDistribution!.length - 1
+                    : i == statusColors.length - 1
                     ? const BorderRadius.only(
                         topRight: Radius.circular(4),
                         bottomRight: Radius.circular(4),

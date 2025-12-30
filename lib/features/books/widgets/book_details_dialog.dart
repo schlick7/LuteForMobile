@@ -197,21 +197,14 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
   }
 
   Widget _buildStatusDistributionDetails(BuildContext context, List<int> dist) {
-    final statusLabels = [
-      'Unknown (0)',
-      'Learning (1)',
-      'Learning (2)',
-      'Learning (3)',
-      'Learning (4)',
-      'Known (99)',
-    ];
-
     final statusColors = [
       AppStatusColors.status0,
       AppStatusColors.status1,
       AppStatusColors.status2,
       AppStatusColors.status3,
       AppStatusColors.status4,
+      AppStatusColors.status5,
+      AppStatusColors.status98,
       AppStatusColors.status99,
     ];
 
@@ -233,7 +226,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  statusLabels[index],
+                  AppStatusColors.getStatusLabel(index),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
