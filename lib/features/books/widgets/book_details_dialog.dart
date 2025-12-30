@@ -208,6 +208,8 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
       AppStatusColors.status99,
     ];
 
+    final statusNumbers = [0, 1, 2, 3, 4, 5, 98, 99];
+
     return Column(
       children: List.generate(
         dist.length,
@@ -221,12 +223,16 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                 decoration: BoxDecoration(
                   color: statusColors[index],
                   borderRadius: BorderRadius.circular(2),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    width: 1,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  AppStatusColors.getStatusLabel(index),
+                  AppStatusColors.getStatusLabel(statusNumbers[index]),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
