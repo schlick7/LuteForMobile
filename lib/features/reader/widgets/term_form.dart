@@ -53,6 +53,10 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     _romanizationController = TextEditingController(
       text: widget.termForm.romanization ?? '',
     );
+    _tagsController = TextEditingController(
+      text: widget.termForm.tags?.join(', ') ?? '',
+    );
+    _selectedStatus = widget.termForm.status;
     _loadDictionaries();
   }
 
