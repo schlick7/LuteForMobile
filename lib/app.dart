@@ -34,14 +34,30 @@ class NavigationController {
   }
 
   void navigateToReader(int bookId, int pageNum) {
-    for (final listener in _readerListeners) {
-      listener(bookId, pageNum);
+    print(
+      'DEBUG: NavigationController.navigateToReader called with bookId=$bookId, pageNum=$pageNum',
+    );
+    try {
+      for (final listener in _readerListeners) {
+        listener(bookId, pageNum);
+      }
+    } catch (e, stackTrace) {
+      print('ERROR: navigateToReader failed: $e');
+      print('Stack trace: $stackTrace');
     }
   }
 
   void navigateToScreen(int index) {
-    for (final listener in _screenListeners) {
-      listener(index);
+    print(
+      'DEBUG: NavigationController.navigateToScreen called with index=$index',
+    );
+    try {
+      for (final listener in _screenListeners) {
+        listener(index);
+      }
+    } catch (e, stackTrace) {
+      print('ERROR: navigateToScreen failed: $e');
+      print('Stack trace: $stackTrace');
     }
   }
 }
@@ -78,27 +94,35 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   final GlobalKey<ReaderScreenState> _readerKey =
       GlobalKey<ReaderScreenState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  late final NavigationController _navigationController;
 
   @override
   void initState() {
     super.initState();
+    _navigationController = ref.read(navigationProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateDrawerSettings();
     });
-    ref.read(navigationProvider).addReaderListener(_handleNavigateToReader);
-    ref.read(navigationProvider).addScreenListener(_handleNavigateToScreen);
+    _navigationController.addReaderListener(_handleNavigateToReader);
+    _navigationController.addScreenListener(_handleNavigateToScreen);
   }
 
   @override
   void dispose() {
-    ref.read(navigationProvider).removeReaderListener(_handleNavigateToReader);
-    ref.read(navigationProvider).removeScreenListener(_handleNavigateToScreen);
+    _navigationController.removeReaderListener(_handleNavigateToReader);
+    _navigationController.removeScreenListener(_handleNavigateToScreen);
     super.dispose();
   }
 
   void _handleNavigateToReader(int bookId, int pageNum) {
+    print(
+      'DEBUG: _handleNavigateToReader called with bookId=$bookId, pageNum=$pageNum',
+    );
+    print('DEBUG: _readerKey.currentState=${_readerKey.currentState}');
     if (_readerKey.currentState != null) {
       _readerKey.currentState!.loadBook(bookId, pageNum);
+    } else {
+      print('ERROR: _readerKey.currentState is null!');
     }
     setState(() {
       _currentIndex = 0;

@@ -94,9 +94,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   void loadBook(int bookId, int pageNum) {
-    ref
-        .read(readerProvider.notifier)
-        .loadPage(bookId: bookId, pageNum: pageNum);
+    print('DEBUG: loadBook called with bookId=$bookId, pageNum=$pageNum');
+    try {
+      ref
+          .read(readerProvider.notifier)
+          .loadPage(bookId: bookId, pageNum: pageNum);
+    } catch (e, stackTrace) {
+      print('ERROR: loadBook failed: $e');
+      print('Stack trace: $stackTrace');
+    }
   }
 
   @override

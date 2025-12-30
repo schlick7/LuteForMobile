@@ -11,11 +11,7 @@ class ApiClient {
           receiveTimeout: const Duration(seconds: 10),
           headers: {'Content-Type': 'text/html'},
         ),
-      ) {
-    dio.interceptors.add(
-      LogInterceptor(requestBody: true, responseBody: true, error: true),
-    );
-  }
+      );
 
   Future<Response<String>> get(String path) async {
     return await dio.get<String>(path);

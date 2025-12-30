@@ -13,11 +13,7 @@ class ApiService {
               receiveTimeout: const Duration(seconds: 10),
               headers: {'Content-Type': 'text/html'},
             ),
-          ) {
-    _dio.interceptors.add(
-      LogInterceptor(requestBody: true, responseBody: true, error: true),
-    );
-  }
+          );
 
   Future<Response<String>> getBookPage(int bookId, int pageNum) async {
     return await _dio.get<String>('/read/start_reading/$bookId/$pageNum');
