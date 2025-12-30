@@ -82,11 +82,8 @@ class _DictionaryViewState extends State<DictionaryView> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return SizedBox(
-      height: double.infinity,
-      child: InAppWebView(
-        initialSettings: InAppWebViewSettings(javaScriptEnabled: true),
-      ),
+    return InAppWebView(
+      initialSettings: InAppWebViewSettings(javaScriptEnabled: true),
     );
   }
 
