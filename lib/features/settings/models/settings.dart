@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 @immutable
 class Settings {
   final String serverUrl;
-  final int defaultBookId;
-  final int defaultPageId;
   final bool isUrlValid;
   final String translationProvider;
   final bool showTags;
@@ -13,8 +11,6 @@ class Settings {
 
   const Settings({
     required this.serverUrl,
-    this.defaultBookId = 18,
-    this.defaultPageId = 1,
     this.isUrlValid = true,
     this.translationProvider = 'local',
     this.showTags = true,
@@ -24,8 +20,6 @@ class Settings {
 
   Settings copyWith({
     String? serverUrl,
-    int? defaultBookId,
-    int? defaultPageId,
     bool? isUrlValid,
     String? translationProvider,
     bool? showTags,
@@ -34,8 +28,6 @@ class Settings {
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
-      defaultBookId: defaultBookId ?? this.defaultBookId,
-      defaultPageId: defaultPageId ?? this.defaultPageId,
       isUrlValid: isUrlValid ?? this.isUrlValid,
       translationProvider: translationProvider ?? this.translationProvider,
       showTags: showTags ?? this.showTags,
@@ -47,8 +39,6 @@ class Settings {
   factory Settings.defaultSettings() {
     return const Settings(
       serverUrl: 'http://192.168.1.100:5001',
-      defaultBookId: 18,
-      defaultPageId: 1,
       isUrlValid: true,
       translationProvider: 'local',
       showTags: true,

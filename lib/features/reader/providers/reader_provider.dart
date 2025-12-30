@@ -50,7 +50,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
     return const ReaderState();
   }
 
-  Future<void> loadPage({int? bookId, int? pageNum}) async {
+  Future<void> loadPage({required int bookId, required int pageNum}) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
@@ -215,13 +215,8 @@ final contentServiceProvider = Provider<ContentService>((ref) {
 });
 
 final readerRepositoryProvider = Provider<ReaderRepository>((ref) {
-  final settings = ref.watch(settingsProvider);
   final contentService = ref.watch(contentServiceProvider);
-  return ReaderRepository(
-    contentService: contentService,
-    defaultBookId: settings.defaultBookId,
-    defaultPageId: settings.defaultPageId,
-  );
+  return ReaderRepository(contentService: contentService);
 });
 
 final readerProvider = NotifierProvider<ReaderNotifier, ReaderState>(() {

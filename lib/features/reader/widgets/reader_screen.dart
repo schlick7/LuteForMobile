@@ -12,6 +12,7 @@ import 'text_display.dart';
 import 'term_form.dart';
 import 'sentence_translation.dart';
 import '../../../core/network/dictionary_service.dart';
+import 'package:lute_for_mobile/app.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -69,7 +70,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      ref.read(readerProvider.notifier).loadPage();
+      final pageData = ref.read(readerProvider).pageData;
+      if (pageData != null) {
+        ref
+            .read(readerProvider.notifier)
+            .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
+      }
     });
   }
 
@@ -79,7 +85,18 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   void reloadPage() {
-    ref.read(readerProvider.notifier).loadPage();
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData != null) {
+      ref
+          .read(readerProvider.notifier)
+          .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
+    }
+  }
+
+  void loadBook(int bookId, int pageNum) {
+    ref
+        .read(readerProvider.notifier)
+        .loadPage(bookId: bookId, pageNum: pageNum);
   }
 
   @override
@@ -139,17 +156,100 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     }
 
     if (state.errorMessage != null) {
+      final pageData = ref.read(readerProvider).pageData;
+
       return ErrorDisplay(
         message: state.errorMessage!,
-        onRetry: () {
-          ref.read(readerProvider.notifier).clearError();
-          ref.read(readerProvider.notifier).loadPage();
-        },
+        onRetry: pageData != null
+            ? () {
+                ref.read(readerProvider.notifier).clearError();
+                ref
+                    .read(readerProvider.notifier)
+                    .loadPage(
+                      bookId: pageData.bookId,
+                      pageNum: pageData.currentPage,
+                    );
+              }
+            : null,
       );
     }
 
     if (state.pageData == null) {
-      return const ErrorDisplay(message: 'No content available');
+      final settings = ref.read(settingsProvider);
+
+      if (!settings.isUrlValid) {
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.cloud_off,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No Server Connection',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Please configure your Lute server in settings.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: () =>
+                      ref.read(navigationProvider).navigateToScreen(2),
+                  icon: const Icon(Icons.settings),
+                  label: const Text('Open Settings'),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.menu_book,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No Book Loaded',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Select a book from the books screen to start reading.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () =>
+                    ref.read(navigationProvider).navigateToScreen(1),
+                icon: const Icon(Icons.collections_bookmark),
+                label: const Text('Browse Books'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
@@ -389,10 +489,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   }
 
   void _goToPage(int pageNum) {
-    final bookId = ref.read(readerProvider).pageData?.bookId ?? 18;
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData == null) return;
     ref
         .read(readerProvider.notifier)
-        .loadPage(bookId: bookId, pageNum: pageNum);
+        .loadPage(bookId: pageData.bookId, pageNum: pageNum);
   }
 
   void _showTextFormattingOptions() {

@@ -5,24 +5,13 @@ import '../models/term_form.dart';
 
 class ReaderRepository {
   final ContentService contentService;
-  final int defaultBookId;
-  final int defaultPageId;
 
-  ReaderRepository({
-    required ContentService contentService,
-    this.defaultBookId = 18,
-    this.defaultPageId = 1,
-  }) : contentService = contentService;
+  ReaderRepository({required ContentService contentService})
+    : contentService = contentService;
 
-  Future<PageData> getPage({int? bookId, int? pageNum}) async {
-    final effectiveBookId = bookId ?? defaultBookId;
-    final effectivePageNum = pageNum ?? defaultPageId;
-
+  Future<PageData> getPage({required int bookId, required int pageNum}) async {
     try {
-      return await contentService.getPageContent(
-        effectiveBookId,
-        effectivePageNum,
-      );
+      return await contentService.getPageContent(bookId, pageNum);
     } catch (e) {
       throw Exception('Failed to load page: $e');
     }

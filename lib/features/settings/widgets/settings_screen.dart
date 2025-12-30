@@ -16,8 +16,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _serverUrlController;
-  late TextEditingController _bookIdController;
-  late TextEditingController _pageIdController;
   bool _isTesting = false;
   String? _connectionStatus;
 
@@ -40,19 +38,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.initState();
     final settings = ref.read(settingsProvider);
     _serverUrlController = TextEditingController(text: settings.serverUrl);
-    _bookIdController = TextEditingController(
-      text: settings.defaultBookId.toString(),
-    );
-    _pageIdController = TextEditingController(
-      text: settings.defaultPageId.toString(),
-    );
   }
 
   @override
   void dispose() {
     _serverUrlController.dispose();
-    _bookIdController.dispose();
-    _pageIdController.dispose();
     super.dispose();
   }
 
@@ -68,7 +58,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     try {
       final dio = Dio();
       final response = await dio.get(
-        '$url/read/${ref.read(settingsProvider).defaultBookId}/page/${ref.read(settingsProvider).defaultPageId}',
+        url,
         options: Options(
           receiveTimeout: const Duration(seconds: 10),
           sendTimeout: const Duration(seconds: 10),
@@ -99,16 +89,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ref
           .read(settingsProvider.notifier)
           .updateServerUrl(_serverUrlController.text.trim());
-
-      final bookId = int.tryParse(_bookIdController.text);
-      if (bookId != null) {
-        ref.read(settingsProvider.notifier).updateBookId(bookId);
-      }
-
-      final pageId = int.tryParse(_pageIdController.text);
-      if (pageId != null) {
-        ref.read(settingsProvider.notifier).updatePageId(pageId);
-      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Settings saved successfully')),
@@ -195,52 +175,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           }
                         } catch (_) {
                           return 'Please enter a valid URL';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _bookIdController,
-                      decoration: InputDecoration(
-                        labelText: 'Default Book ID',
-                        hintText: '18',
-                        labelStyle: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              color: context.customColors.accentLabelColor,
-                            ),
-                        border: const OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a book ID';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Please enter a valid number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _pageIdController,
-                      decoration: InputDecoration(
-                        labelText: 'Default Page ID',
-                        hintText: '1',
-                        labelStyle: Theme.of(context).textTheme.labelMedium
-                            ?.copyWith(
-                              color: context.customColors.accentLabelColor,
-                            ),
-                        border: const OutlineInputBorder(),
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a page ID';
-                        }
-                        if (int.tryParse(value) == null) {
-                          return 'Please enter a valid number';
                         }
                         return null;
                       },
@@ -334,14 +268,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildSettingRow('Server URL', settings.serverUrl),
-                    _buildSettingRow(
-                      'Default Book ID',
-                      settings.defaultBookId.toString(),
-                    ),
-                    _buildSettingRow(
-                      'Default Page ID',
-                      settings.defaultPageId.toString(),
-                    ),
                     const SizedBox(height: 16),
                     SwitchListTile(
                       title: const Text('Show Tags'),
@@ -438,14 +364,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     _serverUrlController.text = ref
                                         .read(settingsProvider)
                                         .serverUrl;
-                                    _bookIdController.text = ref
-                                        .read(settingsProvider)
-                                        .defaultBookId
-                                        .toString();
-                                    _pageIdController.text = ref
-                                        .read(settingsProvider)
-                                        .defaultPageId
-                                        .toString();
                                     setState(() {
                                       _connectionStatus = null;
                                     });

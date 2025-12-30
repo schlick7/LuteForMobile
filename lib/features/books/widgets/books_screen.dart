@@ -7,6 +7,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 import 'book_card.dart';
 import 'book_details_dialog.dart';
+import 'package:lute_for_mobile/app.dart';
 
 class BooksScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -173,8 +174,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
   }
 
   void _navigateToReader(BuildContext context, Book book) {
-    ref.read(settingsProvider.notifier).updateBookId(book.id);
-    ref.read(settingsProvider.notifier).updatePageId(book.currentPage);
+    ref.read(navigationProvider).navigateToReader(book.id, book.currentPage);
     Navigator.of(context).pop();
   }
 

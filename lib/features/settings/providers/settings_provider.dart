@@ -16,8 +16,6 @@ class ViewDrawerSettings {
 
 class SettingsNotifier extends Notifier<Settings> {
   static const String _keyServerUrl = 'server_url';
-  static const String _keyBookId = 'default_book_id';
-  static const String _keyPageId = 'default_page_id';
   static const String _keyTranslationProvider = 'translation_provider';
   static const String _keyShowTags = 'show_tags';
   static const String _keyShowLastRead = 'show_last_read';
@@ -33,8 +31,6 @@ class SettingsNotifier extends Notifier<Settings> {
     final prefs = await SharedPreferences.getInstance();
     final serverUrl =
         prefs.getString(_keyServerUrl) ?? 'http://192.168.1.100:5001';
-    final bookId = prefs.getInt(_keyBookId) ?? 18;
-    final pageId = prefs.getInt(_keyPageId) ?? 1;
     final translationProvider =
         prefs.getString(_keyTranslationProvider) ?? 'local';
     final showTags = prefs.getBool(_keyShowTags) ?? true;
@@ -43,8 +39,6 @@ class SettingsNotifier extends Notifier<Settings> {
 
     state = Settings(
       serverUrl: serverUrl,
-      defaultBookId: bookId,
-      defaultPageId: pageId,
       isUrlValid: _isValidUrl(serverUrl),
       translationProvider: translationProvider,
       showTags: showTags,
@@ -61,20 +55,6 @@ class SettingsNotifier extends Notifier<Settings> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_keyServerUrl, url);
     }
-  }
-
-  Future<void> updateBookId(int bookId) async {
-    state = state.copyWith(defaultBookId: bookId);
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyBookId, bookId);
-  }
-
-  Future<void> updatePageId(int pageId) async {
-    state = state.copyWith(defaultPageId: pageId);
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyPageId, pageId);
   }
 
   Future<void> updateTranslationProvider(String provider) async {
@@ -101,8 +81,6 @@ class SettingsNotifier extends Notifier<Settings> {
   Future<void> updateLanguageFilter(String? language) async {
     state = Settings(
       serverUrl: state.serverUrl,
-      defaultBookId: state.defaultBookId,
-      defaultPageId: state.defaultPageId,
       isUrlValid: state.isUrlValid,
       translationProvider: state.translationProvider,
       showTags: state.showTags,
@@ -132,8 +110,6 @@ class SettingsNotifier extends Notifier<Settings> {
   void resetSettings() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyServerUrl);
-    await prefs.remove(_keyBookId);
-    await prefs.remove(_keyPageId);
     await prefs.remove(_keyTranslationProvider);
     await prefs.remove(_keyShowTags);
     await prefs.remove(_keyShowLastRead);

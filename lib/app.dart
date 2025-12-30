@@ -9,6 +9,43 @@ import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
 
+final navigationProvider = Provider<NavigationController>((ref) {
+  return NavigationController();
+});
+
+class NavigationController {
+  final List<Function(int, int)> _readerListeners = [];
+  final List<Function(int)> _screenListeners = [];
+
+  void addReaderListener(Function(int, int) listener) {
+    _readerListeners.add(listener);
+  }
+
+  void removeReaderListener(Function(int, int) listener) {
+    _readerListeners.remove(listener);
+  }
+
+  void addScreenListener(Function(int) listener) {
+    _screenListeners.add(listener);
+  }
+
+  void removeScreenListener(Function(int) listener) {
+    _screenListeners.remove(listener);
+  }
+
+  void navigateToReader(int bookId, int pageNum) {
+    for (final listener in _readerListeners) {
+      listener(bookId, pageNum);
+    }
+  }
+
+  void navigateToScreen(int index) {
+    for (final listener in _screenListeners) {
+      listener(index);
+    }
+  }
+}
+
 class App extends ConsumerWidget {
   const App({super.key});
 
@@ -48,6 +85,32 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateDrawerSettings();
     });
+    ref.read(navigationProvider).addReaderListener(_handleNavigateToReader);
+    ref.read(navigationProvider).addScreenListener(_handleNavigateToScreen);
+  }
+
+  @override
+  void dispose() {
+    ref.read(navigationProvider).removeReaderListener(_handleNavigateToReader);
+    ref.read(navigationProvider).removeScreenListener(_handleNavigateToScreen);
+    super.dispose();
+  }
+
+  void _handleNavigateToReader(int bookId, int pageNum) {
+    if (_readerKey.currentState != null) {
+      _readerKey.currentState!.loadBook(bookId, pageNum);
+    }
+    setState(() {
+      _currentIndex = 0;
+    });
+    _updateDrawerSettings();
+  }
+
+  void _handleNavigateToScreen(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+    _updateDrawerSettings();
   }
 
   void _updateDrawerSettings() {

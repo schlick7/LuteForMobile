@@ -5,6 +5,7 @@ import '../../../shared/theme/status_colors.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 import '../providers/books_provider.dart';
+import 'package:lute_for_mobile/app.dart';
 
 class BookDetailsDialog extends ConsumerStatefulWidget {
   final Book book;
@@ -262,11 +263,8 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         ref
-                            .read(settingsProvider.notifier)
-                            .updateBookId(book.id);
-                        ref
-                            .read(settingsProvider.notifier)
-                            .updatePageId(book.currentPage);
+                            .read(navigationProvider)
+                            .navigateToReader(book.id, book.currentPage);
                         Navigator.of(context).pop();
                       },
                       icon: const Icon(Icons.play_arrow),
