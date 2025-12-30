@@ -69,14 +69,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      final pageData = ref.read(readerProvider).pageData;
-      if (pageData != null) {
-        ref
-            .read(readerProvider.notifier)
-            .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
-      }
-    });
   }
 
   @override

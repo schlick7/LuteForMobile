@@ -175,7 +175,6 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
 
   void _navigateToReader(BuildContext context, Book book) {
     ref.read(navigationProvider).navigateToReader(book.id, book.currentPage);
-    Navigator.of(context).pop();
   }
 
   void _showBookDetails(BuildContext context, Book book) {
