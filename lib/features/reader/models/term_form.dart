@@ -88,12 +88,6 @@ class TermForm {
   }
 
   Map<String, dynamic> toFormData() {
-    print('Converting term form to form data');
-    print('Parents count: ${parents.length}');
-    print('Sync status: $syncStatus');
-    for (final p in parents) {
-      print('Parent: id=${p.id}, term=${p.term}, translation=${p.translation}');
-    }
     final data = {
       'text': term,
       'translation': translation ?? '',
@@ -110,7 +104,6 @@ class TermForm {
       final parentsList = parents.map((p) => {'value': p.term}).toList();
       final parentsListJson = jsonEncode(parentsList);
       data['parentslist'] = parentsListJson;
-      print('Sending parentslist: $parentsListJson');
     }
 
     return data;

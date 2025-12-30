@@ -231,9 +231,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                     repository.contentService.getLanguageSettingsHtml(langId),
               ),
               onUpdate: (updatedForm) {
-                print(
-                  'onUpdate called with parents: ${updatedForm.parents.map((p) => p.term).toList()}',
-                );
                 setState(() {
                   _currentTermForm = updatedForm;
                 });

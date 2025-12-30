@@ -75,13 +75,18 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   @override
   void didUpdateWidget(TermFormWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    print('didUpdateWidget called');
-    print(
-      'old parents: ${oldWidget.termForm.parents.map((p) => p.term).toList()}',
-    );
-    print(
-      'new parents: ${widget.termForm.parents.map((p) => p.term).toList()}',
-    );
+    if (oldWidget.termForm.translation != widget.termForm.translation) {
+      _translationController.text = widget.termForm.translation ?? '';
+    }
+    if (oldWidget.termForm.romanization != widget.termForm.romanization) {
+      _romanizationController.text = widget.termForm.romanization ?? '';
+    }
+    if (oldWidget.termForm.tags != widget.termForm.tags) {
+      _tagsController.text = widget.termForm.tags?.join(', ') ?? '';
+    }
+    if (oldWidget.termForm.status != widget.termForm.status) {
+      _selectedStatus = widget.termForm.status;
+    }
     if (oldWidget.termForm.parents != widget.termForm.parents) {
       setState(() {});
     }
@@ -150,9 +155,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
   @override
   Widget build(BuildContext context) {
-    print(
-      'build called with parents: ${widget.termForm.parents.map((p) => p.term).toList()}',
-    );
     final settings = ref.watch(termFormSettingsProvider);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -410,12 +412,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Widget _buildParentsSection(BuildContext context) {
-    print(
-      '_buildParentsSection called with ${widget.termForm.parents.length} parents',
-    );
-    for (final p in widget.termForm.parents) {
-      print('  Parent: term=${p.term}, status=${p.status}, id=${p.id}');
-    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -469,9 +465,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Widget _buildParentChip(BuildContext context, TermParent parent) {
-    print(
-      '_buildParentChip called for parent: term=${parent.term}, status=${parent.status}, translation=${parent.translation}',
-    );
     final status = parent.status?.toString() ?? '0';
     final textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
     final backgroundColor = Theme.of(
