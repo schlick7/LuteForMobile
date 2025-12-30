@@ -7,8 +7,13 @@ import '../providers/books_provider.dart';
 
 class BookDetailsDialog extends ConsumerStatefulWidget {
   final Book book;
+  final bool isArchived;
 
-  const BookDetailsDialog({super.key, required this.book});
+  const BookDetailsDialog({
+    super.key,
+    required this.book,
+    this.isArchived = false,
+  });
 
   @override
   ConsumerState<BookDetailsDialog> createState() => _BookDetailsDialogState();
@@ -82,11 +87,61 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                     ),
                   ),
                   if (isRefreshing)
-                    const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    const Padding(
+                      padding: EdgeInsets.only(right: 12),
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     ),
+                  if (isRefreshing) const SizedBox(width: 8),
+                  IconButton(
+                    icon: Icon(
+                      widget.isArchived ? Icons.unarchive : Icons.archive,
+                      size: 20,
+                    ),
+                    onPressed: () async {
+                      final confirmed = await _showConfirmDialog(
+                        context,
+                        widget.isArchived ? 'Unarchive Book' : 'Archive Book',
+                        'Are you sure you want to ${widget.isArchived ? "unarchive" : "archive"} "${book.title}"?',
+                      );
+                      if (confirmed && context.mounted) {
+                        if (widget.isArchived) {
+                          await ref
+                              .read(booksProvider.notifier)
+                              .unarchiveBook(book.id);
+                        } else {
+                          await ref
+                              .read(booksProvider.notifier)
+                              .archiveBook(book.id);
+                        }
+                        if (context.mounted) Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: widget.isArchived ? 'Unarchive' : 'Archive',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, size: 20),
+                    onPressed: () async {
+                      final confirmed = await _showConfirmDialog(
+                        context,
+                        'Delete Book',
+                        'Are you sure you want to delete "${book.title}"? This action cannot be undone.',
+                      );
+                      if (confirmed && context.mounted) {
+                        await ref
+                            .read(booksProvider.notifier)
+                            .deleteBook(book.id);
+                        if (context.mounted) Navigator.of(context).pop();
+                      }
+                    },
+                    tooltip: 'Delete',
+                    style: IconButton.styleFrom(
+                      foregroundColor: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -201,53 +256,6 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final confirmed = await _showConfirmDialog(
-                          context,
-                          'Archive Book',
-                          'Are you sure you want to archive "${book.title}"?',
-                        );
-                        if (confirmed && context.mounted) {
-                          await ref
-                              .read(booksProvider.notifier)
-                              .archiveBook(book.id);
-                          if (context.mounted) Navigator.of(context).pop();
-                        }
-                      },
-                      icon: const Icon(Icons.archive),
-                      label: const Text('Archive'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () async {
-                        final confirmed = await _showConfirmDialog(
-                          context,
-                          'Delete Book',
-                          'Are you sure you want to delete "${book.title}"? This action cannot be undone.',
-                        );
-                        if (confirmed && context.mounted) {
-                          await ref
-                              .read(booksProvider.notifier)
-                              .deleteBook(book.id);
-                          if (context.mounted) Navigator.of(context).pop();
-                        }
-                      },
-                      icon: const Icon(Icons.delete),
-                      label: const Text('Delete'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Theme.of(context).colorScheme.error,
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),

@@ -172,9 +172,12 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
   }
 
   void _showBookDetails(BuildContext context, Book book) {
+    final state = ref.read(booksProvider);
+    final isArchived = state.archivedBooks.any((b) => b.id == book.id);
     showDialog(
       context: context,
-      builder: (context) => BookDetailsDialog(book: book),
+      builder: (context) =>
+          BookDetailsDialog(book: book, isArchived: isArchived),
     );
   }
 }

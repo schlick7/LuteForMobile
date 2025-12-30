@@ -7,4 +7,6 @@ Add Books Screen
  Audio player support in Reader
 
 
-The server has a refresh books endpoint right? what happens if we trigger that?
+add a toggle in settings to show/hide tags
+add a toggle in settings to show/hide last read
+add to settings an option to show all languages or a specific lanague (probably a drop down selctor)
