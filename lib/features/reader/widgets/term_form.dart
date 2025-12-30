@@ -158,9 +158,15 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
-      constraints: BoxConstraints(maxHeight: _isDictionaryOpen ? 550 : 600),
+      constraints: BoxConstraints(
+        maxHeight: _isDictionaryOpen ? double.infinity : 600,
+      ),
       child: _isDictionaryOpen
           ? Container(
+              constraints: BoxConstraints(
+                minHeight: 200,
+                maxHeight: MediaQuery.of(context).size.height * 0.9,
+              ),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.surface,
@@ -169,13 +175,12 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 ),
               ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
                 children: [
                   _buildHeader(context),
                   const SizedBox(height: 12),
                   _buildTranslationField(context),
                   const SizedBox(height: 12),
-                  Flexible(child: _buildDictionaryView(context)),
+                  Expanded(child: _buildDictionaryView(context)),
                 ],
               ),
             )

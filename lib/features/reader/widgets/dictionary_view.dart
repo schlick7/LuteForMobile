@@ -74,11 +74,10 @@ class _DictionaryViewState extends State<DictionaryView> {
     }
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
         _buildNarrowHeader(context),
         const SizedBox(height: 8),
-        Flexible(child: _buildSwipeableContent(context)),
+        Expanded(child: _buildSwipeableContent(context)),
       ],
     );
   }
@@ -113,45 +112,49 @@ class _DictionaryViewState extends State<DictionaryView> {
   }
 
   Widget _buildSwipeableContent(BuildContext context) {
-    return SizedBox(
-      height: 400,
-      child: GestureDetector(
-        onHorizontalDragEnd: (details) {
-          final velocity = details.primaryVelocity ?? 0;
-          const minVelocity = 300.0;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          height: constraints.maxHeight,
+          child: GestureDetector(
+            onHorizontalDragEnd: (details) {
+              final velocity = details.primaryVelocity ?? 0;
+              const minVelocity = 300.0;
 
-          if (velocity.abs() > minVelocity) {
-            if (velocity > 0 && _currentPage > 0) {
-              _pageController.previousPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            } else if (velocity < 0 &&
-                _currentPage < widget.dictionaries.length - 1) {
-              _pageController.nextPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-            }
-          }
-        },
-        child: PageView.builder(
-          controller: _pageController,
-          onPageChanged: (index) async {
-            setState(() {
-              _currentPage = index;
-            });
-            await widget.dictionaryService.rememberLastUsedDictionary(
-              widget.languageId,
-              widget.dictionaries[index].name,
-            );
-          },
-          itemCount: widget.dictionaries.length,
-          itemBuilder: (context, index) {
-            return _buildWebViewPage(context, widget.dictionaries[index]);
-          },
-        ),
-      ),
+              if (velocity.abs() > minVelocity) {
+                if (velocity > 0 && _currentPage > 0) {
+                  _pageController.previousPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                } else if (velocity < 0 &&
+                    _currentPage < widget.dictionaries.length - 1) {
+                  _pageController.nextPage(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                  );
+                }
+              }
+            },
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: (index) async {
+                setState(() {
+                  _currentPage = index;
+                });
+                await widget.dictionaryService.rememberLastUsedDictionary(
+                  widget.languageId,
+                  widget.dictionaries[index].name,
+                );
+              },
+              itemCount: widget.dictionaries.length,
+              itemBuilder: (context, index) {
+                return _buildWebViewPage(context, widget.dictionaries[index]);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -161,15 +164,22 @@ class _DictionaryViewState extends State<DictionaryView> {
       dictionary.urlTemplate,
     );
 
-    return InAppWebView(
-      initialUrlRequest: URLRequest(url: WebUri(url)),
-      initialSettings: InAppWebViewSettings(
-        sharedCookiesEnabled: true,
-        cacheEnabled: true,
-        javaScriptEnabled: true,
-      ),
-      onWebViewCreated: (controller) {
-        _webviewControllers[dictionary.hashCode] = controller;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          height: constraints.maxHeight,
+          child: InAppWebView(
+            initialUrlRequest: URLRequest(url: WebUri(url)),
+            initialSettings: InAppWebViewSettings(
+              sharedCookiesEnabled: true,
+              cacheEnabled: true,
+              javaScriptEnabled: true,
+            ),
+            onWebViewCreated: (controller) {
+              _webviewControllers[dictionary.hashCode] = controller;
+            },
+          ),
+        );
       },
     );
   }
