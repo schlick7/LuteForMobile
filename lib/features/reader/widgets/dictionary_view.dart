@@ -82,19 +82,10 @@ class _DictionaryViewState extends State<DictionaryView> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return Align(
-      alignment: Alignment.center,
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          'No dictionaries configured',
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: Theme.of(
-              context,
-            ).colorScheme.onSurface.withValues(alpha: 0.6),
-          ),
-          textAlign: TextAlign.center,
-        ),
+    return SizedBox(
+      height: double.infinity,
+      child: InAppWebView(
+        initialSettings: InAppWebViewSettings(javaScriptEnabled: true),
       ),
     );
   }

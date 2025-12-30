@@ -6,7 +6,6 @@ import '../../settings/providers/settings_provider.dart'
     show termFormSettingsProvider;
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../core/network/content_service.dart';
-import '../../../core/network/dictionary_service.dart';
 import 'parent_search.dart';
 import 'dictionary_view.dart';
 
@@ -17,6 +16,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
   final VoidCallback onCancel;
   final ContentService contentService;
   final void Function(TermParent)? onParentDoubleTap;
+  final DictionaryService dictionaryService;
 
   TermFormWidget({
     super.key,
@@ -25,6 +25,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
     required this.onUpdate,
     required this.onCancel,
     required this.contentService,
+    required this.dictionaryService,
     this.onParentDoubleTap,
   });
 
@@ -56,17 +57,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       text: widget.termForm.romanization ?? '',
     );
     _loadDictionaries();
-  }
-
-  Future<void> _loadDictionaries() async {
-    final dictionaries = await _dictionaryService.getDictionariesForLanguage(
-      widget.termForm.languageId,
-    );
-    if (mounted) {
-      setState(() {
-        _dictionaries = dictionaries;
-      });
-    }
   }
 
   @override
@@ -139,6 +129,12 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     );
   }
 
+  void _toggleDictionary() {
+    setState(() {
+      _isDictionaryOpen = !_isDictionaryOpen;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     print(
@@ -183,20 +179,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 _buildButtons(context),
               ],
             ],
-          ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildDictionaryView(BuildContext context) {
-    return DictionaryView(
-      term: widget.termForm.term,
-      dictionaries: _dictionaries,
-      languageId: widget.termForm.languageId,
-      onClose: _toggleDictionary,
-      isVisible: _isDictionaryOpen,
-      dictionaryService: _dictionaryService,
     );
   }
 
@@ -248,19 +233,14 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 color: context.customColors.accentLabelColor,
                 fontWeight: FontWeight.w600,
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
               hintText: 'Enter translation',
               hintStyle: TextStyle(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.5),
+                color:
+                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             ),
             maxLines: 2,
           ),
@@ -276,21 +256,15 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               foregroundColor: _isDictionaryOpen
                   ? Theme.of(context).colorScheme.onPrimary
                   : Theme.of(context).colorScheme.onSurface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(Icons.search, size: 28),
           ),
         ),
       ],
     );
-  }
-
-  void _toggleDictionary() {
-    setState(() {
-      _isDictionaryOpen = !_isDictionaryOpen;
-    });
   }
 
   Widget _buildStatusField(BuildContext context) {
@@ -353,7 +327,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             ),
           ),
         ),
-      ),
     );
   }
 
@@ -369,9 +342,11 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         hintText: 'Enter romanization (optional)',
         hintStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          color:
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
     );
   }
@@ -388,9 +363,11 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         hintText: 'Enter tags separated by commas',
         hintStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          color:
+              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
     );
   }
@@ -419,11 +396,12 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               children: [
                 IconButton(
                   onPressed: _canSyncWithParent()
-                      ? () => _showParentLinkMenu(context)
-                      : null,
+                      ? null
+                      : () => _showParentLinkMenu(context),
                   icon: Icon(
-                    _hasMultipleParents() ? Icons.link_off : Icons.link,
-                    color: _getLinkIconColor(),
+                    _hasMultipleParents()
+                        ? Icons.link_off
+                        : Icons.link,
                   ),
                   tooltip: _getLinkTooltip(),
                   iconSize: 20,
@@ -436,7 +414,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 ElevatedButton.icon(
                   onPressed: () => _showAddParentDialog(context),
                   icon: const Icon(Icons.add),
-                  label: const Text('Add Parent'),
+                  label: 'Add Parent',
                 ),
               ],
             ),
@@ -455,103 +433,14 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     );
   }
 
-  void _showParentLinkMenu(BuildContext context) {
-    if (widget.termForm.parents.isEmpty) {
-      _showLinkDialog(context);
-    } else if (widget.termForm.parents.length == 1) {
-      final updatedForm = widget.termForm.copyWith(
-        syncStatus: widget.termForm.syncStatus == true ? false : true,
-      );
-      widget.onUpdate(updatedForm);
-    }
-  }
-
-  void _showLinkDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Link Parent Term'),
-        content: const Text(
-          'This term will inherit the status of the parent term.\n\n'
-          'The parent term will show this term as a child.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _showParentSearchForLinking(context);
-            },
-            child: const Text('Link'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showParentSearchForLinking(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        insetPadding: const EdgeInsets.all(16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Link to Parent Term',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 16),
-                ParentSearchWidget(
-                  languageId: widget.termForm.languageId,
-                  existingParentIds: widget.termForm.parents
-                      .map((p) => p.id)
-                      .where((id) => id != null)
-                      .cast<int>()
-                      .toList(),
-                  onParentSelected: (parent) {
-                    _linkToParent(parent);
-                  },
-                  contentService: widget.contentService,
-                  onDone: () {
-                    Navigator.of(context).pop();
-                  },
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _linkToParent(TermParent parent) {
-    final updatedForm = widget.termForm.copyWith(parents: [parent]);
-    widget.onUpdate(updatedForm);
-  }
-
   Widget _buildParentChip(BuildContext context, TermParent parent) {
     print(
       '_buildParentChip called for parent: term=${parent.term}, status=${parent.status}, translation=${parent.translation}',
     );
     final status = parent.status?.toString() ?? '0';
     final textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
-    final backgroundColor = Theme.of(
-      context,
-    ).colorScheme.getStatusBackgroundColor(status);
+    final backgroundColor =
+        Theme.of(context).colorScheme.getStatusBackgroundColor(status);
 
     return GestureDetector(
       onLongPress: () => _showDeleteParentConfirmation(context, parent),
@@ -572,35 +461,35 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 '(${parent.translation})',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  void _showDeleteParentConfirmation(BuildContext context, TermParent parent) {
+  void _showParentLinkMenu(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Unlink Parent'),
-        content: Text('Are you sure you want to unlink from "${parent.term}"?'),
+        title: const Text('Link Parent Term'),
+        content: const Text(
+          'This term will inherit the status of the parent term.\n\n'
+              'The parent term will show this term as a child.\n\n'
+              'The parent term will show this term in its word list.\n\n'
+              'Sync status (inherit parent\'s status):',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
+            child: const Text('Link'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _removeParent(parent);
-            },
-            child: const Text('Unlink'),
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
           ),
         ],
       ),
@@ -635,58 +524,60 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                   onParentSelected: (parent) {
                     _addParent(parent);
                   },
-                  contentService: widget.contentService,
                   onDone: () {
                     Navigator.of(context).pop();
                   },
                 ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
-                ),
               ],
             ),
-          ),
+          ],
         ),
-      ),
-    );
+      );
   }
 
   void _addParent(TermParent parent) {
-    final updatedForm = widget.termForm.copyWith(
-      parents: [...widget.termForm.parents, parent],
-    );
-    print('Adding parent: ${parent.term}');
-    print(
-      'Parents before: ${widget.termForm.parents.map((p) => p.term).toList()}',
-    );
-    print('Parents after: ${updatedForm.parents.map((p) => p.term).toList()}');
+    final updatedForm = widget.termForm.copyWith(parents: [
+      ...widget.termForm.parents,
+      parent,
+    ]);
     widget.onUpdate(updatedForm);
   }
 
   void _removeParent(TermParent parent) {
-    final updatedForm = widget.termForm.copyWith(
-      parents: widget.termForm.parents.where((p) {
-        if (parent.id == null || p.id == null) {
-          return p.term != parent.term;
-        }
-        return p.id != parent.id;
-      }).toList(),
-    );
+    final updatedForm = widget.termForm.copyWith(parents:
+        widget.termForm.parents.where((p) => p != parent).toList());
     widget.onUpdate(updatedForm);
   }
 
-  bool _getParentSyncStatus() {
-    return widget.termForm.syncStatus == true;
-  }
-
-  bool _canSyncWithParent() {
-    return widget.termForm.parents.length <= 1;
+  void _showDeleteParentConfirmation(BuildContext context, TermParent parent) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Unlink Parent'),
+        content: Text('Are you sure you want to unlink from "${parent.term}"?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _removeParent(parent);
+              Navigator.of(context).pop();
+            },
+            child: const Text('Unlink'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
   bool _hasMultipleParents() {
     return widget.termForm.parents.length > 1;
+  }
+
+  bool _canSyncWithParent() {
+    return widget.termForm.parents.length <= 1;
   }
 
   Color _getLinkIconColor() {
@@ -700,6 +591,10 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     return _getParentSyncStatus()
         ? 'Sync with parent: ON'
         : 'Sync with parent: OFF';
+  }
+
+  bool _getParentSyncStatus() {
+    return widget.termForm.syncStatus == true;
   }
 
   Widget _buildButtons(BuildContext context) {
@@ -720,6 +615,17 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildDictionaryView(BuildContext context) {
+    return DictionaryView(
+      term: widget.termForm.term,
+      dictionaries: _dictionaries,
+      languageId: widget.termForm.languageId,
+      onClose: _toggleDictionary,
+      isVisible: _isDictionaryOpen,
+      dictionaryService: _dictionaryService,
     );
   }
 }
