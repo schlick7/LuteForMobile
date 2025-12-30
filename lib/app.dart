@@ -85,22 +85,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           SettingsScreen(scaffoldKey: _scaffoldKey),
         ],
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-          _updateDrawerSettings();
-          if (index == 0 && _readerKey.currentState != null) {
-            _readerKey.currentState!.reloadPage();
-          }
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.book), label: 'Reader'),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
-        ],
-      ),
     );
   }
 }
