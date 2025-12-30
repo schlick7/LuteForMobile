@@ -194,6 +194,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   void _handleDoubleTap(TextItem item) async {
     if (item.langId == null) return;
 
+    print(
+      '_handleDoubleTap: text="${item.text}", wordId=${item.wordId}, langId=${item.langId}',
+    );
+
     try {
       TermForm? termForm;
       if (item.wordId != null) {
@@ -206,9 +210,13 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
             .fetchTermFormWithDetails(item.langId!, item.text);
       }
       if (termForm != null && mounted) {
+        print(
+          'Got termForm: term="${termForm.term}", termId=${termForm.termId}',
+        );
         _showTermForm(termForm);
       }
     } catch (e) {
+      print('_handleDoubleTap error: $e');
       return;
     }
   }

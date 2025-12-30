@@ -15,5 +15,21 @@ class PageData {
     required this.paragraphs,
   });
 
+  PageData copyWith({
+    int? bookId,
+    int? currentPage,
+    int? pageCount,
+    String? title,
+    List<Paragraph>? paragraphs,
+  }) {
+    return PageData(
+      bookId: bookId ?? this.bookId,
+      currentPage: currentPage ?? this.currentPage,
+      pageCount: pageCount ?? this.pageCount,
+      title: title ?? this.title,
+      paragraphs: paragraphs ?? this.paragraphs,
+    );
+  }
+
   String get pageIndicator => '$currentPage/$pageCount';
 }

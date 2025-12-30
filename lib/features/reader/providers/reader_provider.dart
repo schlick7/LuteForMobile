@@ -143,8 +143,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
   Future<bool> saveTerm(TermForm termForm) async {
     try {
       if (termForm.termId != null) {
+        print('saveTerm: editing existing term ${termForm.termId}');
         await _repository.editTerm(termForm.termId!, termForm.toFormData());
+        updateTermStatus(termForm.termId!, termForm.status);
       } else {
+        print('saveTerm: creating new term "${termForm.term}" (no termId)');
         await _repository.saveTermForm(
           termForm.languageId,
           termForm.term,
@@ -153,8 +156,51 @@ class ReaderNotifier extends Notifier<ReaderState> {
       }
       return true;
     } catch (e) {
+      print('saveTerm error: $e');
       return false;
     }
+  }
+
+  void updateTermStatus(int termId, String status) {
+    final currentPageData = state.pageData;
+    if (currentPageData == null) {
+      print('updateTermStatus: pageData is null');
+      return;
+    }
+
+    print('updateTermStatus: looking for termId=$termId, status=$status');
+    bool found = false;
+    for (final paragraph in currentPageData.paragraphs) {
+      for (final item in paragraph.textItems) {
+        if (item.wordId == termId) {
+          print('Found term! Current statusClass: ${item.statusClass}');
+          found = true;
+        }
+      }
+    }
+
+    if (!found) {
+      print('Term with id=$termId not found in page data');
+    }
+
+    final updatedParagraphs = currentPageData.paragraphs.map((paragraph) {
+      final updatedItems = paragraph.textItems.map((item) {
+        if (item.wordId == termId) {
+          final updated = item.copyWith(statusClass: 'status$status');
+          print(
+            'Updated item statusClass from ${item.statusClass} to ${updated.statusClass}',
+          );
+          return updated;
+        }
+        return item;
+      }).toList();
+      return paragraph.copyWith(textItems: updatedItems);
+    }).toList();
+
+    state = state.copyWith(
+      pageData: currentPageData.copyWith(paragraphs: updatedParagraphs),
+    );
+    print('updateTermStatus: state updated');
   }
 }
 

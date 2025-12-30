@@ -183,16 +183,8 @@ class HtmlParser {
     );
   }
 
-  TermForm parseTermForm(String htmlContent) {
-    print('Parsing term form HTML...');
-    print('HTML length: ${htmlContent.length}');
+  TermForm parseTermForm(String htmlContent, {int? termId}) {
     final document = html_parser.parse(htmlContent);
-    print('Searching for parent elements...');
-    final previewLength = htmlContent.length > 2000 ? 2000 : htmlContent.length;
-    print(
-      'HTML snippet (first $previewLength chars): ${htmlContent.substring(0, previewLength)}',
-    );
-    print('Searching for parent elements...');
 
     final termInput = document.querySelector('input[name="text"]');
     final term = termInput?.attributes['value']?.trim() ?? '';
@@ -203,9 +195,14 @@ class HtmlParser {
     final translation = translationTextarea?.text.trim();
 
     final termIdInput = document.querySelector('input[name="termid"]');
-    final termId = termIdInput != null
-        ? int.tryParse(termIdInput.attributes['value'] ?? '')
-        : null;
+    final termIdValue = termIdInput?.attributes['value'] ?? '';
+    print(
+      'parseTermForm: term="$term", termIdInput value="$termIdValue", provided termId=$termId',
+    );
+    final parsedTermId = termIdInput != null
+        ? int.tryParse(termIdValue)
+        : termId;
+    print('parseTermForm: final termId=$parsedTermId');
 
     final langIdInput = document.querySelector('select[name="language_id"]');
     final languageId = langIdInput != null
@@ -297,7 +294,7 @@ class HtmlParser {
     return TermForm(
       term: term,
       translation: translation,
-      termId: termId,
+      termId: parsedTermId,
       languageId: languageId,
       status: status,
       tags: tagList,

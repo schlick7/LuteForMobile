@@ -69,13 +69,13 @@ class ContentService {
   Future<TermForm> getTermForm(int langId, String text) async {
     final response = await _apiService.getTermForm(langId, text);
     final htmlContent = response.data ?? '';
-    return parser.parseTermForm(htmlContent);
+    return parser.parseTermForm(htmlContent, termId: null);
   }
 
   Future<TermForm> getTermFormById(int termId) async {
     final response = await _apiService.getTermFormById(termId);
     final htmlContent = response.data ?? '';
-    return parser.parseTermForm(htmlContent);
+    return parser.parseTermForm(htmlContent, termId: termId);
   }
 
   Future<void> saveTermForm(
