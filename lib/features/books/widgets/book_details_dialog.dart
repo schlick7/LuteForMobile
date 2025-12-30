@@ -97,6 +97,13 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                     ),
                   if (isRefreshing) const SizedBox(width: 8),
                   IconButton(
+                    icon: const Icon(Icons.edit, size: 20),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                    },
+                    tooltip: 'Edit',
+                  ),
+                  IconButton(
                     icon: Icon(
                       widget.isArchived ? Icons.unarchive : Icons.archive,
                       size: 20,
@@ -240,22 +247,35 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                 ),
               ],
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    ref.read(settingsProvider.notifier).updateBookId(book.id);
-                    ref
-                        .read(settingsProvider.notifier)
-                        .updatePageId(book.currentPage);
-                    Navigator.of(context).pop();
-                  },
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Start Reading'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close),
+                      label: const Text('Close'),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        ref
+                            .read(settingsProvider.notifier)
+                            .updateBookId(book.id);
+                        ref
+                            .read(settingsProvider.notifier)
+                            .updatePageId(book.currentPage);
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(Icons.play_arrow),
+                      label: const Text('Start Reading'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
