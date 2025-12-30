@@ -29,26 +29,33 @@ class _DictionaryViewState extends State<DictionaryView> {
   int _currentPage = 0;
   final Map<int, InAppWebViewController> _webviewControllers = {};
   bool _hasLoaded = false;
+  int _initialPage = 0;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
-    _initializePage();
+    _loadInitialPage();
   }
 
-  Future<void> _initializePage() async {
+  Future<void> _loadInitialPage() async {
+    if (!mounted) return;
+
     final lastUsed = await widget.dictionaryService.getLastUsedDictionary(
       widget.languageId,
     );
 
+    if (!mounted) return;
+
     if (lastUsed != null && widget.dictionaries.isNotEmpty) {
       final index = widget.dictionaries.indexWhere((d) => d.name == lastUsed);
-      if (index >= 0 && index < widget.dictionaries.length) {
+      if (index >= 0) {
         setState(() {
+          _initialPage = index;
           _currentPage = index;
         });
-        _pageController.jumpToPage(index);
+        _pageController.dispose();
+        _pageController = PageController(initialPage: index);
       }
     }
 
