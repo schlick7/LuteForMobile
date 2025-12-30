@@ -13,6 +13,16 @@ class BooksDrawerSettings extends ConsumerWidget {
     final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
 
     final languages = allBooks.map((b) => b.language).toSet().toList()..sort();
+    final effectiveFilter = languages.contains(settings.languageFilter)
+        ? settings.languageFilter
+        : null;
+
+    if (settings.languageFilter != null &&
+        !languages.contains(settings.languageFilter)) {
+      Future.microtask(() {
+        ref.read(settingsProvider.notifier).updateLanguageFilter(null);
+      });
+    }
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -53,7 +63,8 @@ class BooksDrawerSettings extends ConsumerWidget {
           ),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
-            initialValue: settings.languageFilter,
+            key: ValueKey(settings.languageFilter),
+            initialValue: effectiveFilter,
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),

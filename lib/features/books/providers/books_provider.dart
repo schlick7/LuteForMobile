@@ -23,7 +23,7 @@ class BooksState {
   });
 
   List<Book> get filteredBooks {
-    final list = showArchived ? archivedBooks : activeBooks;
+    var list = showArchived ? archivedBooks : activeBooks;
     if (searchQuery.isEmpty) return list;
     return list
         .where(
