@@ -312,8 +312,8 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
   Widget _buildStatusField(BuildContext context) {
     return Wrap(
-      spacing: 8,
-      runSpacing: 8,
+      spacing: 4,
+      runSpacing: 4,
       children: [
         _buildStatusButton(context, '1', '1', _getStatusColor('1')),
         _buildStatusButton(context, '2', '2', _getStatusColor('2')),
