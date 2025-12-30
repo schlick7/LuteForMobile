@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class Book {
   final int id;
   final String title;
@@ -7,7 +9,7 @@ class Book {
   final int currentPage;
   final int percent;
   final int wordCount;
-  final int distinctTerms;
+  final int? distinctTerms;
   final double unknownPct;
   final List<int> statusDistribution;
 
@@ -15,34 +17,52 @@ class Book {
     required this.id,
     required this.title,
     required this.language,
-    required this.langId,
+    this.langId = 0,
     required this.totalPages,
     required this.currentPage,
     required this.percent,
     required this.wordCount,
-    required this.distinctTerms,
+    this.distinctTerms,
     required this.unknownPct,
     required this.statusDistribution,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
-      id: json['id'] as int,
-      title: json['title'] as String,
-      language: json['language'] as String,
-      langId: json['lang_id'] as int,
-      totalPages: json['total_pages'] as int,
-      currentPage: json['current_page'] as int,
-      percent: json['percent'] as int,
-      wordCount: json['word_count'] as int,
-      distinctTerms: json['distinct_terms'] as int,
-      unknownPct: (json['unknown_pct'] as num).toDouble(),
-      statusDistribution: _parseStatusDist(json['status_dist'] as String),
+      id: json['BkID'] as int,
+      title: json['BkTitle'] as String,
+      language: json['LgName'] as String,
+      langId: json['LgID'] as int? ?? 0,
+      totalPages: json['PageCount'] as int,
+      currentPage: json['PageNum'] as int,
+      percent: ((json['IsCompleted'] as int? ?? 0) * 100),
+      wordCount: json['WordCount'] as int,
+      distinctTerms: json['DistinctCount'] as int?,
+      unknownPct: (json['UnknownPercent'] as num?)?.toDouble() ?? 0.0,
+      statusDistribution: _parseStatusDist(
+        json['StatusDistribution'] as String? ?? '',
+      ),
     );
   }
 
   static List<int> _parseStatusDist(String dist) {
-    return dist.split(',').map((s) => int.parse(s.trim())).toList();
+    if (dist.isEmpty) {
+      return List.generate(6, (i) => 0);
+    }
+
+    try {
+      final Map<String, dynamic> parsed = json.decode(dist);
+      return [
+        parsed['0'] as int? ?? 0,
+        parsed['1'] as int? ?? 0,
+        parsed['2'] as int? ?? 0,
+        parsed['3'] as int? ?? 0,
+        parsed['4'] as int? ?? 0,
+        parsed['5'] as int? ?? 0,
+      ];
+    } catch (e) {
+      return List.generate(6, (i) => 0);
+    }
   }
 
   String get pageProgress => '$currentPage/$totalPages';
