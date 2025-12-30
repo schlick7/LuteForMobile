@@ -26,7 +26,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
   }
 
   Future<void> _refreshStatsIfNeeded() async {
-    if (currentBook != null && !currentBook!.hasStats) {
+    if (currentBook != null) {
       setState(() {
         isRefreshing = true;
       });
