@@ -38,6 +38,7 @@ class ReaderDrawerSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textSettings = ref.watch(textFormattingSettingsProvider);
+    final settings = ref.watch(settingsProvider);
     final weightIndex = _availableWeights
         .indexOf(textSettings.fontWeight)
         .toDouble();
@@ -62,6 +63,10 @@ class ReaderDrawerSettings extends ConsumerWidget {
           _buildFontWeightSlider(context, ref, textSettings, weightIndex),
           const SizedBox(height: 16),
           _buildItalicToggle(context, ref, textSettings),
+          const SizedBox(height: 32),
+          Text('Audio Player', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 16),
+          _buildAudioPlayerToggle(context, ref, settings),
         ],
       ),
     );
@@ -201,6 +206,28 @@ class ReaderDrawerSettings extends ConsumerWidget {
             ref
                 .read(textFormattingSettingsProvider.notifier)
                 .updateIsItalic(value);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAudioPlayerToggle(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic settings,
+  ) {
+    return Row(
+      children: [
+        const Text(
+          'Show Audio Player',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const Spacer(),
+        Switch(
+          value: settings.showAudioPlayer,
+          onChanged: (value) {
+            ref.read(settingsProvider.notifier).updateShowAudioPlayer(value);
           },
         ),
       ],

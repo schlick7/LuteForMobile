@@ -48,6 +48,7 @@ dependencies:
 
   # Reader-Specific Packages
   flutter_tts: ^4.0.2
+  audioplayers: ^6.5.1
 
   # AI Integration
   openai_dart: ^0.6.2

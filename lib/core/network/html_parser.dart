@@ -26,6 +26,9 @@ class HtmlParser {
     final currentPage = pageNum;
     final pageCount = _extractPageCount(metadataDocument);
     final paragraphs = _extractParagraphs(textDocument);
+    final audioFilename = _extractAudioFilename(metadataDocument);
+    final audioCurrentPos = _extractAudioCurrentPos(metadataDocument);
+    final audioBookmarks = _extractAudioBookmarks(metadataDocument);
 
     return PageData(
       bookId: bookId,
@@ -33,6 +36,9 @@ class HtmlParser {
       pageCount: pageCount,
       title: title,
       paragraphs: paragraphs,
+      audioFilename: audioFilename,
+      audioCurrentPos: audioCurrentPos,
+      audioBookmarks: audioBookmarks,
     );
   }
 
@@ -461,5 +467,40 @@ class HtmlParser {
     } catch (e) {
       return 'Dictionary';
     }
+  }
+
+  String? _extractAudioFilename(html.Document document) {
+    final audioInput = document.querySelector('input[name="audio_filename"]');
+    return audioInput?.attributes['value']?.trim();
+  }
+
+  Duration? _extractAudioCurrentPos(html.Document document) {
+    final positionInput = document.querySelector(
+      'input[name="audio_current_pos"]',
+    );
+    final positionStr = positionInput?.attributes['value']?.trim();
+    if (positionStr != null && positionStr.isNotEmpty) {
+      final position = double.tryParse(positionStr);
+      if (position != null) {
+        return Duration(milliseconds: (position * 1000).round());
+      }
+    }
+    return null;
+  }
+
+  List<double> _extractAudioBookmarks(html.Document document) {
+    final bookmarksInput = document.querySelector(
+      'input[name="audio_bookmarks"]',
+    );
+    final bookmarksStr = bookmarksInput?.attributes['value']?.trim();
+    if (bookmarksStr != null && bookmarksStr.isNotEmpty) {
+      try {
+        final bookmarks = jsonDecode(bookmarksStr) as List;
+        return bookmarks.map((b) => (b as num).toDouble()).toList();
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
   }
 }

@@ -84,4 +84,20 @@ class ReaderRepository {
       throw Exception('Failed to create term: $e');
     }
   }
+
+  Future<void> saveAudioPlayerData({
+    required int bookId,
+    required Duration position,
+    required List<double> bookmarks,
+  }) async {
+    try {
+      await contentService.saveAudioPlayerData(
+        bookId: bookId,
+        position: position,
+        bookmarks: bookmarks,
+      );
+    } catch (e) {
+      throw Exception('Failed to save audio player data: $e');
+    }
+  }
 }

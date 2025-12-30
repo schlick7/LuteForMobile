@@ -6,12 +6,14 @@ import '../../../features/settings/providers/settings_provider.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../providers/reader_provider.dart';
+import '../providers/audio_player_provider.dart';
 import '../widgets/term_tooltip.dart';
 import '../models/sentence_translation.dart';
 import 'text_display.dart';
 import 'term_form.dart';
 import 'sentence_translation.dart';
 import '../../../core/network/dictionary_service.dart';
+import 'audio_player.dart';
 import 'package:lute_for_mobile/app.dart';
 
 class ReaderScreen extends ConsumerStatefulWidget {
@@ -76,21 +78,45 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     super.dispose();
   }
 
-  void reloadPage() {
+  void _loadAudioIfNeeded() {
     final pageData = ref.read(readerProvider).pageData;
-    if (pageData != null) {
-      ref
-          .read(readerProvider.notifier)
-          .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
+    final settings = ref.read(settingsProvider);
+    final audioState = ref.read(audioPlayerProvider);
+
+    if (pageData == null || !settings.showAudioPlayer) return;
+
+    if (pageData.hasAudio && pageData.audioFilename != null) {
+      if (audioState.bookId != pageData.bookId ||
+          audioState.audioFilename != pageData.audioFilename) {
+        ref
+            .read(audioPlayerProvider.notifier)
+            .loadAudio(
+              pageData.audioFilename!,
+              pageData.bookId,
+              initialPosition: pageData.audioCurrentPos,
+              bookmarks: pageData.audioBookmarks,
+            );
+      }
     }
   }
 
-  void loadBook(int bookId, int pageNum) {
+  Future<void> reloadPage() async {
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData != null) {
+      await ref
+          .read(readerProvider.notifier)
+          .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
+      _loadAudioIfNeeded();
+    }
+  }
+
+  Future<void> loadBook(int bookId, int pageNum) async {
     print('DEBUG: loadBook called with bookId=$bookId, pageNum=$pageNum');
     try {
-      ref
+      await ref
           .read(readerProvider.notifier)
           .loadPage(bookId: bookId, pageNum: pageNum);
+      _loadAudioIfNeeded();
     } catch (e, stackTrace) {
       print('ERROR: loadBook failed: $e');
       print('Stack trace: $stackTrace');
@@ -144,7 +170,17 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
             ),
         ],
       ),
-      body: Stack(children: [_buildBody(state)]),
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              if (ref.watch(settingsProvider).showAudioPlayer)
+                const AudioPlayerWidget(),
+              Expanded(child: _buildBody(state)),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

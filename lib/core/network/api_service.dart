@@ -247,4 +247,15 @@ class ApiService {
   Future<Response<String>> deleteBook(int bookId) async {
     return await _dio.post<String>('/book/delete/$bookId');
   }
+
+  Future<Response<String>> postPlayerData(
+    int bookId,
+    double position,
+    List<double> bookmarks,
+  ) async {
+    return await _dio.post<String>(
+      '/read/player_data',
+      data: {'bookid': bookId, 'position': position, 'bookmarks': bookmarks},
+    );
+  }
 }

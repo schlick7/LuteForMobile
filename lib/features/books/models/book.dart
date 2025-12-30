@@ -17,6 +17,7 @@ class Book {
   final bool isCompleted;
 
   bool get hasStats => distinctTerms != null && statusDistribution != null;
+  bool get hasAudio => false;
 
   Book({
     required this.id,

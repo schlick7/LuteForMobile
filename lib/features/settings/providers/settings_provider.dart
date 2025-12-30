@@ -20,6 +20,7 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyShowTags = 'show_tags';
   static const String _keyShowLastRead = 'show_last_read';
   static const String _keyLanguageFilter = 'language_filter';
+  static const String _keyShowAudioPlayer = 'show_audio_player';
 
   @override
   Settings build() {
@@ -36,6 +37,7 @@ class SettingsNotifier extends Notifier<Settings> {
     final showTags = prefs.getBool(_keyShowTags) ?? true;
     final showLastRead = prefs.getBool(_keyShowLastRead) ?? true;
     final languageFilter = prefs.getString(_keyLanguageFilter);
+    final showAudioPlayer = prefs.getBool(_keyShowAudioPlayer) ?? true;
 
     state = Settings(
       serverUrl: serverUrl,
@@ -44,6 +46,7 @@ class SettingsNotifier extends Notifier<Settings> {
       showTags: showTags,
       showLastRead: showLastRead,
       languageFilter: languageFilter,
+      showAudioPlayer: showAudioPlayer,
     );
   }
 
@@ -86,6 +89,7 @@ class SettingsNotifier extends Notifier<Settings> {
       showTags: state.showTags,
       showLastRead: state.showLastRead,
       languageFilter: language,
+      showAudioPlayer: state.showAudioPlayer,
     );
 
     final prefs = await SharedPreferences.getInstance();
@@ -94,6 +98,13 @@ class SettingsNotifier extends Notifier<Settings> {
     } else {
       await prefs.setString(_keyLanguageFilter, language);
     }
+  }
+
+  Future<void> updateShowAudioPlayer(bool show) async {
+    state = state.copyWith(showAudioPlayer: show);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowAudioPlayer, show);
   }
 
   bool _isValidUrl(String url) {
@@ -114,6 +125,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyShowTags);
     await prefs.remove(_keyShowLastRead);
     await prefs.remove(_keyLanguageFilter);
+    await prefs.remove(_keyShowAudioPlayer);
 
     state = Settings.defaultSettings();
   }

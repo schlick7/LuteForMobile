@@ -8,6 +8,7 @@ class Settings {
   final bool showTags;
   final bool showLastRead;
   final String? languageFilter;
+  final bool showAudioPlayer;
 
   const Settings({
     required this.serverUrl,
@@ -16,6 +17,7 @@ class Settings {
     this.showTags = true,
     this.showLastRead = true,
     this.languageFilter,
+    this.showAudioPlayer = true,
   });
 
   Settings copyWith({
@@ -25,6 +27,7 @@ class Settings {
     bool? showTags,
     bool? showLastRead,
     Object? languageFilter,
+    bool? showAudioPlayer,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -33,6 +36,7 @@ class Settings {
       showTags: showTags ?? this.showTags,
       showLastRead: showLastRead ?? this.showLastRead,
       languageFilter: languageFilter is String ? languageFilter : null,
+      showAudioPlayer: showAudioPlayer ?? this.showAudioPlayer,
     );
   }
 
@@ -44,6 +48,7 @@ class Settings {
       showTags: true,
       showLastRead: true,
       languageFilter: null,
+      showAudioPlayer: true,
     );
   }
 
