@@ -6,6 +6,7 @@ import '../../settings/providers/settings_provider.dart'
     show termFormSettingsProvider;
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../core/network/content_service.dart';
+import '../../../core/network/dictionary_service.dart';
 import 'parent_search.dart';
 import 'dictionary_view.dart';
 
@@ -45,18 +46,25 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   @override
   void initState() {
     super.initState();
-    _dictionaryService = DictionaryService();
+    _dictionaryService = widget.dictionaryService;
     _translationController = TextEditingController(
       text: widget.termForm.translation ?? '',
-    );
-    _selectedStatus = widget.termForm.status;
-    _tagsController = TextEditingController(
-      text: widget.termForm.tags?.join(', ') ?? '',
     );
     _romanizationController = TextEditingController(
       text: widget.termForm.romanization ?? '',
     );
     _loadDictionaries();
+  }
+
+  Future<void> _loadDictionaries() async {
+    // Assuming language ID is available, need to adapt based on your data model
+    final languageId = 1; // Replace with actual language ID from term form
+    final dictionaries = await _dictionaryService.getDictionariesForLanguage(languageId);
+    if (mounted) {
+      setState(() {
+        _dictionaries = dictionaries;
+      });
+    }
   }
 
   @override
@@ -179,8 +187,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 _buildButtons(context),
               ],
             ],
-          ],
-        ),
+          ),
       ),
     );
   }
@@ -256,9 +263,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               foregroundColor: _isDictionaryOpen
                   ? Theme.of(context).colorScheme.onPrimary
                   : Theme.of(context).colorScheme.onSurface,
-            ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
             child: const Icon(Icons.search, size: 28),
           ),
@@ -414,7 +421,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 ElevatedButton.icon(
                   onPressed: () => _showAddParentDialog(context),
                   icon: const Icon(Icons.add),
-                  label: 'Add Parent',
+                  label: const Text('Add Parent'),
                 ),
               ],
             ),
