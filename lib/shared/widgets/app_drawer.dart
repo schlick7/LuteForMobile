@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
+import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
+import 'package:lute_for_mobile/features/books/models/book.dart';
 
 class AppDrawer extends ConsumerWidget {
   final int currentIndex;

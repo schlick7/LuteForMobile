@@ -4,6 +4,7 @@ import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.dart';
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_screen.dart';
+import 'package:lute_for_mobile/features/books/widgets/books_drawer_settings.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
@@ -59,7 +60,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       case 1:
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
-            .updateSettings(null);
+            .updateSettings(const BooksDrawerSettings());
         break;
       case 2:
         ref

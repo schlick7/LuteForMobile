@@ -114,6 +114,28 @@ class BooksNotifier extends Notifier<BooksState> {
   void clearError() {
     state = state.copyWith(errorMessage: null);
   }
+
+  Future<void> refreshAllStats() async {
+    state = state.copyWith(isLoading: true, errorMessage: null);
+
+    try {
+      await _repository.refreshAllBookStats(
+        state.activeBooks + state.archivedBooks,
+      );
+      await loadBooks();
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> refreshBookStats(int bookId) async {
+    try {
+      await _repository.refreshBookStats(bookId);
+      await loadBooks();
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
+  }
 }
 
 final booksRepositoryProvider = Provider<BooksRepository>((ref) {

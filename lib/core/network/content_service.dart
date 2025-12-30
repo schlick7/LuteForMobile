@@ -223,4 +223,8 @@ class ContentService {
     final response = await getArchivedBooks(start: 0, length: 10000);
     return response.data;
   }
+
+  Future<void> refreshBookStats(int bookId) async {
+    await _apiService.refreshBookStats(bookId);
+  }
 }
