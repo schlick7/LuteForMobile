@@ -102,6 +102,8 @@ class ApiService {
       'draw': draw,
       'start': start,
       'length': length,
+      'order[0][column]': '0',
+      'order[0][dir]': 'desc',
       if (search != null) 'search[value]': search,
     };
 
@@ -122,6 +124,8 @@ class ApiService {
       'draw': draw,
       'start': start,
       'length': length,
+      'order[0][column]': '0',
+      'order[0][dir]': 'desc',
       if (search != null) 'search[value]': search,
     };
 
