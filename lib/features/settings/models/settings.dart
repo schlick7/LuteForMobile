@@ -34,7 +34,7 @@ class Settings {
 
   factory Settings.defaultSettings() {
     return const Settings(
-      serverUrl: 'http://localhost:5001',
+      serverUrl: 'http://192.168.1.100:5001',
       defaultBookId: 18,
       defaultPageId: 1,
       isUrlValid: true,
