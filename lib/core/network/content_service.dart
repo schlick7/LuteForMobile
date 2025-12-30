@@ -239,4 +239,10 @@ class ContentService {
   Future<void> deleteBook(int bookId) async {
     await _apiService.deleteBook(bookId);
   }
+
+  Future<List<String>> getAllLanguages() async {
+    final response = await _apiService.getLanguages();
+    final htmlContent = response.data ?? '';
+    return parser.parseLanguages(htmlContent);
+  }
 }

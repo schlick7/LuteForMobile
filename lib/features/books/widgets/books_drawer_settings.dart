@@ -9,20 +9,7 @@ class BooksDrawerSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
-    final booksState = ref.watch(booksProvider);
-    final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
-
-    final languages = allBooks.map((b) => b.language).toSet().toList()..sort();
-    final effectiveFilter = languages.contains(settings.languageFilter)
-        ? settings.languageFilter
-        : null;
-
-    if (settings.languageFilter != null &&
-        !languages.contains(settings.languageFilter)) {
-      Future.microtask(() {
-        ref.read(settingsProvider.notifier).updateLanguageFilter(null);
-      });
-    }
+    final languagesState = ref.watch(languagesProvider);
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -62,26 +49,36 @@ class BooksDrawerSettings extends ConsumerWidget {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            key: ValueKey(settings.languageFilter),
-            initialValue: effectiveFilter,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
+              borderRadius: BorderRadius.circular(4),
             ),
-            items: [
-              const DropdownMenuItem<String>(
-                value: null,
-                child: Text('All Languages'),
-              ),
-              ...languages.map(
-                (lang) =>
-                    DropdownMenuItem<String>(value: lang, child: Text(lang)),
-              ),
-            ],
-            onChanged: (value) {
-              ref.read(settingsProvider.notifier).updateLanguageFilter(value);
-            },
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: DropdownButton<String>(
+              value: settings.languageFilter,
+              isExpanded: true,
+              underline: const SizedBox.shrink(),
+              items: [
+                const DropdownMenuItem<String>(
+                  value: null,
+                  child: Text('All Languages'),
+                ),
+                ...languagesState.when(
+                  data: (languages) => languages.map(
+                    (lang) => DropdownMenuItem<String>(
+                      value: lang,
+                      child: Text(lang),
+                    ),
+                  ),
+                  loading: () => [],
+                  error: (error, _) => [],
+                ),
+              ],
+              onChanged: (value) {
+                ref.read(settingsProvider.notifier).updateLanguageFilter(value);
+              },
+            ),
           ),
           const SizedBox(height: 24),
           Text(

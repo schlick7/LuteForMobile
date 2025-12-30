@@ -37,6 +37,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(booksProvider);
+    final settings = ref.watch(settingsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -98,14 +99,14 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
                 },
               ),
             ),
-            Expanded(child: _buildBody(context, state)),
+            Expanded(child: _buildBody(context, state, settings)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBody(BuildContext context, BooksState state) {
+  Widget _buildBody(BuildContext context, BooksState state, settings) {
     if (state.isLoading) {
       return const LoadingIndicator(message: 'Loading books...');
     }
@@ -119,7 +120,6 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
       );
     }
 
-    final settings = ref.watch(settingsProvider);
     var books = state.filteredBooks;
 
     if (settings.languageFilter != null) {

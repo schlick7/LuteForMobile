@@ -306,6 +306,19 @@ class HtmlParser {
     );
   }
 
+  List<String> parseLanguages(String htmlContent) {
+    final document = html_parser.parse(htmlContent);
+
+    final languageLinks = document.querySelectorAll(
+      'table tbody tr a[href^="/language/edit/"]',
+    );
+
+    return languageLinks
+        .map((link) => link.text?.trim() ?? '')
+        .where((lang) => lang.isNotEmpty)
+        .toList();
+  }
+
   List<DictionarySource> parseLanguageDictionaries(String htmlContent) {
     final document = html_parser.parse(htmlContent);
     final dictionaries = <DictionarySource>[];

@@ -232,6 +232,10 @@ class ApiService {
     return await _dio.get<String>('/language/edit/$langId');
   }
 
+  Future<Response<String>> getLanguages() async {
+    return await _dio.get<String>('/language/index');
+  }
+
   Future<Response<String>> refreshBookStats(int bookId) async {
     return await _dio.get<String>('/book/table_stats/$bookId');
   }
