@@ -59,7 +59,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   Future<void> _loadDictionaries() async {
     // Assuming language ID is available, need to adapt based on your data model
     final languageId = 1; // Replace with actual language ID from term form
-    final dictionaries = await _dictionaryService.getDictionariesForLanguage(languageId);
+    final dictionaries = await _dictionaryService.getDictionariesForLanguage(
+      languageId,
+    );
     if (mounted) {
       setState(() {
         _dictionaries = dictionaries;
@@ -162,35 +164,35 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             color: Theme.of(context).colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
-           child: Column(
-             mainAxisSize: MainAxisSize.min,
-             crossAxisAlignment: CrossAxisAlignment.start,
-             children: [
-               _buildHeader(context),
-               const SizedBox(height: 12),
-               _buildTranslationField(context),
-               const SizedBox(height: 12),
-               if (_isDictionaryOpen) ...[_buildDictionaryView(context)],
-               if (!_isDictionaryOpen) ...[
-                 _buildStatusField(context),
-                 if (widget.termForm.showRomanization) ...[
-                   const SizedBox(height: 12),
-                   _buildRomanizationField(context),
-                 ],
-                 if (settings.showTags) ...[
-                   const SizedBox(height: 12),
-                   _buildTagsField(context),
-                 ],
-                 const SizedBox(height: 12),
-                 _buildParentsSection(context),
-                 const SizedBox(height: 16),
-                 _buildButtons(context),
-               ],
-             ],
-           ),
-         ),
-       ),
-     );
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context),
+              const SizedBox(height: 12),
+              _buildTranslationField(context),
+              const SizedBox(height: 12),
+              if (_isDictionaryOpen) ...[_buildDictionaryView(context)],
+              if (!_isDictionaryOpen) ...[
+                _buildStatusField(context),
+                if (widget.termForm.showRomanization) ...[
+                  const SizedBox(height: 12),
+                  _buildRomanizationField(context),
+                ],
+                if (settings.showTags) ...[
+                  const SizedBox(height: 12),
+                  _buildTagsField(context),
+                ],
+                const SizedBox(height: 12),
+                _buildParentsSection(context),
+                const SizedBox(height: 16),
+                _buildButtons(context),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -241,14 +243,19 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 color: context.customColors.accentLabelColor,
                 fontWeight: FontWeight.w600,
               ),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
               hintText: 'Enter translation',
               hintStyle: TextStyle(
-                color:
-                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
             ),
             maxLines: 2,
           ),
@@ -351,11 +358,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         hintText: 'Enter romanization (optional)',
         hintStyle: TextStyle(
-          color:
-              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
     );
   }
@@ -372,11 +377,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         hintText: 'Enter tags separated by commas',
         hintStyle: TextStyle(
-          color:
-              Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
     );
   }
@@ -408,9 +411,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                       ? null
                       : () => _showParentLinkMenu(context),
                   icon: Icon(
-                    _hasMultipleParents()
-                        ? Icons.link_off
-                        : Icons.link,
+                    _hasMultipleParents() ? Icons.link_off : Icons.link,
                   ),
                   tooltip: _getLinkTooltip(),
                   iconSize: 20,
@@ -448,8 +449,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     );
     final status = parent.status?.toString() ?? '0';
     final textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
-    final backgroundColor =
-        Theme.of(context).colorScheme.getStatusBackgroundColor(status);
+    final backgroundColor = Theme.of(
+      context,
+    ).colorScheme.getStatusBackgroundColor(status);
 
     return GestureDetector(
       onLongPress: () => _showDeleteParentConfirmation(context, parent),
@@ -470,7 +472,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 '(${parent.translation})',
                 style: TextStyle(
                   fontSize: 11,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
                 ),
               ),
             ],
@@ -487,9 +491,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         title: const Text('Link Parent Term'),
         content: const Text(
           'This term will inherit the status of the parent term.\n\n'
-              'The parent term will show this term as a child.\n\n'
-              'The parent term will show this term in its word list.\n\n'
-              'Sync status (inherit parent\'s status):',
+          'The parent term will show this term as a child.\n\n'
+          'The parent term will show this term in its word list.\n\n'
+          'Sync status (inherit parent\'s status):',
         ),
         actions: [
           TextButton(
@@ -537,27 +541,26 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                   onDone: () {
                     Navigator.of(context).pop();
                   },
-                 ),
-               ],
-             ),
-           ],
-         ),
-         ),
-       ),
-     );
-   }
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   void _addParent(TermParent parent) {
-    final updatedForm = widget.termForm.copyWith(parents: [
-      ...widget.termForm.parents,
-      parent,
-    ]);
+    final updatedForm = widget.termForm.copyWith(
+      parents: [...widget.termForm.parents, parent],
+    );
     widget.onUpdate(updatedForm);
   }
 
   void _removeParent(TermParent parent) {
-    final updatedForm = widget.termForm.copyWith(parents:
-        widget.termForm.parents.where((p) => p != parent).toList());
+    final updatedForm = widget.termForm.copyWith(
+      parents: widget.termForm.parents.where((p) => p != parent).toList(),
+    );
     widget.onUpdate(updatedForm);
   }
 
