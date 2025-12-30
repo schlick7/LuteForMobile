@@ -222,17 +222,15 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                     width: 1,
                   ),
                 ),
+                alignment: Alignment.center,
                 child: isIgnored
-                    ? Center(
-                        child: Text(
-                          '×',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    ? Text(
+                        'x',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
                         ),
                       )
                     : null,
