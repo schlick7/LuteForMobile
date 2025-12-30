@@ -41,6 +41,13 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
 
         await ref.read(booksProvider.notifier).updateBookInList(updatedBook);
         if (!mounted) return;
+
+        if (mounted) {
+          setState(() {
+            currentBook = updatedBook;
+            isRefreshing = false;
+          });
+        }
       } catch (e) {
         if (mounted) {
           setState(() {
