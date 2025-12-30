@@ -26,8 +26,9 @@ class BooksDrawerSettings extends ConsumerWidget {
           SwitchListTile(
             title: const Text('Show Tags'),
             value: settings.showTags,
-            onChanged: (value) {
+            onChanged: (value) async {
               ref.read(settingsProvider.notifier).updateShowTags(value);
+              await ref.read(booksProvider.notifier).loadBooks();
             },
             contentPadding: EdgeInsets.zero,
             controlAffinity: ListTileControlAffinity.trailing,
@@ -35,8 +36,9 @@ class BooksDrawerSettings extends ConsumerWidget {
           SwitchListTile(
             title: const Text('Show Last Read'),
             value: settings.showLastRead,
-            onChanged: (value) {
+            onChanged: (value) async {
               ref.read(settingsProvider.notifier).updateShowLastRead(value);
+              await ref.read(booksProvider.notifier).loadBooks();
             },
             contentPadding: EdgeInsets.zero,
             controlAffinity: ListTileControlAffinity.trailing,
