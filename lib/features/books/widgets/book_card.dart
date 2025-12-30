@@ -84,13 +84,6 @@ class BookCard extends ConsumerWidget {
                   Text('•', style: Theme.of(context).textTheme.bodySmall),
                   const SizedBox(width: 8),
                   Text(
-                    '${book.wordCount} words',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(width: 8),
-                  Text('•', style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(width: 8),
-                  Text(
                     book.hasStats ? '${book.distinctTerms} terms' : '— terms',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
