@@ -75,7 +75,11 @@ class _DictionaryViewState extends State<DictionaryView> {
 
     return Column(
       mainAxisSize: MainAxisSize.min,
-      children: [_buildNarrowHeader(context), _buildSwipeableContent(context)],
+      children: [
+        _buildNarrowHeader(context),
+        const SizedBox(height: 8),
+        Flexible(child: _buildSwipeableContent(context)),
+      ],
     );
   }
 

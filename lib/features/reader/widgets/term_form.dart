@@ -159,41 +159,60 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
       constraints: BoxConstraints(maxHeight: _isDictionaryOpen ? 550 : 600),
-      child: SingleChildScrollView(
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 12),
-              _buildTranslationField(context),
-              const SizedBox(height: 12),
-              if (_isDictionaryOpen) ...[_buildDictionaryView(context)],
-              if (!_isDictionaryOpen) ...[
-                _buildStatusField(context),
-                if (widget.termForm.showRomanization) ...[
+      child: _isDictionaryOpen
+          ? Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildHeader(context),
                   const SizedBox(height: 12),
-                  _buildRomanizationField(context),
-                ],
-                if (settings.showTags) ...[
+                  _buildTranslationField(context),
                   const SizedBox(height: 12),
-                  _buildTagsField(context),
+                  Flexible(child: _buildDictionaryView(context)),
                 ],
-                const SizedBox(height: 12),
-                _buildParentsSection(context),
-                const SizedBox(height: 16),
-                _buildButtons(context),
-              ],
-            ],
-          ),
-        ),
-      ),
+              ),
+            )
+          : SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(context),
+                    const SizedBox(height: 12),
+                    _buildTranslationField(context),
+                    const SizedBox(height: 12),
+                    _buildStatusField(context),
+                    if (widget.termForm.showRomanization) ...[
+                      const SizedBox(height: 12),
+                      _buildRomanizationField(context),
+                    ],
+                    if (settings.showTags) ...[
+                      const SizedBox(height: 12),
+                      _buildTagsField(context),
+                    ],
+                    const SizedBox(height: 12),
+                    _buildParentsSection(context),
+                    const SizedBox(height: 16),
+                    _buildButtons(context),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
