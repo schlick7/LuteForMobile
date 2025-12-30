@@ -34,19 +34,13 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
         await ref
             .read(booksProvider.notifier)
             .refreshBookStats(currentBook!.id);
-        await ref.read(booksProvider.notifier).loadBooks();
+        final updatedBook = await ref
+            .read(booksProvider.notifier)
+            .getBookWithStats(currentBook!.id);
         if (!mounted) return;
 
-        final updatedBooks =
-            ref.read(booksProvider).activeBooks +
-            ref.read(booksProvider).archivedBooks;
-        setState(() {
-          currentBook = updatedBooks.firstWhere(
-            (b) => b.id == widget.book.id,
-            orElse: () => widget.book,
-          );
-          isRefreshing = false;
-        });
+        await ref.read(booksProvider.notifier).updateBookInList(updatedBook);
+        if (!mounted) return;
       } catch (e) {
         if (mounted) {
           setState(() {
