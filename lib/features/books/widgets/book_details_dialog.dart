@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../shared/theme/status_colors.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
@@ -98,8 +99,20 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                   if (isRefreshing) const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.edit, size: 20),
-                    onPressed: () {
-                      Navigator.of(context).pop();
+                    onPressed: () async {
+                      final confirmed = await _showEditConfirmDialog(context);
+                      if (confirmed && context.mounted) {
+                        final serverUrl = ref.read(settingsProvider).serverUrl;
+                        final editUrl = Uri.parse(
+                          '$serverUrl/book/edit/${book.id}',
+                        );
+                        if (await canLaunchUrl(editUrl)) {
+                          await launchUrl(
+                            editUrl,
+                            mode: LaunchMode.externalApplication,
+                          );
+                        }
+                      }
                     },
                     tooltip: 'Edit',
                   ),
@@ -395,6 +408,27 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
             child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  Future<bool> _showEditConfirmDialog(BuildContext context) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Edit Book'),
+        content: const Text('Open book editor in external browser?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Open'),
           ),
         ],
       ),
