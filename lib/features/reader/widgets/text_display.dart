@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/text_item.dart';
 import '../models/paragraph.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import 'term_tooltip.dart';
 
 class TextDisplay extends StatefulWidget {
   final List<Paragraph> paragraphs;
@@ -33,7 +34,6 @@ class TextDisplay extends StatefulWidget {
 class _TextDisplayState extends State<TextDisplay> {
   Timer? _doubleTapTimer;
   TextItem? _lastTappedItem;
-  Offset? _lastTapPosition;
 
   void _handleTap(TextItem item, Offset tapPosition) {
     if (_lastTappedItem == item &&
@@ -43,18 +43,17 @@ class _TextDisplayState extends State<TextDisplay> {
       widget.onDoubleTap?.call(item);
       _doubleTapTimer = null;
       _lastTappedItem = null;
-      _lastTapPosition = null;
+      TermTooltipClass.close();
     } else {
       _lastTappedItem = item;
-      _lastTapPosition = tapPosition;
       _doubleTapTimer?.cancel();
+
+      widget.onTap?.call(item, tapPosition);
+
       _doubleTapTimer = Timer(const Duration(milliseconds: 300), () {
-        if (_lastTapPosition != null) {
-          widget.onTap?.call(item, _lastTapPosition!);
-        }
+        TermTooltipClass.makeVisible();
         _doubleTapTimer = null;
         _lastTappedItem = null;
-        _lastTapPosition = null;
       });
     }
   }

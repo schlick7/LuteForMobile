@@ -154,7 +154,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
-      onTap: () => TermTooltipClass.close(),
+      onTapDown: (_) => TermTooltipClass.close(),
       child: TextDisplay(
         paragraphs: state.pageData!.paragraphs,
         onTap: (item, position) {
