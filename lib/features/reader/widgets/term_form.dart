@@ -301,8 +301,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
+              padding: EdgeInsets.zero,
             ),
-            child: const Icon(Icons.search, size: 28),
+            child: const Center(child: Icon(Icons.search, size: 28)),
           ),
         ),
       ],
