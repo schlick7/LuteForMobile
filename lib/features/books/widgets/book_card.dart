@@ -123,10 +123,17 @@ class BookCard extends ConsumerWidget {
       AppStatusColors.status99,
     ];
 
+    final borderSide = BorderSide(
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      width: 1,
+    );
+
     for (int i = 0; i < statusColors.length; i++) {
       final count = book.statusDistribution![i];
       if (count > 0) {
         final width = (count / totalTerms) * screenWidth;
+        final isLastSegment = i == statusColors.length - 1;
+
         segments.add(
           Positioned(
             left: currentLeft,
@@ -135,12 +142,15 @@ class BookCard extends ConsumerWidget {
               height: 8,
               decoration: BoxDecoration(
                 color: statusColors[i],
+                border: Border(
+                  right: isLastSegment ? BorderSide.none : borderSide,
+                ),
                 borderRadius: i == 0
                     ? const BorderRadius.only(
                         topLeft: Radius.circular(4),
                         bottomLeft: Radius.circular(4),
                       )
-                    : i == statusColors.length - 1
+                    : isLastSegment
                     ? const BorderRadius.only(
                         topRight: Radius.circular(4),
                         bottomRight: Radius.circular(4),
@@ -154,6 +164,16 @@ class BookCard extends ConsumerWidget {
       }
     }
 
-    return SizedBox(height: 8, child: Stack(children: segments));
+    return Container(
+      height: 8,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          width: 1,
+        ),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Stack(children: segments),
+    );
   }
 }
