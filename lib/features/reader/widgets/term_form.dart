@@ -158,9 +158,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
-      constraints: BoxConstraints(
-        maxHeight: _isDictionaryOpen ? double.infinity : 600,
-      ),
+      constraints: BoxConstraints(maxHeight: _isDictionaryOpen ? 550 : 600),
       child: SingleChildScrollView(
         child: Container(
           padding: const EdgeInsets.all(16),
