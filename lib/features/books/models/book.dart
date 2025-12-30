@@ -14,6 +14,7 @@ class Book {
   final List<int>? statusDistribution;
   final List<String>? tags;
   final String? lastRead;
+  final bool isCompleted;
 
   bool get hasStats => distinctTerms != null && statusDistribution != null;
 
@@ -31,6 +32,7 @@ class Book {
     required this.statusDistribution,
     this.tags,
     this.lastRead,
+    this.isCompleted = false,
   });
 
   String? get formattedLastRead {
@@ -71,12 +73,14 @@ class Book {
   }
 
   factory Book.fromJson(Map<String, dynamic> json) {
-    final isCompleted = json['IsCompleted'];
+    final isCompleted = json['IsCompleted'] == 1;
     final distinctCount = json['DistinctCount'];
     final unknownPercent = json['UnknownPercent'];
     final statusDist = json['StatusDistribution'];
     final tagList = json['TagList'];
     final lastOpened = json['LastOpenedDate'];
+    final pageCount = json['PageCount'] as int;
+    final pageNum = json['PageNum'] as int;
 
     List<int>? parsedStatusDist;
     if (statusDist is String && statusDist.isNotEmpty && statusDist != 'null') {
@@ -88,14 +92,16 @@ class Book {
       parsedTags = tagList.split(',').map((t) => t.trim()).toList();
     }
 
+    final percent = pageCount > 0 ? ((pageNum / pageCount) * 100).round() : 0;
+
     return Book(
       id: json['BkID'] as int,
       title: json['BkTitle'] as String,
       language: json['LgName'] as String,
       langId: 0,
-      totalPages: json['PageCount'] as int,
-      currentPage: json['PageNum'] as int,
-      percent: ((isCompleted is int ? isCompleted : 0) * 100),
+      totalPages: pageCount,
+      currentPage: pageNum,
+      percent: percent,
       wordCount: json['WordCount'] as int,
       distinctTerms: (distinctCount is int) ? distinctCount : null,
       unknownPct: (unknownPercent is num) ? unknownPercent.toDouble() : null,
@@ -104,6 +110,7 @@ class Book {
       lastRead: (lastOpened is String && lastOpened.isNotEmpty)
           ? lastOpened
           : null,
+      isCompleted: isCompleted,
     );
   }
 
@@ -156,6 +163,7 @@ class Book {
     List<int>? statusDistribution,
     List<String>? tags,
     String? lastRead,
+    bool? isCompleted,
   }) {
     return Book(
       id: id ?? this.id,
@@ -171,6 +179,7 @@ class Book {
       statusDistribution: statusDistribution ?? this.statusDistribution,
       tags: tags ?? this.tags,
       lastRead: lastRead ?? this.lastRead,
+      isCompleted: isCompleted ?? this.isCompleted,
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/theme/colors.dart';
 import '../../../shared/theme/status_colors.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
@@ -33,6 +34,13 @@ class BookCard extends ConsumerWidget {
             children: [
               Row(
                 children: [
+                  if (book.isCompleted)
+                    Icon(
+                      Icons.check_circle,
+                      size: 20,
+                      color: AppColors.success,
+                    ),
+                  if (book.isCompleted) const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       book.title,
