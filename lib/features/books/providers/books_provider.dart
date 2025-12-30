@@ -54,19 +54,11 @@ class BooksState {
 
 class BooksNotifier extends Notifier<BooksState> {
   late BooksRepository _repository;
-  bool _initialized = false;
 
   @override
   BooksState build() {
     _repository = ref.watch(booksRepositoryProvider);
-    final newState = const BooksState();
-
-    if (!_initialized) {
-      _initialized = true;
-      Future.microtask(() => loadBooks());
-    }
-
-    return newState;
+    return const BooksState();
   }
 
   Future<void> loadBooks() async {

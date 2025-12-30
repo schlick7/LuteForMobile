@@ -75,8 +75,9 @@ class BooksDrawerSettings extends ConsumerWidget {
                   error: (error, _) => [],
                 ),
               ],
-              onChanged: (value) {
+              onChanged: (value) async {
                 ref.read(settingsProvider.notifier).updateLanguageFilter(value);
+                await ref.read(booksProvider.notifier).loadBooks();
               },
             ),
           ),
