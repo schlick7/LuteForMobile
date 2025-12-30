@@ -66,7 +66,7 @@ extension AppColorSchemeExtension on ColorScheme {
       case '3':
       case '4':
       case '5':
-        return AppStatusColors.getStatusColor(status).withValues(alpha: 0.3);
+        return AppStatusColors.getStatusColor(status);
       case '0':
       case '98':
       case '99':

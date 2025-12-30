@@ -132,7 +132,6 @@ class _TextDisplayState extends State<TextDisplay> {
       height: widget.lineSpacing,
       fontFamily: widget.fontFamily,
       fontStyle: widget.isItalic ? FontStyle.italic : FontStyle.normal,
-      backgroundColor: backgroundColor,
     );
 
     final textWidget = Container(

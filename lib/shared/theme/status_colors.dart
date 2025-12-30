@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 
 class AppStatusColors {
   static const Color status0 = Color(0xFF8095FF); // Light blue - unknown
-  static const Color status1 = Color(0xFFb46b7a); // Rosy brown - hardest
-  static const Color status2 = Color(0xFFBA8050); // Burnt orange
-  static const Color status3 = Color(0xFFBD9C7B); // Tan
-  static const Color status4 = Color(0xFF756D6B); // Dark gray
-  static const Color status5 = Color(0x1077706E); // gray withtransparency
+  static const Color status1 = Color(
+    0x99b46b7a,
+  ); // Rosy brown - hardest (0.6 opacity)
+  static const Color status2 = Color(0x99BA8050); // Burnt orange (0.6 opacity)
+  static const Color status3 = Color(0x99BD9C7B); // Tan (0.6 opacity)
+  static const Color status4 = Color(0x99756D6B); // Dark gray (0.6 opacity)
+  static const Color status5 = Color(0x3377706E); // gray (0.2 opacity)
   static const Color status98 = Color(
     0xFF8095FF,
   ); // Light blue - ignored (same as status0)
