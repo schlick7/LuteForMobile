@@ -162,34 +162,35 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             color: Theme.of(context).colorScheme.surface,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 12),
-              _buildTranslationField(context),
-              const SizedBox(height: 12),
-              if (_isDictionaryOpen) ...[_buildDictionaryView(context)],
-              if (!_isDictionaryOpen) ...[
-                _buildStatusField(context),
-                if (widget.termForm.showRomanization) ...[
-                  const SizedBox(height: 12),
-                  _buildRomanizationField(context),
-                ],
-                if (settings.showTags) ...[
-                  const SizedBox(height: 12),
-                  _buildTagsField(context),
-                ],
-                const SizedBox(height: 12),
-                _buildParentsSection(context),
-                const SizedBox(height: 16),
-                _buildButtons(context),
-              ],
-            ],
-          ),
-      ),
-    );
+           child: Column(
+             mainAxisSize: MainAxisSize.min,
+             crossAxisAlignment: CrossAxisAlignment.start,
+             children: [
+               _buildHeader(context),
+               const SizedBox(height: 12),
+               _buildTranslationField(context),
+               const SizedBox(height: 12),
+               if (_isDictionaryOpen) ...[_buildDictionaryView(context)],
+               if (!_isDictionaryOpen) ...[
+                 _buildStatusField(context),
+                 if (widget.termForm.showRomanization) ...[
+                   const SizedBox(height: 12),
+                   _buildRomanizationField(context),
+                 ],
+                 if (settings.showTags) ...[
+                   const SizedBox(height: 12),
+                   _buildTagsField(context),
+                 ],
+                 const SizedBox(height: 12),
+                 _buildParentsSection(context),
+                 const SizedBox(height: 16),
+                 _buildButtons(context),
+               ],
+             ],
+           ),
+         ),
+       ),
+     );
   }
 
   Widget _buildHeader(BuildContext context) {
@@ -334,6 +335,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             ),
           ),
         ),
+      ),
     );
   }
 
@@ -472,7 +474,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 ),
               ),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -528,19 +530,22 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                       .where((id) => id != null)
                       .cast<int>()
                       .toList(),
+                  contentService: widget.contentService,
                   onParentSelected: (parent) {
                     _addParent(parent);
                   },
                   onDone: () {
                     Navigator.of(context).pop();
                   },
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-  }
+                 ),
+               ],
+             ),
+           ],
+         ),
+         ),
+       ),
+     );
+   }
 
   void _addParent(TermParent parent) {
     final updatedForm = widget.termForm.copyWith(parents: [
