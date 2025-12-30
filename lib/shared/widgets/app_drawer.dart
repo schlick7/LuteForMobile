@@ -19,14 +19,16 @@ class AppDrawer extends ConsumerWidget {
     return SizedBox(
       width: settingsContent != null ? 320 : 80,
       child: Drawer(
-        child: settingsContent != null
-            ? Row(
-                children: [
-                  _buildNavigationColumn(context),
-                  Expanded(child: settingsContent),
-                ],
-              )
-            : _buildNavigationColumn(context),
+        child: SafeArea(
+          child: settingsContent != null
+              ? Row(
+                  children: [
+                    _buildNavigationColumn(context),
+                    Expanded(child: settingsContent),
+                  ],
+                )
+              : _buildNavigationColumn(context),
+        ),
       ),
     );
   }
