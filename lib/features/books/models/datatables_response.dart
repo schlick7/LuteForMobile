@@ -16,7 +16,7 @@ class DataTablesResponse<T> {
     T Function(Map<String, dynamic>) fromJsonT,
   ) {
     return DataTablesResponse(
-      draw: json['draw'] as int,
+      draw: json['draw'] as int? ?? 1,
       recordsTotal: json['recordsTotal'] as int,
       recordsFiltered: json['recordsFiltered'] as int,
       data: (json['data'] as List<dynamic>)

@@ -42,21 +42,24 @@ class Book {
       currentPage: json['PageNum'] as int,
       percent: ((isCompleted is int ? isCompleted : 0) * 100),
       wordCount: json['WordCount'] as int,
-      distinctTerms: (distinctCount is int) ? distinctCount : 0,
-      unknownPct: (unknownPercent is num) ? unknownPercent.toDouble() : 0.0,
+      distinctTerms: (distinctCount is int ? distinctCount : 0),
+      unknownPct: (unknownPercent is num ? unknownPercent.toDouble() : 0.0),
       statusDistribution: _parseStatusDist(
-        (statusDist is String) ? statusDist : '',
+        (statusDist is String ? statusDist : ''),
       ),
     );
   }
 
   static List<int> _parseStatusDist(String dist) {
-    if (dist.isEmpty) {
+    if (dist.isEmpty || dist == 'null') {
       return List.generate(6, (i) => 0);
     }
 
     try {
-      final Map<String, dynamic> parsed = jsonDecode(dist);
+      final dynamic parsed = jsonDecode(dist);
+      if (parsed is! Map<String, dynamic>) {
+        return List.generate(6, (i) => 0);
+      }
       return [
         _getInt(parsed, '0'),
         _getInt(parsed, '1'),
