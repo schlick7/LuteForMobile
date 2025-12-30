@@ -30,7 +30,7 @@ class Settings {
     String? translationProvider,
     bool? showTags,
     bool? showLastRead,
-    String? languageFilter,
+    Object? languageFilter,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -40,7 +40,7 @@ class Settings {
       translationProvider: translationProvider ?? this.translationProvider,
       showTags: showTags ?? this.showTags,
       showLastRead: showLastRead ?? this.showLastRead,
-      languageFilter: languageFilter ?? this.languageFilter,
+      languageFilter: languageFilter is String ? languageFilter : null,
     );
   }
 

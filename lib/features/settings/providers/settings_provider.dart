@@ -99,7 +99,16 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> updateLanguageFilter(String? language) async {
-    state = state.copyWith(languageFilter: language);
+    state = Settings(
+      serverUrl: state.serverUrl,
+      defaultBookId: state.defaultBookId,
+      defaultPageId: state.defaultPageId,
+      isUrlValid: state.isUrlValid,
+      translationProvider: state.translationProvider,
+      showTags: state.showTags,
+      showLastRead: state.showLastRead,
+      languageFilter: language,
+    );
 
     final prefs = await SharedPreferences.getInstance();
     if (language == null) {
