@@ -74,25 +74,15 @@ class BookCard extends ConsumerWidget {
                     children: book.tags!
                         .map(
                           (tag) => Chip(
-                            label: Text(
-                              tag,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onPrimaryContainer,
-                              ),
+                            label: Text(tag),
+                            labelPadding: EdgeInsets.zero,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
                             ),
                             backgroundColor: Theme.of(
                               context,
                             ).colorScheme.primaryContainer,
-                            visualDensity: VisualDensity.compact,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
                           ),
                         )
                         .toList(),

@@ -209,33 +209,21 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                 book.lastRead ?? 'Never',
               ),
               if (book.tags != null && book.tags!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.local_offer,
-                      size: 20,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'Tags',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
                 const SizedBox(height: 8),
                 Padding(
-                  padding: const EdgeInsets.only(left: 32),
+                  padding: const EdgeInsets.only(left: 0),
                   child: Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
+                    spacing: 4,
+                    runSpacing: 2,
                     children: book.tags!
                         .map(
                           (tag) => Chip(
                             label: Text(tag),
+                            labelPadding: EdgeInsets.zero,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             backgroundColor: Theme.of(
                               context,
                             ).colorScheme.primaryContainer,
