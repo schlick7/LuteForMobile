@@ -3,14 +3,64 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/theme/status_colors.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
+import '../providers/books_provider.dart';
 
-class BookDetailsDialog extends ConsumerWidget {
+class BookDetailsDialog extends ConsumerStatefulWidget {
   final Book book;
 
   const BookDetailsDialog({super.key, required this.book});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BookDetailsDialog> createState() => _BookDetailsDialogState();
+}
+
+class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
+  Book? currentBook;
+  bool isRefreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    currentBook = widget.book;
+    _refreshStatsIfNeeded();
+  }
+
+  Future<void> _refreshStatsIfNeeded() async {
+    if (currentBook != null && !currentBook!.hasStats) {
+      setState(() {
+        isRefreshing = true;
+      });
+      try {
+        await ref
+            .read(booksProvider.notifier)
+            .refreshBookStats(currentBook!.id);
+        await ref.read(booksProvider.notifier).loadBooks();
+        if (!mounted) return;
+
+        final updatedBooks =
+            ref.read(booksProvider).activeBooks +
+            ref.read(booksProvider).archivedBooks;
+        setState(() {
+          currentBook = updatedBooks.firstWhere(
+            (b) => b.id == widget.book.id,
+            orElse: () => widget.book,
+          );
+          isRefreshing = false;
+        });
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            isRefreshing = false;
+          });
+        }
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final book = currentBook ?? widget.book;
+
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
       child: ConstrainedBox(
@@ -21,11 +71,22 @@ class BookDetailsDialog extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                book.title,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      book.title,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  if (isRefreshing)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                ],
               ),
               const SizedBox(height: 24),
               _buildDetailRow(
@@ -73,7 +134,10 @@ class BookDetailsDialog extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 16),
-                _buildStatusDistributionDetails(context),
+                _buildStatusDistributionDetails(
+                  context,
+                  book.statusDistribution!,
+                ),
               ],
               const SizedBox(height: 24),
               SizedBox(
@@ -131,7 +195,7 @@ class BookDetailsDialog extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusDistributionDetails(BuildContext context) {
+  Widget _buildStatusDistributionDetails(BuildContext context, List<int> dist) {
     final statusLabels = [
       'Unknown (0)',
       'Learning (1)',
@@ -149,11 +213,6 @@ class BookDetailsDialog extends ConsumerWidget {
       AppStatusColors.status4,
       AppStatusColors.status99,
     ];
-
-    final dist = book.statusDistribution;
-    if (dist == null) {
-      return const SizedBox.shrink();
-    }
 
     return Column(
       children: List.generate(

@@ -171,10 +171,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
     Navigator.of(context).pop();
   }
 
-  void _showBookDetails(BuildContext context, Book book) async {
-    await ref.read(booksProvider.notifier).refreshBookStats(book.id);
-    if (!context.mounted) return;
-
+  void _showBookDetails(BuildContext context, Book book) {
     showDialog(
       context: context,
       builder: (context) => BookDetailsDialog(book: book),

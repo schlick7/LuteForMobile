@@ -131,9 +131,19 @@ class BooksNotifier extends Notifier<BooksState> {
   Future<void> refreshBookStats(int bookId) async {
     try {
       await _repository.refreshBookStats(bookId);
-      await loadBooks();
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
+    }
+  }
+
+  Future<Book> getBookWithStats(int bookId) async {
+    try {
+      await _repository.refreshBookStats(bookId);
+      await loadBooks();
+      final books = state.activeBooks + state.archivedBooks;
+      return books.firstWhere((b) => b.id == bookId);
+    } catch (e) {
+      throw Exception('Failed to get book with stats: $e');
     }
   }
 }
