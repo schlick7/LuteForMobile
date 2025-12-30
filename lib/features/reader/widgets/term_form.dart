@@ -428,13 +428,24 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             Row(
               children: [
                 IconButton(
-                  onPressed: _canSyncWithParent()
-                      ? null
-                      : () => _showParentLinkMenu(context),
+                  onPressed: widget.termForm.parents.length == 1
+                      ? _toggleSyncStatus
+                      : null,
                   icon: Icon(
-                    _hasMultipleParents() ? Icons.link_off : Icons.link,
+                    widget.termForm.parents.length > 1
+                        ? Icons.link_off
+                        : Icons.link,
+                    color:
+                        widget.termForm.parents.length == 1 &&
+                            widget.termForm.syncStatus == true
+                        ? Colors.green
+                        : null,
                   ),
-                  tooltip: _getLinkTooltip(),
+                  tooltip: widget.termForm.parents.length > 1
+                      ? 'Cannot sync - multiple parents'
+                      : (widget.termForm.syncStatus == true
+                            ? 'Sync with parent: ON'
+                            : 'Sync with parent: OFF'),
                   iconSize: 20,
                   constraints: const BoxConstraints(
                     minWidth: 40,
@@ -502,29 +513,13 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     );
   }
 
-  void _showParentLinkMenu(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Link Parent Term'),
-        content: const Text(
-          'This term will inherit the status of the parent term.\n\n'
-          'The parent term will show this term as a child.\n\n'
-          'The parent term will show this term in its word list.\n\n'
-          'Sync status (inherit parent\'s status):',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Link'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-        ],
-      ),
-    );
+  void _toggleSyncStatus() {
+    if (widget.termForm.parents.length == 1) {
+      final updatedForm = widget.termForm.copyWith(
+        syncStatus: widget.termForm.syncStatus != true,
+      );
+      widget.onUpdate(updatedForm);
+    }
   }
 
   void _showAddParentDialog(BuildContext context) {
@@ -603,31 +598,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         ],
       ),
     );
-  }
-
-  bool _hasMultipleParents() {
-    return widget.termForm.parents.length > 1;
-  }
-
-  bool _canSyncWithParent() {
-    return widget.termForm.parents.length <= 1;
-  }
-
-  Color _getLinkIconColor() {
-    return _getParentSyncStatus() ? Colors.green : Colors.grey;
-  }
-
-  String _getLinkTooltip() {
-    if (_hasMultipleParents()) {
-      return 'Cannot sync - multiple parents';
-    }
-    return _getParentSyncStatus()
-        ? 'Sync with parent: ON'
-        : 'Sync with parent: OFF';
-  }
-
-  bool _getParentSyncStatus() {
-    return widget.termForm.syncStatus == true;
   }
 
   Widget _buildButtons(BuildContext context) {
