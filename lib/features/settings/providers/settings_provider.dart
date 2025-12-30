@@ -20,6 +20,8 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyPageId = 'default_page_id';
   static const String _keyTranslationProvider = 'translation_provider';
   static const String _keyShowTags = 'show_tags';
+  static const String _keyShowLastRead = 'show_last_read';
+  static const String _keyLanguageFilter = 'language_filter';
 
   @override
   Settings build() {
@@ -36,6 +38,8 @@ class SettingsNotifier extends Notifier<Settings> {
     final translationProvider =
         prefs.getString(_keyTranslationProvider) ?? 'local';
     final showTags = prefs.getBool(_keyShowTags) ?? true;
+    final showLastRead = prefs.getBool(_keyShowLastRead) ?? true;
+    final languageFilter = prefs.getString(_keyLanguageFilter);
 
     state = Settings(
       serverUrl: serverUrl,
@@ -44,6 +48,8 @@ class SettingsNotifier extends Notifier<Settings> {
       isUrlValid: _isValidUrl(serverUrl),
       translationProvider: translationProvider,
       showTags: showTags,
+      showLastRead: showLastRead,
+      languageFilter: languageFilter,
     );
   }
 
@@ -85,6 +91,24 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyShowTags, show);
   }
 
+  Future<void> updateShowLastRead(bool show) async {
+    state = state.copyWith(showLastRead: show);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowLastRead, show);
+  }
+
+  Future<void> updateLanguageFilter(String? language) async {
+    state = state.copyWith(languageFilter: language);
+
+    final prefs = await SharedPreferences.getInstance();
+    if (language == null) {
+      await prefs.remove(_keyLanguageFilter);
+    } else {
+      await prefs.setString(_keyLanguageFilter, language);
+    }
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -103,6 +127,8 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyPageId);
     await prefs.remove(_keyTranslationProvider);
     await prefs.remove(_keyShowTags);
+    await prefs.remove(_keyShowLastRead);
+    await prefs.remove(_keyLanguageFilter);
 
     state = Settings.defaultSettings();
   }

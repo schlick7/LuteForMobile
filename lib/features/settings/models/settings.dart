@@ -8,6 +8,8 @@ class Settings {
   final bool isUrlValid;
   final String translationProvider;
   final bool showTags;
+  final bool showLastRead;
+  final String? languageFilter;
 
   const Settings({
     required this.serverUrl,
@@ -16,6 +18,8 @@ class Settings {
     this.isUrlValid = true,
     this.translationProvider = 'local',
     this.showTags = true,
+    this.showLastRead = true,
+    this.languageFilter,
   });
 
   Settings copyWith({
@@ -25,6 +29,8 @@ class Settings {
     bool? isUrlValid,
     String? translationProvider,
     bool? showTags,
+    bool? showLastRead,
+    String? languageFilter,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -33,6 +39,8 @@ class Settings {
       isUrlValid: isUrlValid ?? this.isUrlValid,
       translationProvider: translationProvider ?? this.translationProvider,
       showTags: showTags ?? this.showTags,
+      showLastRead: showLastRead ?? this.showLastRead,
+      languageFilter: languageFilter ?? this.languageFilter,
     );
   }
 
@@ -44,6 +52,8 @@ class Settings {
       isUrlValid: true,
       translationProvider: 'local',
       showTags: true,
+      showLastRead: true,
+      languageFilter: null,
     );
   }
 

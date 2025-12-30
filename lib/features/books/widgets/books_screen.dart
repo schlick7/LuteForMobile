@@ -119,7 +119,14 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
       );
     }
 
-    final books = state.filteredBooks;
+    final settings = ref.watch(settingsProvider);
+    var books = state.filteredBooks;
+
+    if (settings.languageFilter != null) {
+      books = books
+          .where((b) => b.language == settings.languageFilter)
+          .toList();
+    }
 
     if (books.isEmpty) {
       return Center(

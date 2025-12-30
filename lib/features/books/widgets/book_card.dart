@@ -128,22 +128,23 @@ class BookCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    Icons.access_time,
-                    size: 14,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    book.formattedLastRead ?? 'Never',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              if (settings.showLastRead)
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time,
+                      size: 14,
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 4),
+                    Text(
+                      book.formattedLastRead ?? 'Never',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 12),
               _buildStatusDistributionBar(context),
             ],
