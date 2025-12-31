@@ -8,6 +8,7 @@ import 'package:lute_for_mobile/features/books/widgets/books_drawer_settings.dar
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
+import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
 
 final navigationProvider = Provider<NavigationController>((ref) {
   return NavigationController();
@@ -186,13 +187,16 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       key: _scaffoldKey,
       drawer: AppDrawer(
         currentIndex: _currentIndex,
-        onNavigate: (index) {
+        onNavigate: (index) async {
           setState(() {
             _currentIndex = index;
           });
           _updateDrawerSettings();
           if (index == 0 && _readerKey.currentState != null) {
             _readerKey.currentState!.reloadPage();
+          }
+          if (index == 1) {
+            await ref.read(booksProvider.notifier).loadBooks();
           }
         },
       ),
