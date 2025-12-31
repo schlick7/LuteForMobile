@@ -197,13 +197,40 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
       };
     }
 
-    return Center(
-      child: IconButton(
-        icon: Icon(playPauseIcon),
-        onPressed: playPauseAction,
-        color: Colors.white,
-        iconSize: 48,
-      ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          icon: Icon(Icons.replay_10),
+          onPressed: () {
+            final newPosition = state.position - Duration(seconds: 10);
+            final clampedPosition = newPosition < Duration.zero
+                ? Duration.zero
+                : newPosition;
+            ref.read(audioPlayerProvider.notifier).seek(clampedPosition);
+          },
+          color: Colors.white,
+          iconSize: 28,
+        ),
+        IconButton(
+          icon: Icon(playPauseIcon),
+          onPressed: playPauseAction,
+          color: Colors.white,
+          iconSize: 32,
+        ),
+        IconButton(
+          icon: Icon(Icons.forward_10),
+          onPressed: () {
+            final newPosition = state.position + Duration(seconds: 10);
+            final clampedPosition = newPosition > state.duration
+                ? state.duration
+                : newPosition;
+            ref.read(audioPlayerProvider.notifier).seek(clampedPosition);
+          },
+          color: Colors.white,
+          iconSize: 28,
+        ),
+      ],
     );
   }
 
