@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/text_item.dart';
+import '../models/term_tooltip.dart';
 import '../utils/sentence_parser.dart';
 import '../../../shared/theme/theme_extensions.dart';
 
@@ -22,14 +23,14 @@ class TermListDisplay extends StatelessWidget {
   final CustomSentence? sentence;
   final void Function(TextItem, Offset)? onTermTap;
   final void Function(TextItem)? onTermDoubleTap;
-  final Map<int, String?> translations;
+  final Map<int, TermTooltip> tooltips;
 
   const TermListDisplay({
     super.key,
     required this.sentence,
     this.onTermTap,
     this.onTermDoubleTap,
-    required this.translations,
+    required this.tooltips,
   });
 
   @override
@@ -58,7 +59,20 @@ class TermListDisplay extends StatelessWidget {
     final backgroundColor = Theme.of(
       context,
     ).colorScheme.getStatusBackgroundColor(status);
-    final translation = translations[term.wordId];
+    final tooltip = tooltips[term.wordId];
+
+    String? translation;
+    String? parentTerm;
+    String? parentTranslation;
+
+    if (tooltip != null) {
+      translation = tooltip.translation;
+      if (tooltip.parents.isNotEmpty) {
+        final parent = tooltip.parents.first;
+        parentTerm = parent.term;
+        parentTranslation = parent.translation;
+      }
+    }
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -84,12 +98,44 @@ class TermListDisplay extends StatelessWidget {
                 if (translation != null) ...[
                   const SizedBox(width: 4),
                   Text(
-                    '($translation)',
+                    '- $translation',
                     style: TextStyle(
                       fontSize: 11,
                       color: Theme.of(
                         context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ).colorScheme.onSurface.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+                if (parentTerm != null) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    '($parentTerm',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  if (parentTranslation != null) ...[
+                    Text(
+                      ' - $parentTranslation',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ],
+                  Text(
+                    ')',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.8),
                     ),
                   ),
                 ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
+import '../models/term_tooltip.dart';
 import '../providers/reader_provider.dart';
 import '../providers/sentence_reader_provider.dart';
 import '../widgets/term_tooltip.dart';
@@ -27,7 +28,7 @@ class SentenceReaderScreen extends ConsumerStatefulWidget {
 
 class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   TermForm? _currentTermForm;
-  final Map<int, String?> _termTranslations = {};
+  final Map<int, TermTooltip> _termTooltips = {};
 
   @override
   void initState() {
@@ -45,6 +46,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     });
   }
 
+  bool _hasLoadedTooltips = false;
+
+  void _ensureTooltipsLoaded() {
+    if (_hasLoadedTooltips) return;
+    _hasLoadedTooltips = true;
+    _loadAllTermTranslations();
+  }
+
   Future<void> _loadAllTermTranslations() async {
     final allSentences = ref.read(sentenceReaderProvider).customSentences;
     final allTerms = <TextItem>[];
@@ -54,14 +63,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     }
 
     for (final term in allTerms) {
-      if (term.wordId != null && !_termTranslations.containsKey(term.wordId!)) {
+      if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
         try {
           final termTooltip = await ref
               .read(readerProvider.notifier)
               .fetchTermTooltip(term.wordId!);
           if (termTooltip != null && mounted) {
             setState(() {
-              _termTranslations[term.wordId!] = termTooltip.translation;
+              _termTooltips[term.wordId!] = termTooltip;
             });
           }
         } catch (e) {
@@ -168,6 +177,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
 
+    _ensureTooltipsLoaded();
+
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
@@ -244,7 +255,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
         Expanded(
           child: TermListDisplay(
             sentence: currentSentence,
-            translations: _termTranslations,
+            tooltips: _termTooltips,
             onTermTap: (item, position) => _handleTap(item, position),
             onTermDoubleTap: (item) => _handleDoubleTap(item),
           ),
@@ -384,8 +395,22 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
                 if (success && mounted) {
                   if (updatedForm.termId != null) {
                     setState(() {
-                      _termTranslations[updatedForm.termId!] =
-                          updatedForm.translation;
+                      final existingTooltip =
+                          _termTooltips[updatedForm.termId!];
+                      if (existingTooltip != null) {
+                        _termTooltips[updatedForm.termId!] = TermTooltip(
+                          term: existingTooltip.term,
+                          translation: updatedForm.translation,
+                          termId: existingTooltip.termId,
+                          status: existingTooltip.status,
+                          statusText: existingTooltip.statusText,
+                          sentences: existingTooltip.sentences,
+                          language: existingTooltip.language,
+                          languageId: existingTooltip.languageId,
+                          parents: existingTooltip.parents,
+                          children: existingTooltip.children,
+                        );
+                      }
                     });
                   }
                   Navigator.of(context).pop();
@@ -445,8 +470,22 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
                 if (success && mounted) {
                   if (updatedForm.termId != null) {
                     setState(() {
-                      _termTranslations[updatedForm.termId!] =
-                          updatedForm.translation;
+                      final existingTooltip =
+                          _termTooltips[updatedForm.termId!];
+                      if (existingTooltip != null) {
+                        _termTooltips[updatedForm.termId!] = TermTooltip(
+                          term: existingTooltip.term,
+                          translation: updatedForm.translation,
+                          termId: existingTooltip.termId,
+                          status: existingTooltip.status,
+                          statusText: existingTooltip.statusText,
+                          sentences: existingTooltip.sentences,
+                          language: existingTooltip.language,
+                          languageId: existingTooltip.languageId,
+                          parents: existingTooltip.parents,
+                          children: existingTooltip.children,
+                        );
+                      }
                     });
                   }
                   Navigator.of(context).pop();
