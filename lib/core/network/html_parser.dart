@@ -491,16 +491,26 @@ class HtmlParser {
   }
 
   List<double> _extractAudioBookmarks(html.Document document) {
-    final bookmarksInput = document.querySelector(
-      'input[id="book_audio_bookmarks"]',
-    );
+    final bookmarksInput =
+        document.querySelector('input[id="book_audio_bookmarks"]') ??
+        document.querySelector('input[name="audio_bookmarks"]');
     final bookmarksStr = bookmarksInput?.attributes['value']?.trim();
     if (bookmarksStr != null && bookmarksStr.isNotEmpty) {
       try {
         final bookmarks = jsonDecode(bookmarksStr) as List;
         return bookmarks.map((b) => (b as num).toDouble()).toList();
       } catch (e) {
-        return [];
+        try {
+          return bookmarksStr
+              .split(';')
+              .where((s) => s.isNotEmpty)
+              .map((s) => double.tryParse(s.trim()))
+              .where((d) => d != null)
+              .cast<double>()
+              .toList();
+        } catch (e2) {
+          return [];
+        }
       }
     }
     return [];

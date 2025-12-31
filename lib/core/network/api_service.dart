@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 
 class ApiService {
@@ -257,7 +258,7 @@ class ApiService {
     double position,
     List<double> bookmarks,
   ) async {
-    final bookmarksString = bookmarks.map((b) => b.toString()).join(';');
+    final bookmarksString = jsonEncode(bookmarks);
     return await _dio.post<String>(
       '/read/save_player_data',
       data: {
