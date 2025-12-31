@@ -162,9 +162,44 @@ class HtmlParser {
     final parents = <TermParent>[];
     final parentElements = document.querySelectorAll('.term-popup .parents li');
     for (final parentElement in parentElements) {
-      final parentTerm = parentElement.text.trim();
-      if (parentTerm.isNotEmpty) {
-        parents.add(TermParent(id: null, term: parentTerm));
+      final link = parentElement.querySelector('a');
+      if (link != null) {
+        final href = link.attributes['href'];
+        int? parentId;
+        if (href != null) {
+          final idMatch = RegExp(r'/term/(\d+)').firstMatch(href);
+          if (idMatch != null) {
+            parentId = int.tryParse(idMatch.group(1) ?? '');
+          }
+        }
+
+        String parentTerm = link.text.trim();
+        String? parentTranslation;
+
+        final translationSpan = parentElement.querySelector(
+          '.translation, span.translation, .tr',
+        );
+        if (translationSpan != null) {
+          parentTranslation = translationSpan.text.trim();
+          if (parentTranslation.isEmpty) {
+            parentTranslation = null;
+          }
+        }
+
+        if (parentTerm.isNotEmpty) {
+          parents.add(
+            TermParent(
+              id: parentId,
+              term: parentTerm,
+              translation: parentTranslation,
+            ),
+          );
+        }
+      } else {
+        final parentTerm = parentElement.text.trim();
+        if (parentTerm.isNotEmpty) {
+          parents.add(TermParent(id: null, term: parentTerm));
+        }
       }
     }
 

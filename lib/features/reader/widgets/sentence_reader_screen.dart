@@ -42,12 +42,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
             .read(sentenceReaderProvider.notifier)
             .parseSentencesForPage(langId);
         await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
-        await _loadAllTermTranslations();
+        _ensureTooltipsLoaded(forceRefresh: true);
       }
     });
   }
 
-  void _ensureTooltipsLoaded() {
+  void _ensureTooltipsLoaded({bool forceRefresh = false}) {
     if (_tooltipsLoadInProgress) return;
 
     final allSentences = ref.read(sentenceReaderProvider).customSentences;
@@ -57,11 +57,15 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       allTerms.addAll(sentence.uniqueTerms);
     }
 
+    if (forceRefresh) {
+      _termTooltips.clear();
+    }
+
     final hasAllTooltips = allTerms.every(
       (term) => term.wordId == null || _termTooltips.containsKey(term.wordId),
     );
 
-    if (hasAllTooltips) return;
+    if (hasAllTooltips && !forceRefresh) return;
 
     _loadAllTermTranslations();
   }
@@ -318,11 +322,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   void _goNext() async {
     await ref.read(sentenceReaderProvider.notifier).nextSentence();
     _saveSentencePosition();
+    _ensureTooltipsLoaded(forceRefresh: true);
   }
 
   void _goPrevious() async {
     await ref.read(sentenceReaderProvider.notifier).previousSentence();
     _saveSentencePosition();
+    _ensureTooltipsLoaded(forceRefresh: true);
   }
 
   void _saveSentencePosition() {
