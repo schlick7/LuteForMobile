@@ -44,6 +44,7 @@ class TextDisplay extends StatefulWidget {
     if (item.isSpace) {
       return Text(
         item.text,
+        key: ValueKey('space-${item.order}'),
         style: TextStyle(
           fontSize: textSize,
           height: lineSpacing,
@@ -78,6 +79,7 @@ class TextDisplay extends StatefulWidget {
     );
 
     final textWidget = Container(
+      key: ValueKey('text-${item.wordId ?? item.order}'),
       padding: backgroundColor != null
           ? const EdgeInsets.symmetric(horizontal: 2.0)
           : null,
@@ -91,21 +93,18 @@ class TextDisplay extends StatefulWidget {
     );
 
     if (item.wordId != null) {
-      print(
-        'DEBUG: Creating GestureDetector for "${item.text}", wordId=${item.wordId}',
-      );
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (details) => onTap?.call(item, details.globalPosition),
-        onLongPress: () => onLongPress?.call(item),
-        child: textWidget,
+      return RepaintBoundary(
+        child: GestureDetector(
+          key: ValueKey('gesture-${item.wordId}'),
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (details) => onTap?.call(item, details.globalPosition),
+          onLongPress: () => onLongPress?.call(item),
+          child: textWidget,
+        ),
       );
     }
 
-    print(
-      'DEBUG: SKIPPING GestureDetector for "${item.text}" - wordId is null',
-    );
-    return textWidget;
+    return RepaintBoundary(child: textWidget);
   }
 
   @override
@@ -147,13 +146,15 @@ class _TextDisplayState extends State<TextDisplay> {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: widget.paragraphs.map((paragraph) {
-          return _buildParagraph(context, paragraph);
-        }).toList(),
+    return RepaintBoundary(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: widget.paragraphs.map((paragraph) {
+            return _buildParagraph(context, paragraph);
+          }).toList(),
+        ),
       ),
     );
   }

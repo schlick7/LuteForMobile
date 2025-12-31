@@ -70,13 +70,15 @@ class _SentenceReaderDisplayState extends State<SentenceReaderDisplay> {
   Widget build(BuildContext context) {
     if (widget.sentence == null) return const SizedBox.shrink();
 
-    return Wrap(
-      spacing: 0,
-      runSpacing: 0,
-      children: widget.sentence!.textItems.asMap().entries.map((entry) {
-        final item = entry.value;
-        return _buildInteractiveWord(context, item);
-      }).toList(),
+    return RepaintBoundary(
+      child: Wrap(
+        spacing: 0,
+        runSpacing: 0,
+        children: widget.sentence!.textItems.asMap().entries.map((entry) {
+          final item = entry.value;
+          return _buildInteractiveWord(context, item);
+        }).toList(),
+      ),
     );
   }
 
