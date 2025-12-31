@@ -107,21 +107,27 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       allTerms.addAll(sentence.uniqueTerms);
     }
 
+    final newTooltips = <int, TermTooltip>{};
+
     for (final term in allTerms) {
       if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
         try {
           final termTooltip = await ref
               .read(readerProvider.notifier)
               .fetchTermTooltip(term.wordId!);
-          if (termTooltip != null && mounted) {
-            setState(() {
-              _termTooltips[term.wordId!] = termTooltip;
-            });
+          if (termTooltip != null) {
+            newTooltips[term.wordId!] = termTooltip;
           }
         } catch (e) {
           // Skip terms that fail to load
         }
       }
+    }
+
+    if (newTooltips.isNotEmpty && mounted) {
+      setState(() {
+        _termTooltips.addAll(newTooltips);
+      });
     }
 
     _tooltipsLoadInProgress = false;
