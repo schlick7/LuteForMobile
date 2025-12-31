@@ -68,20 +68,16 @@ class _TermListDisplayState extends State<TermListDisplay> {
           widget.onTermTap?.call(term, details.globalPosition),
       onDoubleTap: () => widget.onTermDoubleTap?.call(term),
       child: Container(
-        padding: const EdgeInsets.all(12),
-        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
         decoration: BoxDecoration(
-          color: backgroundColor?.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
-          ),
+          color: backgroundColor?.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(4),
         ),
         child: Text(
           term.text,
           style: TextStyle(
             color: textColor,
-            fontSize: 16,
+            fontSize: 13,
             fontWeight: FontWeight.w500,
           ),
         ),
