@@ -48,9 +48,9 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
     return Container(
       decoration: BoxDecoration(
         color: Theme.of(context).primaryColor,
-        border: Border.all(color: Colors.grey[400]!, width: 1),
+        border: Border(bottom: BorderSide(color: Colors.grey[400]!, width: 1)),
       ),
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      padding: EdgeInsets.fromLTRB(16.0, 0, 16.0, 0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -58,7 +58,7 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
             Container(
               width: double.infinity,
               padding: EdgeInsets.all(8.0),
-              margin: EdgeInsets.only(bottom: 8.0),
+              margin: EdgeInsets.only(bottom: 4.0),
               color: Colors.red[100],
               child: Text(
                 'Error: ${audioPlayerState.errorMessage}',
@@ -88,7 +88,7 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
 
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.only(bottom: 4.0),
+      margin: EdgeInsets.only(bottom: 0),
       height: 40,
       child: Stack(
         alignment: Alignment.center,
