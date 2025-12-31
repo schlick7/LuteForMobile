@@ -21,6 +21,8 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyShowLastRead = 'show_last_read';
   static const String _keyLanguageFilter = 'language_filter';
   static const String _keyShowAudioPlayer = 'show_audio_player';
+  static const String _keyCurrentBookId = 'current_book_id';
+  static const String _keyCurrentBookPage = 'current_book_page';
 
   @override
   Settings build() {
@@ -38,6 +40,8 @@ class SettingsNotifier extends Notifier<Settings> {
     final showLastRead = prefs.getBool(_keyShowLastRead) ?? true;
     final languageFilter = prefs.getString(_keyLanguageFilter);
     final showAudioPlayer = prefs.getBool(_keyShowAudioPlayer) ?? true;
+    final currentBookId = prefs.getInt(_keyCurrentBookId);
+    final currentBookPage = prefs.getInt(_keyCurrentBookPage);
 
     state = Settings(
       serverUrl: serverUrl,
@@ -47,6 +51,8 @@ class SettingsNotifier extends Notifier<Settings> {
       showLastRead: showLastRead,
       languageFilter: languageFilter,
       showAudioPlayer: showAudioPlayer,
+      currentBookId: currentBookId,
+      currentBookPage: currentBookPage,
     );
   }
 
@@ -107,6 +113,22 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyShowAudioPlayer, show);
   }
 
+  Future<void> updateCurrentBook(int bookId, int page) async {
+    state = state.copyWith(currentBookId: bookId, currentBookPage: page);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCurrentBookId, bookId);
+    await prefs.setInt(_keyCurrentBookPage, page);
+  }
+
+  Future<void> clearCurrentBook() async {
+    state = state.copyWith(currentBookId: null, currentBookPage: null);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyCurrentBookId);
+    await prefs.remove(_keyCurrentBookPage);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -126,6 +148,8 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyShowLastRead);
     await prefs.remove(_keyLanguageFilter);
     await prefs.remove(_keyShowAudioPlayer);
+    await prefs.remove(_keyCurrentBookId);
+    await prefs.remove(_keyCurrentBookPage);
 
     state = Settings.defaultSettings();
   }

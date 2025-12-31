@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 import '../models/book.dart';
 import '../repositories/books_repository.dart';
 import '../../reader/providers/reader_provider.dart';
+import '../../settings/providers/settings_provider.dart';
 
 @immutable
 class BooksState {
@@ -224,6 +225,11 @@ class BooksNotifier extends Notifier<BooksState> {
         activeBooks: updatedActiveBooks,
         archivedBooks: updatedArchivedBooks,
       );
+
+      final settings = ref.read(settingsProvider);
+      if (settings.currentBookId == bookId) {
+        ref.read(settingsProvider.notifier).clearCurrentBook();
+      }
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }

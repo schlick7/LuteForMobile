@@ -9,6 +9,8 @@ class Settings {
   final bool showLastRead;
   final String? languageFilter;
   final bool showAudioPlayer;
+  final int? currentBookId;
+  final int? currentBookPage;
 
   const Settings({
     required this.serverUrl,
@@ -18,6 +20,8 @@ class Settings {
     this.showLastRead = true,
     this.languageFilter,
     this.showAudioPlayer = true,
+    this.currentBookId,
+    this.currentBookPage,
   });
 
   Settings copyWith({
@@ -28,6 +32,8 @@ class Settings {
     bool? showLastRead,
     Object? languageFilter,
     bool? showAudioPlayer,
+    int? currentBookId,
+    int? currentBookPage,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -37,6 +43,8 @@ class Settings {
       showLastRead: showLastRead ?? this.showLastRead,
       languageFilter: languageFilter is String ? languageFilter : null,
       showAudioPlayer: showAudioPlayer ?? this.showAudioPlayer,
+      currentBookId: currentBookId,
+      currentBookPage: currentBookPage,
     );
   }
 
@@ -49,6 +57,8 @@ class Settings {
       showLastRead: true,
       languageFilter: null,
       showAudioPlayer: true,
+      currentBookId: null,
+      currentBookPage: null,
     );
   }
 

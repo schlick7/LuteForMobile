@@ -119,6 +119,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     } catch (e, stackTrace) {
       print('ERROR: loadBook failed: $e');
       print('Stack trace: $stackTrace');
+
+      final settings = ref.read(settingsProvider);
+      if (settings.currentBookId == bookId) {
+        ref.read(settingsProvider.notifier).clearCurrentBook();
+      }
     }
   }
 

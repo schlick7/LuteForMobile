@@ -102,6 +102,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     _navigationController = ref.read(navigationProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateDrawerSettings();
+      _loadLastReadBook();
     });
     _navigationController.addReaderListener(_handleNavigateToReader);
     _navigationController.addScreenListener(_handleNavigateToScreen);
@@ -119,6 +120,9 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       'DEBUG: _handleNavigateToReader called with bookId=$bookId, pageNum=$pageNum',
     );
     print('DEBUG: _readerKey.currentState=${_readerKey.currentState}');
+
+    ref.read(settingsProvider.notifier).updateCurrentBook(bookId, pageNum);
+
     if (_readerKey.currentState != null) {
       _readerKey.currentState!.loadBook(bookId, pageNum);
     } else {
@@ -135,6 +139,21 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       _currentIndex = index;
     });
     _updateDrawerSettings();
+  }
+
+  void _loadLastReadBook() {
+    final settings = ref.read(settingsProvider);
+    if (settings.currentBookId != null && settings.currentBookPage != null) {
+      print(
+        'DEBUG: Loading last read book: bookId=${settings.currentBookId}, page=${settings.currentBookPage}',
+      );
+      if (_readerKey.currentState != null) {
+        _readerKey.currentState!.loadBook(
+          settings.currentBookId!,
+          settings.currentBookPage!,
+        );
+      }
+    }
   }
 
   void _updateDrawerSettings() {
