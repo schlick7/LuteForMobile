@@ -159,7 +159,10 @@ class ReaderDrawerSettings extends ConsumerWidget {
 
               return ElevatedButton.icon(
                 onPressed: () {
-                  ref.read(navigationProvider).navigateToScreen(3);
+                  ref.read(navigationProvider).navigateToScreen(0);
+                  Future.microtask(
+                    () => ref.read(navigationProvider).navigateToScreen(3),
+                  );
                   Navigator.of(context).pop();
                 },
                 icon: const Icon(Icons.view_headline),
@@ -338,7 +341,7 @@ class ReaderDrawerSettings extends ConsumerWidget {
   }
 
   int _getLangId(ReaderState reader) {
-    if (reader.pageData?.paragraphs?.isNotEmpty == true &&
+    if (reader.pageData?.paragraphs.isNotEmpty == true &&
         reader.pageData!.paragraphs[0].textItems.isNotEmpty) {
       return reader.pageData!.paragraphs[0].textItems.first.langId ?? 0;
     }

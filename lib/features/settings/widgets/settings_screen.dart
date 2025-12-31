@@ -281,6 +281,58 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
+                      'Reading',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text('Sentence Combining'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Text('Combine sentences with'),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${settings.combineShortSentences ?? 3} terms or less',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Slider(
+                      value: (settings.combineShortSentences ?? 3).toDouble(),
+                      min: 1,
+                      max: 10,
+                      divisions: 9,
+                      label: (settings.combineShortSentences ?? 3).toString(),
+                      onChanged: (value) {
+                        ref
+                            .read(settingsProvider.notifier)
+                            .updateCombineShortSentences(value.toInt());
+                      },
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Sentences with this many terms or fewer will be combined to handle fragmentation from PDF/EPUB sources.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       'Accent Colors',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),

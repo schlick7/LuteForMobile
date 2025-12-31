@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.dart';
+import 'package:lute_for_mobile/features/reader/widgets/sentence_reader_screen.dart';
+import 'package:lute_for_mobile/features/reader/providers/reader_provider.dart';
+import 'package:lute_for_mobile/features/reader/providers/sentence_reader_provider.dart';
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_drawer_settings.dart';
@@ -94,6 +97,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   int _currentIndex = 0;
   final GlobalKey<ReaderScreenState> _readerKey =
       GlobalKey<ReaderScreenState>();
+  final GlobalKey<SentenceReaderScreenState> _sentenceReaderKey =
+      GlobalKey<SentenceReaderScreenState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late final NavigationController _navigationController;
 
@@ -140,6 +145,27 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       _currentIndex = index;
     });
     _updateDrawerSettings();
+
+    if (index == 3) {
+      Future.microtask(() async {
+        final reader = ref.read(readerProvider);
+        if (reader.pageData != null) {
+          final langId = _getLangId(reader);
+          await ref
+              .read(sentenceReaderProvider.notifier)
+              .parseSentencesForPage(langId);
+          await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
+        }
+      });
+    }
+  }
+
+  int _getLangId(ReaderState reader) {
+    if (reader.pageData?.paragraphs?.isNotEmpty == true &&
+        reader.pageData!.paragraphs[0].textItems.isNotEmpty) {
+      return reader.pageData!.paragraphs[0].textItems.first.langId ?? 0;
+    }
+    return 0;
   }
 
   void _loadLastReadBook() {
@@ -174,6 +200,11 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
             .read(currentViewDrawerSettingsProvider.notifier)
             .updateSettings(null);
         break;
+      case 3:
+        ref
+            .read(currentViewDrawerSettingsProvider.notifier)
+            .updateSettings(const ReaderDrawerSettings());
+        break;
       default:
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
@@ -206,6 +237,10 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
           BooksScreen(scaffoldKey: _scaffoldKey),
           SettingsScreen(scaffoldKey: _scaffoldKey),
+          SentenceReaderScreen(
+            key: _sentenceReaderKey,
+            scaffoldKey: _scaffoldKey,
+          ),
         ],
       ),
     );
