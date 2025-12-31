@@ -12,6 +12,7 @@ class AudioPlayerState {
   final List<Duration> bookmarkDurations;
   final String? errorMessage;
   final bool isLoading;
+  final double playbackSpeed;
 
   AudioPlayerState({
     required this.audioPlayer,
@@ -21,6 +22,7 @@ class AudioPlayerState {
     required this.bookmarkDurations,
     this.errorMessage,
     required this.isLoading,
+    this.playbackSpeed = 1.0,
   });
 
   List<double> get bookmarkPositions {
@@ -37,6 +39,7 @@ class AudioPlayerState {
     List<Duration>? bookmarkDurations,
     String? errorMessage,
     bool? isLoading,
+    double? playbackSpeed,
   }) {
     return AudioPlayerState(
       audioPlayer: audioPlayer ?? this.audioPlayer,
@@ -46,6 +49,7 @@ class AudioPlayerState {
       bookmarkDurations: bookmarkDurations ?? this.bookmarkDurations,
       errorMessage: errorMessage ?? this.errorMessage,
       isLoading: isLoading ?? this.isLoading,
+      playbackSpeed: playbackSpeed ?? this.playbackSpeed,
     );
   }
 }
@@ -76,6 +80,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       bookmarkDurations: [],
       errorMessage: null,
       isLoading: false,
+      playbackSpeed: 1.0,
     );
   }
 
@@ -154,6 +159,11 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       await Future.delayed(Duration(milliseconds: 50));
       await _audioPlayer.resume();
     }
+  }
+
+  Future<void> setPlaybackSpeed(double speed) async {
+    await _audioPlayer.setPlaybackRate(speed);
+    state = state.copyWith(playbackSpeed: speed);
   }
 
   void _startAutoSave() {

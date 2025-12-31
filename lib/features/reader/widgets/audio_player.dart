@@ -25,6 +25,18 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
   String? _lastLoadedUrl;
   bool _isDragging = false;
   double? _dragPosition;
+  static const List<double> _speeds = [
+    0.6,
+    0.7,
+    0.8,
+    0.9,
+    1.0,
+    1.1,
+    1.2,
+    1.3,
+    1.4,
+    1.5,
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -50,7 +62,7 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
         color: Theme.of(context).primaryColor,
         border: Border(bottom: BorderSide(color: Colors.grey[400]!, width: 1)),
       ),
-      padding: EdgeInsets.fromLTRB(16.0, 0, 16.0, 0),
+      padding: EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 4.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -200,40 +212,66 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
       };
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        IconButton(
-          icon: Icon(Icons.replay_10),
-          onPressed: () {
-            final newPosition = state.position - Duration(seconds: 10);
-            final clampedPosition = newPosition < Duration.zero
-                ? Duration.zero
-                : newPosition;
-            ref.read(audioPlayerProvider.notifier).seek(clampedPosition);
-          },
-          color: Colors.white,
-          iconSize: 28,
-        ),
-        IconButton(
-          icon: Icon(playPauseIcon),
-          onPressed: playPauseAction,
-          color: Colors.white,
-          iconSize: 32,
-        ),
-        IconButton(
-          icon: Icon(Icons.forward_10),
-          onPressed: () {
-            final newPosition = state.position + Duration(seconds: 10);
-            final clampedPosition = newPosition > state.duration
-                ? state.duration
-                : newPosition;
-            ref.read(audioPlayerProvider.notifier).seek(clampedPosition);
-          },
-          color: Colors.white,
-          iconSize: 28,
-        ),
-      ],
+    return Padding(
+      padding: EdgeInsets.only(bottom: 2.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          IconButton(
+            icon: Icon(Icons.replay_10),
+            onPressed: () {
+              final newPosition = state.position - Duration(seconds: 10);
+              final clampedPosition = newPosition < Duration.zero
+                  ? Duration.zero
+                  : newPosition;
+              ref.read(audioPlayerProvider.notifier).seek(clampedPosition);
+            },
+            color: Colors.white,
+            iconSize: 28,
+          ),
+          IconButton(
+            icon: Icon(playPauseIcon),
+            onPressed: playPauseAction,
+            color: Colors.white,
+            iconSize: 32,
+          ),
+          IconButton(
+            icon: Icon(Icons.forward_10),
+            onPressed: () {
+              final newPosition = state.position + Duration(seconds: 10);
+              final clampedPosition = newPosition > state.duration
+                  ? state.duration
+                  : newPosition;
+              ref.read(audioPlayerProvider.notifier).seek(clampedPosition);
+            },
+            color: Colors.white,
+            iconSize: 28,
+          ),
+          SizedBox(width: 8),
+          TextButton(
+            onPressed: () {
+              final currentIndex = _speeds.indexOf(state.playbackSpeed);
+              final nextIndex = (currentIndex + 1) % _speeds.length;
+              ref
+                  .read(audioPlayerProvider.notifier)
+                  .setPlaybackSpeed(_speeds[nextIndex]);
+            },
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              minimumSize: Size(0, 0),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Text(
+              '${state.playbackSpeed.toStringAsFixed(1)}x',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
