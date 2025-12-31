@@ -26,6 +26,8 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyCurrentBookSentenceIndex =
       'current_book_sentence_index';
   static const String _keyCombineShortSentences = 'combine_short_sentences';
+  static const String _keyShowKnownTermsInSentenceReader =
+      'show_known_terms_in_sentence_reader';
 
   @override
   Settings build() {
@@ -47,6 +49,8 @@ class SettingsNotifier extends Notifier<Settings> {
     final currentBookPage = prefs.getInt(_keyCurrentBookPage);
     final currentBookSentenceIndex = prefs.getInt(_keyCurrentBookSentenceIndex);
     final combineShortSentences = prefs.getInt(_keyCombineShortSentences) ?? 3;
+    final showKnownTermsInSentenceReader =
+        prefs.getBool(_keyShowKnownTermsInSentenceReader) ?? true;
 
     state = Settings(
       serverUrl: serverUrl,
@@ -60,6 +64,7 @@ class SettingsNotifier extends Notifier<Settings> {
       currentBookPage: currentBookPage,
       currentBookSentenceIndex: currentBookSentenceIndex,
       combineShortSentences: combineShortSentences,
+      showKnownTermsInSentenceReader: showKnownTermsInSentenceReader,
     );
   }
 
@@ -121,6 +126,13 @@ class SettingsNotifier extends Notifier<Settings> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyShowAudioPlayer, show);
+  }
+
+  Future<void> updateShowKnownTermsInSentenceReader(bool show) async {
+    state = state.copyWith(showKnownTermsInSentenceReader: show);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowKnownTermsInSentenceReader, show);
   }
 
   Future<void> updateCurrentBook(int bookId, int page) async {

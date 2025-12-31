@@ -321,6 +321,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       'DEBUG: SentenceReaderScreen _buildBottomSection rebuild #$_bottomSectionBuildCount',
     );
 
+    final settings = ref.watch(settingsProvider);
+
     return Column(
       children: [
         Padding(
@@ -333,6 +335,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
             tooltips: _termTooltips,
             onTermTap: (item, position) => _handleTap(item, position),
             onTermDoubleTap: (item) => _handleDoubleTap(item),
+            showKnownTerms: settings.showKnownTermsInSentenceReader,
           ),
         ),
       ],

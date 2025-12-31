@@ -13,6 +13,7 @@ class Settings {
   final int? currentBookPage;
   final int? currentBookSentenceIndex;
   final int? combineShortSentences;
+  final bool showKnownTermsInSentenceReader;
 
   const Settings({
     required this.serverUrl,
@@ -26,6 +27,7 @@ class Settings {
     this.currentBookPage,
     this.currentBookSentenceIndex,
     this.combineShortSentences,
+    this.showKnownTermsInSentenceReader = true,
   });
 
   Settings copyWith({
@@ -42,6 +44,7 @@ class Settings {
     bool clearCurrentBook = false,
     int? currentBookSentenceIndex,
     int? combineShortSentences,
+    bool? showKnownTermsInSentenceReader,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -63,6 +66,8 @@ class Settings {
           currentBookSentenceIndex ?? this.currentBookSentenceIndex,
       combineShortSentences:
           combineShortSentences ?? this.combineShortSentences,
+      showKnownTermsInSentenceReader:
+          showKnownTermsInSentenceReader ?? this.showKnownTermsInSentenceReader,
     );
   }
 
@@ -79,6 +84,7 @@ class Settings {
       currentBookPage: null,
       currentBookSentenceIndex: null,
       combineShortSentences: 3,
+      showKnownTermsInSentenceReader: true,
     );
   }
 

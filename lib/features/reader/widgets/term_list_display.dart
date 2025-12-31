@@ -4,12 +4,26 @@ import '../models/term_tooltip.dart';
 import '../utils/sentence_parser.dart';
 import '../../../shared/theme/theme_extensions.dart';
 
-List<TextItem> extractUniqueTerms(CustomSentence? sentence) {
+List<TextItem> extractUniqueTerms(
+  CustomSentence? sentence, {
+  bool showKnownTerms = true,
+}) {
   if (sentence == null) return [];
 
   final Map<int, TextItem> uniqueTerms = {};
   for (final item in sentence!.textItems) {
     if (item.wordId != null) {
+      final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
+      final status = statusMatch?.group(1) ?? '0';
+
+      if (status == '98') {
+        continue;
+      }
+
+      if (!showKnownTerms && status == '99') {
+        continue;
+      }
+
       uniqueTerms[item.wordId!] = item;
     }
   }
@@ -24,6 +38,7 @@ class TermListDisplay extends StatelessWidget {
   final void Function(TextItem, Offset)? onTermTap;
   final void Function(TextItem)? onTermDoubleTap;
   final Map<int, TermTooltip> tooltips;
+  final bool showKnownTerms;
 
   const TermListDisplay({
     super.key,
@@ -31,11 +46,15 @@ class TermListDisplay extends StatelessWidget {
     this.onTermTap,
     this.onTermDoubleTap,
     required this.tooltips,
+    this.showKnownTerms = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    final uniqueTerms = extractUniqueTerms(sentence);
+    final uniqueTerms = extractUniqueTerms(
+      sentence,
+      showKnownTerms: showKnownTerms,
+    );
 
     if (uniqueTerms.isEmpty) {
       return const Center(child: Text('No terms in this sentence'));

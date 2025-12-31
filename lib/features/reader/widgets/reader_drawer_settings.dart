@@ -155,39 +155,100 @@ class ReaderDrawerSettings extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        await ref
+                            .read(sentenceReaderProvider.notifier)
+                            .triggerFlushAndRebuild();
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Cache flushed and rebuilt!'),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.view_headline),
+                      label: const Text('Flush Cache & Rebuild'),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        const Text(
+                          'Show Known Terms',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const Spacer(),
+                        Switch(
+                          value: settings.showKnownTermsInSentenceReader,
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateShowKnownTermsInSentenceReader(value);
+                          },
+                        ),
+                      ],
+                    ),
                   ],
                 );
               }
 
-              return ElevatedButton.icon(
-                onPressed: () async {
-                  if (currentIndex == 3) {
-                    await ref
-                        .read(sentenceReaderProvider.notifier)
-                        .triggerFlushAndRebuild();
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Cache flushed and rebuilt!'),
-                        ),
-                      );
-                    }
-                  } else {
-                    ref.read(navigationProvider).navigateToScreen(0);
-                    Future.microtask(
-                      () => ref.read(navigationProvider).navigateToScreen(3),
-                    );
-                    Navigator.of(context).pop();
-                  }
-                },
-                icon: const Icon(Icons.view_headline),
-                label: currentIndex == 3
-                    ? const Text('Flush Cache & Rebuild')
-                    : const Text('Open Sentence Reader'),
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                ),
+              return Column(
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      if (currentIndex == 3) {
+                        await ref
+                            .read(sentenceReaderProvider.notifier)
+                            .triggerFlushAndRebuild();
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Cache flushed and rebuilt!'),
+                            ),
+                          );
+                        }
+                      } else {
+                        ref.read(navigationProvider).navigateToScreen(0);
+                        Future.microtask(
+                          () =>
+                              ref.read(navigationProvider).navigateToScreen(3),
+                        );
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    icon: const Icon(Icons.view_headline),
+                    label: currentIndex == 3
+                        ? const Text('Flush Cache & Rebuild')
+                        : const Text('Open Sentence Reader'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Text(
+                        'Show Known Terms',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      Switch(
+                        value: settings.showKnownTermsInSentenceReader,
+                        onChanged: (value) {
+                          ref
+                              .read(settingsProvider.notifier)
+                              .updateShowKnownTermsInSentenceReader(value);
+                        },
+                      ),
+                    ],
+                  ),
+                ],
               );
             },
           ),
