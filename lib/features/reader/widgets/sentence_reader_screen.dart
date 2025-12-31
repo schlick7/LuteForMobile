@@ -139,6 +139,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
 
     for (final term in allTerms) {
       if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
+        print(
+          'DEBUG SentenceReaderScreen._loadAllTermTranslations: Fetching tooltip for wordId=${term.wordId}, term="${term.text}"',
+        );
         try {
           final termTooltip = await ref
               .read(readerProvider.notifier)
@@ -148,6 +151,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
           }
         } catch (e) {
           // Skip terms that fail to load
+          print(
+            'DEBUG SentenceReaderScreen._loadAllTermTranslations: Failed to fetch tooltip for wordId=${term.wordId}: $e',
+          );
         }
       }
     }

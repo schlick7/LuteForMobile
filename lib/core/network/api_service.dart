@@ -56,7 +56,9 @@ class ApiService {
   }
 
   Future<Response<String>> getTermTooltip(int termId) async {
-    return await _dio.get<String>('/read/termpopup/$termId');
+    final url = '/read/termpopup/$termId';
+    print('DEBUG ApiService.getTermTooltip: Calling GET $url');
+    return await _dio.get<String>(url);
   }
 
   Future<Response<String>> getTermForm(int langId, String text) async {
