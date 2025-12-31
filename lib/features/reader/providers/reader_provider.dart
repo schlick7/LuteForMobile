@@ -7,6 +7,7 @@ import '../models/term_form.dart';
 import '../repositories/reader_repository.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/api_service.dart';
+import '../../../core/network/api_config.dart';
 
 @immutable
 class ReaderState {
@@ -208,9 +209,14 @@ class ReaderNotifier extends Notifier<ReaderState> {
   }
 }
 
-final apiServiceProvider = Provider<ApiService>((ref) {
+final apiConfigProvider = Provider<ApiConfig>((ref) {
   final settings = ref.watch(settingsProvider);
-  return ApiService(baseUrl: settings.serverUrl);
+  return ApiConfig(baseUrl: settings.serverUrl);
+});
+
+final apiServiceProvider = Provider<ApiService>((ref) {
+  final config = ref.watch(apiConfigProvider);
+  return ApiService(baseUrl: config.baseUrl);
 });
 
 final contentServiceProvider = Provider<ContentService>((ref) {
