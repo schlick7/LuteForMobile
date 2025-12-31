@@ -36,6 +36,13 @@ class SentenceReaderDisplay extends StatefulWidget {
 class _SentenceReaderDisplayState extends State<SentenceReaderDisplay> {
   Timer? _doubleTapTimer;
   TextItem? _lastTappedItem;
+  int _buildCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    print('DEBUG: SentenceReaderDisplay initialized');
+  }
 
   void _handleTap(TextItem item, Offset tapPosition) {
     if (_lastTappedItem == item &&
@@ -68,6 +75,10 @@ class _SentenceReaderDisplayState extends State<SentenceReaderDisplay> {
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    print(
+      'DEBUG: SentenceReaderDisplay rebuild #$_buildCount (sentence ${widget.sentence?.id ?? "null"})',
+    );
     if (widget.sentence == null) return const SizedBox.shrink();
 
     return RepaintBoundary(

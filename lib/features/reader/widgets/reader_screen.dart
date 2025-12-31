@@ -32,6 +32,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   double _tempFontWeight = 2.0;
   bool? _tempIsItalic;
   TermForm? _currentTermForm;
+  int _buildCount = 0;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -130,6 +131,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(readerProvider);
+    _buildCount++;
+    print(
+      'DEBUG: ReaderScreen rebuild #$_buildCount (pageData: ${state.pageData?.title ?? "null"})',
+    );
 
     return Scaffold(
       appBar: AppBar(

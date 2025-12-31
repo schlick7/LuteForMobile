@@ -114,6 +114,13 @@ class TextDisplay extends StatefulWidget {
 class _TextDisplayState extends State<TextDisplay> {
   Timer? _doubleTapTimer;
   TextItem? _lastTappedItem;
+  int _buildCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    print('DEBUG: TextDisplay initialized');
+  }
 
   void _handleTap(TextItem item, Offset tapPosition) {
     if (_lastTappedItem == item &&
@@ -146,6 +153,10 @@ class _TextDisplayState extends State<TextDisplay> {
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    print(
+      'DEBUG: TextDisplay rebuild #$_buildCount (paragraphs: ${widget.paragraphs.length})',
+    );
     return RepaintBoundary(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),

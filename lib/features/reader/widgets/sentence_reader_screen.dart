@@ -31,6 +31,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   TermForm? _currentTermForm;
   final Map<int, TermTooltip> _termTooltips = {};
   bool _tooltipsLoadInProgress = false;
+  int _mainBuildCount = 0;
+  int _topSectionBuildCount = 0;
+  int _bottomSectionBuildCount = 0;
 
   @override
   void initState() {
@@ -144,6 +147,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _mainBuildCount++;
+    print('DEBUG: SentenceReaderScreen main build #$_mainBuildCount');
+
     final pageTitle = ref.watch(
       readerProvider.select((state) => state.pageData?.title),
     );
@@ -278,6 +284,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     dynamic textSettings,
     CustomSentence? currentSentence,
   ) {
+    _topSectionBuildCount++;
+    print(
+      'DEBUG: SentenceReaderScreen _buildTopSection rebuild #$_topSectionBuildCount',
+    );
+
     if (currentSentence == null) {
       return const Center(child: Text('No sentence available'));
     }
@@ -305,6 +316,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   }
 
   Widget _buildBottomSection(CustomSentence? currentSentence) {
+    _bottomSectionBuildCount++;
+    print(
+      'DEBUG: SentenceReaderScreen _buildBottomSection rebuild #$_bottomSectionBuildCount',
+    );
+
     return Column(
       children: [
         Padding(
