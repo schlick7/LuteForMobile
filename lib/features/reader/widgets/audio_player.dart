@@ -212,11 +212,45 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
       };
     }
 
+    final isAtBookmark = ref.read(audioPlayerProvider.notifier).isAtBookmark();
+
     return Padding(
       padding: EdgeInsets.only(bottom: 2.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          IconButton(
+            icon: Icon(Icons.bookmark_border),
+            onPressed: () {
+              ref.read(audioPlayerProvider.notifier).goToPreviousBookmark();
+            },
+            color: Colors.white,
+            iconSize: 24,
+            tooltip: 'Previous bookmark',
+          ),
+          IconButton(
+            icon: Icon(isAtBookmark ? Icons.bookmark : Icons.bookmark_border),
+            onPressed: () {
+              if (isAtBookmark) {
+                ref.read(audioPlayerProvider.notifier).removeBookmark();
+              } else {
+                ref.read(audioPlayerProvider.notifier).addBookmark();
+              }
+            },
+            color: isAtBookmark ? Colors.yellow[700] : Colors.white,
+            iconSize: 24,
+            tooltip: isAtBookmark ? 'Remove bookmark' : 'Add bookmark',
+          ),
+          IconButton(
+            icon: Icon(Icons.bookmark),
+            onPressed: () {
+              ref.read(audioPlayerProvider.notifier).goToNextBookmark();
+            },
+            color: Colors.white,
+            iconSize: 24,
+            tooltip: 'Next bookmark',
+          ),
+          SizedBox(width: 12),
           IconButton(
             icon: Icon(Icons.replay_10),
             onPressed: () {
