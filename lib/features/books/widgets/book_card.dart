@@ -190,6 +190,7 @@ class BookCard extends ConsumerWidget {
     );
 
     for (int i = 0; i < statusColors.length; i++) {
+      if (i == 6) continue;
       final count = book.statusDistribution![i];
       if (count > 0) {
         final width = (count / totalTerms) * screenWidth;

@@ -3,18 +3,8 @@
 - source myenv/bin/activate
   - python3 -m lute.main
 
-add custom button for accent colors
+add custom button for accent colors that allows entering custom colors (ex. FFFFFF)
 
-
-
-puncuation is appearing a the start of the new sentence instead of at the end of the last sentence, the parser must be set up wrong. 
-
-Don't show ignored(status98) terms in Sentencereader termslist
-add toggle under the 'Open Sentence Reader' button to show/hide known (status99) terms in the termslist
-
-In status_colors the ignored(status98) terms should have no color at all. They should just display as normal text with no highlighting
-
-When I open sentence reader on a book for the first time i get now data. I need to press open again for it to load all of the data. 
 
 
 Future:
