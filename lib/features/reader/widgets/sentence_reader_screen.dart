@@ -39,6 +39,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       if (reader.pageData != null) {
         final bookId = reader.pageData!.bookId;
         final pageNum = reader.pageData!.currentPage;
+        final langId = _getLangId(reader);
+
+        await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
 
         await ref
             .read(readerProvider.notifier)
@@ -50,8 +53,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
 
         final freshReader = ref.read(readerProvider);
         if (freshReader.pageData != null) {
-          final langId = _getLangId(freshReader);
-
           await ref
               .read(sentenceReaderProvider.notifier)
               .parseSentencesForPage(langId);
@@ -434,25 +435,31 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
                     .saveTerm(updatedForm);
                 if (success && mounted) {
                   if (updatedForm.termId != null) {
-                    setState(() {
-                      final existingTooltip =
-                          _termTooltips[updatedForm.termId!];
-                      if (existingTooltip != null) {
-                        _termTooltips[updatedForm.termId!] = TermTooltip(
-                          term: existingTooltip.term,
-                          translation: updatedForm.translation,
-                          termId: existingTooltip.termId,
-                          status: existingTooltip.status,
-                          statusText: existingTooltip.statusText,
-                          sentences: existingTooltip.sentences,
-                          language: existingTooltip.language,
-                          languageId: existingTooltip.languageId,
-                          parents: existingTooltip.parents,
-                          children: existingTooltip.children,
-                        );
+                    _termTooltips.remove(updatedForm.termId!);
+
+                    try {
+                      final freshTooltip = await ref
+                          .read(readerProvider.notifier)
+                          .fetchTermTooltip(updatedForm.termId!);
+                      if (freshTooltip != null && mounted) {
+                        setState(() {
+                          _termTooltips[updatedForm.termId!] = freshTooltip;
+                        });
                       }
-                    });
+                    } catch (e) {}
                   }
+
+                  final reader = ref.read(readerProvider);
+                  if (reader.pageData != null) {
+                    final langId = _getLangId(reader);
+                    await ref
+                        .read(sentenceCacheServiceProvider)
+                        .clearBookCache(reader.pageData!.bookId);
+                    await ref
+                        .read(sentenceReaderProvider.notifier)
+                        .parseSentencesForPage(langId);
+                  }
+
                   Navigator.of(context).pop();
                 } else {
                   if (mounted) {
