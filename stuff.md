@@ -3,7 +3,11 @@
 - source myenv/bin/activate
   - python3 -m lute.main
 
-Reader page turns aren't saving?
+add custom button for accent colors
 
-Audio player support in Reader
-- add/fix rest of controls
+We will need our own custom sentence parser because the server sentences/paragraphs can be inconsistent
+
+Future:
+- add a toggle to book details to select between Server parsing or App parsing
+  - include hint
+  - put this in the edit button and move the confirmation to the edit button popup for editing the term.
