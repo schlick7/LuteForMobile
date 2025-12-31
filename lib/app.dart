@@ -234,12 +234,16 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
-          BooksScreen(scaffoldKey: _scaffoldKey),
-          SettingsScreen(scaffoldKey: _scaffoldKey),
-          SentenceReaderScreen(
-            key: _sentenceReaderKey,
-            scaffoldKey: _scaffoldKey,
+          RepaintBoundary(
+            child: ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
+          ),
+          RepaintBoundary(child: BooksScreen(scaffoldKey: _scaffoldKey)),
+          RepaintBoundary(child: SettingsScreen(scaffoldKey: _scaffoldKey)),
+          RepaintBoundary(
+            child: SentenceReaderScreen(
+              key: _sentenceReaderKey,
+              scaffoldKey: _scaffoldKey,
+            ),
           ),
         ],
       ),
