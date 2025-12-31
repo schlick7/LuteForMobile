@@ -185,9 +185,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
       return;
     }
 
+    bool found = false;
     final updatedParagraphs = currentPageData.paragraphs.map((paragraph) {
       final updatedItems = paragraph.textItems.map((item) {
         if (item.wordId == termId) {
+          found = true;
           final updated = item.copyWith(statusClass: 'status$status');
           return updated;
         }
@@ -196,9 +198,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
       return paragraph.copyWith(textItems: updatedItems);
     }).toList();
 
-    state = state.copyWith(
-      pageData: currentPageData.copyWith(paragraphs: updatedParagraphs),
-    );
+    if (found) {
+      state = state.copyWith(
+        pageData: currentPageData.copyWith(paragraphs: updatedParagraphs),
+      );
+    }
   }
 }
 

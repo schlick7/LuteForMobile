@@ -38,11 +38,32 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       final reader = ref.read(readerProvider);
       if (reader.pageData != null) {
         final langId = _getLangId(reader);
+
         await ref
             .read(sentenceReaderProvider.notifier)
             .parseSentencesForPage(langId);
         await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
+
         _ensureTooltipsLoaded(forceRefresh: true);
+
+        final bookId = reader.pageData!.bookId;
+        final pageNum = reader.pageData!.currentPage;
+
+        await ref
+            .read(readerProvider.notifier)
+            .loadPage(
+              bookId: bookId,
+              pageNum: pageNum,
+              updateReaderState: false,
+            );
+
+        await ref
+            .read(sentenceReaderProvider.notifier)
+            .parseSentencesForPage(langId);
+
+        if (mounted) {
+          setState(() {});
+        }
       }
     });
   }
