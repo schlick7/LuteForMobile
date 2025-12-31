@@ -127,7 +127,11 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   }
 
   Future<void> play() async {
-    await _audioPlayer.resume();
+    try {
+      await _audioPlayer.resume();
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
   }
 
   Future<void> pause() async {

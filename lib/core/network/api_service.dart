@@ -257,9 +257,15 @@ class ApiService {
     double position,
     List<double> bookmarks,
   ) async {
+    final bookmarksString = bookmarks.map((b) => b.toString()).join(';');
     return await _dio.post<String>(
-      '/read/player_data',
-      data: {'bookid': bookId, 'position': position, 'bookmarks': bookmarks},
+      '/read/save_player_data',
+      data: {
+        'bookid': bookId,
+        'position': position,
+        'bookmarks': bookmarksString,
+      },
+      options: Options(contentType: 'application/json'),
     );
   }
 }

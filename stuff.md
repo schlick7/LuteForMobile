@@ -3,20 +3,8 @@
 - source myenv/bin/activate
   - python3 -m lute.main
 
-
-Add Books Screen
-- Remove book/page hardcoding from settings
- - Need to make sure that we are using the page location as its saved on the server
+Reader page turns aren't saving?
 
 Audio player support in Reader
-
-
-add a toggle in settings to show/hide tags
-add a toggle in settings to show/hide last read
-add to settings an option to show all languages or a specific lanague (probably a drop down selctor)
-
-add edit popup
-
-
-add a green check mark to left of book title of the book as been fully read
-  - does the server know this? or do we just judge this by if the current book page is on the last page? (63/63)
+- small border around it
+- add/fix rest of controls

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../providers/audio_player_provider.dart';
 
-class AudioPlayerWidget extends ConsumerWidget {
+class AudioPlayerWidget extends ConsumerStatefulWidget {
   final String audioUrl;
   final int bookId;
   final int page;
@@ -18,19 +18,29 @@ class AudioPlayerWidget extends ConsumerWidget {
   }) : super(key: key);
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AudioPlayerWidget> createState() => _AudioPlayerWidgetState();
+}
+
+class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
+  String? _lastLoadedUrl;
+
+  @override
+  Widget build(BuildContext context) {
     final audioPlayerState = ref.watch(audioPlayerProvider);
 
-    // Load audio when the widget is first built
+    // Load audio when the URL changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(audioPlayerProvider.notifier)
-          .loadAudio(
-            audioUrl: audioUrl,
-            bookId: bookId,
-            page: page,
-            bookmarks: bookmarks,
-          );
+      if (_lastLoadedUrl != widget.audioUrl && !audioPlayerState.isLoading) {
+        _lastLoadedUrl = widget.audioUrl;
+        ref
+            .read(audioPlayerProvider.notifier)
+            .loadAudio(
+              audioUrl: widget.audioUrl,
+              bookId: widget.bookId,
+              page: widget.page,
+              bookmarks: widget.bookmarks,
+            );
+      }
     });
 
     return Container(
@@ -64,48 +74,17 @@ class AudioPlayerWidget extends ConsumerWidget {
   ) {
     final position = state.position.inMilliseconds / 1000.0;
     final duration = state.duration.inMilliseconds / 1000.0;
-    final progress = duration > 0 ? position / duration : 0.0;
 
     return Container(
       width: double.infinity,
       margin: EdgeInsets.only(bottom: 8.0),
+      height: 40,
       child: Stack(
+        alignment: Alignment.center,
         children: [
-          // Background progress bar
-          Container(
-            height: 8.0,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(4.0),
-            ),
-          ),
-          // Progress filled
-          Container(
-            height: 8.0,
-            width: progress * 100,
-            decoration: BoxDecoration(
-              color: Colors.blue[300],
-              borderRadius: BorderRadius.circular(4.0),
-            ),
-          ),
-          // Bookmark markers
-          ...state.bookmarkDurations.map((bookmark) {
-            final bookmarkProgress = duration > 0
-                ? bookmark.inMilliseconds / 1000 / duration
-                : 0.0;
-            return Positioned(
-              left: bookmarkProgress * 100,
-              child: Container(
-                width: 4.0,
-                height: 12.0,
-                color: Colors.yellow[700],
-              ),
-            );
-          }).toList(),
-          // Seekable progress bar
           SliderTheme(
             data: SliderTheme.of(context).copyWith(
-              trackHeight: 8.0,
+              trackHeight: 4.0,
               thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6.0),
               overlayShape: RoundSliderOverlayShape(overlayRadius: 12.0),
             ),
@@ -118,6 +97,35 @@ class AudioPlayerWidget extends ConsumerWidget {
                     .read(audioPlayerProvider.notifier)
                     .seek(Duration(milliseconds: (value * 1000).round()));
               },
+            ),
+          ),
+          Positioned(
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: Stack(
+                children: state.bookmarkDurations.map((bookmark) {
+                  final bookmarkProgress = duration > 0
+                      ? bookmark.inMilliseconds / 1000 / duration
+                      : 0.0;
+                  return Positioned(
+                    top: 8,
+                    bottom: 8,
+                    left:
+                        bookmarkProgress * MediaQuery.of(context).size.width -
+                        2,
+                    child: Container(
+                      width: 4.0,
+                      decoration: BoxDecoration(
+                        color: Colors.yellow[700],
+                        borderRadius: BorderRadius.circular(2.0),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ],
@@ -147,10 +155,17 @@ class AudioPlayerWidget extends ConsumerWidget {
 
     return Row(
       children: [
-        IconButton(icon: Icon(playPauseIcon), onPressed: playPauseAction),
-        Text(
-          '${_formatDuration(state.position)} / ${_formatDuration(state.duration)}',
-          style: TextStyle(color: Colors.white),
+        IconButton(
+          icon: Icon(playPauseIcon),
+          onPressed: playPauseAction,
+          color: Colors.white,
+        ),
+        Expanded(
+          child: Text(
+            '${_formatDuration(state.position)} / ${_formatDuration(state.duration)}',
+            style: TextStyle(color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
         ),
       ],
     );
