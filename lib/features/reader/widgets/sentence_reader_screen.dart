@@ -37,15 +37,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     Future.microtask(() async {
       final reader = ref.read(readerProvider);
       if (reader.pageData != null) {
-        final langId = _getLangId(reader);
-
-        await ref
-            .read(sentenceReaderProvider.notifier)
-            .parseSentencesForPage(langId);
-        await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
-
-        _ensureTooltipsLoaded(forceRefresh: true);
-
         final bookId = reader.pageData!.bookId;
         final pageNum = reader.pageData!.currentPage;
 
@@ -54,15 +45,19 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
             .loadPage(
               bookId: bookId,
               pageNum: pageNum,
-              updateReaderState: false,
+              updateReaderState: true,
             );
 
-        await ref
-            .read(sentenceReaderProvider.notifier)
-            .parseSentencesForPage(langId);
+        final freshReader = ref.read(readerProvider);
+        if (freshReader.pageData != null) {
+          final langId = _getLangId(freshReader);
 
-        if (mounted) {
-          setState(() {});
+          await ref
+              .read(sentenceReaderProvider.notifier)
+              .parseSentencesForPage(langId);
+          await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
+
+          _ensureTooltipsLoaded(forceRefresh: true);
         }
       }
     });
@@ -343,13 +338,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   void _goNext() async {
     await ref.read(sentenceReaderProvider.notifier).nextSentence();
     _saveSentencePosition();
-    _ensureTooltipsLoaded(forceRefresh: true);
   }
 
   void _goPrevious() async {
     await ref.read(sentenceReaderProvider.notifier).previousSentence();
     _saveSentencePosition();
-    _ensureTooltipsLoaded(forceRefresh: true);
   }
 
   void _saveSentencePosition() {
