@@ -84,9 +84,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
 
     if (pageData == null || !settings.showAudioPlayer) return;
 
-    if (pageData.hasAudio && pageData.audioFilename != null) {
+    if (pageData.hasAudio) {
       final audioUrl =
-          '${settings.serverUrl}/audio/stream/${pageData.audioFilename}';
+          '${settings.serverUrl}/useraudio/stream/${pageData.bookId}';
       await ref
           .read(audioPlayerProvider.notifier)
           .loadAudio(
@@ -176,7 +176,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                   state.pageData?.hasAudio == true)
                 AudioPlayerWidget(
                   audioUrl:
-                      '${ref.read(settingsProvider).serverUrl}/audio/stream/${state.pageData!.audioFilename}',
+                      '${ref.read(settingsProvider).serverUrl}/useraudio/stream/${state.pageData!.bookId}',
                   bookId: state.pageData!.bookId,
                   page: state.pageData!.currentPage,
                   bookmarks: state.pageData?.audioBookmarks,

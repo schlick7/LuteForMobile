@@ -470,19 +470,21 @@ class HtmlParser {
   }
 
   String? _extractAudioFilename(html.Document document) {
-    final audioInput = document.querySelector('input[name="audio_filename"]');
-    return audioInput?.attributes['value']?.trim();
+    final audioInput = document.querySelector('input[id="book_audio_file"]');
+    final value = audioInput?.attributes['value']?.trim();
+    print('DEBUG: _extractAudioFilename - found: $value');
+    return value;
   }
 
   Duration? _extractAudioCurrentPos(html.Document document) {
     final positionInput = document.querySelector(
-      'input[name="audio_current_pos"]',
+      'input[id="book_audio_current_pos"]',
     );
     final positionStr = positionInput?.attributes['value']?.trim();
     if (positionStr != null && positionStr.isNotEmpty) {
       final position = double.tryParse(positionStr);
       if (position != null) {
-        return Duration(milliseconds: (position * 1000).round());
+        return Duration(seconds: position.toInt());
       }
     }
     return null;
@@ -490,7 +492,7 @@ class HtmlParser {
 
   List<double> _extractAudioBookmarks(html.Document document) {
     final bookmarksInput = document.querySelector(
-      'input[name="audio_bookmarks"]',
+      'input[id="book_audio_bookmarks"]',
     );
     final bookmarksStr = bookmarksInput?.attributes['value']?.trim();
     if (bookmarksStr != null && bookmarksStr.isNotEmpty) {
