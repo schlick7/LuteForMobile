@@ -89,7 +89,8 @@ class SentenceParser {
           settings.sentenceExceptions,
         );
         if (!isException) {
-          boundaries.add(i);
+          final nextIndex = i + 1 < items.length ? i + 1 : i;
+          boundaries.add(nextIndex);
         }
       }
     }

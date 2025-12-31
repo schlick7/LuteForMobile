@@ -13,12 +13,14 @@ class SentenceReaderState {
   final bool isNavigating;
   final List<CustomSentence> customSentences;
   final String? errorMessage;
+  final bool shouldFlushAndRebuild;
 
   const SentenceReaderState({
     this.currentSentenceIndex = 0,
     this.isNavigating = false,
     this.customSentences = const [],
     this.errorMessage,
+    this.shouldFlushAndRebuild = false,
   });
 
   CustomSentence? get currentSentence {
@@ -39,12 +41,15 @@ class SentenceReaderState {
     bool? isNavigating,
     List<CustomSentence>? customSentences,
     String? errorMessage,
+    bool? shouldFlushAndRebuild,
   }) {
     return SentenceReaderState(
       currentSentenceIndex: currentSentenceIndex ?? this.currentSentenceIndex,
       isNavigating: isNavigating ?? this.isNavigating,
       customSentences: customSentences ?? this.customSentences,
       errorMessage: errorMessage,
+      shouldFlushAndRebuild:
+          shouldFlushAndRebuild ?? this.shouldFlushAndRebuild,
     );
   }
 }
@@ -305,6 +310,34 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
 
   void clearError() {
     state = state.copyWith(errorMessage: null);
+  }
+
+  Future<void> triggerFlushAndRebuild() async {
+    final reader = ref.read(readerProvider);
+    if (reader.pageData == null) return;
+
+    final bookId = reader.pageData!.bookId;
+    final pageNum = reader.pageData!.currentPage;
+    final langId = _getLangIdFromPageData();
+
+    print('DEBUG: triggerFlushAndRebuild: Clearing cache for bookId=$bookId');
+    await _cacheService.clearBookCache(bookId);
+
+    print(
+      'DEBUG: triggerFlushAndRebuild: Reloading page bookId=$bookId, pageNum=$pageNum',
+    );
+    await ref
+        .read(readerProvider.notifier)
+        .loadPage(bookId: bookId, pageNum: pageNum, updateReaderState: true);
+
+    final freshReader = ref.read(readerProvider);
+    if (freshReader.pageData != null) {
+      print(
+        'DEBUG: triggerFlushAndRebuild: Parsing sentences for langId=$langId',
+      );
+      await parseSentencesForPage(langId);
+      await loadSavedPosition();
+    }
   }
 }
 

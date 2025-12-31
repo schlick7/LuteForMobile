@@ -188,7 +188,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       case 0:
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
-            .updateSettings(const ReaderDrawerSettings());
+            .updateSettings(ReaderDrawerSettings(currentIndex: _currentIndex));
         break;
       case 1:
         ref
@@ -203,7 +203,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       case 3:
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
-            .updateSettings(const ReaderDrawerSettings());
+            .updateSettings(ReaderDrawerSettings(currentIndex: _currentIndex));
         break;
       default:
         ref

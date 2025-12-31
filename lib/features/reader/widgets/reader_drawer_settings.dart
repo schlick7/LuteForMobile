@@ -6,7 +6,9 @@ import '../providers/reader_provider.dart';
 import '../../../../app.dart';
 
 class ReaderDrawerSettings extends ConsumerWidget {
-  const ReaderDrawerSettings({super.key});
+  final int currentIndex;
+
+  const ReaderDrawerSettings({super.key, required this.currentIndex});
 
   final List<FontWeight> _availableWeights = const [
     FontWeight.w200,
@@ -158,15 +160,31 @@ class ReaderDrawerSettings extends ConsumerWidget {
               }
 
               return ElevatedButton.icon(
-                onPressed: () {
-                  ref.read(navigationProvider).navigateToScreen(0);
-                  Future.microtask(
-                    () => ref.read(navigationProvider).navigateToScreen(3),
-                  );
-                  Navigator.of(context).pop();
+                onPressed: () async {
+                  if (currentIndex == 3) {
+                    await ref
+                        .read(sentenceReaderProvider.notifier)
+                        .triggerFlushAndRebuild();
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Cache flushed and rebuilt!'),
+                        ),
+                      );
+                    }
+                  } else {
+                    ref.read(navigationProvider).navigateToScreen(0);
+                    Future.microtask(
+                      () => ref.read(navigationProvider).navigateToScreen(3),
+                    );
+                    Navigator.of(context).pop();
+                  }
                 },
                 icon: const Icon(Icons.view_headline),
-                label: const Text('Open Sentence Reader'),
+                label: currentIndex == 3
+                    ? const Text('Flush Cache & Rebuild')
+                    : const Text('Open Sentence Reader'),
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 48),
                 ),

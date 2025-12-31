@@ -618,4 +618,38 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       },
     );
   }
+
+  Future<void> flushCacheAndRebuild() async {
+    final reader = ref.read(readerProvider);
+    if (reader.pageData == null) return;
+
+    final bookId = reader.pageData!.bookId;
+    final pageNum = reader.pageData!.currentPage;
+    final langId = _getLangId(reader);
+
+    print(
+      'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Clearing cache for bookId=$bookId',
+    );
+    await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
+
+    print(
+      'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Reloading page bookId=$bookId, pageNum=$pageNum',
+    );
+    await ref
+        .read(readerProvider.notifier)
+        .loadPage(bookId: bookId, pageNum: pageNum, updateReaderState: true);
+
+    final freshReader = ref.read(readerProvider);
+    if (freshReader.pageData != null) {
+      print(
+        'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Parsing sentences for langId=$langId',
+      );
+      await ref
+          .read(sentenceReaderProvider.notifier)
+          .parseSentencesForPage(langId);
+      await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
+
+      _ensureTooltipsLoaded(forceRefresh: true);
+    }
+  }
 }
