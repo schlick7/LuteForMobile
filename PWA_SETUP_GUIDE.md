@@ -31,18 +31,18 @@ Navigate to the PWA folder and start the server:
 **Windows:**
 ```cmd
 cd lute-pwa
-python -m http.server 8000
+python -m http.server 5002
 ```
 
 **macOS/Linux:**
 ```bash
 cd ~/lute-pwa
-python3 -m http.server 8000
+python3 -m http.server 5002
 ```
 
 You should see:
 ```
-Serving HTTP on 0.0.0.0 port 8000 (http://localhost:8000/) ...
+Serving HTTP on 0.0.0.0 port 5002 (http://localhost:5002/) ...
 ```
 
 **Keep this terminal window open!** The server must remain running to access the PWA.
@@ -69,8 +69,8 @@ ip addr show | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1
 
 1. Make sure your mobile device is on the same WiFi network as your computer
 2. Open Safari (iOS) or Chrome (Android)
-3. Navigate to: `http://YOUR_IP_ADDRESS:8000`
-   - Example: `http://192.168.1.100:8000`
+3. Navigate to: `http://YOUR_IP_ADDRESS:5002`
+   - Example: `http://192.168.1.100:5002`
 
 You should see the LuteForMobile app load!
 
@@ -121,7 +121,7 @@ To start it again later, repeat Step 2.
 1. Create a batch file `start_lute_pwa.bat`:
    ```bat
    cd C:\path\to\lute-pwa
-   python -m http.server 8000
+   python -m http.server 5002
    ```
 2. Open Task Scheduler
 3. Create Basic Task → "Start Lute PWA Server"
@@ -170,7 +170,7 @@ To start it again later, repeat Step 2.
    Type=simple
    User=yourusername
    WorkingDirectory=/home/yourusername/lute-pwa
-   ExecStart=/usr/bin/python3 -m http.server 8000
+   ExecStart=/usr/bin/python3 -m http.server 5002
    Restart=on-failure
 
    [Install]
@@ -186,14 +186,14 @@ To start it again later, repeat Step 2.
 ## Troubleshooting
 
 ### Cannot access PWA from mobile device
-1. **Check firewall:** Make sure port 8000 is not blocked
+1. **Check firewall:** Make sure port 5002 is not blocked
    - Windows: Windows Defender → Allow an app through firewall
    - macOS: System Settings → Network → Firewall
-   - Linux: `sudo ufw allow 8000`
+   - Linux: `sudo ufw allow 5002`
 
 2. **Verify same network:** Both devices must be on same WiFi (not guest networks)
 
-3. **Test from computer:** Open http://localhost:8000 in your browser to verify server is running
+3. **Test from computer:** Open http://localhost:5002 in your browser to verify server is running
 
 ### App shows "Connection Failed"
 1. Verify your Lute server is running (default: http://192.168.1.100:5001)
@@ -204,7 +204,7 @@ To start it again later, repeat Step 2.
 Your computer's IP may change when you restart your router or network connection. When this happens:
 
 1. Find your new IP address (Step 3)
-2. Update the URL on your mobile device: `http://NEW_IP:8000`
+2. Update the URL on your mobile device: `http://NEW_IP:5002`
 3. Re-add to home screen if needed
 
 **To prevent this:**
@@ -212,7 +212,7 @@ Your computer's IP may change when you restart your router or network connection
 - Or use a domain name with local DNS
 
 ### Server won't start
-- **Port 8000 already in use:** Try a different port (8001, 8002, etc.)
+- **Port 5002 already in use:** Try a different port (8001, 8002, etc.)
   ```bash
   python -m http.server 8001
   ```
@@ -224,12 +224,12 @@ If multiple family members want to use the PWA:
 
 ### Option 1: Each hosts their own server
 - Each person runs the HTTP server on their computer
-- Each uses their own IP: `http://192.168.1.XXX:8000`
+- Each uses their own IP: `http://192.168.1.XXX:5002`
 
 ### Option 2: Central server (requires static IP)
 1. Set up one computer with static IP (e.g., 192.168.1.50)
 2. Run the HTTP server there
-3. Everyone uses: `http://192.168.1.50:8000`
+3. Everyone uses: `http://192.168.1.50:5002`
 4. Each person configures their own Lute server URL in app settings
 
 ## Security Notes
@@ -247,19 +247,19 @@ If Python's HTTP server doesn't work for you, try:
 ```bash
 npm install -g http-server
 cd ~/lute-pwa
-http-server -p 8000
+http-server -p 5002
 ```
 
 ### Using Ruby
 ```bash
 cd ~/lute-pwa
-ruby -run -e httpd . -p 8000
+ruby -run -e httpd . -p 5002
 ```
 
 ### Using PHP
 ```bash
 cd ~/lute-pwa
-php -S localhost:8000
+php -S localhost:5002
 ```
 
 ## Support

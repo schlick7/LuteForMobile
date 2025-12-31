@@ -75,8 +75,8 @@ git push origin v1.0.0
    ### Installation
    1. Download `lute-pwa.zip`
    2. Extract to folder
-   3. Run `python -m http.server 8000`
-   4. Access from device: `http://YOUR_IP:8000`
+   3. Run `python -m http.server 5002`
+   4. Access from device: `http://YOUR_IP:5002`
    5. Add to home screen
 
    See [PWA Setup Guide](https://github.com/schlick7/LuteForMobile/blob/main/PWA_SETUP_GUIDE.md) for detailed instructions.
