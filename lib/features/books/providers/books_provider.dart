@@ -149,6 +149,17 @@ class BooksNotifier extends Notifier<BooksState> {
     }
   }
 
+  Future<Book> getUpdatedBook(int bookId) async {
+    await _repository.refreshBookStats(bookId);
+    final active = await _repository.getActiveBooks();
+    final archived = await _repository.getArchivedBooks();
+    final books = active + archived;
+    final updatedBook = books.firstWhere((b) => b.id == bookId);
+
+    await updateBookInList(updatedBook);
+    return updatedBook;
+  }
+
   Future<void> updateBookInList(Book updatedBook) async {
     final isInActive = state.activeBooks.any((b) => b.id == updatedBook.id);
     if (isInActive) {
