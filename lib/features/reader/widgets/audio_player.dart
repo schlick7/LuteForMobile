@@ -46,8 +46,11 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
     });
 
     return Container(
-      color: Theme.of(context).primaryColor,
-      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      decoration: BoxDecoration(
+        color: Theme.of(context).primaryColor,
+        border: Border.all(color: Colors.grey[400]!, width: 1),
+      ),
+      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -85,7 +88,7 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
 
     return Container(
       width: double.infinity,
-      margin: EdgeInsets.only(bottom: 8.0),
+      margin: EdgeInsets.only(bottom: 4.0),
       height: 40,
       child: Stack(
         alignment: Alignment.center,
