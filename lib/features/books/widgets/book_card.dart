@@ -19,7 +19,7 @@ class BookCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsProvider);
+    final displaySettings = ref.watch(bookDisplaySettingsProvider);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -80,7 +80,7 @@ class BookCard extends ConsumerWidget {
               ),
               if (book.tags != null &&
                   book.tags!.isNotEmpty &&
-                  settings.showTags)
+                  displaySettings.showTags)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Wrap(
@@ -133,7 +133,7 @@ class BookCard extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 4),
-              if (settings.showLastRead)
+              if (displaySettings.showLastRead)
                 Row(
                   children: [
                     Icon(

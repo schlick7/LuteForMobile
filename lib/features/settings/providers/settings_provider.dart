@@ -88,7 +88,11 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> updateLanguageFilter(String? language) async {
-    state = state.copyWith(languageFilter: language);
+    if (language == null) {
+      state = state.copyWith(clearLanguageFilter: true);
+    } else {
+      state = state.copyWith(languageFilter: language);
+    }
 
     final prefs = await SharedPreferences.getInstance();
     if (language == null) {
@@ -415,3 +419,11 @@ final currentViewDrawerSettingsProvider =
     NotifierProvider<CurrentViewDrawerSettingsNotifier, Widget?>(() {
       return CurrentViewDrawerSettingsNotifier();
     });
+
+final bookDisplaySettingsProvider = Provider<BookDisplaySettings>((ref) {
+  final settings = ref.watch(settingsProvider);
+  return BookDisplaySettings(
+    showTags: settings.showTags,
+    showLastRead: settings.showLastRead,
+  );
+});

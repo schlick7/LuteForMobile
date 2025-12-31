@@ -31,9 +31,11 @@ class Settings {
     bool? showTags,
     bool? showLastRead,
     String? languageFilter,
+    bool clearLanguageFilter = false,
     bool? showAudioPlayer,
     int? currentBookId,
     int? currentBookPage,
+    bool clearCurrentBook = false,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -41,10 +43,16 @@ class Settings {
       translationProvider: translationProvider ?? this.translationProvider,
       showTags: showTags ?? this.showTags,
       showLastRead: showLastRead ?? this.showLastRead,
-      languageFilter: languageFilter ?? this.languageFilter,
+      languageFilter: clearLanguageFilter
+          ? null
+          : (languageFilter ?? this.languageFilter),
       showAudioPlayer: showAudioPlayer ?? this.showAudioPlayer,
-      currentBookId: currentBookId ?? this.currentBookId,
-      currentBookPage: currentBookPage ?? this.currentBookPage,
+      currentBookId: clearCurrentBook
+          ? null
+          : (currentBookId ?? this.currentBookId),
+      currentBookPage: clearCurrentBook
+          ? null
+          : (currentBookPage ?? this.currentBookPage),
     );
   }
 
@@ -103,4 +111,14 @@ class ThemeSettings {
   int get hashCode => accentLabelColor.hashCode ^ accentButtonColor.hashCode;
 
   static const ThemeSettings defaultSettings = ThemeSettings();
+}
+
+class BookDisplaySettings {
+  final bool showTags;
+  final bool showLastRead;
+
+  const BookDisplaySettings({
+    required this.showTags,
+    required this.showLastRead,
+  });
 }
