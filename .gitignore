@@ -47,8 +47,10 @@ app.*.map.json
 # Reference server code (for reference only)
 Reference Server Code/
 
-# Markdown files
+# Markdown files (allow specific docs)
 *.md
+!PWA_SETUP_GUIDE.md
+!GITHUB_RELEASE_GUIDE.md
 
 # IDE metadata
 .directory
