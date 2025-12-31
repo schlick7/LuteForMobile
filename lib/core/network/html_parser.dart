@@ -106,7 +106,10 @@ class HtmlParser {
           langId: langId,
         ),
       );
+      print('DEBUG HTML parse: text="$dataText", wordId=$wordId');
     }
+
+    print('DEBUG HTML parse: Total ${textItems.length} TextItems created');
 
     return textItems;
   }

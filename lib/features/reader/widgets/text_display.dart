@@ -91,6 +91,9 @@ class TextDisplay extends StatefulWidget {
     );
 
     if (item.wordId != null) {
+      print(
+        'DEBUG: Creating GestureDetector for "${item.text}", wordId=${item.wordId}',
+      );
       return GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (details) => onTap?.call(item, details.globalPosition),
@@ -99,6 +102,9 @@ class TextDisplay extends StatefulWidget {
       );
     }
 
+    print(
+      'DEBUG: SKIPPING GestureDetector for "${item.text}" - wordId is null',
+    );
     return textWidget;
   }
 

@@ -41,8 +41,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
         final pageNum = reader.pageData!.currentPage;
         final langId = _getLangId(reader);
 
+        print(
+          'DEBUG SentenceReaderScreen.initState: Clearing cache for bookId=$bookId',
+        );
         await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
 
+        print(
+          'DEBUG SentenceReaderScreen.initState: Loading page bookId=$bookId, pageNum=$pageNum',
+        );
         await ref
             .read(readerProvider.notifier)
             .loadPage(
@@ -53,6 +59,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
 
         final freshReader = ref.read(readerProvider);
         if (freshReader.pageData != null) {
+          print(
+            'DEBUG SentenceReaderScreen.initState: Parsing sentences for langId=$langId',
+          );
           await ref
               .read(sentenceReaderProvider.notifier)
               .parseSentencesForPage(langId);
@@ -261,30 +270,25 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       return const Center(child: Text('No sentence available'));
     }
 
-    return Stack(
-      children: [
-        GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: () => TermTooltipClass.close(),
-          child: const SizedBox.expand(),
-        ),
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: SentenceReaderDisplay(
-              sentence: currentSentence,
-              onTap: (item, position) => _handleTap(item, position),
-              onDoubleTap: (item) => _handleDoubleTap(item),
-              onLongPress: (item) => _handleLongPress(item),
-              textSize: textSettings.textSize,
-              lineSpacing: textSettings.lineSpacing,
-              fontFamily: textSettings.fontFamily,
-              fontWeight: textSettings.fontWeight,
-              isItalic: textSettings.isItalic,
-            ),
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTapDown: (_) => TermTooltipClass.close(),
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SentenceReaderDisplay(
+            sentence: currentSentence,
+            onTap: (item, position) => _handleTap(item, position),
+            onDoubleTap: (item) => _handleDoubleTap(item),
+            onLongPress: (item) => _handleLongPress(item),
+            textSize: textSettings.textSize,
+            lineSpacing: textSettings.lineSpacing,
+            fontFamily: textSettings.fontFamily,
+            fontWeight: textSettings.fontWeight,
+            isItalic: textSettings.isItalic,
           ),
         ),
-      ],
+      ),
     );
   }
 

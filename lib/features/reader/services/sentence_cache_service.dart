@@ -39,6 +39,12 @@ class SentenceCacheService {
         return CustomSentence.fromJson(json as Map<String, dynamic>);
       }).toList();
 
+      if (sentences.isNotEmpty && sentences[0].textItems.isNotEmpty) {
+        print(
+          'DEBUG: Cache loaded - first item text="${sentences[0].textItems[0].text}", wordId=${sentences[0].textItems[0].wordId}',
+        );
+      }
+
       return sentences;
     } catch (e) {
       return null;
@@ -73,11 +79,20 @@ class SentenceCacheService {
       final prefs = await SharedPreferences.getInstance();
       final keys = prefs.getKeys();
 
+      print(
+        'DEBUG clearBookCache: Looking for keys with prefix "$_cachePrefix${bookId}_"',
+      );
+      var removedCount = 0;
       for (final key in keys) {
         if (key.startsWith('$_cachePrefix${bookId}_')) {
           await prefs.remove(key);
+          print('DEBUG clearBookCache: Removed key "$key"');
+          removedCount++;
         }
       }
+      print(
+        'DEBUG clearBookCache: Removed $removedCount keys for bookId=$bookId',
+      );
     } catch (e) {
       print('Error clearing book cache: $e');
     }

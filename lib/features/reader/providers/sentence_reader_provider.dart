@@ -131,6 +131,12 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       );
 
       print('DEBUG: Parsed ${sentences.length} sentences');
+      if (sentences.isNotEmpty && sentences[0].textItems.isNotEmpty) {
+        final firstItem = sentences[0].textItems[0];
+        print(
+          'DEBUG: After parse - first textItem text="${firstItem.text}", wordId=${firstItem.wordId}',
+        );
+      }
 
       await _cacheService.saveToCache(
         bookId,
