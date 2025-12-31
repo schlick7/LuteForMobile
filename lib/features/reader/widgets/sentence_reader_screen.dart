@@ -33,28 +33,29 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   @override
   void initState() {
     super.initState();
+    print('DEBUG: SentenceReaderScreen initState called');
     Future.microtask(() async {
       final reader = ref.read(readerProvider);
+      print(
+        'DEBUG: initState microtask, reader.pageData=${reader.pageData != null}',
+      );
       if (reader.pageData != null) {
+        print('DEBUG: Parsing sentences and loading position');
         final langId = _getLangId(reader);
+        print('DEBUG: Calling parseSentencesForPage with langId=$langId');
         await ref
             .read(sentenceReaderProvider.notifier)
             .parseSentencesForPage(langId);
+        print('DEBUG: parseSentencesForPage completed');
         await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
+        print('DEBUG: loadSavedPosition completed');
         await _loadAllTermTranslations();
+        print('DEBUG: _loadAllTermTranslations completed');
       }
     });
   }
 
-  bool _hasLoadedTooltips = false;
-
   void _ensureTooltipsLoaded() {
-    if (_hasLoadedTooltips) return;
-    _hasLoadedTooltips = true;
-    _loadAllTermTranslations();
-  }
-
-  Future<void> _loadAllTermTranslations() async {
     final allSentences = ref.read(sentenceReaderProvider).customSentences;
     final allTerms = <TextItem>[];
 
@@ -62,22 +63,57 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       allTerms.addAll(sentence.uniqueTerms);
     }
 
+    final hasAllTooltips = allTerms.every(
+      (term) => term.wordId == null || _termTooltips.containsKey(term.wordId),
+    );
+
+    print(
+      'DEBUG: _ensureTooltipsLoaded called, hasAllTooltips=$hasAllTooltips, terms=${allTerms.length}, loaded=${_termTooltips.length}',
+    );
+
+    if (hasAllTooltips) return;
+
+    _loadAllTermTranslations();
+  }
+
+  Future<void> _loadAllTermTranslations() async {
+    print('DEBUG: _loadAllTermTranslations called');
+    final allSentences = ref.read(sentenceReaderProvider).customSentences;
+    final allTerms = <TextItem>[];
+
+    print('DEBUG: allSentences.length=${allSentences.length}');
+
+    for (final sentence in allSentences) {
+      allTerms.addAll(sentence.uniqueTerms);
+    }
+
+    print('DEBUG: allTerms.length=${allTerms.length}');
+
     for (final term in allTerms) {
       if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
         try {
+          print('DEBUG: Fetching tooltip for wordId=${term.wordId}');
           final termTooltip = await ref
               .read(readerProvider.notifier)
               .fetchTermTooltip(term.wordId!);
+          print(
+            'DEBUG: Got tooltip for wordId=${term.wordId}: ${termTooltip != null}',
+          );
           if (termTooltip != null && mounted) {
             setState(() {
               _termTooltips[term.wordId!] = termTooltip;
             });
           }
         } catch (e) {
+          print('DEBUG: Error fetching tooltip for wordId=${term.wordId}: $e');
           // Skip terms that fail to load
         }
       }
     }
+
+    print(
+      'DEBUG: _loadAllTermTranslations complete, loaded ${_termTooltips.length} tooltips',
+    );
   }
 
   int _getLangId(ReaderState reader) {
@@ -90,7 +126,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final readerState = ref.watch(readerProvider);
+    final pageTitle = ref.watch(
+      readerProvider.select((state) => state.pageData?.title),
+    );
+    final readerState = ref.read(readerProvider);
     final sentenceReader = ref.watch(sentenceReaderProvider);
 
     if (readerState.isLoading) {
@@ -177,6 +216,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
 
+    print('DEBUG: build called, pageData=${readerState.pageData != null}');
+    print(
+      'DEBUG: customSentences=${ref.read(sentenceReaderProvider).customSentences.length}',
+    );
+
     _ensureTooltipsLoaded();
 
     return Scaffold(
@@ -194,7 +238,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
             },
           ),
         ),
-        title: Text(readerState.pageData?.title ?? 'Sentence Reader'),
+        title: Text(pageTitle ?? 'Sentence Reader'),
         actions: [
           IconButton(
             icon: const Icon(Icons.close),

@@ -16,7 +16,7 @@ add toggle under the 'Open Sentence Reader' button to show/hide known (status99)
 
 In status_colors the ignored(status98) terms should have no color at all. They should just display as normal text with no highlighting
 
-
+Why is customsentences being called when the sentence reader is not open?
 
 
 Future:

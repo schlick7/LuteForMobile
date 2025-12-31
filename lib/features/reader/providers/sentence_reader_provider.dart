@@ -68,10 +68,15 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
   }
 
   Future<void> parseSentencesForPage(int langId) async {
+    print('DEBUG: parseSentencesForPage called with langId=$langId');
     final reader = ref.read(readerProvider);
     final settings = ref.read(settingsProvider);
 
-    if (reader.pageData == null) return;
+    print('DEBUG: reader.pageData=${reader.pageData != null}');
+    if (reader.pageData == null) {
+      print('DEBUG: parseSentencesForPage returning early - no pageData');
+      return;
+    }
 
     final bookId = reader.pageData!.bookId;
     final pageNum = reader.pageData!.currentPage;
@@ -84,12 +89,17 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       combineThreshold,
     );
 
+    print(
+      'DEBUG: cachedSentences=${cachedSentences != null ? "FOUND (${cachedSentences.length})" : "NOT FOUND"}',
+    );
+
     if (cachedSentences != null) {
       state = state.copyWith(
         customSentences: cachedSentences,
         currentSentenceIndex: 0,
         errorMessage: null,
       );
+      print('DEBUG: Loaded ${cachedSentences.length} sentences from cache');
       return;
     }
 
@@ -109,6 +119,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     }
 
     try {
+      print('DEBUG: Parsing sentences for page $pageNum');
       final parser = SentenceParser(
         settings: sentenceSettings,
         combineThreshold: combineThreshold,
@@ -118,6 +129,8 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         reader.pageData!.paragraphs,
         combineThreshold,
       );
+
+      print('DEBUG: Parsed ${sentences.length} sentences');
 
       await _cacheService.saveToCache(
         bookId,
