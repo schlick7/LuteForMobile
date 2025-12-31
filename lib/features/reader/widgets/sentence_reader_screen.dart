@@ -35,46 +35,70 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   int _topSectionBuildCount = 0;
   int _bottomSectionBuildCount = 0;
 
+  bool _hasInitialized = false;
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(() async {
-      final reader = ref.read(readerProvider);
-      if (reader.pageData != null) {
-        final bookId = reader.pageData!.bookId;
-        final pageNum = reader.pageData!.currentPage;
-        final langId = _getLangId(reader);
+    _monitorAndInitialize();
+  }
 
-        print(
-          'DEBUG SentenceReaderScreen.initState: Clearing cache for bookId=$bookId',
-        );
-        await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
+  Future<void> _monitorAndInitialize() async {
+    print('DEBUG SentenceReaderScreen._monitorAndInitialize called');
+    await Future.delayed(const Duration(milliseconds: 100));
 
+    if (!mounted) return;
+
+    final reader = ref.read(readerProvider);
+
+    print(
+      'DEBUG SentenceReaderScreen._monitorAndInitialize: isLoading=${reader.isLoading}, hasPageData=${reader.pageData != null}, _hasInitialized=$_hasInitialized',
+    );
+
+    if (!reader.isLoading && reader.pageData != null && !_hasInitialized) {
+      _hasInitialized = true;
+      print(
+        'DEBUG SentenceReaderScreen._monitorAndInitialize: Starting initialization',
+      );
+
+      final bookId = reader.pageData!.bookId;
+      final pageNum = reader.pageData!.currentPage;
+      final langId = _getLangId(reader);
+
+      print(
+        'DEBUG SentenceReaderScreen._monitorAndInitialize: Clearing cache for bookId=$bookId',
+      );
+      await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
+
+      print(
+        'DEBUG SentenceReaderScreen._monitorAndInitialize: Loading page bookId=$bookId, pageNum=$pageNum',
+      );
+      await ref
+          .read(readerProvider.notifier)
+          .loadPage(bookId: bookId, pageNum: pageNum, updateReaderState: true);
+
+      final freshReader = ref.read(readerProvider);
+      if (freshReader.pageData != null && mounted) {
         print(
-          'DEBUG SentenceReaderScreen.initState: Loading page bookId=$bookId, pageNum=$pageNum',
+          'DEBUG SentenceReaderScreen._monitorAndInitialize: Parsing sentences for langId=$langId',
         );
         await ref
-            .read(readerProvider.notifier)
-            .loadPage(
-              bookId: bookId,
-              pageNum: pageNum,
-              updateReaderState: true,
-            );
+            .read(sentenceReaderProvider.notifier)
+            .parseSentencesForPage(langId);
+        await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
 
-        final freshReader = ref.read(readerProvider);
-        if (freshReader.pageData != null) {
-          print(
-            'DEBUG SentenceReaderScreen.initState: Parsing sentences for langId=$langId',
-          );
-          await ref
-              .read(sentenceReaderProvider.notifier)
-              .parseSentencesForPage(langId);
-          await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
-
-          _ensureTooltipsLoaded(forceRefresh: true);
-        }
+        _ensureTooltipsLoaded(forceRefresh: true);
       }
-    });
+    } else if (reader.isLoading || reader.pageData == null) {
+      if (mounted) {
+        print(
+          'DEBUG SentenceReaderScreen._monitorAndInitialize: Waiting for data, will retry...',
+        );
+        Future.delayed(const Duration(milliseconds: 200), () {
+          _monitorAndInitialize();
+        });
+      }
+    }
   }
 
   void _ensureTooltipsLoaded({bool forceRefresh = false}) {
@@ -157,7 +181,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     final sentenceReader = ref.watch(sentenceReaderProvider);
     final currentSentence = sentenceReader.currentSentence;
 
-    if (readerState.isLoading) {
+    if (readerState.isLoading || sentenceReader.isParsing) {
       return Scaffold(
         appBar: AppBar(
           title: const Text('Sentence Reader'),
@@ -623,6 +647,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   }
 
   Future<void> flushCacheAndRebuild() async {
+    _hasInitialized = false;
     final reader = ref.read(readerProvider);
     if (reader.pageData == null) return;
 

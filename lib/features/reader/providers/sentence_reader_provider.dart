@@ -11,6 +11,7 @@ import 'reader_provider.dart';
 class SentenceReaderState {
   final int currentSentenceIndex;
   final bool isNavigating;
+  final bool isParsing;
   final List<CustomSentence> customSentences;
   final String? errorMessage;
   final bool shouldFlushAndRebuild;
@@ -18,6 +19,7 @@ class SentenceReaderState {
   const SentenceReaderState({
     this.currentSentenceIndex = 0,
     this.isNavigating = false,
+    this.isParsing = false,
     this.customSentences = const [],
     this.errorMessage,
     this.shouldFlushAndRebuild = false,
@@ -39,6 +41,7 @@ class SentenceReaderState {
   SentenceReaderState copyWith({
     int? currentSentenceIndex,
     bool? isNavigating,
+    bool? isParsing,
     List<CustomSentence>? customSentences,
     String? errorMessage,
     bool? shouldFlushAndRebuild,
@@ -46,6 +49,7 @@ class SentenceReaderState {
     return SentenceReaderState(
       currentSentenceIndex: currentSentenceIndex ?? this.currentSentenceIndex,
       isNavigating: isNavigating ?? this.isNavigating,
+      isParsing: isParsing ?? this.isParsing,
       customSentences: customSentences ?? this.customSentences,
       errorMessage: errorMessage,
       shouldFlushAndRebuild:
@@ -83,6 +87,8 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       return;
     }
 
+    state = state.copyWith(isParsing: true);
+
     final bookId = reader.pageData!.bookId;
     final pageNum = reader.pageData!.currentPage;
     final combineThreshold = settings.combineShortSentences ?? 3;
@@ -103,6 +109,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         customSentences: cachedSentences,
         currentSentenceIndex: 0,
         errorMessage: null,
+        isParsing: false,
       );
       print('DEBUG: Loaded ${cachedSentences.length} sentences from cache');
       return;
@@ -155,6 +162,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         customSentences: sentences,
         currentSentenceIndex: 0,
         errorMessage: null,
+        isParsing: false,
       );
     } catch (e) {
       print(
@@ -164,6 +172,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       state = state.copyWith(
         errorMessage:
             'Failed to parse sentences for page $pageNum. Check console for details.',
+        isParsing: false,
       );
     }
   }
