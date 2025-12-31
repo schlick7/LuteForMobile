@@ -196,7 +196,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     if (bookmarks.isEmpty) return;
 
     final previousBookmarks = bookmarks
-        .where((b) => b < currentPosition)
+        .where((b) => currentPosition - b > Duration(milliseconds: 800))
         .toList();
 
     if (previousBookmarks.isNotEmpty) {
