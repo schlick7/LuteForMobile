@@ -7,6 +7,11 @@ add custom button for accent colors
 
 We will need our own custom sentence parser because the server sentences/paragraphs can be inconsistent
 
+
+
+
+
+
 Future:
 - add a toggle to book details to select between Server parsing or App parsing
   - include hint
