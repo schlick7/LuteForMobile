@@ -29,33 +29,27 @@ class SentenceReaderScreen extends ConsumerStatefulWidget {
 class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   TermForm? _currentTermForm;
   final Map<int, TermTooltip> _termTooltips = {};
+  bool _tooltipsLoadInProgress = false;
 
   @override
   void initState() {
     super.initState();
-    print('DEBUG: SentenceReaderScreen initState called');
     Future.microtask(() async {
       final reader = ref.read(readerProvider);
-      print(
-        'DEBUG: initState microtask, reader.pageData=${reader.pageData != null}',
-      );
       if (reader.pageData != null) {
-        print('DEBUG: Parsing sentences and loading position');
         final langId = _getLangId(reader);
-        print('DEBUG: Calling parseSentencesForPage with langId=$langId');
         await ref
             .read(sentenceReaderProvider.notifier)
             .parseSentencesForPage(langId);
-        print('DEBUG: parseSentencesForPage completed');
         await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
-        print('DEBUG: loadSavedPosition completed');
         await _loadAllTermTranslations();
-        print('DEBUG: _loadAllTermTranslations completed');
       }
     });
   }
 
   void _ensureTooltipsLoaded() {
+    if (_tooltipsLoadInProgress) return;
+
     final allSentences = ref.read(sentenceReaderProvider).customSentences;
     final allTerms = <TextItem>[];
 
@@ -67,53 +61,40 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       (term) => term.wordId == null || _termTooltips.containsKey(term.wordId),
     );
 
-    print(
-      'DEBUG: _ensureTooltipsLoaded called, hasAllTooltips=$hasAllTooltips, terms=${allTerms.length}, loaded=${_termTooltips.length}',
-    );
-
     if (hasAllTooltips) return;
 
     _loadAllTermTranslations();
   }
 
   Future<void> _loadAllTermTranslations() async {
-    print('DEBUG: _loadAllTermTranslations called');
+    if (_tooltipsLoadInProgress) return;
+    _tooltipsLoadInProgress = true;
+
     final allSentences = ref.read(sentenceReaderProvider).customSentences;
     final allTerms = <TextItem>[];
-
-    print('DEBUG: allSentences.length=${allSentences.length}');
 
     for (final sentence in allSentences) {
       allTerms.addAll(sentence.uniqueTerms);
     }
 
-    print('DEBUG: allTerms.length=${allTerms.length}');
-
     for (final term in allTerms) {
       if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
         try {
-          print('DEBUG: Fetching tooltip for wordId=${term.wordId}');
           final termTooltip = await ref
               .read(readerProvider.notifier)
               .fetchTermTooltip(term.wordId!);
-          print(
-            'DEBUG: Got tooltip for wordId=${term.wordId}: ${termTooltip != null}',
-          );
           if (termTooltip != null && mounted) {
             setState(() {
               _termTooltips[term.wordId!] = termTooltip;
             });
           }
         } catch (e) {
-          print('DEBUG: Error fetching tooltip for wordId=${term.wordId}: $e');
           // Skip terms that fail to load
         }
       }
     }
 
-    print(
-      'DEBUG: _loadAllTermTranslations complete, loaded ${_termTooltips.length} tooltips',
-    );
+    _tooltipsLoadInProgress = false;
   }
 
   int _getLangId(ReaderState reader) {
@@ -215,11 +196,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     }
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
-
-    print('DEBUG: build called, pageData=${readerState.pageData != null}');
-    print(
-      'DEBUG: customSentences=${ref.read(sentenceReaderProvider).customSentences.length}',
-    );
 
     _ensureTooltipsLoaded();
 
