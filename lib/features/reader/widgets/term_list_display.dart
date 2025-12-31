@@ -69,7 +69,7 @@ class TermListDisplay extends StatelessWidget {
           onTapDown: (details) => onTermTap?.call(term, details.globalPosition),
           onDoubleTap: () => onTermDoubleTap?.call(term),
           child: Chip(
-            backgroundColor: backgroundColor?.withValues(alpha: 0.15),
+            backgroundColor: backgroundColor,
             label: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
