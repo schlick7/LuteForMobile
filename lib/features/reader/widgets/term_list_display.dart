@@ -44,7 +44,7 @@ class _TermListDisplayState extends State<TermListDisplay> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       itemCount: uniqueTerms.length,
       itemBuilder: (context, index) {
         final term = uniqueTerms[index];
@@ -62,23 +62,27 @@ class _TermListDisplayState extends State<TermListDisplay> {
       context,
     ).colorScheme.getStatusBackgroundColor(status);
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTapDown: (details) =>
-          widget.onTermTap?.call(term, details.globalPosition),
-      onDoubleTap: () => widget.onTermDoubleTap?.call(term),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-        decoration: BoxDecoration(
-          color: backgroundColor?.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Text(
-          term.text,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (details) =>
+              widget.onTermTap?.call(term, details.globalPosition),
+          onDoubleTap: () => widget.onTermDoubleTap?.call(term),
+          child: Chip(
+            backgroundColor: backgroundColor?.withValues(alpha: 0.15),
+            label: Text(
+              term.text,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           ),
         ),
       ),
