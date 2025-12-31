@@ -178,30 +178,57 @@
        return combinedSentences.where((s) => s.hasTerms).toList();
      }
 
-     List<int> _findSentenceBoundaries(List<TextItem> items, LanguageSentenceSettings settings) {
-       final Set<int> boundaries = {0};
+      List<int> _findSentenceBoundaries(List<TextItem> items, LanguageSentenceSettings settings) {
+        final Set<int> boundaries = {0};
 
-       for (var i = 0; i < items.length; i++) {
-         if (items[i].isSpace) continue;
+        for (var i = 0; i < items.length; i++) {
+          if (items[i].isSpace) continue;
 
-         final text = items[i].text;
-         final char = text.isNotEmpty ? text[0] : '';
+          final text = items[i].text;
+          final char = text.isNotEmpty ? text[0] : '';
 
-         if (settings.stopChars.contains(char)) {
-           boundaries.add(i);
-         }
+          if (settings.stopChars.contains(char)) {
+            final isException = _isExceptionWord(items, i, settings.sentenceExceptions);
+            if (!isException) {
+              boundaries.add(i);
+            }
+          }
+        }
 
-         for (final stopWord in settings.stopWords) {
-           if (text.toLowerCase() == stopWord.toLowerCase()) {
-             boundaries.add(i);
-             break;
-           }
-         }
-       }
+        final sorted = boundaries.toList()..sort();
+        return sorted;
+      }
 
-       final sorted = boundaries.toList()..sort();
-       return sorted;
-     }
+       bool _isExceptionWord(
+        List<TextItem> items,
+        int index,
+        List<String> exceptions,
+      ) {
+        for (final exception in exceptions) {
+          final exceptionWords = exception.split(' ');
+          var matchCount = 0;
+
+          for (var j = 0; j < exceptionWords.length; j++) {
+            final itemIndex = index - (exceptionWords.length - j) + j;
+
+            if (itemIndex < 0 || itemIndex >= items.length) {
+              break;
+            }
+
+            final itemText = items[itemIndex].text.toLowerCase();
+            final exceptionWord = exceptionWords[j].toLowerCase();
+            if (itemText == exceptionWord) {
+              matchCount++;
+            }
+          }
+
+          if (matchCount == exceptionWords.length) {
+            return true;
+          }
+        }
+
+        return false;
+      }
 
      List<CustomSentence> _createSentences(List<TextItem> items, List<int> indices) {
        final sentences = <CustomSentence>[];
@@ -308,104 +335,145 @@
    }
    ```
 
- ### 1.6 Update ReaderProvider to Include Language Sentence Settings
-  - **File:** `lib/features/reader/providers/reader_provider.dart`
-  - **Add to State:**
-    ```dart
-    final LanguageSentenceSettings? languageSentenceSettings;
-    ```
-  - **Add method:**
-    ```dart
-    Future<void> fetchLanguageSentenceSettings(int langId) async {
-      try {
-        // TODO: Fetch from API when endpoint is available
-        // final settings = await contentService.getLanguageSentenceSettings(langId);
-        // For now, use default hardcoded settings
-        final settings = LanguageSentenceSettings(
-          languageId: langId,
-          stopChars: '.!?;:',
-          stopWords: [],
-        );
-        state = state.copyWith(languageSentenceSettings: settings);
-      } catch (e) {
-        state = state.copyWith(languageSentenceSettings: null);
-      }
-    }
-    ```
+  ### 1.6 Update ReaderProvider to Include Language Sentence Settings
+   - **File:** `lib/features/reader/providers/reader_provider.dart`
+   - **Add to State:**
+     ```dart
+     final LanguageSentenceSettings? languageSentenceSettings;
+     ```
+   - **Add method:**
+     ```dart
+     Future<void> fetchLanguageSentenceSettings(int langId) async {
+       try {
+         final settings = await _repository.getLanguageSentenceSettings(langId);
+         state = state.copyWith(languageSentenceSettings: settings);
+       } catch (e) {
+         state = state.copyWith(languageSentenceSettings: null);
+       }
+     }
+     ```
+   - **Modify loadPage method to support prefetching:**
+     ```dart
+     Future<void> loadPage({
+       required int bookId,
+       required int pageNum,
+       bool updateReaderState = true,
+     }) async {
+       if (updateReaderState) {
+         state = state.copyWith(isLoading: true, errorMessage: null);
+       }
+
+       try {
+         final pageData = await _repository.getPage(
+           bookId: bookId,
+           pageNum: pageNum,
+         );
+
+         if (updateReaderState) {
+           state = state.copyWith(isLoading: false, pageData: pageData);
+         }
+       } catch (e) {
+         if (updateReaderState) {
+           state = state.copyWith(isLoading: false, errorMessage: e.toString());
+         }
+       }
+     }
+     ```
 
 ---
 
 ## Phase 2: UI Components
 
- ### 2.1 Update Reader Drawer Settings
- - **File:** `lib/features/reader/widgets/reader_drawer_settings.dart`
- - **Add error handling and button after existing settings:**
-   ```dart
-   const SizedBox(height: 24),
-   Consumer(
-     builder: (context, ref, _) {
-       final error = ref.watch(sentenceReaderProvider).errorMessage;
+  ### 2.1 Update Reader Drawer Settings
+  - **File:** `lib/features/reader/widgets/reader_drawer_settings.dart`
+  - **Add error handling and button after existing settings:**
+    ```dart
+    const SizedBox(height: 24),
+    Consumer(
+      builder: (context, ref, _) {
+        final error = ref.watch(sentenceReaderProvider).errorMessage;
 
-       if (error != null) {
-         return Column(
-           children: [
-             Container(
-               padding: const EdgeInsets.all(16),
-               decoration: BoxDecoration(
-                 color: Theme.of(context).colorScheme.errorContainer,
-                 borderRadius: BorderRadius.circular(8),
-               ),
-               child: Column(
-                 crossAxisAlignment: CrossAxisAlignment.start,
-                 children: [
-                   Row(
-                     children: [
-                       Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
-                       const SizedBox(width: 8),
-                       Expanded(
-                         child: Text(
-                           'Sentence Reader Error',
-                           style: TextStyle(
-                             fontWeight: FontWeight.bold,
-                             color: Theme.of(context).colorScheme.error,
-                           ),
-                         ),
-                       ),
-                       IconButton(
-                         icon: const Icon(Icons.close),
-                         onPressed: () {
-                           ref.read(sentenceReaderProvider.notifier).clearError();
-                         },
-                       ),
-                     ],
-                   ),
-                   const SizedBox(height: 8),
-                   Text(
-                     error,
-                     style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
-                   ),
-                 ],
-               ),
-             ),
-             const SizedBox(height: 8),
-           ],
-         );
-       }
+        if (error != null) {
+          return Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.error_outline, color: Theme.of(context).colorScheme.error),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Sentence Reader Error',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            ref.read(sentenceReaderProvider.notifier).clearError();
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      error,
+                      style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () async {
+                              final reader = ref.read(readerProvider);
+                              if (reader.pageData != null) {
+                                await ref.read(sentenceReaderProvider.notifier)
+                                  .parseSentencesForPage(reader.pageData!.langId);
+                              }
+                            },
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Retry'),
+                            style: ElevatedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 36),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          );
+        }
 
-       return ElevatedButton.icon(
-         onPressed: () {
-           ref.read(navigationProvider).navigateToSentenceReader();
-           Navigator.of(context).pop();
-         },
-         icon: const Icon(Icons.view_headline),
-         label: const Text('Open Sentence Reader'),
-         style: ElevatedButton.styleFrom(
-           minimumSize: const Size(double.infinity, 48),
-         ),
-       );
-     },
-   ),
-   ```
+        return ElevatedButton.icon(
+          onPressed: () {
+            ref.read(navigationProvider).navigateToSentenceReader();
+            Navigator.of(context).pop();
+          },
+          icon: const Icon(Icons.view_headline),
+          label: const Text('Open Sentence Reader'),
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 48),
+          ),
+        );
+      },
+    ),
+    ```
 
 ### 2.2 Create Sentence Reader Screen
 - **File:** `lib/features/reader/widgets/sentence_reader_screen.dart`
@@ -608,65 +676,173 @@
   )
   ```
 
- ### 2.3 Create Sentence Reader Display Widget
- - **File:** `lib/features/reader/widgets/sentence_reader_display.dart`
- - **Custom widget (not wrapper around TextDisplay):**
-   ```dart
-   class SentenceReaderDisplay extends StatelessWidget {
-     final CustomSentence? sentence;
-     final void Function(TextItem, Offset)? onTap;
-     final void Function(TextItem)? onDoubleTap;
-     final void Function(TextItem)? onLongPress;
-     final double textSize;
-     final double lineSpacing;
-     final String fontFamily;
-     final FontWeight fontWeight;
-     final bool isItalic;
+  ### 2.3 Add Static Method to TextDisplay
+  - **File:** `lib/features/reader/widgets/text_display.dart`
+  - **Extract word-building logic as static method:**
+    ```dart
+    class TextDisplay extends StatefulWidget {
+      // ... existing code
 
-     const SentenceReaderDisplay({
-       super.key,
-       required this.sentence,
-       this.onTap,
-       this.onDoubleTap,
-       this.onLongPress,
-       this.textSize = 18.0,
-       this.lineSpacing = 1.5,
-       this.fontFamily = 'Roboto',
-       this.fontWeight = FontWeight.normal,
-       this.isItalic = false,
-     });
+      @override
+      State<TextDisplay> createState() => _TextDisplayState();
+    }
 
-     @override
-     Widget build(BuildContext context) {
-       if (sentence == null) return const SizedBox.shrink();
+    // Add static method at class level
+    static Widget buildInteractiveWord(
+      BuildContext context,
+      TextItem item, {
+      required double textSize,
+      required double lineSpacing,
+      required String fontFamily,
+      required FontWeight fontWeight,
+      required bool isItalic,
+      void Function(TextItem, Offset)? onTap,
+      void Function(TextItem)? onDoubleTap,
+      void Function(TextItem)? onLongPress,
+    }) {
+      if (item.isSpace) {
+        return Text(
+          item.text,
+          style: TextStyle(
+            fontSize: textSize,
+            height: lineSpacing,
+            fontFamily: fontFamily,
+            fontWeight: fontWeight,
+            fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+            color: Theme.of(context).textTheme.bodyLarge?.color,
+          ),
+        );
+      }
 
-       return Wrap(
-         spacing: 0,
-         runSpacing: 0,
-         children: sentence!.textItems.asMap().entries.map((entry) {
-           final item = entry.value;
-           return _buildInteractiveWord(context, item);
-         }).toList(),
-       );
-     }
+      Color? textColor;
+      Color? backgroundColor;
 
-     Widget _buildInteractiveWord(BuildContext context, TextItem item) {
-       // Uses shared utility from TextDisplay
-       return TextDisplay.buildInteractiveWord(
-         context,
-         item,
-         textSize: textSize,
-         lineSpacing: lineSpacing,
-         fontFamily: fontFamily,
-         fontWeight: fontWeight,
-         isItalic: isItalic,
-         onTap: onTap,
-         onDoubleTap: onDoubleTap,
-         onLongPress: onLongPress,
-       );
-     }
-   }
-   ```
+      // Only apply status highlighting for terms from the server (items with wordId)
+      if (item.wordId != null) {
+        // Extract status number from statusClass (e.g., "status1" -> "1")
+        final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
+        final status = statusMatch?.group(1) ?? '0';
+
+        // Use theme methods for consistent styling
+        textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
+        backgroundColor = Theme.of(context).colorScheme.getStatusBackgroundColor(status);
+      }
+
+      final textStyle = TextStyle(
+        color: textColor ?? Theme.of(context).textTheme.bodyLarge?.color,
+        fontWeight: fontWeight,
+        fontSize: textSize,
+        height: lineSpacing,
+        fontFamily: fontFamily,
+        fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+      );
+
+      final textWidget = Container(
+        padding: backgroundColor != null
+            ? const EdgeInsets.symmetric(horizontal: 2.0)
+            : null,
+        decoration: backgroundColor != null
+            ? BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(4),
+              )
+            : null,
+        child: Text(item.text, style: textStyle),
+      );
+
+      // Only make terms from the server clickable (items with wordId)
+      if (item.wordId != null) {
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: (details) => onTap?.call(item, details.globalPosition),
+          onLongPress: () => onLongPress?.call(item),
+          child: textWidget,
+        );
+      }
+
+      return textWidget;
+    }
+
+    class _TextDisplayState extends State<TextDisplay> {
+      // ... existing code
+
+      Widget _buildInteractiveWord(BuildContext context, TextItem item) {
+        // Refactor to use the new static method
+        return TextDisplay.buildInteractiveWord(
+          context,
+          item,
+          textSize: widget.textSize,
+          lineSpacing: widget.lineSpacing,
+          fontFamily: widget.fontFamily,
+          fontWeight: widget.fontWeight,
+          isItalic: widget.isItalic,
+          onTap: (item, position) => _handleTap(item, position),
+          onDoubleTap: (item) => widget.onDoubleTap?.call(item),
+          onLongPress: (item) => widget.onLongPress?.call(item),
+        );
+      }
+    }
+    ```
+
+  ### 2.4 Create Sentence Reader Display Widget
+  - **File:** `lib/features/reader/widgets/sentence_reader_display.dart`
+  - **Custom widget (not wrapper around TextDisplay):**
+    ```dart
+    class SentenceReaderDisplay extends StatelessWidget {
+      final CustomSentence? sentence;
+      final void Function(TextItem, Offset)? onTap;
+      final void Function(TextItem)? onDoubleTap;
+      final void Function(TextItem)? onLongPress;
+      final double textSize;
+      final double lineSpacing;
+      final String fontFamily;
+      final FontWeight fontWeight;
+      final bool isItalic;
+
+      const SentenceReaderDisplay({
+        super.key,
+        required this.sentence,
+        this.onTap,
+        this.onDoubleTap,
+        this.onLongPress,
+        this.textSize = 18.0,
+        this.lineSpacing = 1.5,
+        this.fontFamily = 'Roboto',
+        this.fontWeight = FontWeight.normal,
+        this.isItalic = false,
+      });
+
+      @override
+      Widget build(BuildContext context) {
+        if (sentence == null) return const SizedBox.shrink();
+
+        return Wrap(
+          spacing: 0,
+          runSpacing: 0,
+          children: sentence!.textItems.asMap().entries.map((entry) {
+            final item = entry.value;
+            return _buildInteractiveWord(context, item);
+          }).toList(),
+        );
+      }
+
+      Widget _buildInteractiveWord(BuildContext context, TextItem item) {
+        // Uses shared utility from TextDisplay
+        return TextDisplay.buildInteractiveWord(
+          context,
+          item,
+          textSize: textSize,
+          lineSpacing: lineSpacing,
+          fontFamily: fontFamily,
+          fontWeight: fontWeight,
+          isItalic: isItalic,
+          onTap: onTap,
+          onDoubleTap: onDoubleTap,
+          onLongPress: onLongPress,
+        );
+      }
+    }
+    ```
 
  ### 2.4 Create Term List Display Widget
  - **File:** `lib/features/reader/widgets/term_list_display.dart`
@@ -945,21 +1121,22 @@ void _triggerPrefetch(ReaderState reader) async {
   }
 }
 
-Future<void> _prefetchPage(int bookId, int pageNum, int langId) async {
-  try {
-    // Load page content (don't update reader provider)
-    await ref.read(readerProvider.notifier).loadPage(
-      bookId: bookId,
-      pageNum: pageNum,
-      updateReaderState: false, // Don't update current reader state
-    );
+ Future<void> _prefetchPage(int bookId, int pageNum, int langId) async {
+   try {
+     // Load page content (don't update reader state)
+     await ref.read(readerProvider.notifier).loadPage(
+       bookId: bookId,
+       pageNum: pageNum,
+       updateReaderState: false,
+     );
 
-    // Parse and cache the page
-    await parseSentencesForPage(langId);
-  } catch (e) {
-    // Silently fail - pre-fetch is optional
-    print('Prefetch parse error: $e');
-  }
+     // Parse and cache the page
+     await parseSentencesForPage(langId);
+   } catch (e) {
+     // Silently fail - pre-fetch is optional
+     print('Prefetch parse error: $e');
+   }
+ }
 }
 ```
 
@@ -1146,44 +1323,69 @@ Future<void> clearCacheForThresholdChange() async {
     const SizedBox(height: 24),
     ```
 
-### 5.2 Add LanguageSentenceSettings Model
- - **File:** `lib/features/reader/models/language_sentence_settings.dart`
- - **Purpose:** Store sentence parsing settings per language
-   ```dart
-   class LanguageSentenceSettings {
-     final int languageId;
-     final String stopChars;
-     final List<String> stopWords;
-
-     LanguageSentenceSettings({
-       required this.languageId,
-       required this.stopChars,
-       required this.stopWords,
-   ```
-
- ### 5.3 Add API Service for Language Sentence Settings
-  - **File:** `lib/core/network/content_service.dart`
-  - **Add method with TODO:**
+ ### 5.2 Add LanguageSentenceSettings Model
+  - **File:** `lib/features/reader/models/language_sentence_settings.dart`
+  - **Purpose:** Store sentence parsing settings per language
     ```dart
-    Future<LanguageSentenceSettings> getLanguageSentenceSettings(int langId) async {
-      // TODO: Implement actual API call when endpoint is available
-      // For now, return default settings
-      return LanguageSentenceSettings(
-        languageId: langId,
-        stopChars: '.!?;:',
-        stopWords: [],
-      );
+    class LanguageSentenceSettings {
+      final int languageId;
+      final String stopChars;
+      final List<String> sentenceExceptions;
+      final String parserType;
 
-      // Future implementation:
-      // final response = await apiClient.get('/languages/$langId/sentence-settings');
-      // if (response.statusCode == 200) {
-      //   final data = jsonDecode(response.body) as Map<String, dynamic>;
-      //   return LanguageSentenceSettings.fromJson(data);
-      // } else {
-      //   throw Exception('Failed to load sentence settings');
-      // }
-    }
+      LanguageSentenceSettings({
+        required this.languageId,
+        required this.stopChars,
+        required this.sentenceExceptions,
+        required this.parserType,
     ```
+
+  ### 5.3 Add API Service for Language Sentence Settings
+   - **File:** `lib/core/network/content_service.dart`
+   - **Add method to parse language settings from HTML:**
+     ```dart
+     Future<LanguageSentenceSettings> getLanguageSentenceSettings(int langId) async {
+       try {
+         final response = await apiClient.get('/language/edit/$langId');
+         final html = response.data!;
+
+         // Extract regexp_split_sentences (stop characters)
+         final stopCharsMatch = RegExp(
+           r'id="regexp_split_sentences"[^>]*value="([^"]*)"'
+         ).firstMatch(html);
+         final stopChars = stopCharsMatch?.group(1) ?? '.!?;:';
+
+         // Extract exceptions_split_sentences (words that don't split)
+         final exceptionsMatch = RegExp(
+           r'id="exceptions_split_sentences"[^>]*value="([^"]*)"'
+         ).firstMatch(html);
+         final exceptionsRaw = exceptionsMatch?.group(1) ?? '';
+         final sentenceExceptions = exceptionsRaw.split('|')
+           .where((w) => w.isNotEmpty).toList();
+
+         // Extract parser_type
+         final parserMatch = RegExp(
+           r'id="parser_type"[^>]*>\s*<option[^>]*value="([^"]*)"[^>]*selected'
+         ).firstMatch(html);
+         final parserType = parserMatch?.group(1) ?? 'spacedel';
+
+         return LanguageSentenceSettings(
+           languageId: langId,
+           stopChars: stopChars,
+           sentenceExceptions: sentenceExceptions,
+           parserType: parserType,
+         );
+       } catch (e) {
+         // Fallback to defaults on error
+         return LanguageSentenceSettings(
+           languageId: langId,
+           stopChars: '.!?;:',
+           sentenceExceptions: [],
+           parserType: 'spacedel',
+         );
+       }
+     }
+     ```
 
 ---
 
@@ -1202,23 +1404,23 @@ Future<void> clearCacheForThresholdChange() async {
   │   │   ├── models/
   │   │   │   └── language_sentence_settings.dart (NEW)
   │   │   │
-  │   │   ├── providers/
-  │   │   │   ├── reader_provider.dart (MODIFY - add languageSentenceSettings)
-  │   │   │   └── sentence_reader_provider.dart (NEW)
-  │   │   │
+   │   │   ├── providers/
+   │   │   │   ├── reader_provider.dart (MODIFY - add languageSentenceSettings + updateReaderState param)
+   │   │   │   └── sentence_reader_provider.dart (NEW)
+   │   │   │
   │   │   ├── services/
   │   │   │   └── sentence_cache_service.dart (NEW)
   │   │   │
   │   │   ├── utils/
   │   │   │   └── sentence_parser.dart (NEW)
   │   │   │
-  │   │   ├── widgets/
-  │   │   │   ├── reader_screen.dart (MODIFY - add static buildInteractiveWord method)
-  │   │   │   ├── reader_drawer_settings.dart (MODIFY - add error + button)
-  │   │   │   ├── sentence_reader_screen.dart (NEW)
-  │   │   │   ├── sentence_reader_display.dart (NEW - custom widget, not wrapper)
-  │   │   │   └── term_list_display.dart (NEW)
-  │   │   │
+   │   │   ├── widgets/
+   │   │   │   ├── text_display.dart (MODIFY - add static buildInteractiveWord method)
+   │   │   │   ├── reader_drawer_settings.dart (MODIFY - add error + retry button)
+   │   │   │   ├── sentence_reader_screen.dart (NEW)
+   │   │   │   ├── sentence_reader_display.dart (NEW - custom widget, not wrapper)
+   │   │   │   └── term_list_display.dart (NEW)
+   │   │   │
   │   │   └── [existing...]
   │   │
   │   ├── settings/
@@ -1246,6 +1448,7 @@ Future<void> clearCacheForThresholdChange() async {
   - [ ] Create `language_sentence_settings.dart` model with TODO comment
   - [ ] Add `languageSentenceSettings` to ReaderProvider state
   - [ ] Add `fetchLanguageSentenceSettings()` method to ReaderProvider (with hardcoded defaults)
+  - [ ] Modify `loadPage()` in ReaderProvider to support prefetching (add updateReaderState param)
   - [ ] Create `sentence_cache_service.dart` with 7-day expiration
   - [ ] Implement `getFromCache()` with timestamp validation
   - [ ] Implement `saveToCache()` with JSON serialization
@@ -1259,12 +1462,13 @@ Future<void> clearCacheForThresholdChange() async {
   - [ ] Implement `clearError()` for error state management
   - [ ] Implement `clearCacheForThresholdChange()` on book navigation
 
- ### Phase 2: UI Components
- - [ ] Add error display and "Open Sentence Reader" button to ReaderDrawerSettings
- - [ ] Create `SentenceReaderScreen` widget with all handlers
- - [ ] Create `SentenceReaderDisplay` custom widget (not wrapper)
- - [ ] Add static `buildInteractiveWord()` method to TextDisplay
- - [ ] Create `TermListDisplay` widget with CustomSentence support and tap/double-tap
+  ### Phase 2: UI Components
+  - [ ] Add error display, retry button, and "Open Sentence Reader" button to ReaderDrawerSettings
+  - [ ] Create `SentenceReaderScreen` widget with all handlers
+  - [ ] Extract `buildInteractiveWord()` as static method in TextDisplay
+  - [ ] Update `_buildInteractiveWord()` in TextDisplay to use new static method
+  - [ ] Create `SentenceReaderDisplay` custom widget (not wrapper) using static method
+  - [ ] Create `TermListDisplay` widget with CustomSentence support and tap/double-tap
  - [ ] Implement split layout (30/70)
  - [ ] Implement bottom navigation bar with sentence position
  - [ ] Implement close button to return to normal reader
@@ -1313,24 +1517,7 @@ Future<void> clearCacheForThresholdChange() async {
   - [ ] Add API endpoint for language sentence settings (later)
   - [ ] Test language-specific sentence settings (later)
 
- ### Phase 4: Testing
- - [ ] Test sentence navigation within page
- - [ ] Test cross-page sentence navigation
- - [ ] Test term list display and alphabetical sorting
- - [ ] Test term tap → tooltip in sentence display
- - [ ] Test term tap → tooltip in term list
- - [ ] Test term double-tap → term form in both views
- - [ ] Test long-press → sentence translation
- - [ ] Test sentence position persistence
- - [ ] Test page change resets sentence position
- - [ ] Test term status updates refresh both views
- - [ ] Test close button returns to normal reader
- - [ ] Test all text formatting settings apply correctly
- - [ ] Verify no audio player in sentence reader
- - [ ] Test cache behavior across sessions
- - [ ] Test error handling and recovery
-
----
+ ---
 
  ## Key Implementation Details
 
@@ -1603,7 +1790,12 @@ All sentences now > 3 terms! ✓
     - Cache key includes bookId, pageNum, langId, and combineThreshold
     - Cache service is separate (SentenceCacheService) for clarity
     - Pre-fetching runs as low-priority background task
-  - **Language-Specific Settings:** Stop characters and stop words (currently hardcoded defaults, will be fetched from Lute API later)
+   - **Language-Specific Settings:** 
+     - Fetched from Lute API via `/language/edit/<langid>` endpoint
+     - Parses HTML to extract `regexp_split_sentences` (stop characters like `.!?;:`)
+     - Parses `exceptions_split_sentences` (words that should NOT split like "Dr.", "Sr.", "etc.")
+     - Exception checking logic prevents sentence splits at abbreviations, titles, etc.
+     - Falls back to defaults on parse errors: `stopChars='.!?;:'`, `sentenceExceptions=[]`
   - **Real-time Updates:** Changing the combining threshold in Settings immediately re-parses sentences (no restart needed)
   - **Error Handling:** Parse errors block navigation to sentence reader, show error in drawer with close button, log to console with context
   - **Custom Display:** SentenceReaderDisplay is a custom widget (not wrapper) that directly renders CustomSentence.textItems using shared interactive word builder
