@@ -101,6 +101,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     required int bookId,
     required int page,
     List<double>? bookmarks,
+    Duration? audioCurrentPos,
   }) async {
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
@@ -118,6 +119,11 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
 
       await _audioPlayer.stop();
       await _audioPlayer.setSourceUrl(audioUrl);
+
+      if (audioCurrentPos != null && audioCurrentPos > Duration.zero) {
+        await _audioPlayer.seek(audioCurrentPos);
+      }
+
       state = state.copyWith(isLoading: false);
 
       _startAutoSave();

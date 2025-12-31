@@ -94,6 +94,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
             bookId: pageData.bookId,
             page: pageData.currentPage,
             bookmarks: pageData.audioBookmarks,
+            audioCurrentPos: pageData.audioCurrentPos,
           );
     }
   }
