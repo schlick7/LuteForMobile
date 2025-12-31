@@ -49,3 +49,6 @@ Reference Server Code/
 
 # Markdown files
 *.md
+
+# IDE metadata
+.directory
