@@ -23,6 +23,9 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyShowAudioPlayer = 'show_audio_player';
   static const String _keyCurrentBookId = 'current_book_id';
   static const String _keyCurrentBookPage = 'current_book_page';
+  static const String _keyCurrentBookSentenceIndex =
+      'current_book_sentence_index';
+  static const String _keyCombineShortSentences = 'combine_short_sentences';
 
   @override
   Settings build() {
@@ -42,6 +45,8 @@ class SettingsNotifier extends Notifier<Settings> {
     final showAudioPlayer = prefs.getBool(_keyShowAudioPlayer) ?? true;
     final currentBookId = prefs.getInt(_keyCurrentBookId);
     final currentBookPage = prefs.getInt(_keyCurrentBookPage);
+    final currentBookSentenceIndex = prefs.getInt(_keyCurrentBookSentenceIndex);
+    final combineShortSentences = prefs.getInt(_keyCombineShortSentences) ?? 3;
 
     state = Settings(
       serverUrl: serverUrl,
@@ -53,6 +58,8 @@ class SettingsNotifier extends Notifier<Settings> {
       showAudioPlayer: showAudioPlayer,
       currentBookId: currentBookId,
       currentBookPage: currentBookPage,
+      currentBookSentenceIndex: currentBookSentenceIndex,
+      combineShortSentences: combineShortSentences,
     );
   }
 
@@ -117,19 +124,45 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> updateCurrentBook(int bookId, int page) async {
-    state = state.copyWith(currentBookId: bookId, currentBookPage: page);
+    state = state.copyWith(
+      currentBookId: bookId,
+      currentBookPage: page,
+      currentBookSentenceIndex: null,
+    );
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyCurrentBookId, bookId);
     await prefs.setInt(_keyCurrentBookPage, page);
+    await prefs.remove(_keyCurrentBookSentenceIndex);
   }
 
   Future<void> clearCurrentBook() async {
-    state = state.copyWith(currentBookId: null, currentBookPage: null);
+    state = state.copyWith(
+      currentBookId: null,
+      currentBookPage: null,
+      currentBookSentenceIndex: null,
+    );
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyCurrentBookId);
     await prefs.remove(_keyCurrentBookPage);
+    await prefs.remove(_keyCurrentBookSentenceIndex);
+  }
+
+  Future<void> updateCurrentBookSentenceIndex(int? sentenceIndex) async {
+    state = state.copyWith(currentBookSentenceIndex: sentenceIndex);
+    final prefs = await SharedPreferences.getInstance();
+    if (sentenceIndex == null) {
+      await prefs.remove(_keyCurrentBookSentenceIndex);
+    } else {
+      await prefs.setInt(_keyCurrentBookSentenceIndex, sentenceIndex);
+    }
+  }
+
+  Future<void> updateCombineShortSentences(int threshold) async {
+    state = state.copyWith(combineShortSentences: threshold);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCombineShortSentences, threshold);
   }
 
   bool _isValidUrl(String url) {
@@ -153,6 +186,8 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyShowAudioPlayer);
     await prefs.remove(_keyCurrentBookId);
     await prefs.remove(_keyCurrentBookPage);
+    await prefs.remove(_keyCurrentBookSentenceIndex);
+    await prefs.remove(_keyCombineShortSentences);
 
     state = Settings.defaultSettings();
   }

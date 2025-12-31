@@ -29,6 +29,79 @@ class TextDisplay extends StatefulWidget {
     this.isItalic = false,
   });
 
+  static Widget buildInteractiveWord(
+    BuildContext context,
+    TextItem item, {
+    required double textSize,
+    required double lineSpacing,
+    required String fontFamily,
+    required FontWeight fontWeight,
+    required bool isItalic,
+    void Function(TextItem, Offset)? onTap,
+    void Function(TextItem)? onDoubleTap,
+    void Function(TextItem)? onLongPress,
+  }) {
+    if (item.isSpace) {
+      return Text(
+        item.text,
+        style: TextStyle(
+          fontSize: textSize,
+          height: lineSpacing,
+          fontFamily: fontFamily,
+          fontWeight: fontWeight,
+          fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+          color: Theme.of(context).textTheme.bodyLarge?.color,
+        ),
+      );
+    }
+
+    Color? textColor;
+    Color? backgroundColor;
+
+    if (item.wordId != null) {
+      final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
+      final status = statusMatch?.group(1) ?? '0';
+
+      textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
+      backgroundColor = Theme.of(
+        context,
+      ).colorScheme.getStatusBackgroundColor(status);
+    }
+
+    final textStyle = TextStyle(
+      color: textColor ?? Theme.of(context).textTheme.bodyLarge?.color,
+      fontWeight: fontWeight,
+      fontSize: textSize,
+      height: lineSpacing,
+      fontFamily: fontFamily,
+      fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+    );
+
+    final textWidget = Container(
+      padding: backgroundColor != null
+          ? const EdgeInsets.symmetric(horizontal: 2.0)
+          : null,
+      decoration: backgroundColor != null
+          ? BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(4),
+            )
+          : null,
+      child: Text(item.text, style: textStyle),
+    );
+
+    if (item.wordId != null) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (details) => onTap?.call(item, details.globalPosition),
+        onLongPress: () => onLongPress?.call(item),
+        child: textWidget,
+      );
+    }
+
+    return textWidget;
+  }
+
   @override
   State<TextDisplay> createState() => _TextDisplayState();
 }
@@ -94,69 +167,17 @@ class _TextDisplayState extends State<TextDisplay> {
   }
 
   Widget _buildInteractiveWord(BuildContext context, TextItem item) {
-    if (item.isSpace) {
-      return Text(
-        item.text,
-        style: TextStyle(
-          fontSize: widget.textSize,
-          height: widget.lineSpacing,
-          fontFamily: widget.fontFamily,
-          fontWeight: widget.fontWeight,
-          fontStyle: widget.isItalic ? FontStyle.italic : FontStyle.normal,
-          color: Theme.of(context).textTheme.bodyLarge?.color,
-        ),
-      );
-    }
-
-    Color? textColor;
-    Color? backgroundColor;
-    FontWeight fontWeight = widget.fontWeight;
-
-    // Only apply status highlighting for terms from the server (items with wordId)
-    if (item.wordId != null) {
-      // Extract status number from statusClass (e.g., "status1" -> "1")
-      final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
-      final status = statusMatch?.group(1) ?? '0';
-
-      // Use theme methods for consistent styling
-      textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
-      backgroundColor = Theme.of(
-        context,
-      ).colorScheme.getStatusBackgroundColor(status);
-    }
-
-    final textStyle = TextStyle(
-      color: textColor ?? Theme.of(context).textTheme.bodyLarge?.color,
-      fontWeight: fontWeight,
-      fontSize: widget.textSize,
-      height: widget.lineSpacing,
+    return TextDisplay.buildInteractiveWord(
+      context,
+      item,
+      textSize: widget.textSize,
+      lineSpacing: widget.lineSpacing,
       fontFamily: widget.fontFamily,
-      fontStyle: widget.isItalic ? FontStyle.italic : FontStyle.normal,
+      fontWeight: widget.fontWeight,
+      isItalic: widget.isItalic,
+      onTap: (item, position) => _handleTap(item, position),
+      onDoubleTap: (item) => widget.onDoubleTap?.call(item),
+      onLongPress: (item) => widget.onLongPress?.call(item),
     );
-
-    final textWidget = Container(
-      padding: backgroundColor != null
-          ? const EdgeInsets.symmetric(horizontal: 2.0)
-          : null,
-      decoration: backgroundColor != null
-          ? BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(4),
-            )
-          : null,
-      child: Text(item.text, style: textStyle),
-    );
-
-    // Only make terms from the server clickable (items with wordId)
-    if (item.wordId != null) {
-      return GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTapDown: (details) => _handleTap(item, details.globalPosition),
-        onLongPress: () => widget.onLongPress?.call(item),
-        child: textWidget,
-      );
-    }
-
-    return textWidget;
   }
 }

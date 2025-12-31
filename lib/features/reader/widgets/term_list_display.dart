@@ -1,0 +1,91 @@
+import 'package:flutter/material.dart';
+import '../models/text_item.dart';
+import '../utils/sentence_parser.dart';
+import '../../../shared/theme/theme_extensions.dart';
+
+List<TextItem> extractUniqueTerms(CustomSentence? sentence) {
+  if (sentence == null) return [];
+
+  final Map<int, TextItem> uniqueTerms = {};
+  for (final item in sentence!.textItems) {
+    if (item.wordId != null) {
+      uniqueTerms[item.wordId!] = item;
+    }
+  }
+
+  final termList = uniqueTerms.values.toList();
+  termList.sort((a, b) => a.text.toLowerCase().compareTo(b.text.toLowerCase()));
+  return termList;
+}
+
+class TermListDisplay extends StatefulWidget {
+  final CustomSentence? sentence;
+  final void Function(TextItem, Offset)? onTermTap;
+  final void Function(TextItem)? onTermDoubleTap;
+
+  const TermListDisplay({
+    super.key,
+    required this.sentence,
+    this.onTermTap,
+    this.onTermDoubleTap,
+  });
+
+  @override
+  State<TermListDisplay> createState() => _TermListDisplayState();
+}
+
+class _TermListDisplayState extends State<TermListDisplay> {
+  @override
+  Widget build(BuildContext context) {
+    final uniqueTerms = extractUniqueTerms(widget.sentence);
+
+    if (uniqueTerms.isEmpty) {
+      return const Center(child: Text('No terms in this sentence'));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      itemCount: uniqueTerms.length,
+      itemBuilder: (context, index) {
+        final term = uniqueTerms[index];
+        return _buildTermItem(context, term);
+      },
+    );
+  }
+
+  Widget _buildTermItem(BuildContext context, TextItem term) {
+    final statusMatch = RegExp(r'status(\d+)').firstMatch(term.statusClass);
+    final status = statusMatch?.group(1) ?? '0';
+
+    final textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
+    final backgroundColor = Theme.of(
+      context,
+    ).colorScheme.getStatusBackgroundColor(status);
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (details) =>
+          widget.onTermTap?.call(term, details.globalPosition),
+      onDoubleTap: () => widget.onTermDoubleTap?.call(term),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: backgroundColor?.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+          ),
+        ),
+        child: Text(
+          term.text,
+          style: TextStyle(
+            color: textColor,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -4,6 +4,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
+import '../models/language_sentence_settings.dart';
 import '../repositories/reader_repository.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/api_service.dart';
@@ -16,6 +17,7 @@ class ReaderState {
   final String? errorMessage;
   final bool isTermTooltipLoading;
   final bool isTermFormLoading;
+  final LanguageSentenceSettings? languageSentenceSettings;
 
   const ReaderState({
     this.isLoading = false,
@@ -23,6 +25,7 @@ class ReaderState {
     this.errorMessage,
     this.isTermTooltipLoading = false,
     this.isTermFormLoading = false,
+    this.languageSentenceSettings,
   });
 
   ReaderState copyWith({
@@ -31,6 +34,7 @@ class ReaderState {
     String? errorMessage,
     bool? isTermTooltipLoading,
     bool? isTermFormLoading,
+    LanguageSentenceSettings? languageSentenceSettings,
   }) {
     return ReaderState(
       isLoading: isLoading ?? this.isLoading,
@@ -38,6 +42,8 @@ class ReaderState {
       errorMessage: errorMessage,
       isTermTooltipLoading: isTermTooltipLoading ?? this.isTermTooltipLoading,
       isTermFormLoading: isTermFormLoading ?? this.isTermFormLoading,
+      languageSentenceSettings:
+          languageSentenceSettings ?? this.languageSentenceSettings,
     );
   }
 }
@@ -52,9 +58,15 @@ class ReaderNotifier extends Notifier<ReaderState> {
     return const ReaderState();
   }
 
-  Future<void> loadPage({required int bookId, required int pageNum}) async {
+  Future<void> loadPage({
+    required int bookId,
+    required int pageNum,
+    bool updateReaderState = true,
+  }) async {
     print('DEBUG: loadPage(bookId=$bookId, pageNum=$pageNum) called');
-    state = state.copyWith(isLoading: true, errorMessage: null);
+    if (updateReaderState) {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+    }
 
     try {
       final pageData = await _repository.getPage(
@@ -62,15 +74,28 @@ class ReaderNotifier extends Notifier<ReaderState> {
         pageNum: pageNum,
       );
       print('DEBUG: loadPage success, pageData.bookId=${pageData.bookId}');
-      state = state.copyWith(isLoading: false, pageData: pageData);
+      if (updateReaderState) {
+        state = state.copyWith(isLoading: false, pageData: pageData);
+      }
     } catch (e) {
       print('DEBUG: loadPage error: $e');
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      if (updateReaderState) {
+        state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      }
     }
   }
 
   void clearError() {
     state = state.copyWith(errorMessage: null);
+  }
+
+  Future<void> fetchLanguageSentenceSettings(int langId) async {
+    try {
+      final settings = await _repository.getLanguageSentenceSettings(langId);
+      state = state.copyWith(languageSentenceSettings: settings);
+    } catch (e) {
+      state = state.copyWith(languageSentenceSettings: null);
+    }
   }
 
   Future<TermTooltip?> fetchTermTooltip(int termId) async {

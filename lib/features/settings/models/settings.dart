@@ -11,6 +11,8 @@ class Settings {
   final bool showAudioPlayer;
   final int? currentBookId;
   final int? currentBookPage;
+  final int? currentBookSentenceIndex;
+  final int? combineShortSentences;
 
   const Settings({
     required this.serverUrl,
@@ -22,6 +24,8 @@ class Settings {
     this.showAudioPlayer = true,
     this.currentBookId,
     this.currentBookPage,
+    this.currentBookSentenceIndex,
+    this.combineShortSentences,
   });
 
   Settings copyWith({
@@ -36,6 +40,8 @@ class Settings {
     int? currentBookId,
     int? currentBookPage,
     bool clearCurrentBook = false,
+    int? currentBookSentenceIndex,
+    int? combineShortSentences,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -53,6 +59,10 @@ class Settings {
       currentBookPage: clearCurrentBook
           ? null
           : (currentBookPage ?? this.currentBookPage),
+      currentBookSentenceIndex:
+          currentBookSentenceIndex ?? this.currentBookSentenceIndex,
+      combineShortSentences:
+          combineShortSentences ?? this.combineShortSentences,
     );
   }
 
@@ -67,6 +77,8 @@ class Settings {
       showAudioPlayer: true,
       currentBookId: null,
       currentBookPage: null,
+      currentBookSentenceIndex: null,
+      combineShortSentences: 3,
     );
   }
 

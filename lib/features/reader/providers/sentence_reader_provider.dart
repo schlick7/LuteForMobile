@@ -1,0 +1,299 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meta/meta.dart';
+import '../../settings/providers/settings_provider.dart';
+import '../models/paragraph.dart';
+import '../models/language_sentence_settings.dart';
+import '../utils/sentence_parser.dart';
+import '../services/sentence_cache_service.dart';
+import 'reader_provider.dart';
+
+@immutable
+class SentenceReaderState {
+  final int currentSentenceIndex;
+  final bool isNavigating;
+  final List<CustomSentence> customSentences;
+  final String? errorMessage;
+
+  const SentenceReaderState({
+    this.currentSentenceIndex = 0,
+    this.isNavigating = false,
+    this.customSentences = const [],
+    this.errorMessage,
+  });
+
+  CustomSentence? get currentSentence {
+    if (currentSentenceIndex >= 0 &&
+        currentSentenceIndex < customSentences.length) {
+      return customSentences[currentSentenceIndex];
+    }
+    return null;
+  }
+
+  int get totalSentences => customSentences.length;
+  bool get canGoNext => currentSentenceIndex < totalSentences - 1;
+  bool get canGoPrevious => currentSentenceIndex > 0;
+  String get sentencePosition => '${currentSentenceIndex + 1}/$totalSentences';
+
+  SentenceReaderState copyWith({
+    int? currentSentenceIndex,
+    bool? isNavigating,
+    List<CustomSentence>? customSentences,
+    String? errorMessage,
+  }) {
+    return SentenceReaderState(
+      currentSentenceIndex: currentSentenceIndex ?? this.currentSentenceIndex,
+      isNavigating: isNavigating ?? this.isNavigating,
+      customSentences: customSentences ?? this.customSentences,
+      errorMessage: errorMessage,
+    );
+  }
+}
+
+class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
+  late SentenceCacheService _cacheService;
+
+  @override
+  SentenceReaderState build() {
+    _cacheService = ref.read(sentenceCacheServiceProvider);
+    return const SentenceReaderState();
+  }
+
+  int _getLangIdFromPageData() {
+    final reader = ref.read(readerProvider);
+    if (reader.pageData?.paragraphs?.isNotEmpty == true &&
+        reader.pageData!.paragraphs[0].textItems.isNotEmpty) {
+      return reader.pageData!.paragraphs[0].textItems.first.langId ?? 0;
+    }
+    return 0;
+  }
+
+  Future<void> parseSentencesForPage(int langId) async {
+    final reader = ref.read(readerProvider);
+    final settings = ref.read(settingsProvider);
+
+    if (reader.pageData == null) return;
+
+    final bookId = reader.pageData!.bookId;
+    final pageNum = reader.pageData!.currentPage;
+    final combineThreshold = settings.combineShortSentences ?? 3;
+
+    final cachedSentences = await _cacheService.getFromCache(
+      bookId,
+      pageNum,
+      langId,
+      combineThreshold,
+    );
+
+    if (cachedSentences != null) {
+      state = state.copyWith(
+        customSentences: cachedSentences,
+        currentSentenceIndex: 0,
+        errorMessage: null,
+      );
+      return;
+    }
+
+    if (reader.languageSentenceSettings == null ||
+        reader.languageSentenceSettings!.languageId != langId) {
+      await ref
+          .read(readerProvider.notifier)
+          .fetchLanguageSentenceSettings(langId);
+    }
+
+    final sentenceSettings = reader.languageSentenceSettings;
+    if (sentenceSettings == null) {
+      state = state.copyWith(
+        errorMessage: 'Failed to load language settings. Please try again.',
+      );
+      return;
+    }
+
+    try {
+      final parser = SentenceParser(
+        settings: sentenceSettings,
+        combineThreshold: combineThreshold,
+      );
+
+      final sentences = parser.parsePage(
+        reader.pageData!.paragraphs,
+        combineThreshold,
+      );
+
+      await _cacheService.saveToCache(
+        bookId,
+        pageNum,
+        langId,
+        combineThreshold,
+        sentences,
+      );
+
+      state = state.copyWith(
+        customSentences: sentences,
+        currentSentenceIndex: 0,
+        errorMessage: null,
+      );
+    } catch (e) {
+      print(
+        'Sentence parsing error: bookId=$bookId, pageNum=$pageNum, langId=$langId, threshold=$combineThreshold, error=$e',
+      );
+
+      state = state.copyWith(
+        errorMessage:
+            'Failed to parse sentences for page $pageNum. Check console for details.',
+      );
+    }
+  }
+
+  Future<void> nextSentence() async {
+    final reader = ref.read(readerProvider);
+    if (reader.pageData == null || state.customSentences.isEmpty) return;
+
+    if (state.currentSentenceIndex < state.customSentences.length - 1) {
+      state = state.copyWith(
+        currentSentenceIndex: state.currentSentenceIndex + 1,
+      );
+
+      if (state.currentSentenceIndex >= state.customSentences.length - 3) {
+        _triggerPrefetch(reader);
+      }
+    } else {
+      state = state.copyWith(isNavigating: true);
+      try {
+        final currentPage = reader.pageData!.currentPage;
+        final pageCount = reader.pageData!.pageCount;
+
+        if (currentPage < pageCount) {
+          await ref
+              .read(readerProvider.notifier)
+              .loadPage(
+                bookId: reader.pageData!.bookId,
+                pageNum: currentPage + 1,
+              );
+
+          final langId = _getLangIdFromPageData();
+          await parseSentencesForPage(langId);
+
+          state = state.copyWith(currentSentenceIndex: 0, isNavigating: false);
+        }
+      } catch (e) {
+        state = state.copyWith(isNavigating: false);
+      }
+    }
+  }
+
+  Future<void> previousSentence() async {
+    final reader = ref.read(readerProvider);
+    if (reader.pageData == null || state.customSentences.isEmpty) return;
+
+    if (state.currentSentenceIndex > 0) {
+      state = state.copyWith(
+        currentSentenceIndex: state.currentSentenceIndex - 1,
+      );
+    } else {
+      state = state.copyWith(isNavigating: true);
+      try {
+        final currentPage = reader.pageData!.currentPage;
+
+        if (currentPage > 1) {
+          await ref
+              .read(readerProvider.notifier)
+              .loadPage(
+                bookId: reader.pageData!.bookId,
+                pageNum: currentPage - 1,
+              );
+
+          final langId = _getLangIdFromPageData();
+          await parseSentencesForPage(langId);
+
+          state = state.copyWith(
+            currentSentenceIndex: state.customSentences.length - 1,
+            isNavigating: false,
+          );
+        }
+      } catch (e) {
+        state = state.copyWith(isNavigating: false);
+      }
+    }
+  }
+
+  void _triggerPrefetch(ReaderState reader) async {
+    try {
+      if (reader.pageData != null &&
+          reader.pageData!.currentPage < reader.pageData!.pageCount) {
+        final nextPage = reader.pageData!.currentPage + 1;
+
+        final langId = _getLangIdFromPageData();
+        _prefetchPage(reader.pageData!.bookId, nextPage, langId);
+      }
+    } catch (e) {
+      print('Prefetch error: $e');
+    }
+  }
+
+  Future<void> _prefetchPage(int bookId, int pageNum, int langId) async {
+    try {
+      await ref
+          .read(readerProvider.notifier)
+          .loadPage(bookId: bookId, pageNum: pageNum, updateReaderState: false);
+
+      await parseSentencesForPage(langId);
+    } catch (e) {
+      print('Prefetch parse error: $e');
+    }
+  }
+
+  Future<void> loadSavedPosition() async {
+    final settings = ref.read(settingsProvider);
+    final reader = ref.read(readerProvider);
+
+    if (reader.pageData == null || state.customSentences.isEmpty) {
+      state = state.copyWith(currentSentenceIndex: 0);
+      return;
+    }
+
+    if (settings.currentBookPage == reader.pageData!.currentPage &&
+        settings.currentBookSentenceIndex != null) {
+      final savedIndex = settings.currentBookSentenceIndex!;
+      if (savedIndex >= 0 && savedIndex < state.customSentences.length) {
+        state = state.copyWith(currentSentenceIndex: savedIndex);
+      } else {
+        state = state.copyWith(currentSentenceIndex: 0);
+      }
+    } else {
+      state = state.copyWith(currentSentenceIndex: 0);
+    }
+  }
+
+  Future<void> clearCacheForThresholdChange() async {
+    final reader = ref.read(readerProvider);
+
+    if (reader.pageData != null) {
+      final bookId = reader.pageData!.bookId;
+
+      await _cacheService.clearBookCache(bookId);
+    }
+  }
+
+  void goToSentence(int index) {
+    if (index >= 0 && index < state.customSentences.length) {
+      state = state.copyWith(currentSentenceIndex: index);
+    }
+  }
+
+  void resetToFirst() {
+    state = state.copyWith(currentSentenceIndex: 0);
+  }
+
+  void clearError() {
+    state = state.copyWith(errorMessage: null);
+  }
+}
+
+final sentenceCacheServiceProvider = Provider<SentenceCacheService>((ref) {
+  return SentenceCacheService();
+});
+
+final sentenceReaderProvider =
+    NotifierProvider<SentenceReaderNotifier, SentenceReaderState>(() {
+      return SentenceReaderNotifier();
+    });

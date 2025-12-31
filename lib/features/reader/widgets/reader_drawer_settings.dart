@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
+import '../providers/sentence_reader_provider.dart';
+import '../providers/reader_provider.dart';
+import '../../../../app.dart';
 
 class ReaderDrawerSettings extends ConsumerWidget {
   const ReaderDrawerSettings({super.key});
@@ -67,6 +70,106 @@ class ReaderDrawerSettings extends ConsumerWidget {
           Text('Audio Player', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           _buildAudioPlayerToggle(context, ref, settings),
+          const SizedBox(height: 24),
+          Consumer(
+            builder: (context, ref, _) {
+              final error = ref.watch(sentenceReaderProvider).errorMessage;
+
+              if (error != null) {
+                return Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.errorContainer,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Sentence Reader Error',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.error,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.close),
+                                onPressed: () {
+                                  ref
+                                      .read(sentenceReaderProvider.notifier)
+                                      .clearError();
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            error,
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onErrorContainer,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: () async {
+                                    final reader = ref.read(readerProvider);
+                                    if (reader.pageData != null) {
+                                      await ref
+                                          .read(sentenceReaderProvider.notifier)
+                                          .parseSentencesForPage(
+                                            _getLangId(reader),
+                                          );
+                                    }
+                                  },
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Retry'),
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(
+                                      double.infinity,
+                                      36,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                );
+              }
+
+              return ElevatedButton.icon(
+                onPressed: () {
+                  ref.read(navigationProvider).navigateToScreen(3);
+                  Navigator.of(context).pop();
+                },
+                icon: const Icon(Icons.view_headline),
+                label: const Text('Open Sentence Reader'),
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -232,5 +335,13 @@ class ReaderDrawerSettings extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  int _getLangId(ReaderState reader) {
+    if (reader.pageData?.paragraphs?.isNotEmpty == true &&
+        reader.pageData!.paragraphs[0].textItems.isNotEmpty) {
+      return reader.pageData!.paragraphs[0].textItems.first.langId ?? 0;
+    }
+    return 0;
   }
 }
