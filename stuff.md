@@ -9,8 +9,10 @@ We will need our own custom sentence parser because the server sentences/paragra
 
 
 
+puncuation is appearing a the start of the new sentence instead of at the end of the last sentence, the parser must be set up wrong. 
 
-
+Don't show ignored(status98) terms in Sentencereader termslist
+add toggle under the 'Open Sentence Reader' button to show/hide known (status99) terms
 
 Future:
 - add a toggle to book details to select between Server parsing or App parsing
