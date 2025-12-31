@@ -46,11 +46,13 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
   @override
   ReaderState build() {
-    _repository = ref.watch(readerRepositoryProvider);
+    _repository = ref.read(readerRepositoryProvider);
+    print('DEBUG: ReaderNotifier.build() called, _repository=$_repository');
     return const ReaderState();
   }
 
   Future<void> loadPage({required int bookId, required int pageNum}) async {
+    print('DEBUG: loadPage(bookId=$bookId, pageNum=$pageNum) called');
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
@@ -58,8 +60,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
         bookId: bookId,
         pageNum: pageNum,
       );
+      print('DEBUG: loadPage success, pageData.bookId=${pageData.bookId}');
       state = state.copyWith(isLoading: false, pageData: pageData);
     } catch (e) {
+      print('DEBUG: loadPage error: $e');
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }

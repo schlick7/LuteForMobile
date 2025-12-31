@@ -88,15 +88,7 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> updateLanguageFilter(String? language) async {
-    state = Settings(
-      serverUrl: state.serverUrl,
-      isUrlValid: state.isUrlValid,
-      translationProvider: state.translationProvider,
-      showTags: state.showTags,
-      showLastRead: state.showLastRead,
-      languageFilter: language,
-      showAudioPlayer: state.showAudioPlayer,
-    );
+    state = state.copyWith(languageFilter: language);
 
     final prefs = await SharedPreferences.getInstance();
     if (language == null) {
@@ -107,7 +99,14 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> updateShowAudioPlayer(bool show) async {
-    state = state.copyWith(showAudioPlayer: show);
+    print(
+      'DEBUG: updateShowAudioPlayer($show) called, currentBookId=${state.currentBookId}, currentBookPage=${state.currentBookPage}',
+    );
+    final newState = state.copyWith(showAudioPlayer: show);
+    print(
+      'DEBUG: After copyWith, newBookId=${newState.currentBookId}, newBookPage=${newState.currentBookPage}',
+    );
+    state = newState;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyShowAudioPlayer, show);

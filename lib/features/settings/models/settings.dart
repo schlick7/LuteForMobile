@@ -30,7 +30,7 @@ class Settings {
     String? translationProvider,
     bool? showTags,
     bool? showLastRead,
-    Object? languageFilter,
+    String? languageFilter,
     bool? showAudioPlayer,
     int? currentBookId,
     int? currentBookPage,
@@ -41,10 +41,10 @@ class Settings {
       translationProvider: translationProvider ?? this.translationProvider,
       showTags: showTags ?? this.showTags,
       showLastRead: showLastRead ?? this.showLastRead,
-      languageFilter: languageFilter is String ? languageFilter : null,
+      languageFilter: languageFilter ?? this.languageFilter,
       showAudioPlayer: showAudioPlayer ?? this.showAudioPlayer,
-      currentBookId: currentBookId,
-      currentBookPage: currentBookPage,
+      currentBookId: currentBookId ?? this.currentBookId,
+      currentBookPage: currentBookPage ?? this.currentBookPage,
     );
   }
 
