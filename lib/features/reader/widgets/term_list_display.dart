@@ -18,26 +18,23 @@ List<TextItem> extractUniqueTerms(CustomSentence? sentence) {
   return termList;
 }
 
-class TermListDisplay extends StatefulWidget {
+class TermListDisplay extends StatelessWidget {
   final CustomSentence? sentence;
   final void Function(TextItem, Offset)? onTermTap;
   final void Function(TextItem)? onTermDoubleTap;
+  final Map<int, String?> translations;
 
   const TermListDisplay({
     super.key,
     required this.sentence,
     this.onTermTap,
     this.onTermDoubleTap,
+    required this.translations,
   });
 
   @override
-  State<TermListDisplay> createState() => _TermListDisplayState();
-}
-
-class _TermListDisplayState extends State<TermListDisplay> {
-  @override
   Widget build(BuildContext context) {
-    final uniqueTerms = extractUniqueTerms(widget.sentence);
+    final uniqueTerms = extractUniqueTerms(sentence);
 
     if (uniqueTerms.isEmpty) {
       return const Center(child: Text('No terms in this sentence'));
@@ -61,6 +58,7 @@ class _TermListDisplayState extends State<TermListDisplay> {
     final backgroundColor = Theme.of(
       context,
     ).colorScheme.getStatusBackgroundColor(status);
+    final translation = translations[term.wordId];
 
     return Align(
       alignment: Alignment.centerLeft,
@@ -68,18 +66,34 @@ class _TermListDisplayState extends State<TermListDisplay> {
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapDown: (details) =>
-              widget.onTermTap?.call(term, details.globalPosition),
-          onDoubleTap: () => widget.onTermDoubleTap?.call(term),
+          onTapDown: (details) => onTermTap?.call(term, details.globalPosition),
+          onDoubleTap: () => onTermDoubleTap?.call(term),
           child: Chip(
             backgroundColor: backgroundColor?.withValues(alpha: 0.15),
-            label: Text(
-              term.text,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  term.text,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (translation != null) ...[
+                  const SizedBox(width: 4),
+                  Text(
+                    '($translation)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ],
             ),
             visualDensity: VisualDensity.compact,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),

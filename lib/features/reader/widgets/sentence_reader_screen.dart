@@ -27,14 +27,7 @@ class SentenceReaderScreen extends ConsumerStatefulWidget {
 
 class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   TermForm? _currentTermForm;
-
-  int _getLangId(ReaderState reader) {
-    if (reader.pageData?.paragraphs?.isNotEmpty == true &&
-        reader.pageData!.paragraphs[0].textItems.isNotEmpty) {
-      return reader.pageData!.paragraphs[0].textItems.first.langId ?? 0;
-    }
-    return 0;
-  }
+  final Map<int, String?> _termTranslations = {};
 
   @override
   void initState() {
@@ -47,8 +40,43 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
             .read(sentenceReaderProvider.notifier)
             .parseSentencesForPage(langId);
         await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
+        await _loadAllTermTranslations();
       }
     });
+  }
+
+  Future<void> _loadAllTermTranslations() async {
+    final allSentences = ref.read(sentenceReaderProvider).customSentences;
+    final allTerms = <TextItem>[];
+
+    for (final sentence in allSentences) {
+      allTerms.addAll(sentence.uniqueTerms);
+    }
+
+    for (final term in allTerms) {
+      if (term.wordId != null && !_termTranslations.containsKey(term.wordId!)) {
+        try {
+          final termTooltip = await ref
+              .read(readerProvider.notifier)
+              .fetchTermTooltip(term.wordId!);
+          if (termTooltip != null && mounted) {
+            setState(() {
+              _termTranslations[term.wordId!] = termTooltip.translation;
+            });
+          }
+        } catch (e) {
+          // Skip terms that fail to load
+        }
+      }
+    }
+  }
+
+  int _getLangId(ReaderState reader) {
+    if (reader.pageData?.paragraphs.isNotEmpty == true &&
+        reader.pageData!.paragraphs[0].textItems.isNotEmpty) {
+      return reader.pageData!.paragraphs[0].textItems.first.langId ?? 0;
+    }
+    return 0;
   }
 
   @override
@@ -216,6 +244,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
         Expanded(
           child: TermListDisplay(
             sentence: currentSentence,
+            translations: _termTranslations,
             onTermTap: (item, position) => _handleTap(item, position),
             onTermDoubleTap: (item) => _handleDoubleTap(item),
           ),
@@ -353,6 +382,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
                     .read(readerProvider.notifier)
                     .saveTerm(updatedForm);
                 if (success && mounted) {
+                  if (updatedForm.termId != null) {
+                    setState(() {
+                      _termTranslations[updatedForm.termId!] =
+                          updatedForm.translation;
+                    });
+                  }
                   Navigator.of(context).pop();
                 } else {
                   if (mounted) {
@@ -408,6 +443,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
                     .read(readerProvider.notifier)
                     .saveTerm(updatedForm);
                 if (success && mounted) {
+                  if (updatedForm.termId != null) {
+                    setState(() {
+                      _termTranslations[updatedForm.termId!] =
+                          updatedForm.translation;
+                    });
+                  }
                   Navigator.of(context).pop();
                 } else {
                   if (mounted) {
