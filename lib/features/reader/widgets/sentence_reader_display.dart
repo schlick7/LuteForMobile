@@ -90,8 +90,8 @@ class _SentenceReaderDisplayState extends State<SentenceReaderDisplay> {
       fontWeight: widget.fontWeight,
       isItalic: widget.isItalic,
       onTap: (item, position) => _handleTap(item, position),
-      onDoubleTap: widget.onDoubleTap,
-      onLongPress: widget.onLongPress,
+      onDoubleTap: (item) => widget.onDoubleTap?.call(item),
+      onLongPress: (item) => widget.onLongPress?.call(item),
     );
   }
 }
