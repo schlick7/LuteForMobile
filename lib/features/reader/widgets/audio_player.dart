@@ -219,38 +219,62 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          IconButton(
-            icon: Icon(Icons.bookmark_border),
-            onPressed: () {
-              ref.read(audioPlayerProvider.notifier).goToPreviousBookmark();
-            },
-            color: Colors.white,
-            iconSize: 24,
-            tooltip: 'Previous bookmark',
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: Icon(Icons.navigate_before),
+                  onPressed: () {
+                    ref
+                        .read(audioPlayerProvider.notifier)
+                        .goToPreviousBookmark();
+                  },
+                  color: Colors.white,
+                  iconSize: 22,
+                  tooltip: 'Previous bookmark',
+                  padding: EdgeInsets.all(4),
+                ),
+                IconButton(
+                  icon: Icon(
+                    isAtBookmark ? Icons.bookmark : Icons.bookmark_border,
+                  ),
+                  onPressed: () {
+                    if (isAtBookmark) {
+                      ref.read(audioPlayerProvider.notifier).removeBookmark();
+                    } else {
+                      ref.read(audioPlayerProvider.notifier).addBookmark();
+                    }
+                  },
+                  color: isAtBookmark ? Colors.yellow[700] : Colors.white,
+                  iconSize: 22,
+                  tooltip: isAtBookmark ? 'Remove bookmark' : 'Add bookmark',
+                  padding: EdgeInsets.all(4),
+                ),
+                IconButton(
+                  icon: Icon(Icons.navigate_next),
+                  onPressed: () {
+                    ref.read(audioPlayerProvider.notifier).goToNextBookmark();
+                  },
+                  color: Colors.white,
+                  iconSize: 22,
+                  tooltip: 'Next bookmark',
+                  padding: EdgeInsets.all(4),
+                ),
+              ],
+            ),
           ),
-          IconButton(
-            icon: Icon(isAtBookmark ? Icons.bookmark : Icons.bookmark_border),
-            onPressed: () {
-              if (isAtBookmark) {
-                ref.read(audioPlayerProvider.notifier).removeBookmark();
-              } else {
-                ref.read(audioPlayerProvider.notifier).addBookmark();
-              }
-            },
-            color: isAtBookmark ? Colors.yellow[700] : Colors.white,
-            iconSize: 24,
-            tooltip: isAtBookmark ? 'Remove bookmark' : 'Add bookmark',
-          ),
-          IconButton(
-            icon: Icon(Icons.bookmark),
-            onPressed: () {
-              ref.read(audioPlayerProvider.notifier).goToNextBookmark();
-            },
-            color: Colors.white,
-            iconSize: 24,
-            tooltip: 'Next bookmark',
-          ),
-          SizedBox(width: 12),
           IconButton(
             icon: Icon(Icons.replay_10),
             onPressed: () {
