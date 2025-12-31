@@ -65,6 +65,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     });
 
     _audioPlayer = AudioPlayer();
+    _audioPlayer.setReleaseMode(ReleaseMode.stop);
     _contentService = ref.read(readerRepositoryProvider).contentService;
     _setupPlayerListeners();
     return AudioPlayerState(
@@ -92,7 +93,10 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     });
 
     _audioPlayer.onPlayerComplete.listen((_) {
-      state = state.copyWith(playerState: PlayerState.stopped);
+      state = state.copyWith(
+        playerState: PlayerState.stopped,
+        position: Duration.zero,
+      );
     });
   }
 
@@ -146,6 +150,10 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
 
   Future<void> seek(Duration position) async {
     await _audioPlayer.seek(position);
+    if (state.playerState == PlayerState.stopped) {
+      await Future.delayed(Duration(milliseconds: 50));
+      await _audioPlayer.resume();
+    }
   }
 
   void _startAutoSave() {

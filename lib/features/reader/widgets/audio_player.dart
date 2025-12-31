@@ -23,6 +23,8 @@ class AudioPlayerWidget extends ConsumerStatefulWidget {
 
 class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
   String? _lastLoadedUrl;
+  bool _isDragging = false;
+  double? _dragPosition;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +76,12 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
   ) {
     final position = state.position.inMilliseconds / 1000.0;
     final duration = state.duration.inMilliseconds / 1000.0;
+    final maxDuration = duration > 0 ? duration : 1.0;
+
+    double sliderValue = _isDragging ? (_dragPosition ?? position) : position;
+    if (sliderValue > maxDuration) {
+      sliderValue = maxDuration;
+    }
 
     return Container(
       width: double.infinity,
@@ -89,13 +97,25 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
               overlayShape: RoundSliderOverlayShape(overlayRadius: 12.0),
             ),
             child: Slider(
-              value: position,
+              value: sliderValue,
               min: 0.0,
-              max: duration > 0 ? duration : 1.0,
+              max: maxDuration,
               onChanged: (value) {
-                ref
-                    .read(audioPlayerProvider.notifier)
-                    .seek(Duration(milliseconds: (value * 1000).round()));
+                setState(() {
+                  _isDragging = true;
+                  _dragPosition = value;
+                });
+              },
+              onChangeEnd: (value) {
+                setState(() {
+                  _isDragging = false;
+                  _dragPosition = null;
+                });
+                if (mounted) {
+                  ref
+                      .read(audioPlayerProvider.notifier)
+                      .seek(Duration(milliseconds: (value * 1000).round()));
+                }
               },
             ),
           ),
@@ -128,6 +148,30 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
               ),
             ),
           ),
+          Positioned(
+            top: 0,
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: IgnorePointer(
+              child: Center(
+                child: Text(
+                  '${_formatDuration(state.position)} / ${_formatDuration(state.duration)}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    shadows: [
+                      Shadow(
+                        blurRadius: 3.0,
+                        color: Colors.black.withOpacity(0.7),
+                        offset: Offset(0, 0),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -153,21 +197,13 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
       };
     }
 
-    return Row(
-      children: [
-        IconButton(
-          icon: Icon(playPauseIcon),
-          onPressed: playPauseAction,
-          color: Colors.white,
-        ),
-        Expanded(
-          child: Text(
-            '${_formatDuration(state.position)} / ${_formatDuration(state.duration)}',
-            style: TextStyle(color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      ],
+    return Center(
+      child: IconButton(
+        icon: Icon(playPauseIcon),
+        onPressed: playPauseAction,
+        color: Colors.white,
+        iconSize: 48,
+      ),
     );
   }
 
