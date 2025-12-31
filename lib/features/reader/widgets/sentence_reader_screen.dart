@@ -10,6 +10,7 @@ import '../widgets/term_form.dart';
 import '../widgets/sentence_translation.dart';
 import '../widgets/sentence_reader_display.dart';
 import '../widgets/term_list_display.dart';
+import '../utils/sentence_parser.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../../../features/settings/providers/settings_provider.dart';
 import '../../../shared/widgets/loading_indicator.dart';
@@ -148,6 +149,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     );
     final readerState = ref.read(readerProvider);
     final sentenceReader = ref.watch(sentenceReaderProvider);
+    final currentSentence = sentenceReader.currentSentence;
 
     if (readerState.isLoading) {
       return Scaffold(
@@ -261,17 +263,21 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       ),
       body: Column(
         children: [
-          Expanded(flex: 3, child: _buildTopSection(textSettings)),
-          Expanded(flex: 7, child: _buildBottomSection()),
+          Expanded(
+            flex: 3,
+            child: _buildTopSection(textSettings, currentSentence),
+          ),
+          Expanded(flex: 7, child: _buildBottomSection(currentSentence)),
         ],
       ),
       bottomNavigationBar: _buildBottomAppBar(),
     );
   }
 
-  Widget _buildTopSection(dynamic textSettings) {
-    final currentSentence = ref.watch(sentenceReaderProvider).currentSentence;
-
+  Widget _buildTopSection(
+    dynamic textSettings,
+    CustomSentence? currentSentence,
+  ) {
     if (currentSentence == null) {
       return const Center(child: Text('No sentence available'));
     }
@@ -298,10 +304,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     );
   }
 
-  Widget _buildBottomSection() {
-    final sentenceReader = ref.watch(sentenceReaderProvider);
-    final currentSentence = sentenceReader.currentSentence;
-
+  Widget _buildBottomSection(CustomSentence? currentSentence) {
     return Column(
       children: [
         Padding(
