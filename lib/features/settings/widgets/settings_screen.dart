@@ -268,19 +268,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildSettingRow('Server URL', settings.serverUrl),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      title: const Text('Show Tags'),
-                      subtitle: const Text(
-                        'Display book tags in the book list',
-                      ),
-                      value: settings.showTags,
-                      onChanged: (value) {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .updateShowTags(value);
-                      },
-                    ),
                   ],
                 ),
               ),
