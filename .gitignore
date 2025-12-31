@@ -46,3 +46,6 @@ app.*.map.json
 
 # Reference server code (for reference only)
 Reference Server Code/
+
+# Markdown files
+*.md
