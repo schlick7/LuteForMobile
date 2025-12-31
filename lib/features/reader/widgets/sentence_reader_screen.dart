@@ -261,25 +261,30 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
       return const Center(child: Text('No sentence available'));
     }
 
-    return GestureDetector(
-      behavior: HitTestBehavior.translucent,
-      onTapDown: (_) => TermTooltipClass.close(),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: SentenceReaderDisplay(
-            sentence: currentSentence,
-            onTap: (item, position) => _handleTap(item, position),
-            onDoubleTap: (item) => _handleDoubleTap(item),
-            onLongPress: (item) => _handleLongPress(item),
-            textSize: textSettings.textSize,
-            lineSpacing: textSettings.lineSpacing,
-            fontFamily: textSettings.fontFamily,
-            fontWeight: textSettings.fontWeight,
-            isItalic: textSettings.isItalic,
+    return Stack(
+      children: [
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => TermTooltipClass.close(),
+          child: const SizedBox.expand(),
+        ),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SentenceReaderDisplay(
+              sentence: currentSentence,
+              onTap: (item, position) => _handleTap(item, position),
+              onDoubleTap: (item) => _handleDoubleTap(item),
+              onLongPress: (item) => _handleLongPress(item),
+              textSize: textSettings.textSize,
+              lineSpacing: textSettings.lineSpacing,
+              fontFamily: textSettings.fontFamily,
+              fontWeight: textSettings.fontWeight,
+              isItalic: textSettings.isItalic,
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 
