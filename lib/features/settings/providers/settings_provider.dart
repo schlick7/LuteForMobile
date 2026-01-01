@@ -29,25 +29,49 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyCombineShortSentences = 'combine_short_sentences';
   static const String _keyShowKnownTermsInSentenceReader =
       'show_known_terms_in_sentence_reader';
+  bool _isInitialized = false;
 
   @override
   Settings build() {
-    final initialUrl = ref.read(initialServerUrlProvider);
+    if (!_isInitialized) {
+      _isInitialized = true;
+      _loadSettings();
+    }
+    return Settings.defaultSettings();
+  }
 
-    return Settings(
-      serverUrl: initialUrl,
-      isUrlValid: _isValidUrl(initialUrl),
-      translationProvider: 'local',
-      showTags: true,
-      showLastRead: true,
-      languageFilter: null,
-      showAudioPlayer: true,
-      currentBookId: null,
-      currentBookPage: null,
-      currentBookSentenceIndex: null,
-      combineShortSentences: 3,
-      showKnownTermsInSentenceReader: true,
-    );
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final serverUrl = prefs.getString(_keyServerUrl) ?? '';
+    final translationProvider =
+        prefs.getString(_keyTranslationProvider) ?? 'local';
+    final showTags = prefs.getBool(_keyShowTags) ?? true;
+    final showLastRead = prefs.getBool(_keyShowLastRead) ?? true;
+    final languageFilter = prefs.getString(_keyLanguageFilter);
+    final showAudioPlayer = prefs.getBool(_keyShowAudioPlayer) ?? true;
+    final currentBookId = prefs.getInt(_keyCurrentBookId);
+    final currentBookPage = prefs.getInt(_keyCurrentBookPage);
+    final currentBookSentenceIndex = prefs.getInt(_keyCurrentBookSentenceIndex);
+    final combineShortSentences = prefs.getInt(_keyCombineShortSentences) ?? 3;
+    final showKnownTermsInSentenceReader =
+        prefs.getBool(_keyShowKnownTermsInSentenceReader) ?? true;
+
+    if (serverUrl != state.serverUrl) {
+      state = Settings(
+        serverUrl: serverUrl,
+        isUrlValid: _isValidUrl(serverUrl),
+        translationProvider: translationProvider,
+        showTags: showTags,
+        showLastRead: showLastRead,
+        languageFilter: languageFilter,
+        showAudioPlayer: showAudioPlayer,
+        currentBookId: currentBookId,
+        currentBookPage: currentBookPage,
+        currentBookSentenceIndex: currentBookSentenceIndex,
+        combineShortSentences: combineShortSentences,
+        showKnownTermsInSentenceReader: showKnownTermsInSentenceReader,
+      );
+    }
   }
 
   Future<void> updateServerUrl(String url) async {
