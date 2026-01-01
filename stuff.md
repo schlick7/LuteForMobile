@@ -8,6 +8,12 @@ Change opacity for termlist
 
 Reader not remembering book between app launches
 
+Reader screen seems to load in flash blank and then load in again. 
+
+Sentence Reader is calling parsetermtooltip in the normal ReaderScreen before it is every opend and it seems to be doing it for the ENTIRE page. We only want this to get trigger when the sentence reader opens and then we only want it to happen for the first sentence! this is way to much loading data right away
+
+Rename the 'Sentence Combining' settings label to be 'Sentence Combining in Sentence Reader'
+
 The bookcard status bar needs to recompute the values to take into account that we aren't showing status98 terms anymore. 
 
 Green checkmark appears in the serverurl textbox even if the URL test connection fails. It should only be there if the test passes

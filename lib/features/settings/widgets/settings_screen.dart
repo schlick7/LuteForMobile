@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
-import '../models/settings.dart';
 import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../app.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -97,7 +97,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       const SnackBar(content: Text('Settings saved successfully')),
     );
 
-    if (oldUrl.isEmpty && newUrl.isNotEmpty) {
+    if (oldUrl != newUrl) {
+      RestartWidget.restartApp(context);
+    } else if (oldUrl.isEmpty && newUrl.isNotEmpty) {
       ref.read(booksProvider.notifier).loadBooks();
     }
   }

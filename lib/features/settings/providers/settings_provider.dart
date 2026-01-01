@@ -29,20 +29,20 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyCombineShortSentences = 'combine_short_sentences';
   static const String _keyShowKnownTermsInSentenceReader =
       'show_known_terms_in_sentence_reader';
-  bool _isInitialized = false;
 
   @override
   Settings build() {
-    if (!_isInitialized) {
-      _isInitialized = true;
-      _loadSettings();
-    }
-    return Settings.defaultSettings();
+    final serverUrl = ref.read(initialServerUrlProvider);
+    final settings = Settings.defaultSettings().copyWith(
+      serverUrl: serverUrl,
+      isUrlValid: _isValidUrl(serverUrl),
+    );
+    _loadOtherSettingsAsync();
+    return settings;
   }
 
-  Future<void> _loadSettings() async {
+  Future<void> _loadOtherSettingsAsync() async {
     final prefs = await SharedPreferences.getInstance();
-    final serverUrl = prefs.getString(_keyServerUrl) ?? '';
     final translationProvider =
         prefs.getString(_keyTranslationProvider) ?? 'local';
     final showTags = prefs.getBool(_keyShowTags) ?? true;
@@ -56,22 +56,18 @@ class SettingsNotifier extends Notifier<Settings> {
     final showKnownTermsInSentenceReader =
         prefs.getBool(_keyShowKnownTermsInSentenceReader) ?? true;
 
-    if (serverUrl != state.serverUrl) {
-      state = Settings(
-        serverUrl: serverUrl,
-        isUrlValid: _isValidUrl(serverUrl),
-        translationProvider: translationProvider,
-        showTags: showTags,
-        showLastRead: showLastRead,
-        languageFilter: languageFilter,
-        showAudioPlayer: showAudioPlayer,
-        currentBookId: currentBookId,
-        currentBookPage: currentBookPage,
-        currentBookSentenceIndex: currentBookSentenceIndex,
-        combineShortSentences: combineShortSentences,
-        showKnownTermsInSentenceReader: showKnownTermsInSentenceReader,
-      );
-    }
+    state = state.copyWith(
+      translationProvider: translationProvider,
+      showTags: showTags,
+      showLastRead: showLastRead,
+      languageFilter: languageFilter,
+      showAudioPlayer: showAudioPlayer,
+      currentBookId: currentBookId,
+      currentBookPage: currentBookPage,
+      currentBookSentenceIndex: currentBookSentenceIndex,
+      combineShortSentences: combineShortSentences,
+      showKnownTermsInSentenceReader: showKnownTermsInSentenceReader,
+    );
   }
 
   Future<void> updateServerUrl(String url) async {

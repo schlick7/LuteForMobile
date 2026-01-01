@@ -13,6 +13,34 @@ import 'package:lute_for_mobile/features/settings/providers/settings_provider.da
 import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
 import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
 
+class RestartWidget extends StatefulWidget {
+  final Widget child;
+
+  const RestartWidget({super.key, required this.child});
+
+  static void restartApp(BuildContext context) {
+    context.findAncestorStateOfType<_RestartWidgetState>()?.restartApp();
+  }
+
+  @override
+  State<RestartWidget> createState() => _RestartWidgetState();
+}
+
+class _RestartWidgetState extends State<RestartWidget> {
+  Key _key = UniqueKey();
+
+  void restartApp() {
+    setState(() {
+      _key = UniqueKey();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return KeyedSubtree(key: _key, child: widget.child);
+  }
+}
+
 final navigationProvider = Provider<NavigationController>((ref) {
   return NavigationController();
 });
@@ -75,13 +103,15 @@ class App extends ConsumerWidget {
     print(
       'DEBUG: App.build called, themeSettings.accentLabelColor: ${themeSettings.accentLabelColor}',
     );
-    return MaterialApp(
-      title: 'LuteForMobile',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme(themeSettings),
-      darkTheme: AppTheme.darkTheme(themeSettings),
-      themeMode: ThemeMode.system,
-      home: const MainNavigation(),
+    return RestartWidget(
+      child: MaterialApp(
+        title: 'LuteForMobile',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme(themeSettings),
+        darkTheme: AppTheme.darkTheme(themeSettings),
+        themeMode: ThemeMode.system,
+        home: const MainNavigation(),
+      ),
     );
   }
 }
