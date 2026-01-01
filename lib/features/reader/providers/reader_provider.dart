@@ -104,14 +104,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
   }
 
   Future<TermTooltip?> fetchTermTooltip(int termId) async {
-    state = state.copyWith(isTermTooltipLoading: true);
     try {
       final result = await _repository.getTermTooltip(termId);
       return result;
     } catch (e) {
       return null;
-    } finally {
-      state = state.copyWith(isTermTooltipLoading: false);
     }
   }
 

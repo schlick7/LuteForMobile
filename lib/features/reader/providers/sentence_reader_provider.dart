@@ -107,6 +107,8 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       'DEBUG: cachedSentences=${cachedSentences != null ? "FOUND (${cachedSentences.length})" : "NOT FOUND"}',
     );
 
+    print('DEBUG: About to check language settings...');
+
     if (cachedSentences != null) {
       state = state.copyWith(
         customSentences: cachedSentences,
@@ -116,6 +118,21 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       );
       print('DEBUG: Loaded ${cachedSentences.length} sentences from cache');
       return;
+    }
+
+    print('DEBUG: No cache, checking if language settings needed...');
+    print(
+      'DEBUG: reader.languageSentenceSettings=${reader.languageSentenceSettings != null}',
+    );
+    if (reader.languageSentenceSettings == null ||
+        reader.languageSentenceSettings!.languageId != langId) {
+      print('DEBUG: Fetching language settings for langId=$langId');
+      await ref
+          .read(readerProvider.notifier)
+          .fetchLanguageSentenceSettings(langId);
+      print('DEBUG: Language settings fetched');
+    } else {
+      print('DEBUG: Language settings already loaded for langId=$langId');
     }
 
     print('DEBUG: No cache found, checking language settings...');
@@ -137,14 +154,20 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     }
 
     final sentenceSettings = reader.languageSentenceSettings;
+    print('DEBUG: sentenceSettings=${sentenceSettings != null}');
     if (sentenceSettings == null) {
-      print('DEBUG: Language settings is null after fetch');
+      print('DEBUG: Language settings is null after fetch, setting error');
+      print(
+        'DEBUG: ERROR: reader.languageSentenceSettings is null even after fetch!',
+      );
       state = state.copyWith(
         errorMessage: 'Failed to load language settings. Please try again.',
         isParsing: false,
       );
       return;
     }
+
+    print('DEBUG: About to start parsing sentences...');
 
     print('DEBUG: Language settings loaded, starting parse...');
 

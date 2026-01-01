@@ -86,16 +86,10 @@ class TermListDisplay extends StatelessWidget {
 
     if (tooltip != null) {
       translation = tooltip.translation;
-      print(
-        'DEBUG TermListDisplay._buildTermItem: tooltip for "${term.text}" has ${tooltip.parents.length} parents',
-      );
       if (tooltip.parents.isNotEmpty) {
         final parent = tooltip.parents.first;
         parentTerm = parent.term;
         parentTranslation = parent.translation;
-        print(
-          'DEBUG TermListDisplay._buildTermItem: First parent - term="$parentTerm", translation="$parentTranslation"',
-        );
       }
     }
 

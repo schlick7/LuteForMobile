@@ -117,15 +117,10 @@ class HtmlParser {
   }
 
   TermTooltip parseTermTooltip(String htmlContent) {
-    print('DEBUG parseTermTooltip: HTML length = ${htmlContent.length}');
-    if (htmlContent.length < 500) {
-      print('DEBUG parseTermTooltip: Full HTML:\n$htmlContent');
-    }
     final document = html_parser.parse(htmlContent);
 
     final termElement = document.querySelector('b');
     final term = termElement?.text.trim() ?? '';
-    print('DEBUG parseTermTooltip: term="$term"');
 
     final paragraphs = document.querySelectorAll('p');
     String? translation;
@@ -167,9 +162,6 @@ class HtmlParser {
     final parents = <TermParent>[];
 
     final parentElements = document.querySelectorAll('.term-popup .parents li');
-    print(
-      'DEBUG parseTermTooltip: Found ${parentElements.length} .term-popup .parents li elements',
-    );
 
     for (final parentElement in parentElements) {
       final link = parentElement.querySelector('a');

@@ -85,7 +85,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   @override
   Widget build(BuildContext context) {
     _mainBuildCount++;
-    print('DEBUG: SentenceReaderScreen main build #$_mainBuildCount');
 
     final currentScreenRoute = ref.watch(currentScreenRouteProvider);
     final isVisible = currentScreenRoute == 'sentence-reader';
@@ -123,6 +122,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         if (_isParsing) {
           print('DEBUG: Already parsing, skipping duplicate call');
         } else {
+          final reader = ref.read(readerProvider);
+          print(
+            'DEBUG: reader.languageSentenceSettings=${reader.languageSentenceSettings != null}, langId=$langId',
+          );
           _isParsing = true;
           Future(() {
             ref
@@ -132,6 +135,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                   if (mounted) {
                     _isParsing = false;
                     final sentenceReader = ref.read(sentenceReaderProvider);
+                    print(
+                      'DEBUG: Sentences loaded: ${sentenceReader.customSentences.length}',
+                    );
                     if (sentenceReader.customSentences.isNotEmpty) {
                       _hasInitialized = true;
                       _initializationFailed = false;
@@ -382,9 +388,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     CustomSentence? currentSentence,
   ) {
     _topSectionBuildCount++;
-    print(
-      'DEBUG: SentenceReaderScreen _buildTopSection rebuild #$_topSectionBuildCount',
-    );
 
     if (currentSentence == null) {
       return const Center(child: Text('No sentence available'));
@@ -414,9 +417,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   Widget _buildBottomSection(CustomSentence? currentSentence) {
     _bottomSectionBuildCount++;
-    print(
-      'DEBUG: SentenceReaderScreen _buildBottomSection rebuild #$_bottomSectionBuildCount',
-    );
 
     final settings = ref.watch(settingsProvider);
 
@@ -521,6 +521,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     _tooltipsLoadInProgress = true;
 
     try {
+      final Map<int, TermTooltip> newTooltips = {};
       for (final term in termsNeedingTooltips) {
         if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
           print(
@@ -530,10 +531,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             final termTooltip = await ref
                 .read(readerProvider.notifier)
                 .fetchTermTooltip(term.wordId!);
-            if (termTooltip != null && mounted) {
-              setState(() {
-                _termTooltips[term.wordId!] = termTooltip;
-              });
+            if (termTooltip != null) {
+              newTooltips[term.wordId!] = termTooltip;
             }
           } catch (e) {
             print(
@@ -541,6 +540,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             );
           }
         }
+      }
+      if (mounted && newTooltips.isNotEmpty) {
+        setState(() {
+          _termTooltips.addAll(newTooltips);
+        });
       }
     } finally {
       _tooltipsLoadInProgress = false;
@@ -617,6 +621,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       'DEBUG: Preloading tooltips for next sentence ID: ${nextSentence.id} (${termsNeedingTooltips.length} terms)',
     );
 
+    final Map<int, TermTooltip> newTooltips = {};
     for (final term in termsNeedingTooltips) {
       if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
         if (!_canPreload()) {
@@ -628,10 +633,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           final termTooltip = await ref
               .read(readerProvider.notifier)
               .fetchTermTooltip(term.wordId!);
-          if (termTooltip != null && mounted && _canPreload()) {
-            setState(() {
-              _termTooltips[term.wordId!] = termTooltip;
-            });
+          if (termTooltip != null) {
+            newTooltips[term.wordId!] = termTooltip;
           }
         } catch (e) {
           print(
@@ -639,6 +642,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           );
         }
       }
+    }
+
+    if (mounted && _canPreload() && newTooltips.isNotEmpty) {
+      setState(() {
+        _termTooltips.addAll(newTooltips);
+      });
     }
 
     print('DEBUG: Finished preloading next sentence');
