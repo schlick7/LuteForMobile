@@ -11,7 +11,13 @@ class ApiClient {
           receiveTimeout: const Duration(seconds: 10),
           headers: {'Content-Type': 'text/html'},
         ),
+      ) {
+    if (baseUrl.isEmpty) {
+      throw Exception(
+        'Server URL is not configured. Please set your server URL in settings.',
       );
+    }
+  }
 
   Future<Response<String>> get(String path) async {
     return await dio.get<String>(path);

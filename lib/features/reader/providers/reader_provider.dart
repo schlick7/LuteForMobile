@@ -62,6 +62,17 @@ class ReaderNotifier extends Notifier<ReaderState> {
     required int pageNum,
     bool updateReaderState = true,
   }) async {
+    final settings = ref.read(settingsProvider);
+    if (settings.serverUrl.isEmpty) {
+      if (updateReaderState) {
+        state = state.copyWith(
+          isLoading: false,
+          errorMessage: 'Server URL not configured. Please set it in settings.',
+        );
+      }
+      return;
+    }
+
     if (updateReaderState) {
       state = state.copyWith(isLoading: true, errorMessage: null);
     }

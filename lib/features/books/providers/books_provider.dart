@@ -63,6 +63,15 @@ class BooksNotifier extends Notifier<BooksState> {
   }
 
   Future<void> loadBooks() async {
+    final settings = ref.read(settingsProvider);
+    if (settings.serverUrl.isEmpty) {
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: 'Server URL not configured. Please set it in settings.',
+      );
+      return;
+    }
+
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {

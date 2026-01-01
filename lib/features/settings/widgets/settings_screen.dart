@@ -38,15 +38,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void initState() {
     super.initState();
     _serverUrlController = TextEditingController();
-
-    ref.listen(settingsProvider, (previous, next) {
-      if (_serverUrlController.text != next.serverUrl) {
-        _serverUrlController.value = TextEditingValue(
-          text: next.serverUrl,
-          selection: TextSelection.collapsed(offset: next.serverUrl.length),
-        );
-      }
-    });
   }
 
   @override
@@ -109,6 +100,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final themeSettings = ref.watch(themeSettingsProvider);
+
+    // Sync controller with current state on every build
+    if (_serverUrlController.text != settings.serverUrl) {
+      _serverUrlController.value = TextEditingValue(
+        text: settings.serverUrl,
+        selection: TextSelection.collapsed(offset: settings.serverUrl.length),
+      );
+    }
+
+    ref.listen(settingsProvider, (previous, next) {
+      if (previous?.serverUrl != next.serverUrl &&
+          _serverUrlController.text != next.serverUrl) {
+        _serverUrlController.value = TextEditingValue(
+          text: next.serverUrl,
+          selection: TextSelection.collapsed(offset: next.serverUrl.length),
+        );
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
