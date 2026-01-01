@@ -18,9 +18,19 @@ lazy loading?
 
 Remove the ability to close the term form with a downward swipe when the dictionary is open. It is making it so i can't scroll the webviews. 
 
+The term form autosave on tapping away (out of the form) doesn't trigger the tooltip refresh in the termslist like it does when i press the save button or the close button
+
+make swipe to turn page work on the termslist as well. 
+
+The back button on the sentencereader on sentence 1 needs to navigate back 1 page in the book
+
 can the server handle async requests for tooltips?
 
 Add light Theme
+
+I only what the 'show known terms' toggle to show up when we are in the sentence reader not when we're in the Readerscreen
+
+Add back the add parent button to the termform with dictionary open and parents toggled on. 
 
 Add more custom theme options
   - have custom open up a popup?
