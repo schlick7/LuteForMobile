@@ -8,26 +8,23 @@ When opening sentencereader the status highlights are still not being updated. n
 
 Edge Case? After changing Server - When I open the sentence reader for the first time on a new book it says 'no sentence available' and 'no terms in this sentence'
 
+Edge Case? auto save on close only works when i click a way if I first press the close button. from then on a can click away and it works everytime, its like it doesn't activate until i press the actual close button
+
 Change opacity for termlist
 
 Reader not remembering book between app launches
 
 lazy loading?
 
-are we reparsing the entire sentence on status change?
-
-make sure that ontap isn't using cached data
+Remove the ability to close the term form with a downward swipe when the dictionary is open. It is making it so i can't scroll the webviews. 
 
 can the server handle async requests for tooltips?
 
-The Server URL isn't saving correctly. Every single time I launch the app the server textbox is on the default server. The current settings shows the correct server however
+Add light Theme
 
-
-
-
-
-
-
+Add more custom theme options
+  - have custom open up a popup?
+    - include examples for everything if possible. 
 
 Future:
 - add a toggle to book details to select between Server parsing or App parsing
