@@ -341,17 +341,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       context,
                       'Accent Label Color',
                       themeSettings.accentLabelColor,
+                      themeSettings.customAccentLabelColor,
                       (color) => ref
                           .read(themeSettingsProvider.notifier)
                           .updateAccentLabelColor(color),
+                      (color) => ref
+                          .read(themeSettingsProvider.notifier)
+                          .updateCustomAccentLabelColor(color),
                     ),
                     _buildAccentColorSetting(
                       context,
                       'Accent Button Color',
                       themeSettings.accentButtonColor,
+                      themeSettings.customAccentButtonColor,
                       (color) => ref
                           .read(themeSettingsProvider.notifier)
                           .updateAccentButtonColor(color),
+                      (color) => ref
+                          .read(themeSettingsProvider.notifier)
+                          .updateCustomAccentButtonColor(color),
                     ),
                   ],
                 ),
@@ -465,7 +473,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     BuildContext context,
     String label,
     Color currentColor,
+    Color? customColor,
     Function(Color) onColorSelected,
+    Function(Color) onCustomColorSelected,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -475,40 +485,216 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _accentColorOptions.map((color) {
-            final isSelected = color.r == currentColor.r;
-            return InkWell(
-              onTap: () => onColorSelected(color),
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isSelected
-                        ? Theme.of(context).colorScheme.onSurface
-                        : Colors.transparent,
-                    width: 2,
+          children: [
+            ..._accentColorOptions.map((color) {
+              final isSelected =
+                  color.value == currentColor.value && customColor == null;
+              return InkWell(
+                onTap: () => onColorSelected(color),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isSelected
+                          ? Theme.of(context).colorScheme.onSurface
+                          : Colors.transparent,
+                      width: 2,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
                   ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
+                  child: isSelected
+                      ? const Icon(Icons.check, color: Colors.white)
                       : null,
                 ),
-                child: isSelected
-                    ? const Icon(Icons.check, color: Colors.white)
-                    : null,
+              );
+            }).toList(),
+            if (customColor != null) ...[
+              _buildCustomColorOption(
+                context,
+                customColor,
+                currentColor,
+                onCustomColorSelected,
               ),
-            );
-          }).toList(),
+            ] else ...[
+              _buildCustomColorOption(
+                context,
+                const Color(0xFFBDBDBD),
+                currentColor,
+                onCustomColorSelected,
+              ),
+            ],
+          ],
         ),
       ],
+    );
+  }
+
+  Widget _buildCustomColorOption(
+    BuildContext context,
+    Color color,
+    Color currentColor,
+    Function(Color) onCustomColorSelected,
+  ) {
+    final isSelected = color.value == currentColor.value;
+    final displayColor = color;
+
+    return InkWell(
+      onTap: () {
+        if (displayColor.value != const Color(0xFFBDBDBD).value) {
+          onCustomColorSelected(displayColor);
+        }
+      },
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: displayColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected
+                ? Theme.of(context).colorScheme.onSurface
+                : Colors.transparent,
+            width: 2,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Stack(
+          children: [
+            if (isSelected &&
+                displayColor.value != const Color(0xFFBDBDBD).value)
+              const Positioned(
+                top: 8,
+                left: 8,
+                child: Icon(Icons.check, color: Colors.white, size: 20),
+              ),
+            Positioned(
+              bottom: 4,
+              right: 4,
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 2,
+                    ),
+                  ],
+                ),
+                child: InkWell(
+                  onTap: () {
+                    _showCustomColorDialog(
+                      context,
+                      displayColor,
+                      onCustomColorSelected,
+                    );
+                  },
+                  child: const Icon(
+                    Icons.settings,
+                    size: 14,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCustomColorDialog(
+    BuildContext context,
+    Color currentColor,
+    Function(Color) onColorSelected,
+  ) {
+    final TextEditingController controller = TextEditingController(
+      text:
+          '#${currentColor.value.toRadixString(16).substring(2).toUpperCase()}',
+    );
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Custom Color'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Color Hex Code',
+                hintText: '#RRGGBB',
+                border: OutlineInputBorder(),
+              ),
+              maxLength: 7,
+              onChanged: (value) {},
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              height: 50,
+              decoration: BoxDecoration(
+                color: currentColor,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              final hexCode = controller.text.trim();
+              try {
+                if (hexCode.startsWith('#') && hexCode.length == 7) {
+                  final color = Color(
+                    int.parse(hexCode.substring(1), radix: 16) + 0xFF000000,
+                  );
+                  onColorSelected(color);
+                  Navigator.pop(context);
+                } else if (hexCode.length == 6) {
+                  final color = Color(
+                    int.parse(hexCode, radix: 16) + 0xFF000000,
+                  );
+                  onColorSelected(color);
+                  Navigator.pop(context);
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Invalid color format')),
+                );
+              }
+            },
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
     );
   }
 }

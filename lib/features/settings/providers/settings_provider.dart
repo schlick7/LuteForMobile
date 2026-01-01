@@ -400,6 +400,9 @@ final textFormattingSettingsProvider =
 class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
   static const String _keyAccentLabelColor = 'accent_label_color';
   static const String _keyAccentButtonColor = 'accent_button_color';
+  static const String _keyCustomAccentLabelColor = 'custom_accent_label_color';
+  static const String _keyCustomAccentButtonColor =
+      'custom_accent_button_color';
 
   @override
   ThemeSettings build() {
@@ -412,6 +415,12 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     final prefs = await SharedPreferences.getInstance();
     final accentLabelColorValue = prefs.getInt(_keyAccentLabelColor);
     final accentButtonColorValue = prefs.getInt(_keyAccentButtonColor);
+    final customAccentLabelColorValue = prefs.getInt(
+      _keyCustomAccentLabelColor,
+    );
+    final customAccentButtonColorValue = prefs.getInt(
+      _keyCustomAccentButtonColor,
+    );
 
     final loadedSettings = ThemeSettings(
       accentLabelColor: accentLabelColorValue != null
@@ -420,12 +429,22 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
       accentButtonColor: accentButtonColorValue != null
           ? Color(accentButtonColorValue!)
           : ThemeSettings.defaultSettings.accentButtonColor,
+      customAccentLabelColor: customAccentLabelColorValue != null
+          ? Color(customAccentLabelColorValue!)
+          : null,
+      customAccentButtonColor: customAccentButtonColorValue != null
+          ? Color(customAccentButtonColorValue!)
+          : null,
     );
 
     if (loadedSettings.accentLabelColor.value !=
             currentSettings.accentLabelColor.value ||
         loadedSettings.accentButtonColor.value !=
-            currentSettings.accentButtonColor.value) {
+            currentSettings.accentButtonColor.value ||
+        loadedSettings.customAccentLabelColor?.value !=
+            currentSettings.customAccentLabelColor?.value ||
+        loadedSettings.customAccentButtonColor?.value !=
+            currentSettings.customAccentButtonColor?.value) {
       state = loadedSettings;
       print('DEBUG: Updated settings from storage: $loadedSettings');
     }
@@ -445,6 +464,30 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentButtonColor, color.value);
     print('DEBUG: Saved accentButtonColor.value = ${color.value}');
+  }
+
+  Future<void> updateCustomAccentLabelColor(Color color) async {
+    print('DEBUG: updateCustomAccentLabelColor called with color: $color');
+    state = state.copyWith(
+      customAccentLabelColor: color,
+      accentLabelColor: color,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCustomAccentLabelColor, color.value);
+    await prefs.setInt(_keyAccentLabelColor, color.value);
+    print('DEBUG: Saved customAccentLabelColor.value = ${color.value}');
+  }
+
+  Future<void> updateCustomAccentButtonColor(Color color) async {
+    print('DEBUG: updateCustomAccentButtonColor called with color: $color');
+    state = state.copyWith(
+      customAccentButtonColor: color,
+      accentButtonColor: color,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCustomAccentButtonColor, color.value);
+    await prefs.setInt(_keyAccentButtonColor, color.value);
+    print('DEBUG: Saved customAccentButtonColor.value = ${color.value}');
   }
 }
 

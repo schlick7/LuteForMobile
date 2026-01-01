@@ -104,16 +104,29 @@ class Settings {
 class ThemeSettings {
   final Color accentLabelColor;
   final Color accentButtonColor;
+  final Color? customAccentLabelColor;
+  final Color? customAccentButtonColor;
 
   const ThemeSettings({
     this.accentLabelColor = const Color(0xFF1976D2),
     this.accentButtonColor = const Color(0xFF6750A4),
+    this.customAccentLabelColor,
+    this.customAccentButtonColor,
   });
 
-  ThemeSettings copyWith({Color? accentLabelColor, Color? accentButtonColor}) {
+  ThemeSettings copyWith({
+    Color? accentLabelColor,
+    Color? accentButtonColor,
+    Color? customAccentLabelColor,
+    Color? customAccentButtonColor,
+  }) {
     return ThemeSettings(
       accentLabelColor: accentLabelColor ?? this.accentLabelColor,
       accentButtonColor: accentButtonColor ?? this.accentButtonColor,
+      customAccentLabelColor:
+          customAccentLabelColor ?? this.customAccentLabelColor,
+      customAccentButtonColor:
+          customAccentButtonColor ?? this.customAccentButtonColor,
     );
   }
 
