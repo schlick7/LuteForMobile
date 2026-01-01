@@ -3,6 +3,8 @@
 - source myenv/bin/activate
   - python3 -m lute.main
 
+Theres only 22 totals terms in the tested sentence and only 19 unique terms in the termslist that need tooltip data. but i get 1070 console messages. Heres a sample: 
+
 
 Change opacity for termlist
 
