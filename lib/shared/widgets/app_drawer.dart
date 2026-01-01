@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
@@ -47,6 +48,27 @@ class AppDrawer extends ConsumerWidget {
           _buildNavItem(context, Icons.book, 0, 'Reader'),
           _buildNavItem(context, Icons.collections_bookmark, 1, 'Books'),
           _buildNavItem(context, Icons.settings, 2, 'Settings'),
+          const Spacer(),
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Text(
+                    snapshot.data!.version,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontSize: 10,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ],
       ),
     );
