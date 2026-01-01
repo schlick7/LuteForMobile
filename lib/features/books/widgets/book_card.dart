@@ -164,7 +164,11 @@ class BookCard extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    final totalTerms = book.statusDistribution!.reduce((a, b) => a + b);
+    final totalTerms = book.statusDistribution!
+        .asMap()
+        .entries
+        .where((entry) => entry.key != 6)
+        .fold<int>(0, (sum, entry) => sum + entry.value);
     if (totalTerms == 0) {
       return const SizedBox.shrink();
     }
