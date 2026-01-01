@@ -67,11 +67,69 @@ class TermTooltipClass {
                         fontStyle: FontStyle.italic,
                         color: Theme.of(
                           ctx,
-                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ).colorScheme.onSurface.withValues(alpha: 0.8),
                       ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
                     ),
+                  ],
+                  if (termTooltip.parents.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    ...termTooltip.parents
+                        .take(2)
+                        .map(
+                          (parent) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 4,
+                                    height: 4,
+                                    margin: const EdgeInsets.only(
+                                      right: 6,
+                                      top: 7,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(ctx).colorScheme.primary,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      parent.term,
+                                      style: Theme.of(ctx).textTheme.bodySmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (parent.translation != null) ...[
+                                const SizedBox(height: 2),
+                                Padding(
+                                  padding: const EdgeInsets.only(left: 10),
+                                  child: Text(
+                                    parent.translation!,
+                                    style: Theme.of(ctx).textTheme.bodySmall
+                                        ?.copyWith(
+                                          fontStyle: FontStyle.italic,
+                                          color: Theme.of(ctx)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.7),
+                                        ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                   ],
                 ],
               ),
@@ -159,6 +217,68 @@ class TermTooltipClass {
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                         ),
+                      ],
+                      if (termTooltip.parents.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        ...termTooltip.parents
+                            .take(2)
+                            .map(
+                              (parent) => Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Container(
+                                        width: 4,
+                                        height: 4,
+                                        margin: const EdgeInsets.only(
+                                          right: 6,
+                                          top: 7,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(
+                                            ctx,
+                                          ).colorScheme.primary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          parent.term,
+                                          style: Theme.of(ctx)
+                                              .textTheme
+                                              .bodySmall
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (parent.translation != null) ...[
+                                    const SizedBox(height: 2),
+                                    Padding(
+                                      padding: const EdgeInsets.only(left: 10),
+                                      child: Text(
+                                        parent.translation!,
+                                        style: Theme.of(ctx).textTheme.bodySmall
+                                            ?.copyWith(
+                                              fontStyle: FontStyle.italic,
+                                              color: Theme.of(ctx)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.6),
+                                            ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
                       ],
                     ],
                   ),
