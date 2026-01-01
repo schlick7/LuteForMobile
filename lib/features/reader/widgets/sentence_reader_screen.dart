@@ -461,15 +461,20 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   Widget _buildBottomAppBar() {
+    final pageData = ref.watch(readerProvider).pageData;
+    final sentencePosition = ref.watch(sentenceReaderProvider).sentencePosition;
+
+    String pageDisplay = sentencePosition;
+    if (pageData != null) {
+      pageDisplay = '(${pageData.pageIndicator}) - $sentencePosition';
+    }
+
     return BottomAppBar(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            Text(
-              ref.watch(sentenceReaderProvider).sentencePosition,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            Text(pageDisplay, style: Theme.of(context).textTheme.bodyMedium),
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.chevron_left),
