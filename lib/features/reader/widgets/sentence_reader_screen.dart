@@ -89,7 +89,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
 
         _ensureTooltipsLoaded(forceRefresh: true);
       }
-    } else if (reader.isLoading || reader.pageData == null) {
+    } else if (reader.isLoading) {
       if (mounted) {
         print(
           'DEBUG SentenceReaderScreen._monitorAndInitialize: Waiting for data, will retry...',
