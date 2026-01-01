@@ -487,8 +487,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           runSpacing: 8,
           children: [
             ..._accentColorOptions.map((color) {
-              final isSelected =
-                  color.value == currentColor.value && customColor == null;
+              final isSelected = color.toARGB32() == currentColor.toARGB32();
               return InkWell(
                 onTap: () => onColorSelected(color),
                 child: Container(
@@ -519,21 +518,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               );
             }).toList(),
-            if (customColor != null) ...[
-              _buildCustomColorOption(
-                context,
-                customColor,
-                currentColor,
-                onCustomColorSelected,
-              ),
-            ] else ...[
-              _buildCustomColorOption(
-                context,
-                const Color(0xFFBDBDBD),
-                currentColor,
-                onCustomColorSelected,
-              ),
-            ],
+            _buildCustomColorOption(
+              context,
+              customColor ?? const Color(0xFFBDBDBD),
+              currentColor,
+              customColor,
+              onCustomColorSelected,
+            ),
           ],
         ),
       ],
@@ -544,15 +535,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     BuildContext context,
     Color color,
     Color currentColor,
+    Color? customColor,
     Function(Color) onCustomColorSelected,
   ) {
-    final isSelected = color.value == currentColor.value;
-    final displayColor = color;
+    final displayColor = customColor ?? const Color(0xFFBDBDBD);
+    final isSelected =
+        customColor != null &&
+        customColor.toARGB32() == currentColor.toARGB32();
 
     return InkWell(
       onTap: () {
-        if (displayColor.value != const Color(0xFFBDBDBD).value) {
-          onCustomColorSelected(displayColor);
+        if (customColor != null) {
+          onCustomColorSelected(customColor);
         }
       },
       child: Container(
@@ -579,8 +573,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         child: Stack(
           children: [
-            if (isSelected &&
-                displayColor.value != const Color(0xFFBDBDBD).value)
+            if (isSelected)
               const Positioned(
                 top: 8,
                 left: 8,
@@ -629,71 +622,75 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     Color currentColor,
     Function(Color) onColorSelected,
   ) {
+    Color previewColor = currentColor;
     final TextEditingController controller = TextEditingController(
       text:
-          '#${currentColor.value.toRadixString(16).substring(2).toUpperCase()}',
+          '#${currentColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
     );
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Custom Color'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Color Hex Code',
-                hintText: '#RRGGBB',
-                border: OutlineInputBorder(),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Custom Color'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'Color Hex Code',
+                  hintText: '#RRGGBB',
+                  border: OutlineInputBorder(),
+                ),
+                maxLength: 7,
+                onChanged: (value) {
+                  final hexCode = value.trim();
+                  try {
+                    if (hexCode.startsWith('#') && hexCode.length == 7) {
+                      final parsedColor = Color(
+                        int.parse(hexCode.substring(1), radix: 16) + 0xFF000000,
+                      );
+                      setState(() {
+                        previewColor = parsedColor;
+                      });
+                    } else if (hexCode.length == 6) {
+                      final parsedColor = Color(
+                        int.parse(hexCode, radix: 16) + 0xFF000000,
+                      );
+                      setState(() {
+                        previewColor = parsedColor;
+                      });
+                    }
+                  } catch (e) {}
+                },
               ),
-              maxLength: 7,
-              onChanged: (value) {},
+              const SizedBox(height: 16),
+              Container(
+                width: double.infinity,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: previewColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
             ),
-            const SizedBox(height: 16),
-            Container(
-              width: double.infinity,
-              height: 50,
-              decoration: BoxDecoration(
-                color: currentColor,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey),
-              ),
+            TextButton(
+              onPressed: () {
+                onColorSelected(previewColor);
+                Navigator.pop(context);
+              },
+              child: const Text('Apply'),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final hexCode = controller.text.trim();
-              try {
-                if (hexCode.startsWith('#') && hexCode.length == 7) {
-                  final color = Color(
-                    int.parse(hexCode.substring(1), radix: 16) + 0xFF000000,
-                  );
-                  onColorSelected(color);
-                  Navigator.pop(context);
-                } else if (hexCode.length == 6) {
-                  final color = Color(
-                    int.parse(hexCode, radix: 16) + 0xFF000000,
-                  );
-                  onColorSelected(color);
-                  Navigator.pop(context);
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Invalid color format')),
-                );
-              }
-            },
-            child: const Text('Apply'),
-          ),
-        ],
       ),
     );
   }
