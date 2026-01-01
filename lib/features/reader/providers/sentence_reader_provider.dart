@@ -367,6 +367,20 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     state = state.copyWith(errorMessage: null);
   }
 
+  void updateTermStatusInSentences(int termId, String status) {
+    final updatedSentences = state.customSentences.map((sentence) {
+      final updatedItems = sentence.textItems.map((item) {
+        if (item.wordId == termId) {
+          return item.copyWith(statusClass: 'status$status');
+        }
+        return item;
+      }).toList();
+      return sentence.copyWith(textItems: updatedItems);
+    }).toList();
+
+    state = state.copyWith(customSentences: updatedSentences);
+  }
+
   Future<void> triggerFlushAndRebuild() async {
     final reader = ref.read(readerProvider);
     if (reader.pageData == null) return;

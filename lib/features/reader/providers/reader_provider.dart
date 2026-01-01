@@ -9,6 +9,7 @@ import '../repositories/reader_repository.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/api_service.dart';
 import '../../../core/network/api_config.dart';
+import 'sentence_reader_provider.dart';
 
 @immutable
 class ReaderState {
@@ -208,6 +209,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
       state = state.copyWith(
         pageData: currentPageData.copyWith(paragraphs: updatedParagraphs),
       );
+
+      ref
+          .read(sentenceReaderProvider.notifier)
+          .updateTermStatusInSentences(termId, status);
     }
   }
 }

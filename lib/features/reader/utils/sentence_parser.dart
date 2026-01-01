@@ -13,6 +13,18 @@ class CustomSentence {
     required this.fullText,
   });
 
+  CustomSentence copyWith({
+    int? id,
+    List<TextItem>? textItems,
+    String? fullText,
+  }) {
+    return CustomSentence(
+      id: id ?? this.id,
+      textItems: textItems ?? this.textItems,
+      fullText: fullText ?? this.fullText,
+    );
+  }
+
   List<TextItem> get uniqueTerms {
     final Map<int, TextItem> unique = {};
     for (final item in textItems) {
