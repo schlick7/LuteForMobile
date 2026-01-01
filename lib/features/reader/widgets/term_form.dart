@@ -179,6 +179,24 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 ),
               ],
             ),
+            Row(
+              children: [
+                const Text('Show Parents in Dictionary'),
+                const Spacer(),
+                Transform.scale(
+                  scale: 0.8,
+                  child: Switch(
+                    value: settings.showParentsInDictionary,
+                    onChanged: (value) {
+                      ref
+                          .read(termFormSettingsProvider.notifier)
+                          .updateShowParentsInDictionary(value);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
         actions: [
@@ -224,6 +242,10 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                   _buildHeader(context),
                   const SizedBox(height: 12),
                   _buildTranslationField(context),
+                  if (settings.showParentsInDictionary) ...[
+                    const SizedBox(height: 12),
+                    _buildParentsSection(context),
+                  ],
                   const SizedBox(height: 12),
                   Expanded(child: _buildDictionaryView(context)),
                 ],
