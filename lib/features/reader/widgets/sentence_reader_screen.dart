@@ -341,14 +341,16 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       onTapDown: (_) => TermTooltipClass.close(),
       onHorizontalDragEnd: (details) {
         final velocity = details.primaryVelocity ?? 0;
-        final sentenceReader = ref.read(sentenceReaderProvider);
+        final sentenceReaderNotifier = ref.read(
+          sentenceReaderProvider.notifier,
+        );
 
         if (velocity > 0) {
-          if (sentenceReader.canGoPrevious) {
+          if (sentenceReaderNotifier.canGoPrevious) {
             _goPrevious();
           }
         } else if (velocity < 0) {
-          if (sentenceReader.canGoNext) {
+          if (sentenceReaderNotifier.canGoNext) {
             _goNext();
           }
         }
@@ -398,7 +400,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   Widget _buildBottomAppBar() {
     final pageData = ref.watch(readerProvider).pageData;
-    final sentencePosition = ref.watch(sentenceReaderProvider).sentencePosition;
+    final sentenceReaderState = ref.watch(sentenceReaderProvider);
+    final sentenceReaderNotifier = ref.read(sentenceReaderProvider.notifier);
+    final sentencePosition = sentenceReaderState.sentencePosition;
 
     String pageDisplay = sentencePosition;
     if (pageData != null) {
@@ -414,14 +418,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.chevron_left),
-              onPressed: ref.watch(sentenceReaderProvider).canGoPrevious
+              onPressed: sentenceReaderNotifier.canGoPrevious
                   ? () => _goPrevious()
                   : null,
               iconSize: 24,
             ),
             IconButton(
               icon: const Icon(Icons.chevron_right),
-              onPressed: ref.watch(sentenceReaderProvider).canGoNext
+              onPressed: sentenceReaderNotifier.canGoNext
                   ? () => _goNext()
                   : null,
               iconSize: 24,
@@ -557,21 +561,22 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   Future<void> _preloadNextSentence() async {
-    final sentenceReader = ref.read(sentenceReaderProvider);
+    final sentenceReaderState = ref.read(sentenceReaderProvider);
+    final sentenceReaderNotifier = ref.read(sentenceReaderProvider.notifier);
     final settings = ref.read(settingsProvider);
 
-    if (!sentenceReader.canGoNext) {
+    if (!sentenceReaderNotifier.canGoNext) {
       print('DEBUG: No next sentence to preload');
       return;
     }
 
-    final nextIndex = sentenceReader.currentSentenceIndex + 1;
-    if (nextIndex >= sentenceReader.customSentences.length) {
+    final nextIndex = sentenceReaderState.currentSentenceIndex + 1;
+    if (nextIndex >= sentenceReaderState.customSentences.length) {
       print('DEBUG: Next index out of bounds');
       return;
     }
 
-    final nextSentence = sentenceReader.customSentences[nextIndex];
+    final nextSentence = sentenceReaderState.customSentences[nextIndex];
 
     final termsNeedingTooltips = _extractTermsNeedingTooltips(
       nextSentence,
