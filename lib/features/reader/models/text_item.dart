@@ -45,4 +45,30 @@ class TextItem {
   bool get isUnknown => statusClass == 'status0';
   bool get isWord => wordId != null;
   bool get isSpace => text.trim().isEmpty;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'text': text,
+      'statusClass': statusClass,
+      'wordId': wordId,
+      'sentenceId': sentenceId,
+      'paragraphId': paragraphId,
+      'isStartOfSentence': isStartOfSentence,
+      'order': order,
+      'langId': langId,
+    };
+  }
+
+  factory TextItem.fromJson(Map<String, dynamic> json) {
+    return TextItem(
+      text: json['text'] as String,
+      statusClass: json['statusClass'] as String,
+      wordId: json['wordId'] as int?,
+      sentenceId: json['sentenceId'] as int,
+      paragraphId: json['paragraphId'] as int,
+      isStartOfSentence: json['isStartOfSentence'] as bool,
+      order: json['order'] as int,
+      langId: json['langId'] as int?,
+    );
+  }
 }

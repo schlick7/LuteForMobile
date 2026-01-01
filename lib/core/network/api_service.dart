@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 
 class ApiService {
@@ -55,7 +56,9 @@ class ApiService {
   }
 
   Future<Response<String>> getTermTooltip(int termId) async {
-    return await _dio.get<String>('/read/termpopup/$termId');
+    final url = '/read/termpopup/$termId';
+    print('DEBUG ApiService.getTermTooltip: Calling GET $url');
+    return await _dio.get<String>(url);
   }
 
   Future<Response<String>> getTermForm(int langId, String text) async {
@@ -257,7 +260,7 @@ class ApiService {
     double position,
     List<double> bookmarks,
   ) async {
-    final bookmarksString = bookmarks.map((b) => b.toString()).join(';');
+    final bookmarksString = jsonEncode(bookmarks);
     return await _dio.post<String>(
       '/read/save_player_data',
       data: {

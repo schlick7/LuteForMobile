@@ -21,6 +21,13 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyShowLastRead = 'show_last_read';
   static const String _keyLanguageFilter = 'language_filter';
   static const String _keyShowAudioPlayer = 'show_audio_player';
+  static const String _keyCurrentBookId = 'current_book_id';
+  static const String _keyCurrentBookPage = 'current_book_page';
+  static const String _keyCurrentBookSentenceIndex =
+      'current_book_sentence_index';
+  static const String _keyCombineShortSentences = 'combine_short_sentences';
+  static const String _keyShowKnownTermsInSentenceReader =
+      'show_known_terms_in_sentence_reader';
 
   @override
   Settings build() {
@@ -38,6 +45,12 @@ class SettingsNotifier extends Notifier<Settings> {
     final showLastRead = prefs.getBool(_keyShowLastRead) ?? true;
     final languageFilter = prefs.getString(_keyLanguageFilter);
     final showAudioPlayer = prefs.getBool(_keyShowAudioPlayer) ?? true;
+    final currentBookId = prefs.getInt(_keyCurrentBookId);
+    final currentBookPage = prefs.getInt(_keyCurrentBookPage);
+    final currentBookSentenceIndex = prefs.getInt(_keyCurrentBookSentenceIndex);
+    final combineShortSentences = prefs.getInt(_keyCombineShortSentences) ?? 3;
+    final showKnownTermsInSentenceReader =
+        prefs.getBool(_keyShowKnownTermsInSentenceReader) ?? true;
 
     state = Settings(
       serverUrl: serverUrl,
@@ -47,6 +60,11 @@ class SettingsNotifier extends Notifier<Settings> {
       showLastRead: showLastRead,
       languageFilter: languageFilter,
       showAudioPlayer: showAudioPlayer,
+      currentBookId: currentBookId,
+      currentBookPage: currentBookPage,
+      currentBookSentenceIndex: currentBookSentenceIndex,
+      combineShortSentences: combineShortSentences,
+      showKnownTermsInSentenceReader: showKnownTermsInSentenceReader,
     );
   }
 
@@ -82,15 +100,11 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> updateLanguageFilter(String? language) async {
-    state = Settings(
-      serverUrl: state.serverUrl,
-      isUrlValid: state.isUrlValid,
-      translationProvider: state.translationProvider,
-      showTags: state.showTags,
-      showLastRead: state.showLastRead,
-      languageFilter: language,
-      showAudioPlayer: state.showAudioPlayer,
-    );
+    if (language == null) {
+      state = state.copyWith(clearLanguageFilter: true);
+    } else {
+      state = state.copyWith(languageFilter: language);
+    }
 
     final prefs = await SharedPreferences.getInstance();
     if (language == null) {
@@ -101,10 +115,66 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> updateShowAudioPlayer(bool show) async {
-    state = state.copyWith(showAudioPlayer: show);
+    print(
+      'DEBUG: updateShowAudioPlayer($show) called, currentBookId=${state.currentBookId}, currentBookPage=${state.currentBookPage}',
+    );
+    final newState = state.copyWith(showAudioPlayer: show);
+    print(
+      'DEBUG: After copyWith, newBookId=${newState.currentBookId}, newBookPage=${newState.currentBookPage}',
+    );
+    state = newState;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyShowAudioPlayer, show);
+  }
+
+  Future<void> updateShowKnownTermsInSentenceReader(bool show) async {
+    state = state.copyWith(showKnownTermsInSentenceReader: show);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowKnownTermsInSentenceReader, show);
+  }
+
+  Future<void> updateCurrentBook(int bookId, int page) async {
+    state = state.copyWith(
+      currentBookId: bookId,
+      currentBookPage: page,
+      currentBookSentenceIndex: null,
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCurrentBookId, bookId);
+    await prefs.setInt(_keyCurrentBookPage, page);
+    await prefs.remove(_keyCurrentBookSentenceIndex);
+  }
+
+  Future<void> clearCurrentBook() async {
+    state = state.copyWith(
+      currentBookId: null,
+      currentBookPage: null,
+      currentBookSentenceIndex: null,
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyCurrentBookId);
+    await prefs.remove(_keyCurrentBookPage);
+    await prefs.remove(_keyCurrentBookSentenceIndex);
+  }
+
+  Future<void> updateCurrentBookSentenceIndex(int? sentenceIndex) async {
+    state = state.copyWith(currentBookSentenceIndex: sentenceIndex);
+    final prefs = await SharedPreferences.getInstance();
+    if (sentenceIndex == null) {
+      await prefs.remove(_keyCurrentBookSentenceIndex);
+    } else {
+      await prefs.setInt(_keyCurrentBookSentenceIndex, sentenceIndex);
+    }
+  }
+
+  Future<void> updateCombineShortSentences(int threshold) async {
+    state = state.copyWith(combineShortSentences: threshold);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCombineShortSentences, threshold);
   }
 
   bool _isValidUrl(String url) {
@@ -126,6 +196,10 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyShowLastRead);
     await prefs.remove(_keyLanguageFilter);
     await prefs.remove(_keyShowAudioPlayer);
+    await prefs.remove(_keyCurrentBookId);
+    await prefs.remove(_keyCurrentBookPage);
+    await prefs.remove(_keyCurrentBookSentenceIndex);
+    await prefs.remove(_keyCombineShortSentences);
 
     state = Settings.defaultSettings();
   }
@@ -326,6 +400,9 @@ final textFormattingSettingsProvider =
 class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
   static const String _keyAccentLabelColor = 'accent_label_color';
   static const String _keyAccentButtonColor = 'accent_button_color';
+  static const String _keyCustomAccentLabelColor = 'custom_accent_label_color';
+  static const String _keyCustomAccentButtonColor =
+      'custom_accent_button_color';
 
   @override
   ThemeSettings build() {
@@ -338,6 +415,12 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     final prefs = await SharedPreferences.getInstance();
     final accentLabelColorValue = prefs.getInt(_keyAccentLabelColor);
     final accentButtonColorValue = prefs.getInt(_keyAccentButtonColor);
+    final customAccentLabelColorValue = prefs.getInt(
+      _keyCustomAccentLabelColor,
+    );
+    final customAccentButtonColorValue = prefs.getInt(
+      _keyCustomAccentButtonColor,
+    );
 
     final loadedSettings = ThemeSettings(
       accentLabelColor: accentLabelColorValue != null
@@ -346,12 +429,22 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
       accentButtonColor: accentButtonColorValue != null
           ? Color(accentButtonColorValue!)
           : ThemeSettings.defaultSettings.accentButtonColor,
+      customAccentLabelColor: customAccentLabelColorValue != null
+          ? Color(customAccentLabelColorValue!)
+          : null,
+      customAccentButtonColor: customAccentButtonColorValue != null
+          ? Color(customAccentButtonColorValue!)
+          : null,
     );
 
     if (loadedSettings.accentLabelColor.value !=
             currentSettings.accentLabelColor.value ||
         loadedSettings.accentButtonColor.value !=
-            currentSettings.accentButtonColor.value) {
+            currentSettings.accentButtonColor.value ||
+        loadedSettings.customAccentLabelColor?.value !=
+            currentSettings.customAccentLabelColor?.value ||
+        loadedSettings.customAccentButtonColor?.value !=
+            currentSettings.customAccentButtonColor?.value) {
       state = loadedSettings;
       print('DEBUG: Updated settings from storage: $loadedSettings');
     }
@@ -371,6 +464,30 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentButtonColor, color.value);
     print('DEBUG: Saved accentButtonColor.value = ${color.value}');
+  }
+
+  Future<void> updateCustomAccentLabelColor(Color color) async {
+    print('DEBUG: updateCustomAccentLabelColor called with color: $color');
+    state = state.copyWith(
+      customAccentLabelColor: color,
+      accentLabelColor: color,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCustomAccentLabelColor, color.value);
+    await prefs.setInt(_keyAccentLabelColor, color.value);
+    print('DEBUG: Saved customAccentLabelColor.value = ${color.value}');
+  }
+
+  Future<void> updateCustomAccentButtonColor(Color color) async {
+    print('DEBUG: updateCustomAccentButtonColor called with color: $color');
+    state = state.copyWith(
+      customAccentButtonColor: color,
+      accentButtonColor: color,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCustomAccentButtonColor, color.value);
+    await prefs.setInt(_keyAccentButtonColor, color.value);
+    print('DEBUG: Saved customAccentButtonColor.value = ${color.value}');
   }
 }
 
@@ -392,3 +509,11 @@ final currentViewDrawerSettingsProvider =
     NotifierProvider<CurrentViewDrawerSettingsNotifier, Widget?>(() {
       return CurrentViewDrawerSettingsNotifier();
     });
+
+final bookDisplaySettingsProvider = Provider<BookDisplaySettings>((ref) {
+  final settings = ref.watch(settingsProvider);
+  return BookDisplaySettings(
+    showTags: settings.showTags,
+    showLastRead: settings.showLastRead,
+  );
+});

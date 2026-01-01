@@ -9,6 +9,11 @@ class Settings {
   final bool showLastRead;
   final String? languageFilter;
   final bool showAudioPlayer;
+  final int? currentBookId;
+  final int? currentBookPage;
+  final int? currentBookSentenceIndex;
+  final int? combineShortSentences;
+  final bool showKnownTermsInSentenceReader;
 
   const Settings({
     required this.serverUrl,
@@ -18,6 +23,11 @@ class Settings {
     this.showLastRead = true,
     this.languageFilter,
     this.showAudioPlayer = true,
+    this.currentBookId,
+    this.currentBookPage,
+    this.currentBookSentenceIndex,
+    this.combineShortSentences,
+    this.showKnownTermsInSentenceReader = true,
   });
 
   Settings copyWith({
@@ -26,8 +36,15 @@ class Settings {
     String? translationProvider,
     bool? showTags,
     bool? showLastRead,
-    Object? languageFilter,
+    String? languageFilter,
+    bool clearLanguageFilter = false,
     bool? showAudioPlayer,
+    int? currentBookId,
+    int? currentBookPage,
+    bool clearCurrentBook = false,
+    int? currentBookSentenceIndex,
+    int? combineShortSentences,
+    bool? showKnownTermsInSentenceReader,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -35,8 +52,22 @@ class Settings {
       translationProvider: translationProvider ?? this.translationProvider,
       showTags: showTags ?? this.showTags,
       showLastRead: showLastRead ?? this.showLastRead,
-      languageFilter: languageFilter is String ? languageFilter : null,
+      languageFilter: clearLanguageFilter
+          ? null
+          : (languageFilter ?? this.languageFilter),
       showAudioPlayer: showAudioPlayer ?? this.showAudioPlayer,
+      currentBookId: clearCurrentBook
+          ? null
+          : (currentBookId ?? this.currentBookId),
+      currentBookPage: clearCurrentBook
+          ? null
+          : (currentBookPage ?? this.currentBookPage),
+      currentBookSentenceIndex:
+          currentBookSentenceIndex ?? this.currentBookSentenceIndex,
+      combineShortSentences:
+          combineShortSentences ?? this.combineShortSentences,
+      showKnownTermsInSentenceReader:
+          showKnownTermsInSentenceReader ?? this.showKnownTermsInSentenceReader,
     );
   }
 
@@ -49,6 +80,11 @@ class Settings {
       showLastRead: true,
       languageFilter: null,
       showAudioPlayer: true,
+      currentBookId: null,
+      currentBookPage: null,
+      currentBookSentenceIndex: null,
+      combineShortSentences: 3,
+      showKnownTermsInSentenceReader: true,
     );
   }
 
@@ -68,16 +104,29 @@ class Settings {
 class ThemeSettings {
   final Color accentLabelColor;
   final Color accentButtonColor;
+  final Color? customAccentLabelColor;
+  final Color? customAccentButtonColor;
 
   const ThemeSettings({
     this.accentLabelColor = const Color(0xFF1976D2),
     this.accentButtonColor = const Color(0xFF6750A4),
+    this.customAccentLabelColor,
+    this.customAccentButtonColor,
   });
 
-  ThemeSettings copyWith({Color? accentLabelColor, Color? accentButtonColor}) {
+  ThemeSettings copyWith({
+    Color? accentLabelColor,
+    Color? accentButtonColor,
+    Color? customAccentLabelColor,
+    Color? customAccentButtonColor,
+  }) {
     return ThemeSettings(
       accentLabelColor: accentLabelColor ?? this.accentLabelColor,
       accentButtonColor: accentButtonColor ?? this.accentButtonColor,
+      customAccentLabelColor:
+          customAccentLabelColor ?? this.customAccentLabelColor,
+      customAccentButtonColor:
+          customAccentButtonColor ?? this.customAccentButtonColor,
     );
   }
 
@@ -93,4 +142,14 @@ class ThemeSettings {
   int get hashCode => accentLabelColor.hashCode ^ accentButtonColor.hashCode;
 
   static const ThemeSettings defaultSettings = ThemeSettings();
+}
+
+class BookDisplaySettings {
+  final bool showTags;
+  final bool showLastRead;
+
+  const BookDisplaySettings({
+    required this.showTags,
+    required this.showLastRead,
+  });
 }

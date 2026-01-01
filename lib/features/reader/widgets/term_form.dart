@@ -125,15 +125,23 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SwitchListTile(
-              title: const Text('Show Tags'),
-              value: settings.showTags,
-              onChanged: (value) {
-                ref
-                    .read(termFormSettingsProvider.notifier)
-                    .updateShowTags(value);
-                Navigator.of(context).pop();
-              },
+            Row(
+              children: [
+                const Text('Show Tags'),
+                const Spacer(),
+                Transform.scale(
+                  scale: 0.8,
+                  child: Switch(
+                    value: settings.showTags,
+                    onChanged: (value) {
+                      ref
+                          .read(termFormSettingsProvider.notifier)
+                          .updateShowTags(value);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),

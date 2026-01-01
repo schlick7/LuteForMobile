@@ -4,9 +4,11 @@ import '../../settings/providers/settings_provider.dart';
 import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
+import '../models/language_sentence_settings.dart';
 import '../repositories/reader_repository.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/api_service.dart';
+import '../../../core/network/api_config.dart';
 
 @immutable
 class ReaderState {
@@ -15,6 +17,7 @@ class ReaderState {
   final String? errorMessage;
   final bool isTermTooltipLoading;
   final bool isTermFormLoading;
+  final LanguageSentenceSettings? languageSentenceSettings;
 
   const ReaderState({
     this.isLoading = false,
@@ -22,6 +25,7 @@ class ReaderState {
     this.errorMessage,
     this.isTermTooltipLoading = false,
     this.isTermFormLoading = false,
+    this.languageSentenceSettings,
   });
 
   ReaderState copyWith({
@@ -30,6 +34,7 @@ class ReaderState {
     String? errorMessage,
     bool? isTermTooltipLoading,
     bool? isTermFormLoading,
+    LanguageSentenceSettings? languageSentenceSettings,
   }) {
     return ReaderState(
       isLoading: isLoading ?? this.isLoading,
@@ -37,6 +42,8 @@ class ReaderState {
       errorMessage: errorMessage,
       isTermTooltipLoading: isTermTooltipLoading ?? this.isTermTooltipLoading,
       isTermFormLoading: isTermFormLoading ?? this.isTermFormLoading,
+      languageSentenceSettings:
+          languageSentenceSettings ?? this.languageSentenceSettings,
     );
   }
 }
@@ -46,26 +53,45 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
   @override
   ReaderState build() {
-    _repository = ref.watch(readerRepositoryProvider);
+    _repository = ref.read(readerRepositoryProvider);
     return const ReaderState();
   }
 
-  Future<void> loadPage({required int bookId, required int pageNum}) async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
+  Future<void> loadPage({
+    required int bookId,
+    required int pageNum,
+    bool updateReaderState = true,
+  }) async {
+    if (updateReaderState) {
+      state = state.copyWith(isLoading: true, errorMessage: null);
+    }
 
     try {
       final pageData = await _repository.getPage(
         bookId: bookId,
         pageNum: pageNum,
       );
-      state = state.copyWith(isLoading: false, pageData: pageData);
+      if (updateReaderState) {
+        state = state.copyWith(isLoading: false, pageData: pageData);
+      }
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      if (updateReaderState) {
+        state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      }
     }
   }
 
   void clearError() {
     state = state.copyWith(errorMessage: null);
+  }
+
+  Future<void> fetchLanguageSentenceSettings(int langId) async {
+    try {
+      final settings = await _repository.getLanguageSentenceSettings(langId);
+      state = state.copyWith(languageSentenceSettings: settings);
+    } catch (e) {
+      state = state.copyWith(languageSentenceSettings: null);
+    }
   }
 
   Future<TermTooltip?> fetchTermTooltip(int termId) async {
@@ -74,14 +100,9 @@ class ReaderNotifier extends Notifier<ReaderState> {
       final result = await _repository.getTermTooltip(termId);
       return result;
     } catch (e) {
-      print('fetchTermTooltip error: $e');
       return null;
     } finally {
-      final newState = state.copyWith(isTermTooltipLoading: false);
-      print(
-        'State change: pageData=${newState.pageData != null}, errorMessage=${newState.errorMessage}',
-      );
-      state = newState;
+      state = state.copyWith(isTermTooltipLoading: false);
     }
   }
 
@@ -143,11 +164,9 @@ class ReaderNotifier extends Notifier<ReaderState> {
   Future<bool> saveTerm(TermForm termForm) async {
     try {
       if (termForm.termId != null) {
-        print('saveTerm: editing existing term ${termForm.termId}');
         await _repository.editTerm(termForm.termId!, termForm.toFormData());
         updateTermStatus(termForm.termId!, termForm.status);
       } else {
-        print('saveTerm: creating new term "${termForm.term}" (no termId)');
         await _repository.saveTermForm(
           termForm.languageId,
           termForm.term,
@@ -156,7 +175,6 @@ class ReaderNotifier extends Notifier<ReaderState> {
       }
       return true;
     } catch (e) {
-      print('saveTerm error: $e');
       return false;
     }
   }
@@ -164,32 +182,15 @@ class ReaderNotifier extends Notifier<ReaderState> {
   void updateTermStatus(int termId, String status) {
     final currentPageData = state.pageData;
     if (currentPageData == null) {
-      print('updateTermStatus: pageData is null');
       return;
     }
 
-    print('updateTermStatus: looking for termId=$termId, status=$status');
     bool found = false;
-    for (final paragraph in currentPageData.paragraphs) {
-      for (final item in paragraph.textItems) {
-        if (item.wordId == termId) {
-          print('Found term! Current statusClass: ${item.statusClass}');
-          found = true;
-        }
-      }
-    }
-
-    if (!found) {
-      print('Term with id=$termId not found in page data');
-    }
-
     final updatedParagraphs = currentPageData.paragraphs.map((paragraph) {
       final updatedItems = paragraph.textItems.map((item) {
         if (item.wordId == termId) {
+          found = true;
           final updated = item.copyWith(statusClass: 'status$status');
-          print(
-            'Updated item statusClass from ${item.statusClass} to ${updated.statusClass}',
-          );
           return updated;
         }
         return item;
@@ -197,16 +198,22 @@ class ReaderNotifier extends Notifier<ReaderState> {
       return paragraph.copyWith(textItems: updatedItems);
     }).toList();
 
-    state = state.copyWith(
-      pageData: currentPageData.copyWith(paragraphs: updatedParagraphs),
-    );
-    print('updateTermStatus: state updated');
+    if (found) {
+      state = state.copyWith(
+        pageData: currentPageData.copyWith(paragraphs: updatedParagraphs),
+      );
+    }
   }
 }
 
-final apiServiceProvider = Provider<ApiService>((ref) {
+final apiConfigProvider = Provider<ApiConfig>((ref) {
   final settings = ref.watch(settingsProvider);
-  return ApiService(baseUrl: settings.serverUrl);
+  return ApiConfig(baseUrl: settings.serverUrl);
+});
+
+final apiServiceProvider = Provider<ApiService>((ref) {
+  final config = ref.watch(apiConfigProvider);
+  return ApiService(baseUrl: config.baseUrl);
 });
 
 final contentServiceProvider = Provider<ContentService>((ref) {

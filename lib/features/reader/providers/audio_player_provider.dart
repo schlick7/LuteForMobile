@@ -166,6 +166,66 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     state = state.copyWith(playbackSpeed: speed);
   }
 
+  void addBookmark() {
+    final currentPosition = state.position;
+    final bookmarks = List<Duration>.from(state.bookmarkDurations);
+
+    if (!bookmarks.contains(currentPosition)) {
+      bookmarks.add(currentPosition);
+      bookmarks.sort((a, b) => a.compareTo(b));
+      state = state.copyWith(bookmarkDurations: bookmarks);
+      _savePosition();
+    }
+  }
+
+  void removeBookmark() {
+    final currentPosition = state.position;
+    final bookmarks = List<Duration>.from(state.bookmarkDurations);
+
+    bookmarks.removeWhere(
+      (b) => (b - currentPosition).abs() < Duration(seconds: 1),
+    );
+    state = state.copyWith(bookmarkDurations: bookmarks);
+    _savePosition();
+  }
+
+  void goToPreviousBookmark() {
+    final currentPosition = state.position;
+    final bookmarks = state.bookmarkDurations;
+
+    if (bookmarks.isEmpty) return;
+
+    final previousBookmarks = bookmarks
+        .where((b) => currentPosition - b > Duration(milliseconds: 800))
+        .toList();
+
+    if (previousBookmarks.isNotEmpty) {
+      final nearestBookmark = previousBookmarks.reduce((a, b) => a > b ? a : b);
+      seek(nearestBookmark);
+    }
+  }
+
+  void goToNextBookmark() {
+    final currentPosition = state.position;
+    final bookmarks = state.bookmarkDurations;
+
+    if (bookmarks.isEmpty) return;
+
+    final nextBookmarks = bookmarks.where((b) => b > currentPosition).toList();
+
+    if (nextBookmarks.isNotEmpty) {
+      final nearestBookmark = nextBookmarks.reduce((a, b) => a < b ? a : b);
+      seek(nearestBookmark);
+    }
+  }
+
+  bool isAtBookmark() {
+    final currentPosition = state.position;
+    return state.bookmarkDurations.any(
+      (b) => (b - currentPosition).abs() < Duration(seconds: 1),
+    );
+  }
+
   void _startAutoSave() {
     _autoSaveTimer?.cancel();
     _autoSaveTimer = Timer.periodic(Duration(seconds: 10), (timer) {

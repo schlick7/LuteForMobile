@@ -2,6 +2,7 @@ import '../../../core/network/content_service.dart';
 import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
+import '../models/language_sentence_settings.dart';
 
 class ReaderRepository {
   final ContentService contentService;
@@ -22,6 +23,16 @@ class ReaderRepository {
       return await contentService.getTermTooltip(termId);
     } catch (e) {
       throw Exception('Failed to load term tooltip: $e');
+    }
+  }
+
+  Future<LanguageSentenceSettings> getLanguageSentenceSettings(
+    int langId,
+  ) async {
+    try {
+      return await contentService.getLanguageSentenceSettings(langId);
+    } catch (e) {
+      throw Exception('Failed to load language sentence settings: $e');
     }
   }
 

@@ -9,9 +9,8 @@ class AppStatusColors {
   static const Color status3 = Color(0x99BD9C7B); // Tan (0.6 opacity)
   static const Color status4 = Color(0x99756D6B); // Dark gray (0.6 opacity)
   static const Color status5 = Color(0x3377706E); // gray (0.2 opacity)
-  static const Color status98 = Color(
-    0xFF8095FF,
-  ); // Light blue - ignored (same as status0)
+  static const Color status98 =
+      Colors.transparent; // No color - ignored terms display as normal text
   static const Color status99 = Color(0xFF419252); // Green - known/completed
 
   // Text color for highlighted backgrounds

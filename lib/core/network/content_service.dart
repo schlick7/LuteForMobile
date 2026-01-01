@@ -4,6 +4,7 @@ import 'package:html/parser.dart' as html_parser;
 import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
+import '../../features/reader/models/language_sentence_settings.dart';
 import '../../features/books/models/book.dart';
 import '../../features/books/models/datatables_response.dart';
 import 'api_service.dart';
@@ -276,5 +277,46 @@ class ContentService {
     final response = await _apiService.getLanguages();
     final htmlContent = response.data ?? '';
     return parser.parseLanguages(htmlContent);
+  }
+
+  Future<LanguageSentenceSettings> getLanguageSentenceSettings(
+    int langId,
+  ) async {
+    try {
+      final html = await getLanguageSettingsHtml(langId);
+
+      final stopCharsMatch = RegExp(
+        r'id="regexp_split_sentences"[^>]*value="([^"]*)"',
+      ).firstMatch(html);
+      final stopChars = stopCharsMatch?.group(1) ?? '.!?;:';
+
+      final exceptionsMatch = RegExp(
+        r'id="exceptions_split_sentences"[^>]*value="([^"]*)"',
+      ).firstMatch(html);
+      final exceptionsRaw = exceptionsMatch?.group(1) ?? '';
+      final sentenceExceptions = exceptionsRaw
+          .split('|')
+          .where((w) => w.isNotEmpty)
+          .toList();
+
+      final parserMatch = RegExp(
+        r'id="parser_type"[^>]*>\s*<option[^>]*value="([^"]*)"[^>]*selected',
+      ).firstMatch(html);
+      final parserType = parserMatch?.group(1) ?? 'spacedel';
+
+      return LanguageSentenceSettings(
+        languageId: langId,
+        stopChars: stopChars,
+        sentenceExceptions: sentenceExceptions,
+        parserType: parserType,
+      );
+    } catch (e) {
+      return LanguageSentenceSettings(
+        languageId: langId,
+        stopChars: '.!?;:',
+        sentenceExceptions: [],
+        parserType: 'spacedel',
+      );
+    }
   }
 }

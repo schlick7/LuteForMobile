@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 import '../models/book.dart';
 import '../repositories/books_repository.dart';
 import '../../reader/providers/reader_provider.dart';
+import '../../settings/providers/settings_provider.dart';
 
 @immutable
 class BooksState {
@@ -148,6 +149,17 @@ class BooksNotifier extends Notifier<BooksState> {
     }
   }
 
+  Future<Book> getUpdatedBook(int bookId) async {
+    await _repository.refreshBookStats(bookId);
+    final active = await _repository.getActiveBooks();
+    final archived = await _repository.getArchivedBooks();
+    final books = active + archived;
+    final updatedBook = books.firstWhere((b) => b.id == bookId);
+
+    await updateBookInList(updatedBook);
+    return updatedBook;
+  }
+
   Future<void> updateBookInList(Book updatedBook) async {
     final isInActive = state.activeBooks.any((b) => b.id == updatedBook.id);
     if (isInActive) {
@@ -224,6 +236,11 @@ class BooksNotifier extends Notifier<BooksState> {
         activeBooks: updatedActiveBooks,
         archivedBooks: updatedArchivedBooks,
       );
+
+      final settings = ref.read(settingsProvider);
+      if (settings.currentBookId == bookId) {
+        ref.read(settingsProvider.notifier).clearCurrentBook();
+      }
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }

@@ -117,10 +117,15 @@ class HtmlParser {
   }
 
   TermTooltip parseTermTooltip(String htmlContent) {
+    print('DEBUG parseTermTooltip: HTML length = ${htmlContent.length}');
+    if (htmlContent.length < 500) {
+      print('DEBUG parseTermTooltip: Full HTML:\n$htmlContent');
+    }
     final document = html_parser.parse(htmlContent);
 
     final termElement = document.querySelector('b');
     final term = termElement?.text.trim() ?? '';
+    print('DEBUG parseTermTooltip: term="$term"');
 
     final paragraphs = document.querySelectorAll('p');
     String? translation;
@@ -160,11 +165,87 @@ class HtmlParser {
         : null;
 
     final parents = <TermParent>[];
+
     final parentElements = document.querySelectorAll('.term-popup .parents li');
+    print(
+      'DEBUG parseTermTooltip: Found ${parentElements.length} .term-popup .parents li elements',
+    );
+
     for (final parentElement in parentElements) {
-      final parentTerm = parentElement.text.trim();
-      if (parentTerm.isNotEmpty) {
-        parents.add(TermParent(id: null, term: parentTerm));
+      final link = parentElement.querySelector('a');
+      if (link != null) {
+        final href = link.attributes['href'];
+        int? parentId;
+        if (href != null) {
+          final idMatch = RegExp(r'/term/(\d+)').firstMatch(href);
+          if (idMatch != null) {
+            parentId = int.tryParse(idMatch.group(1) ?? '');
+          }
+        }
+
+        String parentTerm = link.text.trim();
+        String? parentTranslation;
+
+        final translationSpan = parentElement.querySelector(
+          '.translation, span.translation, .tr',
+        );
+        if (translationSpan != null) {
+          parentTranslation = translationSpan.text.trim();
+          if (parentTranslation.isEmpty) {
+            parentTranslation = null;
+          }
+        }
+
+        if (parentTerm.isNotEmpty) {
+          parents.add(
+            TermParent(
+              id: parentId,
+              term: parentTerm,
+              translation: parentTranslation,
+            ),
+          );
+        }
+      } else {
+        final parentTerm = parentElement.text.trim();
+        if (parentTerm.isNotEmpty) {
+          parents.add(TermParent(id: null, term: parentTerm));
+        }
+      }
+    }
+
+    if (parents.isEmpty) {
+      final allDivs = document.querySelectorAll('div');
+      for (final div in allDivs) {
+        final styleAttr = div.attributes['style'];
+        if (styleAttr != null && styleAttr.contains('margin-top: 1.5em')) {
+          final pElement = div.querySelector('p');
+          if (pElement != null) {
+            final boldElement = pElement.querySelector('b');
+            if (boldElement != null) {
+              final parentTerm = boldElement.text.trim();
+              String? parentTranslation;
+
+              final pText = pElement.text.trim();
+              final brSplit = pText.split(parentTerm);
+              if (brSplit.length > 1) {
+                parentTranslation = brSplit[1].trim();
+                if (parentTranslation.isEmpty) {
+                  parentTranslation = null;
+                }
+              }
+
+              if (parentTerm.isNotEmpty) {
+                parents.add(
+                  TermParent(
+                    id: null,
+                    term: parentTerm,
+                    translation: parentTranslation,
+                  ),
+                );
+              }
+            }
+          }
+        }
       }
     }
 
@@ -491,16 +572,26 @@ class HtmlParser {
   }
 
   List<double> _extractAudioBookmarks(html.Document document) {
-    final bookmarksInput = document.querySelector(
-      'input[id="book_audio_bookmarks"]',
-    );
+    final bookmarksInput =
+        document.querySelector('input[id="book_audio_bookmarks"]') ??
+        document.querySelector('input[name="audio_bookmarks"]');
     final bookmarksStr = bookmarksInput?.attributes['value']?.trim();
     if (bookmarksStr != null && bookmarksStr.isNotEmpty) {
       try {
         final bookmarks = jsonDecode(bookmarksStr) as List;
         return bookmarks.map((b) => (b as num).toDouble()).toList();
       } catch (e) {
-        return [];
+        try {
+          return bookmarksStr
+              .split(';')
+              .where((s) => s.isNotEmpty)
+              .map((s) => double.tryParse(s.trim()))
+              .where((d) => d != null)
+              .cast<double>()
+              .toList();
+        } catch (e2) {
+          return [];
+        }
       }
     }
     return [];

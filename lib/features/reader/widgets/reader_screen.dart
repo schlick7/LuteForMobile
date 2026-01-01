@@ -5,6 +5,7 @@ import '../../../shared/widgets/error_display.dart';
 import '../../../features/settings/providers/settings_provider.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
+import '../models/page_data.dart';
 import '../providers/reader_provider.dart';
 import '../providers/audio_player_provider.dart';
 import '../widgets/term_tooltip.dart';
@@ -32,6 +33,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   double _tempFontWeight = 2.0;
   bool? _tempIsItalic;
   TermForm? _currentTermForm;
+  int _buildCount = 0;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -119,12 +121,27 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     } catch (e, stackTrace) {
       print('ERROR: loadBook failed: $e');
       print('Stack trace: $stackTrace');
+
+      final settings = ref.read(settingsProvider);
+      if (settings.currentBookId == bookId) {
+        ref.read(settingsProvider.notifier).clearCurrentBook();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(readerProvider);
+    final isLoading = ref.watch(readerProvider.select((s) => s.isLoading));
+    final errorMessage = ref.watch(
+      readerProvider.select((s) => s.errorMessage),
+    );
+    final pageData = ref.watch(readerProvider.select((s) => s.pageData));
+    _buildCount++;
+    if (_buildCount > 1) {
+      print(
+        'DEBUG: ReaderScreen rebuild #$_buildCount (isLoading=$isLoading, error=${errorMessage != null}, hasPageData=${pageData != null})',
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -141,26 +158,25 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
             },
           ),
         ),
-        title: Text(state.pageData?.title ?? 'Reader'),
+        title: Text(pageData?.title ?? 'Reader'),
         actions: [
-          if (state.pageData != null && state.pageData!.pageCount > 1)
+          if (pageData != null && pageData!.pageCount > 1)
             Padding(
               padding: const EdgeInsets.only(right: 16),
               child: Row(
                 children: [
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
-                    onPressed: state.pageData!.currentPage > 1
-                        ? () => _goToPage(state.pageData!.currentPage - 1)
+                    onPressed: pageData!.currentPage > 1
+                        ? () => _goToPage(pageData!.currentPage - 1)
                         : null,
                     tooltip: 'Previous page',
                   ),
-                  Text(state.pageData!.pageIndicator),
+                  Text(pageData!.pageIndicator),
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
-                    onPressed:
-                        state.pageData!.currentPage < state.pageData!.pageCount
-                        ? () => _goToPage(state.pageData!.currentPage + 1)
+                    onPressed: pageData!.currentPage < pageData!.pageCount
+                        ? () => _goToPage(pageData!.currentPage + 1)
                         : null,
                     tooltip: 'Next page',
                   ),
@@ -174,15 +190,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
           Column(
             children: [
               if (ref.watch(settingsProvider).showAudioPlayer &&
-                  state.pageData?.hasAudio == true)
+                  pageData?.hasAudio == true)
                 AudioPlayerWidget(
                   audioUrl:
-                      '${ref.read(settingsProvider).serverUrl}/useraudio/stream/${state.pageData!.bookId}',
-                  bookId: state.pageData!.bookId,
-                  page: state.pageData!.currentPage,
-                  bookmarks: state.pageData?.audioBookmarks,
+                      '${ref.read(settingsProvider).serverUrl}/useraudio/stream/${pageData!.bookId}',
+                  bookId: pageData!.bookId,
+                  page: pageData!.currentPage,
+                  bookmarks: pageData?.audioBookmarks,
                 ),
-              Expanded(child: _buildBody(state)),
+              Expanded(child: _buildBody(isLoading, errorMessage, pageData)),
             ],
           ),
         ],
@@ -190,16 +206,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     );
   }
 
-  Widget _buildBody(ReaderState state) {
-    if (state.isLoading) {
+  Widget _buildBody(bool isLoading, String? errorMessage, PageData? pageData) {
+    if (isLoading) {
       return const LoadingIndicator(message: 'Loading content...');
     }
 
-    if (state.errorMessage != null) {
-      final pageData = ref.read(readerProvider).pageData;
-
+    if (errorMessage != null) {
       return ErrorDisplay(
-        message: state.errorMessage!,
+        message: errorMessage,
         onRetry: pageData != null
             ? () {
                 ref.read(readerProvider.notifier).clearError();
@@ -214,7 +228,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
       );
     }
 
-    if (state.pageData == null) {
+    if (pageData == null) {
       final settings = ref.read(settingsProvider);
 
       if (!settings.isUrlValid) {
@@ -298,7 +312,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
       behavior: HitTestBehavior.translucent,
       onTapDown: (_) => TermTooltipClass.close(),
       child: TextDisplay(
-        paragraphs: state.pageData!.paragraphs,
+        paragraphs: pageData!.paragraphs,
         onTap: (item, position) {
           _handleTap(item, position);
         },
@@ -666,16 +680,19 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                       children: [
                         const Text('Italic'),
                         const Spacer(),
-                        Switch(
-                          value: _tempIsItalic ?? false,
-                          onChanged: (value) {
-                            dialogSetState(() {
-                              _tempIsItalic = value;
-                            });
-                            ref
-                                .read(textFormattingSettingsProvider.notifier)
-                                .updateIsItalic(value);
-                          },
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: _tempIsItalic ?? false,
+                            onChanged: (value) {
+                              dialogSetState(() {
+                                _tempIsItalic = value;
+                              });
+                              ref
+                                  .read(textFormattingSettingsProvider.notifier)
+                                  .updateIsItalic(value);
+                            },
+                          ),
                         ),
                       ],
                     ),
