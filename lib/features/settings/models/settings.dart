@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 class Settings {
   final String serverUrl;
   final bool isUrlValid;
-  final bool isInitialized;
   final String translationProvider;
   final bool showTags;
   final bool showLastRead;
@@ -19,7 +18,6 @@ class Settings {
   const Settings({
     required this.serverUrl,
     this.isUrlValid = true,
-    this.isInitialized = false,
     this.translationProvider = 'local',
     this.showTags = true,
     this.showLastRead = true,
@@ -35,7 +33,6 @@ class Settings {
   Settings copyWith({
     String? serverUrl,
     bool? isUrlValid,
-    bool? isInitialized,
     String? translationProvider,
     bool? showTags,
     bool? showLastRead,
@@ -52,7 +49,6 @@ class Settings {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
       isUrlValid: isUrlValid ?? this.isUrlValid,
-      isInitialized: isInitialized ?? this.isInitialized,
       translationProvider: translationProvider ?? this.translationProvider,
       showTags: showTags ?? this.showTags,
       showLastRead: showLastRead ?? this.showLastRead,
@@ -79,7 +75,6 @@ class Settings {
     return const Settings(
       serverUrl: '',
       isUrlValid: true,
-      isInitialized: false,
       translationProvider: 'local',
       showTags: true,
       showLastRead: true,
@@ -99,7 +94,6 @@ class Settings {
     return other is Settings &&
         other.serverUrl == serverUrl &&
         other.isUrlValid == isUrlValid &&
-        other.isInitialized == isInitialized &&
         other.translationProvider == translationProvider &&
         other.showTags == showTags &&
         other.showLastRead == showLastRead &&
@@ -116,7 +110,6 @@ class Settings {
   int get hashCode => Object.hash(
     serverUrl,
     isUrlValid,
-    isInitialized,
     translationProvider,
     showTags,
     showLastRead,

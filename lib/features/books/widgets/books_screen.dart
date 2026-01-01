@@ -9,6 +9,7 @@ import '../models/book.dart';
 import 'book_card.dart';
 import 'book_details_dialog.dart';
 import 'package:lute_for_mobile/app.dart';
+import '../../../core/providers/initial_providers.dart';
 
 class BooksScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -39,13 +40,13 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
     final state = ref.watch(booksProvider);
     final settings = ref.watch(settingsProvider);
 
-    if (_lastSettings == null && settings.isInitialized) {
+    if (_lastSettings == null && settings.serverUrl.isNotEmpty) {
       _lastSettings = settings;
       ref.read(booksProvider.notifier).loadBooks();
     }
     if (_lastSettings != null &&
-        !_lastSettings!.isInitialized &&
-        settings.isInitialized) {
+        _lastSettings!.serverUrl.isEmpty &&
+        settings.serverUrl.isNotEmpty) {
       _lastSettings = settings;
       ref.read(booksProvider.notifier).loadBooks();
     }

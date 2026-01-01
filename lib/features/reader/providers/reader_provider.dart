@@ -61,11 +61,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
     required int pageNum,
     bool updateReaderState = true,
   }) async {
-    final settings = ref.read(settingsProvider);
-    if (!settings.isInitialized || !_repository.contentService.isConfigured) {
-      if (!settings.isInitialized) {
-        return;
-      }
+    if (!_repository.contentService.isConfigured) {
       if (updateReaderState) {
         state = state.copyWith(
           isLoading: false,

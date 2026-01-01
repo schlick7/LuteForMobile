@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
+import '../../../core/providers/initial_providers.dart';
 
 typedef DrawerSettingsBuilder =
     Widget Function(BuildContext context, WidgetRef ref);
@@ -31,40 +32,21 @@ class SettingsNotifier extends Notifier<Settings> {
 
   @override
   Settings build() {
-    _loadSettings();
-    return Settings.defaultSettings();
-  }
+    final initialUrl = ref.read(initialServerUrlProvider);
 
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final serverUrl = prefs.getString(_keyServerUrl) ?? '';
-    final translationProvider =
-        prefs.getString(_keyTranslationProvider) ?? 'local';
-    final showTags = prefs.getBool(_keyShowTags) ?? true;
-    final showLastRead = prefs.getBool(_keyShowLastRead) ?? true;
-    final languageFilter = prefs.getString(_keyLanguageFilter);
-    final showAudioPlayer = prefs.getBool(_keyShowAudioPlayer) ?? true;
-    final currentBookId = prefs.getInt(_keyCurrentBookId);
-    final currentBookPage = prefs.getInt(_keyCurrentBookPage);
-    final currentBookSentenceIndex = prefs.getInt(_keyCurrentBookSentenceIndex);
-    final combineShortSentences = prefs.getInt(_keyCombineShortSentences) ?? 3;
-    final showKnownTermsInSentenceReader =
-        prefs.getBool(_keyShowKnownTermsInSentenceReader) ?? true;
-
-    state = Settings(
-      serverUrl: serverUrl,
-      isUrlValid: _isValidUrl(serverUrl),
-      isInitialized: true,
-      translationProvider: translationProvider,
-      showTags: showTags,
-      showLastRead: showLastRead,
-      languageFilter: languageFilter,
-      showAudioPlayer: showAudioPlayer,
-      currentBookId: currentBookId,
-      currentBookPage: currentBookPage,
-      currentBookSentenceIndex: currentBookSentenceIndex,
-      combineShortSentences: combineShortSentences,
-      showKnownTermsInSentenceReader: showKnownTermsInSentenceReader,
+    return Settings(
+      serverUrl: initialUrl,
+      isUrlValid: _isValidUrl(initialUrl),
+      translationProvider: 'local',
+      showTags: true,
+      showLastRead: true,
+      languageFilter: null,
+      showAudioPlayer: true,
+      currentBookId: null,
+      currentBookPage: null,
+      currentBookSentenceIndex: null,
+      combineShortSentences: 3,
+      showKnownTermsInSentenceReader: true,
     );
   }
 
@@ -72,10 +54,8 @@ class SettingsNotifier extends Notifier<Settings> {
     final isValid = _isValidUrl(url);
     state = state.copyWith(serverUrl: url, isUrlValid: isValid);
 
-    if (isValid) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_keyServerUrl, url);
-    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyServerUrl, url);
   }
 
   Future<void> updateTranslationProvider(String provider) async {
