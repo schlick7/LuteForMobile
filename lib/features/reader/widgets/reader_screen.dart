@@ -414,48 +414,65 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         final repository = ref.read(readerRepositoryProvider);
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return TermFormWidget(
-              termForm: _currentTermForm ?? termForm,
-              contentService: repository.contentService,
-              dictionaryService: DictionaryService(
-                fetchLanguageSettingsHtml: (langId) =>
-                    repository.contentService.getLanguageSettingsHtml(langId),
-              ),
-              onUpdate: (updatedForm) {
-                setState(() {
-                  _currentTermForm = updatedForm;
-                });
-                setModalState(() {});
-              },
-              onSave: (updatedForm) async {
-                final success = await ref
-                    .read(readerProvider.notifier)
-                    .saveTerm(updatedForm);
-                if (success && mounted) {
-                  Navigator.of(context).pop();
-                } else {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Failed to save term')),
-                    );
-                  }
-                }
-              },
-              onCancel: () => Navigator.of(context).pop(),
-              onParentDoubleTap: (parent) async {
-                if (parent.id != null) {
-                  final parentTermForm = await ref
-                      .read(readerProvider.notifier)
-                      .fetchTermFormById(parent.id!);
-                  if (parentTermForm != null && mounted) {
-                    _showParentTermForm(parentTermForm);
-                  }
-                }
-              },
-            );
+        final settings = ref.read(termFormSettingsProvider);
+        return PopScope(
+          canPop: true,
+          onPopInvoked: (didPop) async {
+            if (didPop && settings.autoSave) {
+              final updatedForm = _currentTermForm ?? termForm;
+              final success = await ref
+                  .read(readerProvider.notifier)
+                  .saveTerm(updatedForm);
+              if (!success && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Failed to save term')),
+                );
+              }
+            }
           },
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              return TermFormWidget(
+                termForm: _currentTermForm ?? termForm,
+                contentService: repository.contentService,
+                dictionaryService: DictionaryService(
+                  fetchLanguageSettingsHtml: (langId) =>
+                      repository.contentService.getLanguageSettingsHtml(langId),
+                ),
+                onUpdate: (updatedForm) {
+                  setState(() {
+                    _currentTermForm = updatedForm;
+                  });
+                  setModalState(() {});
+                },
+                onSave: (updatedForm) async {
+                  final success = await ref
+                      .read(readerProvider.notifier)
+                      .saveTerm(updatedForm);
+                  if (success && mounted) {
+                    Navigator.of(context).pop();
+                  } else {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Failed to save term')),
+                      );
+                    }
+                  }
+                },
+                onCancel: () => Navigator.of(context).pop(),
+                onParentDoubleTap: (parent) async {
+                  if (parent.id != null) {
+                    final parentTermForm = await ref
+                        .read(readerProvider.notifier)
+                        .fetchTermFormById(parent.id!);
+                    if (parentTermForm != null && mounted) {
+                      _showParentTermForm(parentTermForm);
+                    }
+                  }
+                },
+              );
+            },
+          ),
         );
       },
     );
@@ -468,49 +485,66 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
       backgroundColor: Colors.transparent,
       builder: (context) {
         final repository = ref.read(readerRepositoryProvider);
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            TermForm? currentForm = termForm;
-            return TermFormWidget(
-              termForm: currentForm,
-              contentService: repository.contentService,
-              dictionaryService: DictionaryService(
-                fetchLanguageSettingsHtml: (langId) =>
-                    repository.contentService.getLanguageSettingsHtml(langId),
-              ),
-              onUpdate: (updatedForm) {
-                setState(() {
-                  currentForm = updatedForm;
-                });
-                setModalState(() {});
-              },
-              onSave: (updatedForm) async {
-                final success = await ref
-                    .read(readerProvider.notifier)
-                    .saveTerm(updatedForm);
-                if (success && mounted) {
-                  Navigator.of(context).pop();
-                } else {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Failed to save term')),
-                    );
-                  }
-                }
-              },
-              onCancel: () => Navigator.of(context).pop(),
-              onParentDoubleTap: (parent) async {
-                if (parent.id != null) {
-                  final parentTermForm = await ref
-                      .read(readerProvider.notifier)
-                      .fetchTermFormById(parent.id!);
-                  if (parentTermForm != null && mounted) {
-                    _showParentTermForm(parentTermForm);
-                  }
-                }
-              },
-            );
+        final settings = ref.read(termFormSettingsProvider);
+        return PopScope(
+          canPop: true,
+          onPopInvoked: (didPop) async {
+            if (didPop && settings.autoSave) {
+              final updatedForm = termForm;
+              final success = await ref
+                  .read(readerProvider.notifier)
+                  .saveTerm(updatedForm);
+              if (!success && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Failed to save term')),
+                );
+              }
+            }
           },
+          child: StatefulBuilder(
+            builder: (context, setModalState) {
+              TermForm? currentForm = termForm;
+              return TermFormWidget(
+                termForm: currentForm,
+                contentService: repository.contentService,
+                dictionaryService: DictionaryService(
+                  fetchLanguageSettingsHtml: (langId) =>
+                      repository.contentService.getLanguageSettingsHtml(langId),
+                ),
+                onUpdate: (updatedForm) {
+                  setState(() {
+                    currentForm = updatedForm;
+                  });
+                  setModalState(() {});
+                },
+                onSave: (updatedForm) async {
+                  final success = await ref
+                      .read(readerProvider.notifier)
+                      .saveTerm(updatedForm);
+                  if (success && mounted) {
+                    Navigator.of(context).pop();
+                  } else {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Failed to save term')),
+                      );
+                    }
+                  }
+                },
+                onCancel: () => Navigator.of(context).pop(),
+                onParentDoubleTap: (parent) async {
+                  if (parent.id != null) {
+                    final parentTermForm = await ref
+                        .read(readerProvider.notifier)
+                        .fetchTermFormById(parent.id!);
+                    if (parentTermForm != null && mounted) {
+                      _showParentTermForm(parentTermForm);
+                    }
+                  }
+                },
+              );
+            },
+          ),
         );
       },
     );

@@ -18,6 +18,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
   final ContentService contentService;
   final void Function(TermParent)? onParentDoubleTap;
   final DictionaryService dictionaryService;
+  final VoidCallback? onDismiss;
 
   const TermFormWidget({
     super.key,
@@ -28,6 +29,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
     required this.contentService,
     required this.dictionaryService,
     this.onParentDoubleTap,
+    this.onDismiss,
   });
 
   @override
@@ -100,6 +102,22 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     super.dispose();
   }
 
+  void _updateForm() {
+    final updatedForm = widget.termForm.copyWith(
+      translation: _translationController.text.trim(),
+      status: _selectedStatus,
+      tags: _tagsController.text
+          .trim()
+          .split(',')
+          .map((tag) => tag.trim())
+          .where((tag) => tag.isNotEmpty)
+          .toList(),
+      romanization: _romanizationController.text.trim(),
+      parents: widget.termForm.parents,
+    );
+    widget.onUpdate(updatedForm);
+  }
+
   void _handleSave() {
     final updatedForm = widget.termForm.copyWith(
       translation: _translationController.text.trim(),
@@ -137,6 +155,24 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                       ref
                           .read(termFormSettingsProvider.notifier)
                           .updateShowTags(value);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                const Text('Auto Save on Close'),
+                const Spacer(),
+                Transform.scale(
+                  scale: 0.8,
+                  child: Switch(
+                    value: settings.autoSave,
+                    onChanged: (value) {
+                      ref
+                          .read(termFormSettingsProvider.notifier)
+                          .updateAutoSave(value);
                       Navigator.of(context).pop();
                     },
                   ),
@@ -231,6 +267,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final settings = ref.watch(termFormSettingsProvider);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -251,7 +288,13 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               tooltip: 'Term Form Settings',
             ),
             IconButton(
-              onPressed: widget.onCancel,
+              onPressed: () {
+                if (settings.autoSave) {
+                  _handleSave();
+                } else {
+                  widget.onCancel();
+                }
+              },
               icon: const Icon(Icons.close),
               tooltip: 'Close',
             ),
@@ -293,6 +336,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               ),
             ),
             maxLines: 2,
+            onChanged: (_) => _updateForm(),
           ),
         ),
         const SizedBox(width: 12),
@@ -355,6 +399,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         setState(() {
           _selectedStatus = statusValue;
         });
+        _updateForm();
       },
       child: Container(
         width: 48,
@@ -398,6 +443,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
+      onChanged: (_) => _updateForm(),
     );
   }
 
@@ -417,6 +463,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
+      onChanged: (_) => _updateForm(),
     );
   }
 

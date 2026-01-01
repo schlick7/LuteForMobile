@@ -213,13 +213,23 @@ final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(() {
 class TermFormSettings {
   final bool showRomanization;
   final bool showTags;
+  final bool autoSave;
 
-  const TermFormSettings({this.showRomanization = true, this.showTags = true});
+  const TermFormSettings({
+    this.showRomanization = true,
+    this.showTags = true,
+    this.autoSave = false,
+  });
 
-  TermFormSettings copyWith({bool? showRomanization, bool? showTags}) {
+  TermFormSettings copyWith({
+    bool? showRomanization,
+    bool? showTags,
+    bool? autoSave,
+  }) {
     return TermFormSettings(
       showRomanization: showRomanization ?? this.showRomanization,
       showTags: showTags ?? this.showTags,
+      autoSave: autoSave ?? this.autoSave,
     );
   }
 
@@ -228,11 +238,13 @@ class TermFormSettings {
     if (identical(this, other)) return true;
     return other is TermFormSettings &&
         other.showRomanization == showRomanization &&
-        other.showTags == showTags;
+        other.showTags == showTags &&
+        other.autoSave == autoSave;
   }
 
   @override
-  int get hashCode => showRomanization.hashCode ^ showTags.hashCode;
+  int get hashCode =>
+      showRomanization.hashCode ^ showTags.hashCode ^ autoSave.hashCode;
 
   static const TermFormSettings defaultSettings = TermFormSettings();
 }
@@ -240,6 +252,7 @@ class TermFormSettings {
 class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
   static const String _keyShowRomanization = 'show_romanization';
   static const String _keyShowTags = 'show_tags';
+  static const String _keyAutoSave = 'auto_save';
   bool _isInitialized = false;
 
   @override
@@ -255,10 +268,12 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
     final prefs = await SharedPreferences.getInstance();
     final showRomanization = prefs.getBool(_keyShowRomanization) ?? true;
     final showTags = prefs.getBool(_keyShowTags) ?? true;
+    final autoSave = prefs.getBool(_keyAutoSave) ?? false;
 
     final loadedSettings = TermFormSettings(
       showRomanization: showRomanization,
       showTags: showTags,
+      autoSave: autoSave,
     );
     if (state != loadedSettings) {
       state = loadedSettings;
@@ -277,6 +292,13 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyShowTags, show);
+  }
+
+  Future<void> updateAutoSave(bool autoSave) async {
+    state = state.copyWith(autoSave: autoSave);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAutoSave, autoSave);
   }
 }
 
