@@ -183,13 +183,16 @@ class ReaderDrawerSettings extends ConsumerWidget {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                         const Spacer(),
-                        Switch(
-                          value: settings.showKnownTermsInSentenceReader,
-                          onChanged: (value) {
-                            ref
-                                .read(settingsProvider.notifier)
-                                .updateShowKnownTermsInSentenceReader(value);
-                          },
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: settings.showKnownTermsInSentenceReader,
+                            onChanged: (value) {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .updateShowKnownTermsInSentenceReader(value);
+                            },
+                          ),
                         ),
                       ],
                     ),
@@ -238,13 +241,16 @@ class ReaderDrawerSettings extends ConsumerWidget {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       const Spacer(),
-                      Switch(
-                        value: settings.showKnownTermsInSentenceReader,
-                        onChanged: (value) {
-                          ref
-                              .read(settingsProvider.notifier)
-                              .updateShowKnownTermsInSentenceReader(value);
-                        },
+                      Transform.scale(
+                        scale: 0.8,
+                        child: Switch(
+                          value: settings.showKnownTermsInSentenceReader,
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateShowKnownTermsInSentenceReader(value);
+                          },
+                        ),
                       ),
                     ],
                   ),
@@ -385,13 +391,16 @@ class ReaderDrawerSettings extends ConsumerWidget {
       children: [
         const Text('Italic', style: TextStyle(fontWeight: FontWeight.bold)),
         const Spacer(),
-        Switch(
-          value: textSettings.isItalic,
-          onChanged: (value) {
-            ref
-                .read(textFormattingSettingsProvider.notifier)
-                .updateIsItalic(value);
-          },
+        Transform.scale(
+          scale: 0.8,
+          child: Switch(
+            value: textSettings.isItalic,
+            onChanged: (value) {
+              ref
+                  .read(textFormattingSettingsProvider.notifier)
+                  .updateIsItalic(value);
+            },
+          ),
         ),
       ],
     );
@@ -409,11 +418,14 @@ class ReaderDrawerSettings extends ConsumerWidget {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         const Spacer(),
-        Switch(
-          value: settings.showAudioPlayer,
-          onChanged: (value) {
-            ref.read(settingsProvider.notifier).updateShowAudioPlayer(value);
-          },
+        Transform.scale(
+          scale: 0.8,
+          child: Switch(
+            value: settings.showAudioPlayer,
+            onChanged: (value) {
+              ref.read(settingsProvider.notifier).updateShowAudioPlayer(value);
+            },
+          ),
         ),
       ],
     );

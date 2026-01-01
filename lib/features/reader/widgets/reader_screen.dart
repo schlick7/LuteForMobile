@@ -680,16 +680,19 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                       children: [
                         const Text('Italic'),
                         const Spacer(),
-                        Switch(
-                          value: _tempIsItalic ?? false,
-                          onChanged: (value) {
-                            dialogSetState(() {
-                              _tempIsItalic = value;
-                            });
-                            ref
-                                .read(textFormattingSettingsProvider.notifier)
-                                .updateIsItalic(value);
-                          },
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: _tempIsItalic ?? false,
+                            onChanged: (value) {
+                              dialogSetState(() {
+                                _tempIsItalic = value;
+                              });
+                              ref
+                                  .read(textFormattingSettingsProvider.notifier)
+                                  .updateIsItalic(value);
+                            },
+                          ),
                         ),
                       ],
                     ),

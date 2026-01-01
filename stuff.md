@@ -5,6 +5,12 @@
 
 add custom button for accent colors that allows entering custom colors (ex. FFFFFF)
 
+Change opacity for termlist
+
+Is all values getting saved correctly? Some seem to reset after a server stop/start and other don't
+
+
+
 
 
 Future:

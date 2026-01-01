@@ -23,25 +23,45 @@ class BooksDrawerSettings extends ConsumerWidget {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          SwitchListTile(
-            title: const Text('Show Tags'),
-            value: settings.showTags,
-            onChanged: (value) async {
-              ref.read(settingsProvider.notifier).updateShowTags(value);
-              await ref.read(booksProvider.notifier).loadBooks();
-            },
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.trailing,
+          Row(
+            children: [
+              const Text(
+                'Show Tags',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Transform.scale(
+                scale: 0.8,
+                child: Switch(
+                  value: settings.showTags,
+                  onChanged: (value) async {
+                    ref.read(settingsProvider.notifier).updateShowTags(value);
+                    await ref.read(booksProvider.notifier).loadBooks();
+                  },
+                ),
+              ),
+            ],
           ),
-          SwitchListTile(
-            title: const Text('Show Last Read'),
-            value: settings.showLastRead,
-            onChanged: (value) async {
-              ref.read(settingsProvider.notifier).updateShowLastRead(value);
-              await ref.read(booksProvider.notifier).loadBooks();
-            },
-            contentPadding: EdgeInsets.zero,
-            controlAffinity: ListTileControlAffinity.trailing,
+          Row(
+            children: [
+              const Text(
+                'Show Last Read',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Transform.scale(
+                scale: 0.8,
+                child: Switch(
+                  value: settings.showLastRead,
+                  onChanged: (value) async {
+                    ref
+                        .read(settingsProvider.notifier)
+                        .updateShowLastRead(value);
+                    await ref.read(booksProvider.notifier).loadBooks();
+                  },
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Text(
