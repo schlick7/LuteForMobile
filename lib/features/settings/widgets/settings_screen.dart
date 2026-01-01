@@ -340,7 +340,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 16),
-                    const Text('Sentence Combining'),
+                    const Text('Sentence Combining in Sentence Reader '),
                     const SizedBox(height: 8),
                     Row(
                       children: [
