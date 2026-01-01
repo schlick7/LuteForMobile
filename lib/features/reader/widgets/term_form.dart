@@ -490,6 +490,37 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Widget _buildParentsSection(BuildContext context) {
+    final settings = ref.watch(termFormSettingsProvider);
+    final isInDictionaryMode =
+        _isDictionaryOpen && settings.showParentsInDictionary;
+
+    if (isInDictionaryMode && widget.termForm.parents.isNotEmpty) {
+      // When dictionary is open with show parents enabled, show label inline with chips
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Parent Terms',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: context.customColors.accentLabelColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: widget.termForm.parents.map((parent) {
+                return _buildParentChip(context, parent);
+              }).toList(),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Default layout: column with label row and chips row
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -503,41 +534,42 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            Row(
-              children: [
-                IconButton(
-                  onPressed: widget.termForm.parents.length == 1
-                      ? _toggleSyncStatus
-                      : null,
-                  icon: Icon(
-                    widget.termForm.parents.length > 1
-                        ? Icons.link_off
-                        : Icons.link,
-                    color:
-                        widget.termForm.parents.length == 1 &&
-                            widget.termForm.syncStatus == true
-                        ? Colors.green
+            if (!isInDictionaryMode)
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: widget.termForm.parents.length == 1
+                        ? _toggleSyncStatus
                         : null,
+                    icon: Icon(
+                      widget.termForm.parents.length > 1
+                          ? Icons.link_off
+                          : Icons.link,
+                      color:
+                          widget.termForm.parents.length == 1 &&
+                              widget.termForm.syncStatus == true
+                          ? Colors.green
+                          : null,
+                    ),
+                    tooltip: widget.termForm.parents.length > 1
+                        ? 'Cannot sync - multiple parents'
+                        : (widget.termForm.syncStatus == true
+                              ? 'Sync with parent: ON'
+                              : 'Sync with parent: OFF'),
+                    iconSize: 20,
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
                   ),
-                  tooltip: widget.termForm.parents.length > 1
-                      ? 'Cannot sync - multiple parents'
-                      : (widget.termForm.syncStatus == true
-                            ? 'Sync with parent: ON'
-                            : 'Sync with parent: OFF'),
-                  iconSize: 20,
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    minHeight: 40,
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => _showAddParentDialog(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Parent'),
                   ),
-                ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddParentDialog(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Parent'),
-                ),
-              ],
-            ),
+                ],
+              ),
           ],
         ),
         const SizedBox(height: 4),
