@@ -37,8 +37,7 @@ class SettingsNotifier extends Notifier<Settings> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final serverUrl =
-        prefs.getString(_keyServerUrl) ?? 'http://192.168.1.100:5001';
+    final serverUrl = prefs.getString(_keyServerUrl) ?? '';
     final translationProvider =
         prefs.getString(_keyTranslationProvider) ?? 'local';
     final showTags = prefs.getBool(_keyShowTags) ?? true;
