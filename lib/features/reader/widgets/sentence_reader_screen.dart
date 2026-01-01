@@ -195,6 +195,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       final prevPage = previous?.pageData;
       final nextPage = next.pageData;
 
+      if (_hasInitialized &&
+          prevPage != null &&
+          nextPage != null &&
+          prevPage != nextPage) {
+        ref.read(sentenceReaderProvider.notifier).syncStatusFromPageData();
+      }
+
       if (prevPage == null &&
           nextPage != null &&
           _lastInitializedBookId != nextPage.bookId &&

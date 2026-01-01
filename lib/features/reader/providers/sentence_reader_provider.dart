@@ -1,8 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 import '../../settings/providers/settings_provider.dart';
-import '../models/paragraph.dart';
-import '../models/language_sentence_settings.dart';
 import '../utils/sentence_parser.dart';
 import '../services/sentence_cache_service.dart';
 import 'reader_provider.dart';
@@ -65,6 +63,70 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
   SentenceReaderState build() {
     _cacheService = ref.read(sentenceCacheServiceProvider);
     return const SentenceReaderState();
+  }
+
+  void syncStatusFromPageData() {
+    final reader = ref.read(readerProvider);
+    if (reader.pageData == null || state.customSentences.isEmpty) return;
+
+    final needsUpdate = _needsStatusSync(state.customSentences, reader);
+    if (!needsUpdate) return;
+
+    final syncedSentences = _syncStatusFromPageData(
+      state.customSentences,
+      reader,
+    );
+    state = state.copyWith(customSentences: syncedSentences);
+  }
+
+  bool _needsStatusSync(List<CustomSentence> sentences, ReaderState reader) {
+    final Map<int, String> wordIdToStatus = {};
+
+    for (final paragraph in reader.pageData!.paragraphs) {
+      for (final item in paragraph.textItems) {
+        if (item.wordId != null) {
+          wordIdToStatus[item.wordId!] = item.statusClass;
+        }
+      }
+    }
+
+    for (final sentence in sentences) {
+      for (final item in sentence.textItems) {
+        if (item.wordId != null &&
+            wordIdToStatus.containsKey(item.wordId) &&
+            wordIdToStatus[item.wordId!] != item.statusClass) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  List<CustomSentence> _syncStatusFromPageData(
+    List<CustomSentence> sentences,
+    ReaderState reader,
+  ) {
+    final Map<int, String> wordIdToStatus = {};
+
+    for (final paragraph in reader.pageData!.paragraphs) {
+      for (final item in paragraph.textItems) {
+        if (item.wordId != null) {
+          wordIdToStatus[item.wordId!] = item.statusClass;
+        }
+      }
+    }
+
+    return sentences.map((sentence) {
+      final updatedItems = sentence.textItems.map((item) {
+        if (item.wordId != null && wordIdToStatus.containsKey(item.wordId)) {
+          return item.copyWith(statusClass: wordIdToStatus[item.wordId!]);
+        }
+        return item;
+      }).toList();
+
+      return sentence.copyWith(textItems: updatedItems);
+    }).toList();
   }
 
   int _getLangIdFromPageData() {
@@ -344,6 +406,16 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
   }
 
   Future<void> clearCacheForThresholdChange() async {
+    final reader = ref.read(readerProvider);
+
+    if (reader.pageData != null) {
+      final bookId = reader.pageData!.bookId;
+
+      await _cacheService.clearBookCache(bookId);
+    }
+  }
+
+  Future<void> clearCacheForTermChange() async {
     final reader = ref.read(readerProvider);
 
     if (reader.pageData != null) {
