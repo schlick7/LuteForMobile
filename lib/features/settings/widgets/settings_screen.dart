@@ -20,6 +20,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   late TextEditingController _serverUrlController;
   bool _isTesting = false;
   String? _connectionStatus;
+  bool _connectionTestPassed = false;
 
   static const List<Color> _accentColorOptions = [
     Color(0xFF1976D2), // Blue
@@ -53,6 +54,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() {
       _isTesting = true;
       _connectionStatus = null;
+      _connectionTestPassed = false;
     });
 
     final url = _serverUrlController.text.trim();
@@ -70,17 +72,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         setState(() {
           _connectionStatus = 'Connection successful!';
           _isTesting = false;
+          _connectionTestPassed = true;
         });
       } else {
         setState(() {
           _connectionStatus = 'Connection failed: ${response.statusCode}';
           _isTesting = false;
+          _connectionTestPassed = false;
         });
       }
     } catch (e) {
       setState(() {
         _connectionStatus = 'Connection failed: ${e.toString()}';
         _isTesting = false;
+        _connectionTestPassed = false;
       });
     }
   }
@@ -88,14 +93,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _saveSettings() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final oldUrl = ref.read(settingsProvider).serverUrl;
     final newUrl = _serverUrlController.text.trim();
+
+    await _testConnection();
+
+    if (!_connectionTestPassed) {
+      return;
+    }
+
+    final oldUrl = ref.read(settingsProvider).serverUrl;
 
     await ref.read(settingsProvider.notifier).updateServerUrl(newUrl);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Settings saved successfully')),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Settings saved successfully')),
+      );
+    }
 
     if (oldUrl != newUrl) {
       RestartWidget.restartApp(context);
@@ -124,6 +138,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           text: next.serverUrl,
           selection: TextSelection.collapsed(offset: next.serverUrl.length),
         );
+        _connectionTestPassed = false;
+        _connectionStatus = null;
       }
     });
 
@@ -175,7 +191,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         errorText: settings.isUrlValid
                             ? null
                             : 'Invalid URL format',
-                        suffixIcon: settings.isUrlValid
+                        suffixIcon: _connectionStatus != null
+                            ? Icon(
+                                _connectionTestPassed
+                                    ? Icons.check_circle
+                                    : Icons.error,
+                                color: _connectionTestPassed
+                                    ? Theme.of(context).colorScheme.success
+                                    : Theme.of(context).colorScheme.error,
+                              )
+                            : settings.isUrlValid
                             ? Icon(
                                 Icons.check_circle,
                                 color: Theme.of(context).colorScheme.connected,
@@ -186,6 +211,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               ),
                       ),
                       keyboardType: TextInputType.url,
+                      onChanged: (_) {
+                        _connectionTestPassed = false;
+                        _connectionStatus = null;
+                      },
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter a server URL';
@@ -437,9 +466,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     _serverUrlController.text = ref
                                         .read(settingsProvider)
                                         .serverUrl;
-                                    setState(() {
-                                      _connectionStatus = null;
-                                    });
+                                    _connectionStatus = null;
+                                    _connectionTestPassed = false;
                                     Navigator.pop(context);
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
