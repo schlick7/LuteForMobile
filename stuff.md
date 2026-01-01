@@ -8,7 +8,17 @@ Change opacity for termlist
 
 Reader not remembering book between app launches
 
-Reader screen seems to load in flash blank and then load in again. 
+lazy loading?
+
+are we reparsing the entire sentence on status change?
+
+Don't load tooltips for unknown(status98) terms in the sentencereader. Also, don't load known(status99) terms tooltips if the toggle to show known terms is toggled off. 
+
+make sure that ontap isn't using cached data
+
+can the server handle async requests for tooltips?
+
+Reader screen seems to load in then flash blank and then load in again. 
 
 Sentence Reader is calling parsetermtooltip in the normal ReaderScreen before it is every opend and it seems to be doing it for the ENTIRE page. We only want this to get trigger when the sentence reader opens and then we only want it to happen for the first sentence! this is way to much loading data right away
 
