@@ -27,7 +27,8 @@ class SentenceReaderScreen extends ConsumerStatefulWidget {
       SentenceReaderScreenState();
 }
 
-class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
+class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
+    with WidgetsBindingObserver {
   TermForm? _currentTermForm;
   final Map<int, TermTooltip> _termTooltips = {};
   bool _tooltipsLoadInProgress = false;
@@ -38,77 +39,35 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
   int? _lastInitializedBookId;
   int? _lastInitializedPageNum;
   int? _lastTooltipsBookId;
-  int? _lastTooltipsPageNum;
+  bool _hasInitialized = false;
+  int? _currentSentenceId;
+  AppLifecycleState? _lastLifecycleState;
 
   @override
   void initState() {
     super.initState();
+    _setupAppLifecycleListener();
   }
 
-  void _ensureTooltipsLoaded({bool forceRefresh = false}) {
-    if (_tooltipsLoadInProgress) return;
-
-    final allSentences = ref.read(sentenceReaderProvider).customSentences;
-    final allTerms = <TextItem>[];
-
-    for (final sentence in allSentences) {
-      allTerms.addAll(sentence.uniqueTerms);
-    }
-
-    if (forceRefresh) {
-      _termTooltips.clear();
-    }
-
-    final hasAllTooltips = allTerms.every(
-      (term) => term.wordId == null || _termTooltips.containsKey(term.wordId),
-    );
-
-    if (hasAllTooltips && !forceRefresh) return;
-
-    _loadAllTermTranslations();
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    _lastLifecycleState = state;
   }
 
-  Future<void> _loadAllTermTranslations() async {
-    if (_tooltipsLoadInProgress) return;
-    _tooltipsLoadInProgress = true;
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
-    final allSentences = ref.read(sentenceReaderProvider).customSentences;
-    final allTerms = <TextItem>[];
+  void _setupAppLifecycleListener() {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
-    for (final sentence in allSentences) {
-      allTerms.addAll(sentence.uniqueTerms);
-    }
-
-    final newTooltips = <int, TermTooltip>{};
-
-    for (final term in allTerms) {
-      if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
-        print(
-          'DEBUG SentenceReaderScreen._loadAllTermTranslations: Fetching tooltip for wordId=${term.wordId}, term="${term.text}"',
-        );
-        try {
-          final termTooltip = await ref
-              .read(readerProvider.notifier)
-              .fetchTermTooltip(term.wordId!);
-          if (termTooltip != null) {
-            newTooltips[term.wordId!] = termTooltip;
-          }
-        } catch (e) {
-          // Skip terms that fail to load
-          print(
-            'DEBUG SentenceReaderScreen._loadAllTermTranslations: Failed to fetch tooltip for wordId=${term.wordId}: $e',
-          );
-        }
-      }
-    }
-
-    if (newTooltips.isNotEmpty && mounted) {
-      setState(() {
-        _termTooltips.addAll(newTooltips);
-      });
-    }
-
-    _tooltipsLoadInProgress = false;
+  bool _canPreload() {
+    return ref.read(currentScreenRouteProvider) == 'sentence-reader' &&
+        _lastLifecycleState != AppLifecycleState.paused;
   }
 
   int _getLangId(ReaderState reader) {
@@ -124,13 +83,20 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     _mainBuildCount++;
     print('DEBUG: SentenceReaderScreen main build #$_mainBuildCount');
 
+    final currentScreenRoute = ref.watch(currentScreenRouteProvider);
+    final isVisible = currentScreenRoute == 'sentence-reader';
+
     final pageTitle = ref.watch(
       readerProvider.select((state) => state.pageData?.title),
     );
     final readerState = ref.read(readerProvider);
     final sentenceReader = ref.watch(sentenceReaderProvider);
     final currentSentence = sentenceReader.currentSentence;
-    if (readerState.pageData != null && !readerState.isLoading) {
+
+    if (isVisible &&
+        readerState.pageData != null &&
+        !_hasInitialized &&
+        !readerState.isLoading) {
       final bookId = readerState.pageData!.bookId;
       final pageNum = readerState.pageData!.currentPage;
 
@@ -138,6 +104,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
           _lastInitializedPageNum != pageNum) {
         _lastInitializedBookId = bookId;
         _lastInitializedPageNum = pageNum;
+        _hasInitialized = true;
 
         final langId = _getLangId(readerState);
         print(
@@ -156,12 +123,60 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
               .then((_) {
                 if (mounted) {
                   ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
-                  _ensureTooltipsLoaded();
+                  _setupSentenceNavigationListener();
+                  _setupSettingsListener();
+                  _loadTooltipsForCurrentSentence();
                 }
               });
         });
       }
     }
+
+    ref.listen<ReaderState>(readerProvider, (previous, next) {
+      final prevPage = previous?.pageData;
+      final nextPage = next.pageData;
+
+      if (prevPage == null &&
+          nextPage != null &&
+          _lastInitializedBookId != nextPage.bookId &&
+          isVisible) {
+        final bookId = nextPage.bookId;
+        final pageNum = nextPage.currentPage;
+
+        if (_lastInitializedBookId != bookId ||
+            _lastInitializedPageNum != pageNum) {
+          _lastInitializedBookId = bookId;
+          _lastInitializedPageNum = pageNum;
+          _hasInitialized = true;
+
+          final langId = _getLangId(next);
+          print(
+            'DEBUG: SentenceReaderScreen: Delayed initialization for bookId=$bookId, pageNum=$pageNum, langId=$langId',
+          );
+
+          if (_lastTooltipsBookId != bookId) {
+            _termTooltips.clear();
+            _lastTooltipsBookId = bookId;
+          }
+
+          Future(() {
+            ref
+                .read(sentenceReaderProvider.notifier)
+                .parseSentencesForPage(langId)
+                .then((_) {
+                  if (mounted) {
+                    ref
+                        .read(sentenceReaderProvider.notifier)
+                        .loadSavedPosition();
+                    _setupSentenceNavigationListener();
+                    _setupSettingsListener();
+                    _loadTooltipsForCurrentSentence();
+                  }
+                });
+          });
+        }
+      }
+    });
 
     if (readerState.isLoading || sentenceReader.isParsing) {
       return Scaffold(
@@ -375,6 +390,174 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
         ),
       ),
     );
+  }
+
+  void _setupSentenceNavigationListener() {
+    ref.listen<SentenceReaderState>(sentenceReaderProvider, (previous, next) {
+      final newSentenceId = next.currentSentence?.id;
+      if (newSentenceId != null && newSentenceId != _currentSentenceId) {
+        _currentSentenceId = newSentenceId;
+        print('DEBUG: Sentence changed to ID: $_currentSentenceId');
+        _loadTooltipsForCurrentSentence();
+      }
+    });
+  }
+
+  void _setupSettingsListener() {
+    ref.listen<bool>(
+      settingsProvider.select((s) => s.showKnownTermsInSentenceReader),
+      (previous, next) {
+        if (previous != next) {
+          print('DEBUG: Show known terms toggle changed: $previous -> $next');
+          _loadTooltipsForCurrentSentence();
+        }
+      },
+    );
+  }
+
+  Future<void> _loadTooltipsForCurrentSentence() async {
+    if (_tooltipsLoadInProgress) return;
+
+    final sentenceReader = ref.read(sentenceReaderProvider);
+    final currentSentence = sentenceReader.currentSentence;
+    final settings = ref.read(settingsProvider);
+
+    if (currentSentence == null) return;
+
+    final termsNeedingTooltips = _extractTermsNeedingTooltips(
+      currentSentence,
+      showKnownTerms: settings.showKnownTermsInSentenceReader,
+    );
+
+    print('DEBUG: Loading tooltips for sentence ID: ${currentSentence.id}');
+    print(
+      'DEBUG: Terms needing tooltips: ${termsNeedingTooltips.length} (out of ${currentSentence.uniqueTerms.length} total)',
+    );
+
+    _tooltipsLoadInProgress = true;
+
+    try {
+      for (final term in termsNeedingTooltips) {
+        if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
+          print(
+            'DEBUG: Fetching tooltip for wordId=${term.wordId}, term="${term.text}"',
+          );
+          try {
+            final termTooltip = await ref
+                .read(readerProvider.notifier)
+                .fetchTermTooltip(term.wordId!);
+            if (termTooltip != null && mounted) {
+              setState(() {
+                _termTooltips[term.wordId!] = termTooltip;
+              });
+            }
+          } catch (e) {
+            print(
+              'DEBUG: Failed to fetch tooltip for wordId=${term.wordId}: $e',
+            );
+          }
+        }
+      }
+    } finally {
+      _tooltipsLoadInProgress = false;
+      print(
+        'DEBUG: Finished loading tooltips for sentence ID: ${currentSentence.id}',
+      );
+    }
+
+    if (_canPreload()) {
+      _preloadNextSentence();
+    }
+  }
+
+  List<TextItem> _extractTermsNeedingTooltips(
+    CustomSentence sentence, {
+    required bool showKnownTerms,
+  }) {
+    final Map<int, TextItem> termsNeedingTooltips = {};
+
+    for (final item in sentence.textItems) {
+      if (item.wordId != null) {
+        final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
+        final status = statusMatch?.group(1) ?? '0';
+
+        if (status == '0') {
+          continue;
+        }
+
+        if (status == '98') {
+          continue;
+        }
+
+        if (!showKnownTerms && status == '99') {
+          continue;
+        }
+
+        termsNeedingTooltips[item.wordId!] = item;
+      }
+    }
+
+    return termsNeedingTooltips.values.toList();
+  }
+
+  Future<void> _preloadNextSentence() async {
+    final sentenceReader = ref.read(sentenceReaderProvider);
+    final settings = ref.read(settingsProvider);
+
+    if (!sentenceReader.canGoNext) {
+      print('DEBUG: No next sentence to preload');
+      return;
+    }
+
+    final nextIndex = sentenceReader.currentSentenceIndex + 1;
+    if (nextIndex >= sentenceReader.customSentences.length) {
+      print('DEBUG: Next index out of bounds');
+      return;
+    }
+
+    final nextSentence = sentenceReader.customSentences[nextIndex];
+
+    final termsNeedingTooltips = _extractTermsNeedingTooltips(
+      nextSentence,
+      showKnownTerms: settings.showKnownTermsInSentenceReader,
+    );
+
+    if (termsNeedingTooltips.isEmpty) {
+      print(
+        'DEBUG: Next sentence has no terms needing tooltips - skipping preload',
+      );
+      return;
+    }
+
+    print(
+      'DEBUG: Preloading tooltips for next sentence ID: ${nextSentence.id} (${termsNeedingTooltips.length} terms)',
+    );
+
+    for (final term in termsNeedingTooltips) {
+      if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
+        if (!_canPreload()) {
+          print('DEBUG: Stopping preload - not visible');
+          return;
+        }
+
+        try {
+          final termTooltip = await ref
+              .read(readerProvider.notifier)
+              .fetchTermTooltip(term.wordId!);
+          if (termTooltip != null && mounted && _canPreload()) {
+            setState(() {
+              _termTooltips[term.wordId!] = termTooltip;
+            });
+          }
+        } catch (e) {
+          print(
+            'DEBUG: Failed to preload tooltip for wordId=${term.wordId}: $e',
+          );
+        }
+      }
+    }
+
+    print('DEBUG: Finished preloading next sentence');
   }
 
   void _goNext() async {
@@ -656,7 +839,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
           .parseSentencesForPage(langId);
       await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
 
-      _ensureTooltipsLoaded(forceRefresh: true);
+      _hasInitialized = false;
+      _currentSentenceId = null;
+      _loadTooltipsForCurrentSentence();
     }
   }
 }
