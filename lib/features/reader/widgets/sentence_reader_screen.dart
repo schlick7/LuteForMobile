@@ -37,6 +37,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
 
   int? _lastInitializedBookId;
   int? _lastInitializedPageNum;
+  int? _lastTooltipsBookId;
+  int? _lastTooltipsPageNum;
 
   @override
   void initState() {
@@ -142,6 +144,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
           'DEBUG: SentenceReaderScreen: Initializing sentence parsing for bookId=$bookId, pageNum=$pageNum, langId=$langId',
         );
 
+        if (_lastTooltipsBookId != bookId) {
+          _termTooltips.clear();
+          _lastTooltipsBookId = bookId;
+        }
+
         Future(() {
           ref
               .read(sentenceReaderProvider.notifier)
@@ -149,6 +156,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
               .then((_) {
                 if (mounted) {
                   ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
+                  _ensureTooltipsLoaded();
                 }
               });
         });
@@ -238,8 +246,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     }
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
-
-    Future(() => _ensureTooltipsLoaded());
 
     return Scaffold(
       appBar: AppBar(
