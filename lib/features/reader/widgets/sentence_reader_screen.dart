@@ -128,7 +128,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
     final readerState = ref.read(readerProvider);
     final sentenceReader = ref.watch(sentenceReaderProvider);
     final currentSentence = sentenceReader.currentSentence;
-
     if (readerState.pageData != null && !readerState.isLoading) {
       final bookId = readerState.pageData!.bookId;
       final pageNum = readerState.pageData!.currentPage;
@@ -143,14 +142,16 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
           'DEBUG: SentenceReaderScreen: Initializing sentence parsing for bookId=$bookId, pageNum=$pageNum, langId=$langId',
         );
 
-        ref
-            .read(sentenceReaderProvider.notifier)
-            .parseSentencesForPage(langId)
-            .then((_) {
-              if (mounted) {
-                ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
-              }
-            });
+        Future(() {
+          ref
+              .read(sentenceReaderProvider.notifier)
+              .parseSentencesForPage(langId)
+              .then((_) {
+                if (mounted) {
+                  ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
+                }
+              });
+        });
       }
     }
 
