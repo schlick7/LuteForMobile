@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import '../models/settings.dart';
 import '../providers/settings_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
 
@@ -36,8 +37,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    final settings = ref.read(settingsProvider);
-    _serverUrlController = TextEditingController(text: settings.serverUrl);
+    _serverUrlController = TextEditingController();
+
+    ref.listen(settingsProvider, (previous, next) {
+      if (_serverUrlController.text != next.serverUrl) {
+        _serverUrlController.value = TextEditingValue(
+          text: next.serverUrl,
+          selection: TextSelection.collapsed(offset: next.serverUrl.length),
+        );
+      }
+    });
   }
 
   @override
@@ -140,7 +149,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       controller: _serverUrlController,
                       decoration: InputDecoration(
                         labelText: 'Server URL',
-                        hintText: 'http://localhost:5001',
+                        hintText: 'http://192.168.1.100:5001',
                         labelStyle: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
                               color: context.customColors.accentLabelColor,
