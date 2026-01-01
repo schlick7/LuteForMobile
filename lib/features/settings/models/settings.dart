@@ -73,7 +73,7 @@ class Settings {
 
   factory Settings.defaultSettings() {
     return const Settings(
-      serverUrl: 'http://192.168.1.100:5001',
+      serverUrl: '',
       isUrlValid: true,
       translationProvider: 'local',
       showTags: true,
