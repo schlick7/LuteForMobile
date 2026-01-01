@@ -3,7 +3,6 @@
 - source myenv/bin/activate
   - python3 -m lute.main
 
-add custom button for accent colors that allows entering custom colors (ex. FFFFFF)
 
 Change opacity for termlist
 
