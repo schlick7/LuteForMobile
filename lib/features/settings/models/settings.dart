@@ -14,6 +14,7 @@ class Settings {
   final int? currentBookSentenceIndex;
   final int? combineShortSentences;
   final bool showKnownTermsInSentenceReader;
+  final int doubleTapTimeout;
 
   const Settings({
     required this.serverUrl,
@@ -28,6 +29,7 @@ class Settings {
     this.currentBookSentenceIndex,
     this.combineShortSentences,
     this.showKnownTermsInSentenceReader = true,
+    this.doubleTapTimeout = 300,
   });
 
   Settings copyWith({
@@ -45,6 +47,7 @@ class Settings {
     int? currentBookSentenceIndex,
     int? combineShortSentences,
     bool? showKnownTermsInSentenceReader,
+    int? doubleTapTimeout,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -68,6 +71,7 @@ class Settings {
           combineShortSentences ?? this.combineShortSentences,
       showKnownTermsInSentenceReader:
           showKnownTermsInSentenceReader ?? this.showKnownTermsInSentenceReader,
+      doubleTapTimeout: doubleTapTimeout ?? this.doubleTapTimeout,
     );
   }
 
@@ -85,6 +89,7 @@ class Settings {
       currentBookSentenceIndex: null,
       combineShortSentences: 3,
       showKnownTermsInSentenceReader: true,
+      doubleTapTimeout: 300,
     );
   }
 
@@ -103,7 +108,9 @@ class Settings {
         other.currentBookPage == currentBookPage &&
         other.currentBookSentenceIndex == currentBookSentenceIndex &&
         other.combineShortSentences == combineShortSentences &&
-        other.showKnownTermsInSentenceReader == showKnownTermsInSentenceReader;
+        other.showKnownTermsInSentenceReader ==
+            showKnownTermsInSentenceReader &&
+        other.doubleTapTimeout == doubleTapTimeout;
   }
 
   @override
@@ -120,6 +127,7 @@ class Settings {
     currentBookSentenceIndex,
     combineShortSentences,
     showKnownTermsInSentenceReader,
+    doubleTapTimeout,
   );
 
   bool isValidServerUrl(String url) {

@@ -29,6 +29,7 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyCombineShortSentences = 'combine_short_sentences';
   static const String _keyShowKnownTermsInSentenceReader =
       'show_known_terms_in_sentence_reader';
+  static const String _keyDoubleTapTimeout = 'double_tap_timeout';
 
   @override
   Settings build() {
@@ -55,6 +56,7 @@ class SettingsNotifier extends Notifier<Settings> {
     final combineShortSentences = prefs.getInt(_keyCombineShortSentences) ?? 3;
     final showKnownTermsInSentenceReader =
         prefs.getBool(_keyShowKnownTermsInSentenceReader) ?? true;
+    final doubleTapTimeout = prefs.getInt(_keyDoubleTapTimeout) ?? 300;
 
     state = state.copyWith(
       translationProvider: translationProvider,
@@ -67,6 +69,7 @@ class SettingsNotifier extends Notifier<Settings> {
       currentBookSentenceIndex: currentBookSentenceIndex,
       combineShortSentences: combineShortSentences,
       showKnownTermsInSentenceReader: showKnownTermsInSentenceReader,
+      doubleTapTimeout: doubleTapTimeout,
     );
   }
 
@@ -177,6 +180,12 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setInt(_keyCombineShortSentences, threshold);
   }
 
+  Future<void> updateDoubleTapTimeout(int timeout) async {
+    state = state.copyWith(doubleTapTimeout: timeout);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyDoubleTapTimeout, timeout);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -200,6 +209,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyCurrentBookPage);
     await prefs.remove(_keyCurrentBookSentenceIndex);
     await prefs.remove(_keyCombineShortSentences);
+    await prefs.remove(_keyDoubleTapTimeout);
 
     state = Settings.defaultSettings();
   }

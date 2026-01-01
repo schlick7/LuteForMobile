@@ -22,6 +22,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String? _connectionStatus;
   bool _connectionTestPassed = false;
 
+  // Debug variables for double tap testing
+  DateTime? _firstTapTime;
+  DateTime? _lastDoubleTapTime;
+  String _doubleTapDebugInfo = 'Double tap here to test timing';
+
   static const List<Color> _accentColorOptions = [
     Color(0xFF1976D2), // Blue
     Color(0xFF9C27B0), // Purple
@@ -115,6 +120,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       RestartWidget.restartApp(context);
     } else if (oldUrl.isEmpty && newUrl.isNotEmpty) {
       ref.read(booksProvider.notifier).loadBooks();
+    }
+  }
+
+  void _handleTestDoubleTap() {
+    final now = DateTime.now();
+    final settings = ref.read(settingsProvider);
+
+    if (_firstTapTime == null) {
+      _firstTapTime = now;
+      setState(() {
+        _doubleTapDebugInfo =
+            'First tap recorded. Tap again within ${settings.doubleTapTimeout}ms for double tap.';
+      });
+    } else {
+      final difference = now.difference(_firstTapTime!).inMilliseconds;
+      final isDoubleTap = difference <= settings.doubleTapTimeout;
+
+      setState(() {
+        _lastDoubleTapTime = now;
+        _doubleTapDebugInfo =
+            'Time between taps: ${difference}ms\n'
+            'Double tap detected: ${isDoubleTap ? "YES" : "NO"}\n'
+            'Timeout setting: ${settings.doubleTapTimeout}ms\n'
+            'Last test: ${now.toString().substring(11, 19)}';
+      });
+
+      _firstTapTime = null; // Reset for next test
     }
   }
 
@@ -373,6 +405,112 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         color: Theme.of(
                           context,
                         ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Double Tap Timeout'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Text('Timeout duration'),
+                        const SizedBox(width: 8),
+                        Text(
+                          '${settings.doubleTapTimeout}ms',
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Slider(
+                      value: settings.doubleTapTimeout.toDouble(),
+                      min: 200,
+                      max: 400,
+                      divisions: 8,
+                      label: '${settings.doubleTapTimeout}ms',
+                      onChanged: (value) {
+                        ref
+                            .read(settingsProvider.notifier)
+                            .updateDoubleTapTimeout(value.toInt());
+                      },
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'The lower the value the faster the tooltip opens and the harder it is to open the Term Form',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.outline.withValues(alpha: 0.3),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '🔧 Debug: Double Tap Test',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: _handleTestDoubleTap,
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primaryContainer,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Double Tap This Area',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _doubleTapDebugInfo,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onPrimaryContainer
+                                          .withValues(alpha: 0.8),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
