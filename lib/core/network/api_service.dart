@@ -14,13 +14,9 @@ class ApiService {
               receiveTimeout: const Duration(seconds: 10),
               headers: {'Content-Type': 'text/html'},
             ),
-          ) {
-    if (baseUrl.isEmpty) {
-      throw Exception(
-        'Server URL is not configured. Please set your server URL in settings.',
-      );
-    }
-  }
+          );
+
+  bool get isConfigured => _dio.options.baseUrl.isNotEmpty;
 
   Future<Response<String>> getBookPage(int bookId, int pageNum) async {
     return await _dio.get<String>('/read/start_reading/$bookId/$pageNum');

@@ -54,6 +54,7 @@ class SettingsNotifier extends Notifier<Settings> {
     state = Settings(
       serverUrl: serverUrl,
       isUrlValid: _isValidUrl(serverUrl),
+      isInitialized: true,
       translationProvider: translationProvider,
       showTags: showTags,
       showLastRead: showLastRead,
@@ -208,6 +209,7 @@ final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(() {
   return SettingsNotifier();
 });
 
+@immutable
 class TermFormSettings {
   final bool showRomanization;
   final bool showTags;
@@ -221,16 +223,31 @@ class TermFormSettings {
     );
   }
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is TermFormSettings &&
+        other.showRomanization == showRomanization &&
+        other.showTags == showTags;
+  }
+
+  @override
+  int get hashCode => showRomanization.hashCode ^ showTags.hashCode;
+
   static const TermFormSettings defaultSettings = TermFormSettings();
 }
 
 class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
   static const String _keyShowRomanization = 'show_romanization';
   static const String _keyShowTags = 'show_tags';
+  bool _isInitialized = false;
 
   @override
   TermFormSettings build() {
-    _loadSettings();
+    if (!_isInitialized) {
+      _isInitialized = true;
+      _loadSettings();
+    }
     return TermFormSettings.defaultSettings;
   }
 
@@ -239,10 +256,13 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
     final showRomanization = prefs.getBool(_keyShowRomanization) ?? true;
     final showTags = prefs.getBool(_keyShowTags) ?? true;
 
-    state = TermFormSettings(
+    final loadedSettings = TermFormSettings(
       showRomanization: showRomanization,
       showTags: showTags,
     );
+    if (state != loadedSettings) {
+      state = loadedSettings;
+    }
   }
 
   Future<void> updateShowRomanization(bool show) async {
@@ -265,6 +285,7 @@ final termFormSettingsProvider =
       return TermFormSettingsNotifier();
     });
 
+@immutable
 class TextFormattingSettings {
   final double textSize;
   final double lineSpacing;
@@ -296,6 +317,21 @@ class TextFormattingSettings {
     );
   }
 
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is TextFormattingSettings &&
+        other.textSize == textSize &&
+        other.lineSpacing == lineSpacing &&
+        other.fontFamily == fontFamily &&
+        other.fontWeight == fontWeight &&
+        other.isItalic == isItalic;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(textSize, lineSpacing, fontFamily, fontWeight, isItalic);
+
   static const TextFormattingSettings defaultSettings =
       TextFormattingSettings();
 }
@@ -306,10 +342,14 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
   static const String _keyFontFamily = 'font_family';
   static const String _keyFontWeight = 'font_weight';
   static const String _keyIsItalic = 'is_italic';
+  bool _isInitialized = false;
 
   @override
   TextFormattingSettings build() {
-    _loadSettings();
+    if (!_isInitialized) {
+      _isInitialized = true;
+      _loadSettings();
+    }
     return TextFormattingSettings.defaultSettings;
   }
 
@@ -331,7 +371,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
       FontWeight.w800,
     ];
 
-    state = TextFormattingSettings(
+    final loadedSettings = TextFormattingSettings(
       textSize: textSize,
       lineSpacing: lineSpacing,
       fontFamily: fontFamily,
@@ -339,6 +379,9 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
           fontWeightMap[fontWeightIndex.clamp(0, fontWeightMap.length - 1)],
       isItalic: isItalic,
     );
+    if (state != loadedSettings) {
+      state = loadedSettings;
+    }
   }
 
   Future<void> updateTextSize(double size) async {
@@ -402,15 +445,18 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
   static const String _keyCustomAccentLabelColor = 'custom_accent_label_color';
   static const String _keyCustomAccentButtonColor =
       'custom_accent_button_color';
+  bool _isInitialized = false;
 
   @override
   ThemeSettings build() {
-    final initialSettings = ThemeSettings.defaultSettings;
-    _loadSettingsInBackground(initialSettings);
-    return initialSettings;
+    if (!_isInitialized) {
+      _isInitialized = true;
+      _loadSettingsInBackground();
+    }
+    return ThemeSettings.defaultSettings;
   }
 
-  void _loadSettingsInBackground(ThemeSettings currentSettings) async {
+  void _loadSettingsInBackground() async {
     final prefs = await SharedPreferences.getInstance();
     final accentLabelColorValue = prefs.getInt(_keyAccentLabelColor);
     final accentButtonColorValue = prefs.getInt(_keyAccentButtonColor);
@@ -436,16 +482,8 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
           : null,
     );
 
-    if (loadedSettings.accentLabelColor.value !=
-            currentSettings.accentLabelColor.value ||
-        loadedSettings.accentButtonColor.value !=
-            currentSettings.accentButtonColor.value ||
-        loadedSettings.customAccentLabelColor?.value !=
-            currentSettings.customAccentLabelColor?.value ||
-        loadedSettings.customAccentButtonColor?.value !=
-            currentSettings.customAccentButtonColor?.value) {
+    if (state != loadedSettings) {
       state = loadedSettings;
-      print('DEBUG: Updated settings from storage: $loadedSettings');
     }
   }
 

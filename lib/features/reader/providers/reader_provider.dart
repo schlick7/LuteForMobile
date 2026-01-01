@@ -51,7 +51,6 @@ class ReaderState {
 class ReaderNotifier extends Notifier<ReaderState> {
   @override
   ReaderState build() {
-    ref.watch(readerRepositoryProvider);
     return const ReaderState();
   }
 
@@ -63,7 +62,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
     bool updateReaderState = true,
   }) async {
     final settings = ref.read(settingsProvider);
-    if (settings.serverUrl.isEmpty) {
+    if (!settings.isInitialized || !_repository.contentService.isConfigured) {
+      if (!settings.isInitialized) {
+        return;
+      }
       if (updateReaderState) {
         state = state.copyWith(
           isLoading: false,

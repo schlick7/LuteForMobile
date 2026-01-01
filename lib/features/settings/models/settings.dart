@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 class Settings {
   final String serverUrl;
   final bool isUrlValid;
+  final bool isInitialized;
   final String translationProvider;
   final bool showTags;
   final bool showLastRead;
@@ -18,6 +19,7 @@ class Settings {
   const Settings({
     required this.serverUrl,
     this.isUrlValid = true,
+    this.isInitialized = false,
     this.translationProvider = 'local',
     this.showTags = true,
     this.showLastRead = true,
@@ -33,6 +35,7 @@ class Settings {
   Settings copyWith({
     String? serverUrl,
     bool? isUrlValid,
+    bool? isInitialized,
     String? translationProvider,
     bool? showTags,
     bool? showLastRead,
@@ -49,6 +52,7 @@ class Settings {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
       isUrlValid: isUrlValid ?? this.isUrlValid,
+      isInitialized: isInitialized ?? this.isInitialized,
       translationProvider: translationProvider ?? this.translationProvider,
       showTags: showTags ?? this.showTags,
       showLastRead: showLastRead ?? this.showLastRead,
@@ -75,6 +79,7 @@ class Settings {
     return const Settings(
       serverUrl: '',
       isUrlValid: true,
+      isInitialized: false,
       translationProvider: 'local',
       showTags: true,
       showLastRead: true,
@@ -87,6 +92,42 @@ class Settings {
       showKnownTermsInSentenceReader: true,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Settings &&
+        other.serverUrl == serverUrl &&
+        other.isUrlValid == isUrlValid &&
+        other.isInitialized == isInitialized &&
+        other.translationProvider == translationProvider &&
+        other.showTags == showTags &&
+        other.showLastRead == showLastRead &&
+        other.languageFilter == languageFilter &&
+        other.showAudioPlayer == showAudioPlayer &&
+        other.currentBookId == currentBookId &&
+        other.currentBookPage == currentBookPage &&
+        other.currentBookSentenceIndex == currentBookSentenceIndex &&
+        other.combineShortSentences == combineShortSentences &&
+        other.showKnownTermsInSentenceReader == showKnownTermsInSentenceReader;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    serverUrl,
+    isUrlValid,
+    isInitialized,
+    translationProvider,
+    showTags,
+    showLastRead,
+    languageFilter,
+    showAudioPlayer,
+    currentBookId,
+    currentBookPage,
+    currentBookSentenceIndex,
+    combineShortSentences,
+    showKnownTermsInSentenceReader,
+  );
 
   bool isValidServerUrl(String url) {
     try {
@@ -144,6 +185,7 @@ class ThemeSettings {
   static const ThemeSettings defaultSettings = ThemeSettings();
 }
 
+@immutable
 class BookDisplaySettings {
   final bool showTags;
   final bool showLastRead;
@@ -152,4 +194,15 @@ class BookDisplaySettings {
     required this.showTags,
     required this.showLastRead,
   });
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is BookDisplaySettings &&
+        other.showTags == showTags &&
+        other.showLastRead == showLastRead;
+  }
+
+  @override
+  int get hashCode => showTags.hashCode ^ showLastRead.hashCode;
 }

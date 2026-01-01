@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../models/settings.dart';
 import '../providers/settings_provider.dart';
+import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -84,15 +85,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  void _saveSettings() {
-    if (_formKey.currentState!.validate()) {
-      ref
-          .read(settingsProvider.notifier)
-          .updateServerUrl(_serverUrlController.text.trim());
+  void _saveSettings() async {
+    if (!_formKey.currentState!.validate()) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings saved successfully')),
-      );
+    final oldUrl = ref.read(settingsProvider).serverUrl;
+    final newUrl = _serverUrlController.text.trim();
+
+    await ref.read(settingsProvider.notifier).updateServerUrl(newUrl);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Settings saved successfully')),
+    );
+
+    if (oldUrl.isEmpty && newUrl.isNotEmpty) {
+      ref.read(booksProvider.notifier).loadBooks();
     }
   }
 

@@ -20,6 +20,8 @@ class ContentService {
     : _apiService = apiService,
       parser = htmlParser ?? HtmlParser();
 
+  bool get isConfigured => _apiService.isConfigured;
+
   Future<PageData> getPageContent(
     int bookId,
     int pageNum, {

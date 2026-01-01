@@ -4,6 +4,7 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../providers/books_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../settings/models/settings.dart';
 import '../models/book.dart';
 import 'book_card.dart';
 import 'book_details_dialog.dart';
@@ -20,13 +21,11 @@ class BooksScreen extends ConsumerStatefulWidget {
 
 class _BooksScreenState extends ConsumerState<BooksScreen> {
   final TextEditingController _searchController = TextEditingController();
+  Settings? _lastSettings;
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      ref.read(booksProvider.notifier).loadBooks();
-    });
   }
 
   @override
@@ -39,6 +38,17 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(booksProvider);
     final settings = ref.watch(settingsProvider);
+
+    if (_lastSettings == null && settings.isInitialized) {
+      _lastSettings = settings;
+      ref.read(booksProvider.notifier).loadBooks();
+    }
+    if (_lastSettings != null &&
+        !_lastSettings!.isInitialized &&
+        settings.isInitialized) {
+      _lastSettings = settings;
+      ref.read(booksProvider.notifier).loadBooks();
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -75,28 +85,35 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Search books...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            ref.read(booksProvider.notifier).setSearchQuery('');
-                          },
-                        )
-                      : null,
-                  border: const OutlineInputBorder(),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-                onChanged: (value) {
-                  ref.read(booksProvider.notifier).setSearchQuery(value);
+              child: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _searchController,
+                builder: (context, value, child) {
+                  return TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search books...',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: value.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchController.clear();
+                                ref
+                                    .read(booksProvider.notifier)
+                                    .setSearchQuery('');
+                              },
+                            )
+                          : null,
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (val) {
+                      ref.read(booksProvider.notifier).setSearchQuery(val);
+                    },
+                  );
                 },
               ),
             ),
