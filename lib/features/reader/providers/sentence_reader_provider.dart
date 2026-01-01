@@ -36,8 +36,6 @@ class SentenceReaderState {
   }
 
   int get totalSentences => customSentences.length;
-  bool get canGoNext => currentSentenceIndex < totalSentences - 1;
-  bool get canGoPrevious => currentSentenceIndex > 0;
   String get sentencePosition => '${currentSentenceIndex + 1}/$totalSentences';
 
   SentenceReaderState copyWith({
@@ -71,6 +69,23 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
   SentenceReaderState build() {
     _cacheService = ref.read(sentenceCacheServiceProvider);
     return const SentenceReaderState();
+  }
+
+  bool get canGoNext {
+    if (state.currentSentenceIndex < state.customSentences.length - 1) {
+      return true;
+    }
+    final reader = ref.read(readerProvider);
+    return reader.pageData != null &&
+        reader.pageData!.currentPage < reader.pageData!.pageCount;
+  }
+
+  bool get canGoPrevious {
+    if (state.currentSentenceIndex > 0) {
+      return true;
+    }
+    final reader = ref.read(readerProvider);
+    return reader.pageData != null && reader.pageData!.currentPage > 1;
   }
 
   void syncStatusFromPageData() {
@@ -329,7 +344,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
 
   Future<void> nextSentence() async {
     final reader = ref.read(readerProvider);
-    if (reader.pageData == null || state.customSentences.isEmpty) return;
+    if (reader.pageData == null) return;
 
     if (state.currentSentenceIndex < state.customSentences.length - 1) {
       state = state.copyWith(
@@ -340,6 +355,11 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         _triggerPrefetch(reader);
       }
     } else {
+      if (reader.pageData!.currentPage >= reader.pageData!.pageCount) {
+        print('DEBUG: nextSentence: Already on last page, no next page');
+        return;
+      }
+
       state = state.copyWith(isNavigating: true);
       try {
         final currentPage = reader.pageData!.currentPage;
@@ -375,13 +395,20 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
 
   Future<void> previousSentence() async {
     final reader = ref.read(readerProvider);
-    if (reader.pageData == null || state.customSentences.isEmpty) return;
+    if (reader.pageData == null) return;
 
     if (state.currentSentenceIndex > 0) {
       state = state.copyWith(
         currentSentenceIndex: state.currentSentenceIndex - 1,
       );
     } else {
+      if (reader.pageData!.currentPage <= 1) {
+        print(
+          'DEBUG: previousSentence: Already on first page, no previous page',
+        );
+        return;
+      }
+
       state = state.copyWith(isNavigating: true);
       try {
         final currentPage = reader.pageData!.currentPage;
