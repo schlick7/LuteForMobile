@@ -560,6 +560,78 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     print('DEBUG: Finished preloading next sentence');
   }
 
+  Future<void> _refreshAffectedTermTooltips(
+    TermTooltip updatedTermTooltip,
+  ) async {
+    final sentenceReader = ref.read(sentenceReaderProvider);
+    final currentSentence = sentenceReader.currentSentence;
+
+    if (currentSentence == null) return;
+
+    final currentSentenceTerms = <String, int>{};
+    for (final item in currentSentence.textItems) {
+      if (item.wordId != null) {
+        currentSentenceTerms[item.text.toLowerCase()] = item.wordId!;
+      }
+    }
+
+    for (final parent in updatedTermTooltip.parents) {
+      final parentTermLower = parent.term.toLowerCase();
+
+      if (currentSentenceTerms.containsKey(parentTermLower)) {
+        final int parentWordId = currentSentenceTerms[parentTermLower]!;
+
+        print(
+          'DEBUG: Refreshing tooltip for affected PARENT term: "${parent.term}" (wordId=$parentWordId)',
+        );
+
+        try {
+          final parentTooltip = await ref
+              .read(readerProvider.notifier)
+              .fetchTermTooltip(parentWordId);
+
+          if (parentTooltip != null && mounted) {
+            setState(() {
+              _termTooltips[parentWordId] = parentTooltip;
+            });
+          }
+        } catch (e) {
+          print(
+            'DEBUG: Failed to refresh tooltip for parent wordId=$parentWordId: $e',
+          );
+        }
+      }
+    }
+
+    for (final child in updatedTermTooltip.children) {
+      final childTermLower = child.term.toLowerCase();
+
+      if (currentSentenceTerms.containsKey(childTermLower)) {
+        final int childWordId = currentSentenceTerms[childTermLower]!;
+
+        print(
+          'DEBUG: Refreshing tooltip for affected CHILD term: "${child.term}" (wordId=$childWordId)',
+        );
+
+        try {
+          final childTooltip = await ref
+              .read(readerProvider.notifier)
+              .fetchTermTooltip(childWordId);
+
+          if (childTooltip != null && mounted) {
+            setState(() {
+              _termTooltips[childWordId] = childTooltip;
+            });
+          }
+        } catch (e) {
+          print(
+            'DEBUG: Failed to refresh tooltip for child wordId=$childWordId: $e',
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _goNext() async {
     await ref.read(sentenceReaderProvider.notifier).nextSentence();
     _saveSentencePosition();
@@ -669,28 +741,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         setState(() {
                           _termTooltips[updatedForm.termId!] = freshTooltip;
                         });
+
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        await _refreshAffectedTermTooltips(freshTooltip);
                       }
                     } catch (e) {}
                   }
 
-                  final reader = ref.read(readerProvider);
-                  if (reader.pageData != null) {
-                    final langId = _getLangId(reader);
-                    await ref
-                        .read(sentenceCacheServiceProvider)
-                        .clearBookCache(reader.pageData!.bookId);
-                    await ref
-                        .read(sentenceReaderProvider.notifier)
-                        .parseSentencesForPage(langId);
-                  }
-
                   Navigator.of(context).pop();
-                } else {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Failed to save term')),
-                    );
-                  }
                 }
               },
               onCancel: () => Navigator.of(context).pop(),
@@ -758,14 +816,23 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         );
                       }
                     });
+
+                    try {
+                      final freshTooltip = await ref
+                          .read(readerProvider.notifier)
+                          .fetchTermTooltip(updatedForm.termId!);
+                      if (freshTooltip != null && mounted) {
+                        setState(() {
+                          _termTooltips[updatedForm.termId!] = freshTooltip;
+                        });
+
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        await _refreshAffectedTermTooltips(freshTooltip);
+                      }
+                    } catch (e) {}
                   }
+
                   Navigator.of(context).pop();
-                } else {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Failed to save term')),
-                    );
-                  }
                 }
               },
               onCancel: () => Navigator.of(context).pop(),
