@@ -95,20 +95,22 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final readerState = ref.read(readerProvider);
     final sentenceReader = ref.watch(sentenceReaderProvider);
     final currentSentence = sentenceReader.currentSentence;
-
-    if (isVisible &&
-        readerState.pageData != null &&
-        !_hasInitialized &&
-        !readerState.isLoading) {
+    if (isVisible && readerState.pageData != null && !readerState.isLoading) {
       final bookId = readerState.pageData!.bookId;
       final pageNum = readerState.pageData!.currentPage;
 
       if (_lastInitializedBookId != bookId ||
           _lastInitializedPageNum != pageNum) {
+        print(
+          'DEBUG: Page changed from bookId=$_lastInitializedBookId, pageNum=$_lastInitializedPageNum to bookId=$bookId, pageNum=$pageNum - forcing reinitialization',
+        );
+        _hasInitialized = false;
         _lastInitializedBookId = bookId;
         _lastInitializedPageNum = pageNum;
         _initializationFailed = false;
+      }
 
+      if (!_hasInitialized) {
         final langId = _getLangId(readerState);
         print(
           'DEBUG: SentenceReaderScreen: Initializing sentence parsing for bookId=$bookId, pageNum=$pageNum, langId=$langId',
@@ -200,72 +202,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           nextPage != null &&
           prevPage != nextPage) {
         ref.read(sentenceReaderProvider.notifier).syncStatusFromPageData();
-      }
-
-      if (prevPage == null &&
-          nextPage != null &&
-          _lastInitializedBookId != nextPage.bookId &&
-          isVisible) {
-        final bookId = nextPage.bookId;
-        final pageNum = nextPage.currentPage;
-
-        if (_lastInitializedBookId != bookId ||
-            _lastInitializedPageNum != pageNum) {
-          _lastInitializedBookId = bookId;
-          _lastInitializedPageNum = pageNum;
-          _initializationFailed = false;
-
-          final langId = _getLangId(next);
-          print(
-            'DEBUG: SentenceReaderScreen: Delayed initialization for bookId=$bookId, pageNum=$pageNum, langId=$langId',
-          );
-
-          if (_lastTooltipsBookId != bookId) {
-            _termTooltips.clear();
-            _lastTooltipsBookId = bookId;
-          }
-
-          if (_isParsing) {
-            print('DEBUG: Already parsing, skipping duplicate call');
-          } else {
-            _isParsing = true;
-            Future(() {
-              ref
-                  .read(sentenceReaderProvider.notifier)
-                  .parseSentencesForPage(langId)
-                  .then((_) {
-                    if (mounted) {
-                      _isParsing = false;
-                      final sentenceReader = ref.read(sentenceReaderProvider);
-                      if (sentenceReader.customSentences.isNotEmpty) {
-                        _hasInitialized = true;
-                        _initializationFailed = false;
-                        print('DEBUG: Initialization successful');
-                      } else {
-                        _hasInitialized = false;
-                        _initializationFailed = true;
-                        print(
-                          'DEBUG: Initialization failed - no sentences loaded',
-                        );
-                      }
-                      ref
-                          .read(sentenceReaderProvider.notifier)
-                          .loadSavedPosition();
-                      _loadTooltipsForCurrentSentence();
-                    }
-                  })
-                  .catchError((e, stackTrace) {
-                    print('DEBUG: Error during delayed parsing: $e');
-                    print('DEBUG: Stack trace: $stackTrace');
-                    if (mounted) {
-                      _isParsing = false;
-                      _hasInitialized = false;
-                      _initializationFailed = true;
-                    }
-                  });
-            });
-          }
-        }
       }
     });
 
@@ -502,9 +438,15 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
     ref.listen<SentenceReaderState>(sentenceReaderProvider, (previous, next) {
       final newSentenceId = next.currentSentence?.id;
-      if (newSentenceId != null && newSentenceId != _currentSentenceId) {
+      final oldSentenceId = previous?.currentSentence?.id;
+
+      if (newSentenceId != null &&
+          newSentenceId != oldSentenceId &&
+          newSentenceId != _currentSentenceId) {
         _currentSentenceId = newSentenceId;
-        print('DEBUG: Sentence changed to ID: $_currentSentenceId');
+        print(
+          'DEBUG: Sentence changed to ID: $_currentSentenceId (from $oldSentenceId)',
+        );
         _loadTooltipsForCurrentSentence();
       }
     });

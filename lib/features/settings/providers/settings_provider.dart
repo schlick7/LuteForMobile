@@ -174,6 +174,16 @@ class SettingsNotifier extends Notifier<Settings> {
     }
   }
 
+  Future<void> updateCurrentBookPage(int page) async {
+    state = state.copyWith(
+      currentBookPage: page,
+      currentBookSentenceIndex: null,
+    );
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCurrentBookPage, page);
+    await prefs.remove(_keyCurrentBookSentenceIndex);
+  }
+
   Future<void> updateCombineShortSentences(int threshold) async {
     state = state.copyWith(combineShortSentences: threshold);
     final prefs = await SharedPreferences.getInstance();

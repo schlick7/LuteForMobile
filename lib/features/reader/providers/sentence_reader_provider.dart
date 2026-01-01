@@ -13,6 +13,8 @@ class SentenceReaderState {
   final List<CustomSentence> customSentences;
   final String? errorMessage;
   final bool shouldFlushAndRebuild;
+  final int? lastParsedBookId;
+  final int? lastParsedPageNum;
 
   const SentenceReaderState({
     this.currentSentenceIndex = 0,
@@ -21,6 +23,8 @@ class SentenceReaderState {
     this.customSentences = const [],
     this.errorMessage,
     this.shouldFlushAndRebuild = false,
+    this.lastParsedBookId,
+    this.lastParsedPageNum,
   });
 
   CustomSentence? get currentSentence {
@@ -43,6 +47,8 @@ class SentenceReaderState {
     List<CustomSentence>? customSentences,
     String? errorMessage,
     bool? shouldFlushAndRebuild,
+    int? lastParsedBookId,
+    int? lastParsedPageNum,
   }) {
     return SentenceReaderState(
       currentSentenceIndex: currentSentenceIndex ?? this.currentSentenceIndex,
@@ -52,6 +58,8 @@ class SentenceReaderState {
       errorMessage: errorMessage,
       shouldFlushAndRebuild:
           shouldFlushAndRebuild ?? this.shouldFlushAndRebuild,
+      lastParsedBookId: lastParsedBookId ?? this.lastParsedBookId,
+      lastParsedPageNum: lastParsedPageNum ?? this.lastParsedPageNum,
     );
   }
 }
@@ -158,6 +166,21 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     print(
       'DEBUG: Checking cache for bookId=$bookId, pageNum=$pageNum, langId=$langId, threshold=$combineThreshold',
     );
+
+    if (state.lastParsedBookId == bookId &&
+        state.lastParsedPageNum != null &&
+        state.lastParsedPageNum != pageNum &&
+        state.customSentences.isNotEmpty) {
+      print(
+        'DEBUG: BookId=$bookId matches but pageNum changed from ${state.lastParsedPageNum} to $pageNum, clearing stale data',
+      );
+      state = state.copyWith(
+        lastParsedBookId: null,
+        lastParsedPageNum: null,
+        customSentences: [],
+      );
+    }
+
     final cachedSentences = await _cacheService.getFromCache(
       bookId,
       pageNum,
@@ -172,13 +195,28 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     print('DEBUG: About to check language settings...');
 
     if (cachedSentences != null) {
+      final isSamePage =
+          state.lastParsedBookId == bookId &&
+          state.lastParsedPageNum == pageNum;
+      final shouldPreserveIndex =
+          isSamePage &&
+          state.customSentences.isNotEmpty &&
+          state.customSentences.length == cachedSentences!.length &&
+          state.currentSentenceIndex < cachedSentences!.length;
+
       state = state.copyWith(
         customSentences: cachedSentences,
-        currentSentenceIndex: 0,
+        currentSentenceIndex: shouldPreserveIndex
+            ? state.currentSentenceIndex
+            : 0,
         errorMessage: null,
         isParsing: false,
+        lastParsedBookId: bookId,
+        lastParsedPageNum: pageNum,
       );
-      print('DEBUG: Loaded ${cachedSentences.length} sentences from cache');
+      print(
+        'DEBUG: Loaded ${cachedSentences.length} sentences from cache - isSamePage=$isSamePage, shouldPreserveIndex=$shouldPreserveIndex, lastParsedPageNum=${state.lastParsedPageNum}, currentPageNum=$pageNum',
+      );
       return;
     }
 
@@ -269,8 +307,12 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         currentSentenceIndex: 0,
         errorMessage: null,
         isParsing: false,
+        lastParsedBookId: bookId,
+        lastParsedPageNum: pageNum,
       );
-      print('DEBUG: Parsing complete, state updated');
+      print(
+        'DEBUG: Parsing complete, state updated - ${sentences.length} sentences, reset index to 0',
+      );
     } catch (e, stackTrace) {
       print(
         'Sentence parsing error: bookId=$bookId, pageNum=$pageNum, langId=$langId, threshold=$combineThreshold, error=$e',
@@ -303,6 +345,10 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         final currentPage = reader.pageData!.currentPage;
         final pageCount = reader.pageData!.pageCount;
 
+        print(
+          'DEBUG: nextSentence: At end of sentences, navigating from page $currentPage to page ${currentPage + 1}',
+        );
+
         if (currentPage < pageCount) {
           await ref
               .read(readerProvider.notifier)
@@ -314,9 +360,14 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
           final langId = _getLangIdFromPageData();
           await parseSentencesForPage(langId);
 
+          final newSentenceCount = state.customSentences.length;
+          print(
+            'DEBUG: nextSentence: Loaded page ${currentPage + 1} with $newSentenceCount sentences, resetting index to 0',
+          );
           state = state.copyWith(currentSentenceIndex: 0, isNavigating: false);
         }
       } catch (e) {
+        print('DEBUG: nextSentence: Error during page navigation: $e');
         state = state.copyWith(isNavigating: false);
       }
     }
@@ -412,6 +463,8 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       final bookId = reader.pageData!.bookId;
 
       await _cacheService.clearBookCache(bookId);
+
+      state = state.copyWith(lastParsedBookId: null, lastParsedPageNum: null);
     }
   }
 
@@ -422,6 +475,8 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       final bookId = reader.pageData!.bookId;
 
       await _cacheService.clearBookCache(bookId);
+
+      state = state.copyWith(lastParsedBookId: null, lastParsedPageNum: null);
     }
   }
 
