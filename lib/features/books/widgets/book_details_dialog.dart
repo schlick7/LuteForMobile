@@ -207,7 +207,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                 context,
                 Icons.access_time,
                 'Last Read',
-                book.lastRead ?? 'Never',
+                book.formattedLastReadExact ?? 'Never',
               ),
               if (book.tags != null && book.tags!.isNotEmpty) ...[
                 const SizedBox(height: 8),
