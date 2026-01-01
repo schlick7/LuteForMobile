@@ -49,13 +49,13 @@ class ReaderState {
 }
 
 class ReaderNotifier extends Notifier<ReaderState> {
-  late ReaderRepository _repository;
-
   @override
   ReaderState build() {
-    _repository = ref.read(readerRepositoryProvider);
+    ref.watch(readerRepositoryProvider);
     return const ReaderState();
   }
+
+  ReaderRepository get _repository => ref.read(readerRepositoryProvider);
 
   Future<void> loadPage({
     required int bookId,
