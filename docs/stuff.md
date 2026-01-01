@@ -12,7 +12,11 @@ lazy loading?
 
 are we reparsing the entire sentence on status change?
 
-Don't load tooltips for unknown(status98) terms in the sentencereader. Also, don't load known(status99) terms tooltips if the toggle to show known terms is toggled off. 
+Add percentage lext to the total of each status amount in book details popup
+
+Remove the decimal from the seconds in the book details popup
+
+?Don't load tooltips for unknown(status98) terms in the sentencereader. Also, don't load known(status99) terms tooltips if the toggle to show known terms is toggled off. 
 
 make sure that ontap isn't using cached data
 
