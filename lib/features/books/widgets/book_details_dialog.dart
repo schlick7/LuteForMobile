@@ -316,12 +316,14 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
 
   Widget _buildStatusDistributionDetails(BuildContext context, List<int> dist) {
     final displayOrder = [98, 0, 1, 2, 3, 4, 5, 99];
+    final total = dist.reduce((a, b) => a + b);
 
     return Column(
       children: displayOrder.map((statusNum) {
         final distIndex = [0, 1, 2, 3, 4, 5, 98, 99].indexOf(statusNum);
         final count = dist[distIndex];
         final isIgnored = statusNum == 98;
+        final percentage = total > 0 ? ((count / total) * 100).round() : 0;
 
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
@@ -361,7 +363,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                 ),
               ),
               Text(
-                '$count',
+                '$count ($percentage%)',
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w500),
