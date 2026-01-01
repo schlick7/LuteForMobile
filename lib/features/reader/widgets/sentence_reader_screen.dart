@@ -271,7 +271,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen> {
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
 
-    _ensureTooltipsLoaded();
+    Future(() => _ensureTooltipsLoaded());
 
     return Scaffold(
       appBar: AppBar(
