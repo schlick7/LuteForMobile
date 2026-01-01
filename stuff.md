@@ -6,6 +6,7 @@
 
 Change opacity for termlist
 
+Reader not remembering book between app launches
 
 The bookcard status bar needs to recompute the values to take into account that we aren't showing status98 terms anymore. 
 
