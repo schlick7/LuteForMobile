@@ -4,7 +4,6 @@ import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.dart';
 import 'package:lute_for_mobile/features/reader/widgets/sentence_reader_screen.dart';
 import 'package:lute_for_mobile/features/reader/providers/reader_provider.dart';
-import 'package:lute_for_mobile/features/reader/providers/sentence_reader_provider.dart';
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_drawer_settings.dart';
@@ -44,6 +43,22 @@ class _RestartWidgetState extends State<RestartWidget> {
 final navigationProvider = Provider<NavigationController>((ref) {
   return NavigationController();
 });
+
+class CurrentScreenRouteNotifier extends Notifier<String> {
+  @override
+  String build() {
+    return 'reader';
+  }
+
+  void setRoute(String route) {
+    state = route;
+  }
+}
+
+final currentScreenRouteProvider =
+    NotifierProvider<CurrentScreenRouteNotifier, String>(() {
+      return CurrentScreenRouteNotifier();
+    });
 
 class NavigationController {
   final List<Function(int, int)> _readerListeners = [];
@@ -174,28 +189,12 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     setState(() {
       _currentIndex = index;
     });
+
+    final routeNames = ['reader', 'books', 'settings', 'sentence-reader'];
+    final currentRoute = routeNames[index];
+    ref.read(currentScreenRouteProvider.notifier).setRoute(currentRoute);
+
     _updateDrawerSettings();
-
-    if (index == 3) {
-      Future.microtask(() async {
-        final reader = ref.read(readerProvider);
-        if (reader.pageData != null) {
-          final langId = _getLangId(reader);
-          await ref
-              .read(sentenceReaderProvider.notifier)
-              .parseSentencesForPage(langId);
-          await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
-        }
-      });
-    }
-  }
-
-  int _getLangId(ReaderState reader) {
-    if (reader.pageData?.paragraphs?.isNotEmpty == true &&
-        reader.pageData!.paragraphs[0].textItems.isNotEmpty) {
-      return reader.pageData!.paragraphs[0].textItems.first.langId ?? 0;
-    }
-    return 0;
   }
 
   void _loadLastReadBook() {
