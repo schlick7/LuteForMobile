@@ -93,6 +93,9 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     final pageNum = reader.pageData!.currentPage;
     final combineThreshold = settings.combineShortSentences ?? 3;
 
+    print(
+      'DEBUG: Checking cache for bookId=$bookId, pageNum=$pageNum, langId=$langId, threshold=$combineThreshold',
+    );
     final cachedSentences = await _cacheService.getFromCache(
       bookId,
       pageNum,
@@ -115,23 +118,40 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       return;
     }
 
+    print('DEBUG: No cache found, checking language settings...');
     if (reader.languageSentenceSettings == null ||
         reader.languageSentenceSettings!.languageId != langId) {
-      await ref
-          .read(readerProvider.notifier)
-          .fetchLanguageSentenceSettings(langId);
+      print('DEBUG: Fetching language settings for langId=$langId');
+      try {
+        await ref
+            .read(readerProvider.notifier)
+            .fetchLanguageSentenceSettings(langId);
+      } catch (e) {
+        print('DEBUG: Error fetching language settings: $e');
+        state = state.copyWith(
+          errorMessage: 'Failed to load language settings: $e',
+          isParsing: false,
+        );
+        return;
+      }
     }
 
     final sentenceSettings = reader.languageSentenceSettings;
     if (sentenceSettings == null) {
+      print('DEBUG: Language settings is null after fetch');
       state = state.copyWith(
         errorMessage: 'Failed to load language settings. Please try again.',
+        isParsing: false,
       );
       return;
     }
 
+    print('DEBUG: Language settings loaded, starting parse...');
+
     try {
       print('DEBUG: Parsing sentences for page $pageNum');
+      print('DEBUG: Paragraphs count: ${reader.pageData!.paragraphs.length}');
+
       final parser = SentenceParser(
         settings: sentenceSettings,
         combineThreshold: combineThreshold,
@@ -150,6 +170,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         );
       }
 
+      print('DEBUG: Saving to cache...');
       await _cacheService.saveToCache(
         bookId,
         pageNum,
@@ -164,10 +185,12 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         errorMessage: null,
         isParsing: false,
       );
-    } catch (e) {
+      print('DEBUG: Parsing complete, state updated');
+    } catch (e, stackTrace) {
       print(
         'Sentence parsing error: bookId=$bookId, pageNum=$pageNum, langId=$langId, threshold=$combineThreshold, error=$e',
       );
+      print('DEBUG: Stack trace: $stackTrace');
 
       state = state.copyWith(
         errorMessage:

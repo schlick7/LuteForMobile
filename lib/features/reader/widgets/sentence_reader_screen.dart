@@ -42,6 +42,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _hasInitialized = false;
   int? _currentSentenceId;
   AppLifecycleState? _lastLifecycleState;
+  bool _sentenceNavigationListenerSetup = false;
+  bool _settingsListenerSetup = false;
+  bool _isParsing = false;
+  bool _initializationFailed = false;
 
   @override
   void initState() {
@@ -104,7 +108,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           _lastInitializedPageNum != pageNum) {
         _lastInitializedBookId = bookId;
         _lastInitializedPageNum = pageNum;
-        _hasInitialized = true;
+        _initializationFailed = false;
 
         final langId = _getLangId(readerState);
         print(
@@ -116,20 +120,69 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           _lastTooltipsBookId = bookId;
         }
 
-        Future(() {
-          ref
-              .read(sentenceReaderProvider.notifier)
-              .parseSentencesForPage(langId)
-              .then((_) {
-                if (mounted) {
-                  ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
-                  _setupSentenceNavigationListener();
-                  _setupSettingsListener();
-                  _loadTooltipsForCurrentSentence();
-                }
-              });
-        });
+        if (_isParsing) {
+          print('DEBUG: Already parsing, skipping duplicate call');
+        } else {
+          _isParsing = true;
+          Future(() {
+            ref
+                .read(sentenceReaderProvider.notifier)
+                .parseSentencesForPage(langId)
+                .then((_) {
+                  if (mounted) {
+                    _isParsing = false;
+                    final sentenceReader = ref.read(sentenceReaderProvider);
+                    if (sentenceReader.customSentences.isNotEmpty) {
+                      _hasInitialized = true;
+                      _initializationFailed = false;
+                      print('DEBUG: Initialization successful');
+                    } else {
+                      _hasInitialized = false;
+                      _initializationFailed = true;
+                      print(
+                        'DEBUG: Initialization failed - no sentences loaded',
+                      );
+                    }
+                    ref
+                        .read(sentenceReaderProvider.notifier)
+                        .loadSavedPosition();
+                    _loadTooltipsForCurrentSentence();
+                  }
+                })
+                .catchError((e, stackTrace) {
+                  print('DEBUG: Error during parsing: $e');
+                  print('DEBUG: Stack trace: $stackTrace');
+                  if (mounted) {
+                    _isParsing = false;
+                    _hasInitialized = false;
+                    _initializationFailed = true;
+                  }
+                });
+          });
+        }
       }
+    }
+
+    if (isVisible && _hasInitialized && !_sentenceNavigationListenerSetup) {
+      _setupSentenceNavigationListener();
+    }
+
+    if (isVisible && _hasInitialized && !_settingsListenerSetup) {
+      _setupSettingsListener();
+    }
+
+    if (isVisible && _initializationFailed && !_isParsing) {
+      print('DEBUG: Retrying failed initialization...');
+      _hasInitialized = false;
+      _initializationFailed = false;
+    }
+
+    if (isVisible && _hasInitialized && !_sentenceNavigationListenerSetup) {
+      _setupSentenceNavigationListener();
+    }
+
+    if (isVisible && _hasInitialized && !_settingsListenerSetup) {
+      _setupSettingsListener();
     }
 
     ref.listen<ReaderState>(readerProvider, (previous, next) {
@@ -147,7 +200,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             _lastInitializedPageNum != pageNum) {
           _lastInitializedBookId = bookId;
           _lastInitializedPageNum = pageNum;
-          _hasInitialized = true;
+          _initializationFailed = false;
 
           final langId = _getLangId(next);
           print(
@@ -159,21 +212,46 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             _lastTooltipsBookId = bookId;
           }
 
-          Future(() {
-            ref
-                .read(sentenceReaderProvider.notifier)
-                .parseSentencesForPage(langId)
-                .then((_) {
-                  if (mounted) {
-                    ref
-                        .read(sentenceReaderProvider.notifier)
-                        .loadSavedPosition();
-                    _setupSentenceNavigationListener();
-                    _setupSettingsListener();
-                    _loadTooltipsForCurrentSentence();
-                  }
-                });
-          });
+          if (_isParsing) {
+            print('DEBUG: Already parsing, skipping duplicate call');
+          } else {
+            _isParsing = true;
+            Future(() {
+              ref
+                  .read(sentenceReaderProvider.notifier)
+                  .parseSentencesForPage(langId)
+                  .then((_) {
+                    if (mounted) {
+                      _isParsing = false;
+                      final sentenceReader = ref.read(sentenceReaderProvider);
+                      if (sentenceReader.customSentences.isNotEmpty) {
+                        _hasInitialized = true;
+                        _initializationFailed = false;
+                        print('DEBUG: Initialization successful');
+                      } else {
+                        _hasInitialized = false;
+                        _initializationFailed = true;
+                        print(
+                          'DEBUG: Initialization failed - no sentences loaded',
+                        );
+                      }
+                      ref
+                          .read(sentenceReaderProvider.notifier)
+                          .loadSavedPosition();
+                      _loadTooltipsForCurrentSentence();
+                    }
+                  })
+                  .catchError((e, stackTrace) {
+                    print('DEBUG: Error during delayed parsing: $e');
+                    print('DEBUG: Stack trace: $stackTrace');
+                    if (mounted) {
+                      _isParsing = false;
+                      _hasInitialized = false;
+                      _initializationFailed = true;
+                    }
+                  });
+            });
+          }
         }
       }
     });
@@ -393,6 +471,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   void _setupSentenceNavigationListener() {
+    if (_sentenceNavigationListenerSetup) return;
+    _sentenceNavigationListenerSetup = true;
+
     ref.listen<SentenceReaderState>(sentenceReaderProvider, (previous, next) {
       final newSentenceId = next.currentSentence?.id;
       if (newSentenceId != null && newSentenceId != _currentSentenceId) {
@@ -404,6 +485,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   void _setupSettingsListener() {
+    if (_settingsListenerSetup) return;
+    _settingsListenerSetup = true;
+
     ref.listen<bool>(
       settingsProvider.select((s) => s.showKnownTermsInSentenceReader),
       (previous, next) {
@@ -879,6 +963,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   Future<void> flushCacheAndRebuild() async {
     _hasInitialized = false;
     _currentSentenceId = null;
+    _sentenceNavigationListenerSetup = false;
+    _settingsListenerSetup = false;
+    _isParsing = false;
+    _initializationFailed = false;
     final reader = ref.read(readerProvider);
     if (reader.pageData == null) return;
 
