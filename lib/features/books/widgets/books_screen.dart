@@ -23,6 +23,7 @@ class BooksScreen extends ConsumerStatefulWidget {
 class _BooksScreenState extends ConsumerState<BooksScreen> {
   final TextEditingController _searchController = TextEditingController();
   Settings? _lastSettings;
+  bool _hasTriggeredLoad = false;
 
   @override
   void initState() {
@@ -40,15 +41,24 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
     final state = ref.watch(booksProvider);
     final settings = ref.watch(settingsProvider);
 
-    if (_lastSettings == null && settings.serverUrl.isNotEmpty) {
+    if (_lastSettings == null &&
+        settings.serverUrl.isNotEmpty &&
+        !_hasTriggeredLoad) {
       _lastSettings = settings;
-      ref.read(booksProvider.notifier).loadBooks();
+      _hasTriggeredLoad = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(booksProvider.notifier).loadBooks();
+      });
     }
     if (_lastSettings != null &&
         _lastSettings!.serverUrl.isEmpty &&
-        settings.serverUrl.isNotEmpty) {
+        settings.serverUrl.isNotEmpty &&
+        !_hasTriggeredLoad) {
       _lastSettings = settings;
-      ref.read(booksProvider.notifier).loadBooks();
+      _hasTriggeredLoad = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(booksProvider.notifier).loadBooks();
+      });
     }
 
     return Scaffold(
