@@ -403,6 +403,20 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTapDown: (_) => TermTooltipClass.close(),
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        final sentenceReader = ref.read(sentenceReaderProvider);
+
+        if (velocity > 0) {
+          if (sentenceReader.canGoPrevious) {
+            _goPrevious();
+          }
+        } else if (velocity < 0) {
+          if (sentenceReader.canGoNext) {
+            _goNext();
+          }
+        }
+      },
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(24),

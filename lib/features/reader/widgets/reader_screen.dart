@@ -311,6 +311,20 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTapDown: (_) => TermTooltipClass.close(),
+      onHorizontalDragEnd: (details) {
+        if (pageData!.pageCount <= 1) return;
+
+        final velocity = details.primaryVelocity ?? 0;
+        if (velocity > 0) {
+          if (pageData!.currentPage > 1) {
+            _goToPage(pageData!.currentPage - 1);
+          }
+        } else if (velocity < 0) {
+          if (pageData!.currentPage < pageData!.pageCount) {
+            _goToPage(pageData!.currentPage + 1);
+          }
+        }
+      },
       child: TextDisplay(
         paragraphs: pageData!.paragraphs,
         onTap: (item, position) {
