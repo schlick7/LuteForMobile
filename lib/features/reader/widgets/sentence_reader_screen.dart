@@ -560,12 +560,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     print('DEBUG: Finished preloading next sentence');
   }
 
-  void _goNext() async {
+  Future<void> _goNext() async {
     await ref.read(sentenceReaderProvider.notifier).nextSentence();
     _saveSentencePosition();
   }
 
-  void _goPrevious() async {
+  Future<void> _goPrevious() async {
     await ref.read(sentenceReaderProvider.notifier).previousSentence();
     _saveSentencePosition();
   }
@@ -810,6 +810,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   Future<void> flushCacheAndRebuild() async {
+    _hasInitialized = false;
+    _currentSentenceId = null;
     final reader = ref.read(readerProvider);
     if (reader.pageData == null) return;
 
@@ -821,6 +823,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Clearing cache for bookId=$bookId',
     );
     await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
+
+    _termTooltips.clear();
+    _lastTooltipsBookId = null;
 
     print(
       'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Reloading page bookId=$bookId, pageNum=$pageNum',
@@ -839,7 +844,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           .parseSentencesForPage(langId);
       await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
 
-      _hasInitialized = false;
       _currentSentenceId = null;
       _loadTooltipsForCurrentSentence();
     }
