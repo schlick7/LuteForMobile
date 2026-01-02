@@ -696,7 +696,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     if (pageData == null) return;
     ref
         .read(readerProvider.notifier)
-        .loadPage(bookId: pageData.bookId, pageNum: pageNum);
+        .loadPage(
+          bookId: pageData.bookId,
+          pageNum: pageNum,
+          showFullPageError: false, // Don't show full page error for navigation
+        );
   }
 
   void _showTextFormattingOptions() {

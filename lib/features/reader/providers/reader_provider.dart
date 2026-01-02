@@ -61,6 +61,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
     required int bookId,
     int? pageNum,
     bool updateReaderState = true,
+    bool showFullPageError = true, // New parameter to control error display
   }) async {
     if (!_repository.contentService.isConfigured) {
       if (updateReaderState) {
@@ -85,8 +86,14 @@ class ReaderNotifier extends Notifier<ReaderState> {
         state = state.copyWith(isLoading: false, pageData: pageData);
       }
     } catch (e) {
-      if (updateReaderState) {
+      // Only show full page error for initial loading, not for navigation
+      if (showFullPageError && updateReaderState) {
         state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      } else if (updateReaderState) {
+        // For navigation errors, just log them but don't show full screen error
+        print('Navigation error (not showing full screen): $e');
+        // Keep the existing page data and just stop loading state
+        state = state.copyWith(isLoading: false);
       }
     }
   }

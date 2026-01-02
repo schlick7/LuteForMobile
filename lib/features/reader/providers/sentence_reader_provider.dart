@@ -383,6 +383,8 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
               .loadPage(
                 bookId: reader.pageData!.bookId,
                 pageNum: currentPage + 1,
+                showFullPageError:
+                    false, // Don't show full page error for navigation
               );
 
           final langId = _getLangIdFromPageData();
@@ -426,6 +428,8 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
               .loadPage(
                 bookId: reader.pageData!.bookId,
                 pageNum: currentPage - 1,
+                showFullPageError:
+                    false, // Don't show full page error for navigation
               );
 
           final langId = _getLangIdFromPageData();
@@ -457,7 +461,13 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     try {
       await ref
           .read(readerProvider.notifier)
-          .loadPage(bookId: bookId, pageNum: pageNum, updateReaderState: false);
+          .loadPage(
+            bookId: bookId,
+            pageNum: pageNum,
+            updateReaderState: false,
+            showFullPageError:
+                false, // Don't show full page error for prefetching
+          );
 
       await parseSentencesForPage(langId, initialIndex: 0);
     } catch (e) {
@@ -553,7 +563,13 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     );
     await ref
         .read(readerProvider.notifier)
-        .loadPage(bookId: bookId, pageNum: pageNum, updateReaderState: true);
+        .loadPage(
+          bookId: bookId,
+          pageNum: pageNum,
+          updateReaderState: true,
+          showFullPageError:
+              false, // Don't show full page error for manual refresh
+        );
 
     final freshReader = ref.read(readerProvider);
     if (freshReader.pageData != null) {
