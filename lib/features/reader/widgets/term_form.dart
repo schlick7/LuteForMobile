@@ -5,6 +5,7 @@ import '../models/term_tooltip.dart';
 import '../../settings/providers/settings_provider.dart'
     show termFormSettingsProvider;
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../shared/theme/app_theme.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/dictionary_service.dart';
 import 'parent_search.dart';
@@ -404,7 +405,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Color _getStatusColor(String status) {
-    return Theme.of(context).colorScheme.getStatusColor(status);
+    return context.getStatusColor(status);
   }
 
   Widget _buildStatusButton(
@@ -432,9 +433,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         decoration: BoxDecoration(
           color: isSelected
               ? statusColor
-              : Theme.of(
-                  context,
-                ).colorScheme.getStatusColorWithOpacity(statusValue),
+              : context.getStatusColorWithOpacity(statusValue),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: statusColor, width: isSelected ? 2 : 1),
         ),
@@ -590,10 +589,8 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
   Widget _buildParentChip(BuildContext context, TermParent parent) {
     final status = parent.status?.toString() ?? '0';
-    final textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
-    final backgroundColor = Theme.of(
-      context,
-    ).colorScheme.getStatusBackgroundColor(status);
+    final textColor = context.getStatusTextColor(status);
+    final backgroundColor = context.getStatusBackgroundColor(status);
 
     return GestureDetector(
       onLongPress: () => _showDeleteParentConfirmation(context, parent),

@@ -4,6 +4,7 @@ import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../../../core/network/content_service.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../shared/theme/app_theme.dart';
 
 class ParentSearchWidget extends ConsumerStatefulWidget {
   final int languageId;
@@ -239,10 +240,8 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
 
   Widget _buildStatusHighlight(BuildContext context, SearchResultTerm result) {
     final status = result.status?.toString() ?? '0';
-    final textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
-    final backgroundColor = Theme.of(
-      context,
-    ).colorScheme.getStatusBackgroundColor(status);
+    final textColor = context.getStatusTextColor(status);
+    final backgroundColor = context.getStatusBackgroundColor(status);
 
     if (backgroundColor != null) {
       return Container(

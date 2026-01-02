@@ -8,6 +8,7 @@ import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_drawer_settings.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
+import 'package:lute_for_mobile/shared/theme/theme_definitions.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
 import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
@@ -116,15 +117,27 @@ class App extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeSettings = ref.watch(themeSettingsProvider);
     print(
-      'DEBUG: App.build called, themeSettings.accentLabelColor: ${themeSettings.accentLabelColor}',
+      'DEBUG: App.build called, themeSettings.accentLabelColor: ${themeSettings.accentLabelColor}, themeType: ${themeSettings.themeType}',
     );
+
+    // Determine theme mode based on ThemeSettings
+    ThemeMode themeMode;
+    switch (themeSettings.themeType) {
+      case ThemeType.light:
+        themeMode = ThemeMode.light;
+        break;
+      case ThemeType.dark:
+        themeMode = ThemeMode.dark;
+        break;
+    }
+
     return RestartWidget(
       child: MaterialApp(
         title: 'LuteForMobile',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme(themeSettings),
         darkTheme: AppTheme.darkTheme(themeSettings),
-        themeMode: ThemeMode.system,
+        themeMode: themeMode,
         home: const MainNavigation(),
       ),
     );

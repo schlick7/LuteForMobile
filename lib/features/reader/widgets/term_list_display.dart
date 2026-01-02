@@ -3,6 +3,7 @@ import '../models/text_item.dart';
 import '../models/term_tooltip.dart';
 import '../utils/sentence_parser.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../shared/theme/app_theme.dart';
 
 List<TextItem> extractUniqueTerms(
   CustomSentence? sentence, {
@@ -74,10 +75,8 @@ class TermListDisplay extends StatelessWidget {
     final statusMatch = RegExp(r'status(\d+)').firstMatch(term.statusClass);
     final status = statusMatch?.group(1) ?? '0';
 
-    final textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
-    final backgroundColor = Theme.of(
-      context,
-    ).colorScheme.getStatusBackgroundColor(status);
+    final textColor = context.getStatusTextColor(status);
+    final backgroundColor = context.getStatusBackgroundColor(status);
     final tooltip = tooltips[term.wordId];
 
     String? translation;

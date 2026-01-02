@@ -100,7 +100,9 @@ class ThemeSelectorScreen extends ConsumerWidget {
                       _getThemeDescription(themeType),
                       style: TextStyle(
                         fontSize: 14,
-                        color: themeData.colorScheme.onSurface.withOpacity(0.7),
+                        color: themeData.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],
@@ -111,7 +113,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
                 isSelected ? Icons.check_circle : Icons.circle_outlined,
                 color: isSelected
                     ? themeData.colorScheme.primary
-                    : themeData.colorScheme.onSurface.withOpacity(0.5),
+                    : themeData.colorScheme.onSurface.withValues(alpha: 0.5),
                 size: 24,
               ),
             ],

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/text_item.dart';
 import '../models/paragraph.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../shared/theme/app_theme.dart';
 import 'term_tooltip.dart';
 
 class TextDisplay extends StatefulWidget {
@@ -63,10 +64,8 @@ class TextDisplay extends StatefulWidget {
       final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
       final status = statusMatch?.group(1) ?? '0';
 
-      textColor = Theme.of(context).colorScheme.getStatusTextColor(status);
-      backgroundColor = Theme.of(
-        context,
-      ).colorScheme.getStatusBackgroundColor(status);
+      textColor = context.getStatusTextColor(status);
+      backgroundColor = context.getStatusBackgroundColor(status);
     }
 
     final textStyle = TextStyle(
