@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.dart';
 import 'package:lute_for_mobile/features/reader/widgets/sentence_reader_screen.dart';
-import 'package:lute_for_mobile/features/reader/providers/reader_provider.dart';
+
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_drawer_settings.dart';

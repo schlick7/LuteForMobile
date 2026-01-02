@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 @immutable
 class Settings {
   final String serverUrl;
+  final String? aiServerUrl;
+  final String? ttsServerUrl;
   final bool isUrlValid;
   final String translationProvider;
   final bool showTags;
@@ -18,6 +20,8 @@ class Settings {
 
   const Settings({
     required this.serverUrl,
+    this.aiServerUrl,
+    this.ttsServerUrl,
     this.isUrlValid = true,
     this.translationProvider = 'local',
     this.showTags = true,
@@ -34,6 +38,8 @@ class Settings {
 
   Settings copyWith({
     String? serverUrl,
+    String? aiServerUrl,
+    String? ttsServerUrl,
     bool? isUrlValid,
     String? translationProvider,
     bool? showTags,
@@ -51,6 +57,8 @@ class Settings {
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
+      aiServerUrl: aiServerUrl ?? this.aiServerUrl,
+      ttsServerUrl: ttsServerUrl ?? this.ttsServerUrl,
       isUrlValid: isUrlValid ?? this.isUrlValid,
       translationProvider: translationProvider ?? this.translationProvider,
       showTags: showTags ?? this.showTags,
@@ -78,6 +86,8 @@ class Settings {
   factory Settings.defaultSettings() {
     return const Settings(
       serverUrl: '',
+      aiServerUrl: null,
+      ttsServerUrl: null,
       isUrlValid: true,
       translationProvider: 'local',
       showTags: true,
@@ -98,6 +108,8 @@ class Settings {
     if (identical(this, other)) return true;
     return other is Settings &&
         other.serverUrl == serverUrl &&
+        other.aiServerUrl == aiServerUrl &&
+        other.ttsServerUrl == ttsServerUrl &&
         other.isUrlValid == isUrlValid &&
         other.translationProvider == translationProvider &&
         other.showTags == showTags &&
@@ -116,6 +128,8 @@ class Settings {
   @override
   int get hashCode => Object.hash(
     serverUrl,
+    aiServerUrl,
+    ttsServerUrl,
     isUrlValid,
     translationProvider,
     showTags,

@@ -7,8 +7,8 @@ import '../models/term_form.dart';
 import '../models/language_sentence_settings.dart';
 import '../repositories/reader_repository.dart';
 import '../../../core/network/content_service.dart';
-import '../../../core/network/api_service.dart';
-import '../../../core/network/api_config.dart';
+import '../../../shared/providers/network_providers.dart';
+
 import 'sentence_reader_provider.dart';
 
 @immutable
@@ -235,21 +235,6 @@ class ReaderNotifier extends Notifier<ReaderState> {
     }
   }
 }
-
-final apiConfigProvider = Provider<ApiConfig>((ref) {
-  final settings = ref.watch(settingsProvider);
-  return ApiConfig(baseUrl: settings.serverUrl);
-});
-
-final apiServiceProvider = Provider<ApiService>((ref) {
-  final config = ref.watch(apiConfigProvider);
-  return ApiService(baseUrl: config.baseUrl);
-});
-
-final contentServiceProvider = Provider<ContentService>((ref) {
-  final apiService = ref.watch(apiServiceProvider);
-  return ContentService(apiService: apiService);
-});
 
 final readerRepositoryProvider = Provider<ReaderRepository>((ref) {
   final contentService = ref.watch(contentServiceProvider);

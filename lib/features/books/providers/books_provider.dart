@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 import '../models/book.dart';
 import '../repositories/books_repository.dart';
-import '../../reader/providers/reader_provider.dart';
+import '../../../shared/providers/network_providers.dart';
 import '../../settings/providers/settings_provider.dart';
 
 @immutable
