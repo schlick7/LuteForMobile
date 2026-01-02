@@ -69,9 +69,25 @@ class ReaderDrawerSettings extends ConsumerWidget {
           const SizedBox(height: 16),
           _buildItalicToggle(context, ref, textSettings),
           const SizedBox(height: 32),
-          Text('Audio Player', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 16),
-          _buildAudioPlayerToggle(context, ref, settings),
+          Consumer(
+            builder: (context, ref, _) {
+              final reader = ref.watch(readerProvider);
+              if (reader.pageData?.hasAudio == true) {
+                return Column(
+                  children: [
+                    Text(
+                      'Audio Player',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildAudioPlayerToggle(context, ref, settings),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+          const SizedBox(height: 24),
           const SizedBox(height: 24),
           Consumer(
             builder: (context, ref, _) {
