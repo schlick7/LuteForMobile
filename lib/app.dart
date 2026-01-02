@@ -197,17 +197,36 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     _updateDrawerSettings();
   }
 
-  void _loadLastReadBook() {
+  void _loadLastReadBook() async {
     final settings = ref.read(settingsProvider);
-    if (settings.currentBookId != null && settings.currentBookPage != null) {
-      print(
-        'DEBUG: Loading last read book: bookId=${settings.currentBookId}, page=${settings.currentBookPage}',
-      );
-      if (_readerKey.currentState != null) {
-        _readerKey.currentState!.loadBook(
-          settings.currentBookId!,
-          settings.currentBookPage!,
+    if (settings.currentBookId != null) {
+      print('DEBUG: Loading last read book: bookId=${settings.currentBookId}');
+
+      try {
+        final book = await ref
+            .read(booksProvider.notifier)
+            .getUpdatedBook(settings.currentBookId!);
+
+        print(
+          'DEBUG: Loaded book from server: bookId=${book.id}, currentPage=${book.currentPage}',
         );
+
+        ref
+            .read(settingsProvider.notifier)
+            .updateCurrentBook(book.id, book.currentPage);
+
+        if (_readerKey.currentState != null) {
+          _readerKey.currentState!.loadBook(book.id, book.currentPage);
+        }
+      } catch (e) {
+        print('DEBUG: Failed to load book from server: $e');
+        if (settings.currentBookPage != null &&
+            _readerKey.currentState != null) {
+          _readerKey.currentState!.loadBook(
+            settings.currentBookId!,
+            settings.currentBookPage!,
+          );
+        }
       }
     }
   }
