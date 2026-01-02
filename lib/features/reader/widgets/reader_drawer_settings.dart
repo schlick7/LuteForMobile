@@ -235,26 +235,27 @@ class ReaderDrawerSettings extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      const Text(
-                        'Show Known Terms',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      const Spacer(),
-                      Transform.scale(
-                        scale: 0.8,
-                        child: Switch(
-                          value: settings.showKnownTermsInSentenceReader,
-                          onChanged: (value) {
-                            ref
-                                .read(settingsProvider.notifier)
-                                .updateShowKnownTermsInSentenceReader(value);
-                          },
+                  if (currentIndex == 3)
+                    Row(
+                      children: [
+                        const Text(
+                          'Show Known Terms',
+                          style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                      ),
-                    ],
-                  ),
+                        const Spacer(),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: settings.showKnownTermsInSentenceReader,
+                            onChanged: (value) {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .updateShowKnownTermsInSentenceReader(value);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               );
             },
