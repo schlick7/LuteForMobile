@@ -23,25 +23,35 @@ class ContentService {
   bool get isConfigured => _apiService.isConfigured;
 
   Future<PageData> getPageContent(
-    int bookId,
-    int pageNum, {
+    int bookId, {
+    int? pageNum,
     ContentMode mode = ContentMode.reading,
   }) async {
-    final pageTextResponse = await _getPageHtml(bookId, pageNum, mode);
-    final pageTextHtml = pageTextResponse.data ?? '';
-
     final pageMetadataResponse = await _apiService.getBookPageStructure(
       bookId,
       pageNum,
     );
     final pageMetadataHtml = pageMetadataResponse.data ?? '';
 
-    return parser.parsePage(
-      pageTextHtml,
-      pageMetadataHtml,
-      bookId: bookId,
-      pageNum: pageNum,
-    );
+    final metadataDocument = html_parser.parse(pageMetadataHtml);
+    final actualPageNum =
+        pageNum ?? _extractPageNumFromMetadata(metadataDocument);
+
+    final pageTextResponse = await _getPageHtml(bookId, actualPageNum, mode);
+    final pageTextHtml = pageTextResponse.data ?? '';
+
+    return parser.parsePage(pageTextHtml, pageMetadataHtml, bookId: bookId);
+  }
+
+  int _extractPageNumFromMetadata(dynamic metadataDocument) {
+    if (metadataDocument is! html_parser.Document) return 1;
+    final document = metadataDocument as html_parser.Document;
+    final pageInput = document.querySelector('#page_num');
+    if (pageInput != null) {
+      final value = pageInput.attributes['value'];
+      return int.tryParse(value ?? '') ?? 1;
+    }
+    return 1;
   }
 
   Future<PageData> markPageDone(int bookId, int pageNum, bool restKnown) async {

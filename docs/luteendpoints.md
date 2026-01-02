@@ -943,6 +943,18 @@ This document provides a comprehensive list of all API endpoints available in Lu
 # Regex Usage in Lute v3 API Endpoints
 
 ## Overview
+**IMPORTANT: Reading Flow Update**
+
+When opening a book, the app now uses a two-step process:
+
+1. Call `/read/{bookid}` (without page number) → Gets CURRENT page from server + metadata
+2. Extract `page_num` value from HTML response  
+3. Call `/read/start_reading/{bookid}/{pagenum}` with extracted page → Gets actual text content
+
+This ensures the app always opens the book at the server's current reading position, even if the user has been reading on another device or the browser.
+
+---
+
 Lute v3 uses regular expressions in multiple places throughout its codebase, particularly in parsing and text processing functionality. This document identifies all endpoints and components that either currently use regex or would require regex to properly extract information.
 
 ## Endpoints that require regex for response parsing

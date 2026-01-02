@@ -17,13 +17,12 @@ class HtmlParser {
     String pageTextHtml,
     String pageMetadataHtml, {
     required int bookId,
-    required int pageNum,
   }) {
     final metadataDocument = html_parser.parse(pageMetadataHtml);
     final textDocument = html_parser.parse(pageTextHtml);
 
     final title = _extractTitle(metadataDocument);
-    final currentPage = pageNum;
+    final currentPage = _extractCurrentPage(metadataDocument);
     final pageCount = _extractPageCount(metadataDocument);
     final paragraphs = _extractParagraphs(textDocument);
     final audioFilename = _extractAudioFilename(metadataDocument);
@@ -52,6 +51,15 @@ class HtmlParser {
     if (pageCountInput != null) {
       final value = pageCountInput.attributes['value'];
       return value != null ? int.tryParse(value) ?? 1 : 1;
+    }
+    return 1;
+  }
+
+  int _extractCurrentPage(html.Document document) {
+    final pageInput = document.querySelector('#page_num');
+    if (pageInput != null) {
+      final value = pageInput.attributes['value'];
+      return int.tryParse(value ?? '') ?? 1;
     }
     return 1;
   }
