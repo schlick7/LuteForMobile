@@ -46,6 +46,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _settingsListenerSetup = false;
   bool _isParsing = false;
   bool _initializationFailed = false;
+  bool _isDictionaryOpen = false;
 
   @override
   void initState() {
@@ -789,6 +790,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   void _showTermForm(TermForm termForm) {
     _currentTermForm = termForm;
+    _isDictionaryOpen = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -797,7 +799,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         final repository = ref.read(readerRepositoryProvider);
         final settings = ref.read(termFormSettingsProvider);
         return PopScope(
-          canPop: true,
+          canPop: !_isDictionaryOpen,
           onPopInvoked: (didPop) async {
             if (didPop && settings.autoSave) {
               final updatedForm = _currentTermForm ?? termForm;
@@ -855,6 +857,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                   }
                 },
                 onCancel: () => Navigator.of(context).pop(),
+                onDictionaryToggle: (isOpen) {
+                  setState(() {
+                    _isDictionaryOpen = isOpen;
+                  });
+                  setModalState(() {});
+                },
                 onParentDoubleTap: (parent) async {
                   if (parent.id != null) {
                     final parentTermForm = await ref
@@ -874,6 +882,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   void _showParentTermForm(TermForm termForm) {
+    _isDictionaryOpen = false;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -882,7 +891,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         final repository = ref.read(readerRepositoryProvider);
         final settings = ref.read(termFormSettingsProvider);
         return PopScope(
-          canPop: true,
+          canPop: !_isDictionaryOpen,
           onPopInvoked: (didPop) async {
             if (didPop && settings.autoSave) {
               final updatedForm = _currentTermForm ?? termForm;
@@ -976,6 +985,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                   }
                 },
                 onCancel: () => Navigator.of(context).pop(),
+                onDictionaryToggle: (isOpen) {
+                  setState(() {
+                    _isDictionaryOpen = isOpen;
+                  });
+                  setModalState(() {});
+                },
                 onParentDoubleTap: (parent) async {
                   if (parent.id != null) {
                     final parentTermForm = await ref

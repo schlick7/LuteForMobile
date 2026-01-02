@@ -19,6 +19,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
   final void Function(TermParent)? onParentDoubleTap;
   final DictionaryService dictionaryService;
   final VoidCallback? onDismiss;
+  final void Function(bool)? onDictionaryToggle;
 
   const TermFormWidget({
     super.key,
@@ -30,6 +31,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
     required this.dictionaryService,
     this.onParentDoubleTap,
     this.onDismiss,
+    this.onDictionaryToggle,
   });
 
   @override
@@ -212,6 +214,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   void _toggleDictionary() {
     setState(() {
       _isDictionaryOpen = !_isDictionaryOpen;
+      widget.onDictionaryToggle?.call(_isDictionaryOpen);
     });
   }
 
