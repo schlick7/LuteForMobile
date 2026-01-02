@@ -26,7 +26,11 @@ The back button on the sentencereader on sentence 1 needs to navigate back 1 pag
 
 can the server handle async requests for tooltips?
 
+termlist chips don't handle multiple parents well
+
 Add light Theme
+
+upside down ? are at the start (and ? at the end as well) of spanish question words but the sentence parse doesn't pull them in if its at a new sentence and it stays on the last sentence. Anyway to do this inteligently from the language settings that we have access to or would be need to hard code this in the parser. 
 
 I only what the 'show known terms' toggle to show up when we are in the sentence reader not when we're in the Readerscreen
 
