@@ -108,18 +108,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     final oldUrl = ref.read(settingsProvider).serverUrl;
 
-    await ref.read(settingsProvider.notifier).updateServerUrl(newUrl);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Settings saved successfully')),
-      );
-    }
-
     if (oldUrl != newUrl) {
+      // Clear current book BEFORE updating URL to prevent race conditions
+      await ref.read(settingsProvider.notifier).clearCurrentBook();
+      await ref.read(settingsProvider.notifier).updateServerUrl(newUrl);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Settings saved successfully')),
+        );
+      }
+
       RestartWidget.restartApp(context);
-    } else if (oldUrl.isEmpty && newUrl.isNotEmpty) {
-      ref.read(booksProvider.notifier).loadBooks();
+    } else {
+      // Update URL without changing (no book clearing needed)
+      await ref.read(settingsProvider.notifier).updateServerUrl(newUrl);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Settings saved successfully')),
+        );
+      }
+
+      if (oldUrl.isEmpty && newUrl.isNotEmpty) {
+        ref.read(booksProvider.notifier).loadBooks();
+      }
     }
   }
 
@@ -355,6 +368,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildSettingRow('Server URL', settings.serverUrl),
+                    _buildSettingRow(
+                      'Current Book ID',
+                      settings.currentBookId?.toString() ?? 'null',
+                    ),
                   ],
                 ),
               ),
