@@ -464,6 +464,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
                       .read(readerProvider.notifier)
                       .saveTerm(updatedForm);
                   if (success && mounted) {
+                    // Update term display in page data after save
+                    if (updatedForm.termId != null) {
+                      ref
+                          .read(readerProvider.notifier)
+                          .updateTermStatus(
+                            updatedForm.termId!,
+                            updatedForm.status,
+                          );
+                    }
                     Navigator.of(context).pop();
                   } else {
                     if (mounted) {
@@ -504,11 +513,21 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
           canPop: true,
           onPopInvoked: (didPop) async {
             if (didPop && settings.autoSave) {
-              final updatedForm = termForm;
+              final updatedForm = _currentTermForm ?? termForm;
               final success = await ref
                   .read(readerProvider.notifier)
                   .saveTerm(updatedForm);
-              if (!success && mounted) {
+              if (success && mounted) {
+                // Update term display in page data after autosave
+                if (updatedForm.termId != null) {
+                  ref
+                      .read(readerProvider.notifier)
+                      .updateTermStatus(
+                        updatedForm.termId!,
+                        updatedForm.status,
+                      );
+                }
+              } else if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Failed to save term')),
                 );

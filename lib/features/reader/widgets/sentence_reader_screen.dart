@@ -866,11 +866,29 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           canPop: true,
           onPopInvoked: (didPop) async {
             if (didPop && settings.autoSave) {
-              final updatedForm = termForm;
+              final updatedForm = _currentTermForm ?? termForm;
               final success = await ref
                   .read(readerProvider.notifier)
                   .saveTerm(updatedForm);
-              if (!success && mounted) {
+              if (success && mounted) {
+                if (updatedForm.termId != null) {
+                  _termTooltips.remove(updatedForm.termId!);
+
+                  try {
+                    final freshTooltip = await ref
+                        .read(readerProvider.notifier)
+                        .fetchTermTooltip(updatedForm.termId!);
+                    if (freshTooltip != null && mounted) {
+                      setState(() {
+                        _termTooltips[updatedForm.termId!] = freshTooltip;
+                      });
+
+                      await Future.delayed(const Duration(milliseconds: 100));
+                      await _refreshAffectedTermTooltips(freshTooltip);
+                    }
+                  } catch (e) {}
+                }
+              } else if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Failed to save term')),
                 );
