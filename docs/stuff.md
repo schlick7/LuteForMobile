@@ -42,8 +42,6 @@ upside down '?' are at the start (and ? at the end as well) of spanish question 
 
 Add back the add parent button to the termform with dictionary open and parents toggled on. 
 
-Add light Theme
-
 Why are we showing(saving?!??) current bookid in the 'Current Settings' display
 
 Add a space between translation textbox newlines. 
