@@ -361,10 +361,10 @@ class TextFormattingSettings {
   final bool isItalic;
 
   const TextFormattingSettings({
-    this.textSize = 18.0,
+    this.textSize = 20.0,
     this.lineSpacing = 1.5,
-    this.fontFamily = 'Roboto',
-    this.fontWeight = FontWeight.normal,
+    this.fontFamily = 'LinBiolinum',
+    this.fontWeight = FontWeight.w500,
     this.isItalic = false,
   });
 
@@ -422,10 +422,10 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
 
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    final textSize = prefs.getDouble(_keyTextSize) ?? 18.0;
+    final textSize = prefs.getDouble(_keyTextSize) ?? 20.0;
     final lineSpacing = prefs.getDouble(_keyLineSpacing) ?? 1.5;
-    final fontFamily = prefs.getString(_keyFontFamily) ?? 'Roboto';
-    final fontWeightIndex = prefs.getInt(_keyFontWeight) ?? 0;
+    final fontFamily = prefs.getString(_keyFontFamily) ?? 'LinBiolinum';
+    final fontWeightIndex = prefs.getInt(_keyFontWeight) ?? 3;
     final isItalic = prefs.getBool(_keyIsItalic) ?? false;
 
     final fontWeightMap = [
