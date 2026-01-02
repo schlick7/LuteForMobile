@@ -331,4 +331,10 @@ class ContentService {
       );
     }
   }
+
+  /// Gets the current page number from the server for a book
+  /// This is used to check if the server's current page matches the reader's page
+  Future<int> getCurrentPageForBook(int bookId) async {
+    return await _apiService.getCurrentPageForBook(bookId);
+  }
 }

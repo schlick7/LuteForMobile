@@ -222,6 +222,18 @@ class ReaderNotifier extends Notifier<ReaderState> {
           .updateTermStatusInSentences(termId, status);
     }
   }
+
+  /// Gets the current page number from the server for a book
+  /// This is used to check if the server's current page matches the reader's page
+  Future<int> getCurrentPageForBook(int bookId) async {
+    try {
+      return await _repository.getCurrentPageForBook(bookId);
+    } catch (e) {
+      print('Error getting current page for book $bookId: $e');
+      // Return -1 to indicate error
+      return -1;
+    }
+  }
 }
 
 final apiConfigProvider = Provider<ApiConfig>((ref) {

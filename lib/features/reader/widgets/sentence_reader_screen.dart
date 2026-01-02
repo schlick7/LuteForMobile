@@ -58,6 +58,41 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     _lastLifecycleState = state;
+
+    if (state == AppLifecycleState.resumed) {
+      // App has resumed from background/sleep
+      // Check if the server's current page matches the reader's page
+      _checkServerPage();
+    }
+  }
+
+  /// Checks if the server's current page matches the reader's page
+  /// If they don't match, navigate to the server's page
+  Future<void> _checkServerPage() async {
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData != null) {
+      try {
+        final serverPage = await ref
+            .read(readerProvider.notifier)
+            .getCurrentPageForBook(pageData.bookId);
+
+        // If we got a valid page number from server and it's different from current page
+        if (serverPage != -1 && serverPage != pageData.currentPage) {
+          // Navigate to the server's page
+          ref
+              .read(readerProvider.notifier)
+              .loadPage(
+                bookId: pageData.bookId,
+                pageNum: serverPage,
+                showFullPageError:
+                    false, // Don't show full page error for navigation
+              );
+        }
+      } catch (e) {
+        print('Error checking server page: $e');
+        // Don't show error, just continue with current page
+      }
+    }
   }
 
   @override

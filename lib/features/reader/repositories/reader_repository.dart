@@ -119,4 +119,14 @@ class ReaderRepository {
       throw Exception('Failed to save audio player data: $e');
     }
   }
+
+  /// Gets the current page number from the server for a book
+  /// This is used to check if the server's current page matches the reader's page
+  Future<int> getCurrentPageForBook(int bookId) async {
+    try {
+      return await contentService.getCurrentPageForBook(bookId);
+    } catch (e) {
+      throw Exception('Failed to get current page for book: $e');
+    }
+  }
 }
