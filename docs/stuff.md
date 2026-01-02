@@ -24,7 +24,9 @@ can the server handle async requests for tooltips?
 
 termlist chips don't handle multiple parents well
 
-## The keyboard on mobile covers up the text box on the termform! can we make the term form "float" so it can get push upwards on the screen so it always stays above the keyboard?  
+##
+Need to make it so that the termform can not swipe anywhere when the dictionary is open. Then we need to make sure that the dictionary/webview has scrolling/swiping abilities. 
+##
 
 upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parse doesn't pull them in if its at a new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
