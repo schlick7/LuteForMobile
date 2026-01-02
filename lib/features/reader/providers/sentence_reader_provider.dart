@@ -161,8 +161,10 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     return 0;
   }
 
-  Future<void> parseSentencesForPage(int langId) async {
-    print('DEBUG: parseSentencesForPage called with langId=$langId');
+  Future<void> parseSentencesForPage(int langId, {int? initialIndex}) async {
+    print(
+      'DEBUG: parseSentencesForPage called with langId=$langId, initialIndex=$initialIndex',
+    );
     final reader = ref.read(readerProvider);
     final settings = ref.read(settingsProvider);
 
@@ -219,18 +221,22 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
           state.customSentences.length == cachedSentences!.length &&
           state.currentSentenceIndex < cachedSentences!.length;
 
+      final resolvedIndex = initialIndex == -1
+          ? cachedSentences!.length - 1
+          : (shouldPreserveIndex
+                ? state.currentSentenceIndex
+                : (initialIndex ?? 0));
+
       state = state.copyWith(
         customSentences: cachedSentences,
-        currentSentenceIndex: shouldPreserveIndex
-            ? state.currentSentenceIndex
-            : 0,
+        currentSentenceIndex: resolvedIndex,
         errorMessage: null,
         isParsing: false,
         lastParsedBookId: bookId,
         lastParsedPageNum: pageNum,
       );
       print(
-        'DEBUG: Loaded ${cachedSentences.length} sentences from cache - isSamePage=$isSamePage, shouldPreserveIndex=$shouldPreserveIndex, lastParsedPageNum=${state.lastParsedPageNum}, currentPageNum=$pageNum',
+        'DEBUG: Loaded ${cachedSentences.length} sentences from cache - isSamePage=$isSamePage, shouldPreserveIndex=$shouldPreserveIndex, lastParsedPageNum=${state.lastParsedPageNum}, currentPageNum=$pageNum, resolvedIndex=$resolvedIndex',
       );
       return;
     }
@@ -319,14 +325,16 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
 
       state = state.copyWith(
         customSentences: sentences,
-        currentSentenceIndex: 0,
+        currentSentenceIndex: initialIndex == -1
+            ? sentences.length - 1
+            : (initialIndex ?? 0),
         errorMessage: null,
         isParsing: false,
         lastParsedBookId: bookId,
         lastParsedPageNum: pageNum,
       );
       print(
-        'DEBUG: Parsing complete, state updated - ${sentences.length} sentences, reset index to 0',
+        'DEBUG: Parsing complete, state updated - ${sentences.length} sentences, set index to ${initialIndex == -1 ? sentences.length - 1 : (initialIndex ?? 0)}',
       );
     } catch (e, stackTrace) {
       print(
@@ -378,13 +386,12 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
               );
 
           final langId = _getLangIdFromPageData();
-          await parseSentencesForPage(langId);
+          await parseSentencesForPage(langId, initialIndex: 0);
 
-          final newSentenceCount = state.customSentences.length;
           print(
-            'DEBUG: nextSentence: Loaded page ${currentPage + 1} with $newSentenceCount sentences, resetting index to 0',
+            'DEBUG: nextSentence: Loaded page ${currentPage + 1} with ${state.customSentences.length} sentences, set index to 0',
           );
-          state = state.copyWith(currentSentenceIndex: 0, isNavigating: false);
+          state = state.copyWith(isNavigating: false);
         }
       } catch (e) {
         print('DEBUG: nextSentence: Error during page navigation: $e');
@@ -422,12 +429,9 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
               );
 
           final langId = _getLangIdFromPageData();
-          await parseSentencesForPage(langId);
+          await parseSentencesForPage(langId, initialIndex: -1);
 
-          state = state.copyWith(
-            currentSentenceIndex: state.customSentences.length - 1,
-            isNavigating: false,
-          );
+          state = state.copyWith(isNavigating: false);
         }
       } catch (e) {
         state = state.copyWith(isNavigating: false);
@@ -455,7 +459,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
           .read(readerProvider.notifier)
           .loadPage(bookId: bookId, pageNum: pageNum, updateReaderState: false);
 
-      await parseSentencesForPage(langId);
+      await parseSentencesForPage(langId, initialIndex: 0);
     } catch (e) {
       print('Prefetch parse error: $e');
     }
@@ -478,8 +482,6 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       } else {
         state = state.copyWith(currentSentenceIndex: 0);
       }
-    } else {
-      state = state.copyWith(currentSentenceIndex: 0);
     }
   }
 
@@ -558,7 +560,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       print(
         'DEBUG: triggerFlushAndRebuild: Parsing sentences for langId=$langId',
       );
-      await parseSentencesForPage(langId);
+      await parseSentencesForPage(langId, initialIndex: 0);
       await loadSavedPosition();
     }
   }

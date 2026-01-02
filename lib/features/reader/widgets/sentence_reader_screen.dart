@@ -132,7 +132,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           Future(() {
             ref
                 .read(sentenceReaderProvider.notifier)
-                .parseSentencesForPage(langId)
+                .parseSentencesForPage(langId, initialIndex: 0)
                 .then((_) {
                   if (mounted) {
                     _isParsing = false;
@@ -1016,7 +1016,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       );
       await ref
           .read(sentenceReaderProvider.notifier)
-          .parseSentencesForPage(langId);
+          .parseSentencesForPage(langId, initialIndex: 0);
       await ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
 
       _currentSentenceId = null;

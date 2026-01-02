@@ -136,6 +136,7 @@ class ReaderDrawerSettings extends ConsumerWidget {
                                           .read(sentenceReaderProvider.notifier)
                                           .parseSentencesForPage(
                                             _getLangId(reader),
+                                            initialIndex: 0,
                                           );
                                     }
                                   },
