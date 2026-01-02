@@ -32,6 +32,12 @@ we need to make sure that the dictionary/webview has vertical scrolling/swiping 
 When we close the dictionary we want to be able to swipe the termform modal away again. Is this possible?
 ##
 
+When changing the serverurl we need to flush the saved bookid in the reader and navigate to the books screen so the user can choice their book to read
+
+Mouse scroll works in browser for webdictionary, but it doesn't work in the android webviews. 
+
+Fixed? the ONLY thing that we should do when we know the phone has woken from sleep (however it is we know that) so it make 1 fetch to the sever for the books metadata to make sure that the servers current pagenum matchs the page that the reader is on. if they match to NOTHING. if they DON'T match than trigger a navigation to goto the page that the server is on
+
 upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parse doesn't pull them in if its at a new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
 Add back the add parent button to the termform with dictionary open and parents toggled on. 
