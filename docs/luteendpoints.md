@@ -313,18 +313,20 @@ This document provides a comprehensive list of all API endpoints available in Lu
 ## Reading Routes (`/read`)
 
 ### `GET /read/<int:bookid>`
-- **Description**: Read a book starting at current page
+- **Description**: Read a book starting at current/last reading position (defaults to page 1)
 - **Parameters**: `bookid` - ID of the book to read
-- **Response**: HTML template for reading interface
-- **Data Exposed**: Book content, language settings, dictionaries
+- **Response**: Full HTML template for reading interface
+- **Data Exposed**: Full page structure with metadata (title, page count, audio settings), navigation elements, and language settings
+- **Note**: The `<div id="thetext">` placeholder is empty. Use `/read/start_reading/...` to get actual text content
 
 ### `GET /read/<int:bookid>/page/<int:pagenum>`
-- **Description**: Read a specific page of a book - This is where text is called by ajax
+- **Description**: Get full HTML page structure for a specific book page (for metadata extraction)
 - **Parameters**:
   - `bookid` - ID of the book
   - `pagenum` - Page number to read
-- **Response**: HTML template for reading interface
-- **Data Exposed**: Book page content, language settings, dictionaries
+- **Response**: Full HTML template for reading interface
+- **Data Exposed**: Full page structure with metadata (title, page count, audio settings), navigation elements, and language settings
+- **Note**: The `<div id="thetext">` placeholder is empty. Use `/read/start_reading/...` to get actual text content. This endpoint is used to extract page metadata like title, page count, and audio information.
 
 ### `GET /read/<int:bookid>/peek/<int:pagenum>`
 - **Description**: Peek at a page without tracking as read
@@ -335,13 +337,13 @@ This document provides a comprehensive list of all API endpoints available in Lu
 - **Data Exposed**: Book page content, language settings
 
 ### `GET /read/start_reading/<int:bookid>/<int:pagenum>`
-- **Description**: Start reading a page (set start date and render content)
+- **Description**: Start reading a page (set start date and return actual parsed text content)
 - **Parameters**:
   - `bookid` - ID of the book
   - `pagenum` - Page number to start reading
-- **Response**: HTML template with parsed page content
+- **Response**: HTML fragment containing the parsed page text with word status classes (not a full HTML page)
 - **Data Used**: Page start date tracking
-- **Usage**: Used for page navigation (next/previous) to track reading
+- **Usage**: Used for page navigation (next/previous) to track reading. Returns the actual text content that should be loaded into the `<div id="thetext">` element from the full page structure.
 
 ### `GET /read/refresh_page/<int:bookid>/<int:pagenum>`
 - **Description**: Refresh page content without changing start date
