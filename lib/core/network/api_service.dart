@@ -3,7 +3,6 @@ import 'package:dio/dio.dart';
 
 class ApiService {
   final Dio _dio;
-  DateTime? _lastSuccessfulRequest;
 
   ApiService({required String baseUrl, Dio? dio})
     : _dio =
@@ -18,46 +17,6 @@ class ApiService {
             ),
           ) {
     _addRetryInterceptor();
-    _addRequestInterceptor();
-  }
-
-  void _addRequestInterceptor() {
-    _dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) async {
-          // Check if it's been a while since last successful request
-          // This might indicate the app was in background/sleep
-          if (_lastSuccessfulRequest != null) {
-            final timeSinceLastRequest = DateTime.now().difference(
-              _lastSuccessfulRequest!,
-            );
-            if (timeSinceLastRequest.inMinutes > 5) {
-              // If it's been more than 5 minutes, we might be resuming from sleep
-              // Consider clearing connection pool to force new connections
-              try {
-                _dio.close(force: true);
-                // Reinitialize with new options to ensure fresh connections
-                _dio.options = BaseOptions(
-                  baseUrl: _dio.options.baseUrl,
-                  connectTimeout: const Duration(seconds: 15),
-                  receiveTimeout: const Duration(seconds: 15),
-                  sendTimeout: const Duration(seconds: 15),
-                  headers: {'Content-Type': 'text/html'},
-                );
-              } catch (e) {
-                print('Error clearing connection pool: $e');
-              }
-            }
-          }
-          return handler.next(options);
-        },
-        onResponse: (response, handler) async {
-          // Update the last successful request time
-          _lastSuccessfulRequest = DateTime.now();
-          return handler.next(response);
-        },
-      ),
-    );
   }
 
   void _addRetryInterceptor() {
@@ -66,10 +25,9 @@ class ApiService {
         onError: (error, handler) async {
           if (_shouldRetry(error)) {
             final retryCount = error.requestOptions.extra['retryCount'] ?? 0;
-            if (retryCount < 5) {
-              // Increased from 3 to 5 retries
+            if (retryCount < 3) {
               error.requestOptions.extra['retryCount'] = retryCount + 1;
-              // Exponential backoff with longer delays
+              // Exponential backoff with reasonable delays
               final delay = Duration(milliseconds: 500 * (1 << retryCount));
               await Future.delayed(delay);
               try {

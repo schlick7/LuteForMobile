@@ -58,48 +58,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     _lastLifecycleState = state;
-
-    if (state == AppLifecycleState.resumed && _hasInitialized) {
-      // App has resumed from background/sleep
-      // Check if we need to reload the current page
-      final pageData = ref.read(readerProvider).pageData;
-      if (pageData != null) {
-        // Reload the current page to ensure connection is fresh
-        Future.delayed(Duration(milliseconds: 500), () {
-          ref
-              .read(readerProvider.notifier)
-              .loadPage(
-                bookId: pageData.bookId,
-                pageNum: pageData.currentPage,
-                updateReaderState:
-                    false, // Don't update UI state to avoid flickering
-              )
-              .then((_) {
-                // After successful reload, update the UI state
-                ref
-                    .read(readerProvider.notifier)
-                    .loadPage(
-                      bookId: pageData.bookId,
-                      pageNum: pageData.currentPage,
-                      updateReaderState: true,
-                    );
-              })
-              .catchError((error) {
-                print(
-                  'Error reloading page after resume in sentence reader: $error',
-                );
-                // If reload fails, try to reload with error handling
-                ref
-                    .read(readerProvider.notifier)
-                    .loadPage(
-                      bookId: pageData.bookId,
-                      pageNum: pageData.currentPage,
-                      updateReaderState: true,
-                    );
-              });
-        });
-      }
-    }
   }
 
   @override
