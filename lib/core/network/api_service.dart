@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 
 class ApiService {
   final Dio _dio;
+  DateTime? _lastSuccessfulRequest;
 
   ApiService({required String baseUrl, Dio? dio})
     : _dio =
@@ -10,11 +11,114 @@ class ApiService {
           Dio(
             BaseOptions(
               baseUrl: baseUrl,
-              connectTimeout: const Duration(seconds: 10),
-              receiveTimeout: const Duration(seconds: 10),
+              connectTimeout: const Duration(seconds: 15),
+              receiveTimeout: const Duration(seconds: 15),
+              sendTimeout: const Duration(seconds: 15),
               headers: {'Content-Type': 'text/html'},
             ),
-          );
+          ) {
+    _addRetryInterceptor();
+    _addRequestInterceptor();
+  }
+
+  void _addRequestInterceptor() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          // Check if it's been a while since last successful request
+          // This might indicate the app was in background/sleep
+          if (_lastSuccessfulRequest != null) {
+            final timeSinceLastRequest = DateTime.now().difference(
+              _lastSuccessfulRequest!,
+            );
+            if (timeSinceLastRequest.inMinutes > 5) {
+              // If it's been more than 5 minutes, we might be resuming from sleep
+              // Consider clearing connection pool to force new connections
+              try {
+                _dio.close(force: true);
+                // Reinitialize with new options to ensure fresh connections
+                _dio.options = BaseOptions(
+                  baseUrl: _dio.options.baseUrl,
+                  connectTimeout: const Duration(seconds: 15),
+                  receiveTimeout: const Duration(seconds: 15),
+                  sendTimeout: const Duration(seconds: 15),
+                  headers: {'Content-Type': 'text/html'},
+                );
+              } catch (e) {
+                print('Error clearing connection pool: $e');
+              }
+            }
+          }
+          return handler.next(options);
+        },
+        onResponse: (response, handler) async {
+          // Update the last successful request time
+          _lastSuccessfulRequest = DateTime.now();
+          return handler.next(response);
+        },
+      ),
+    );
+  }
+
+  void _addRetryInterceptor() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onError: (error, handler) async {
+          if (_shouldRetry(error)) {
+            final retryCount = error.requestOptions.extra['retryCount'] ?? 0;
+            if (retryCount < 5) {
+              // Increased from 3 to 5 retries
+              error.requestOptions.extra['retryCount'] = retryCount + 1;
+              // Exponential backoff with longer delays
+              final delay = Duration(milliseconds: 500 * (1 << retryCount));
+              await Future.delayed(delay);
+              try {
+                final response = await _dio.fetch(error.requestOptions);
+                return handler.resolve(response);
+              } catch (e) {
+                print('Retry attempt ${retryCount + 1} failed: $e');
+                return handler.next(error);
+              }
+            }
+          }
+          return handler.next(error);
+        },
+      ),
+    );
+  }
+
+  bool _shouldRetry(DioException error) {
+    if (error.type == DioExceptionType.connectionError) {
+      return true;
+    }
+    if (error.type == DioExceptionType.connectionTimeout) {
+      return true;
+    }
+    if (error.type == DioExceptionType.sendTimeout) {
+      return true;
+    }
+    if (error.type == DioExceptionType.unknown &&
+        error.error?.toString().contains('errno=103') == true) {
+      return true;
+    }
+    if (error.type == DioExceptionType.unknown &&
+        error.error?.toString().contains('Connection reset') == true) {
+      return true;
+    }
+    if (error.type == DioExceptionType.unknown &&
+        error.error?.toString().contains('Software caused connection abort') ==
+            true) {
+      return true;
+    }
+    if (error.type == DioExceptionType.receiveTimeout) {
+      return true;
+    }
+    if (error.type == DioExceptionType.cancel) {
+      // Sometimes requests get cancelled during app transitions
+      return true;
+    }
+    return false;
+  }
 
   bool get isConfigured => _dio.options.baseUrl.isNotEmpty;
 

@@ -26,7 +26,8 @@ class ReaderScreen extends ConsumerStatefulWidget {
   ConsumerState<ReaderScreen> createState() => ReaderScreenState();
 }
 
-class ReaderScreenState extends ConsumerState<ReaderScreen> {
+class ReaderScreenState extends ConsumerState<ReaderScreen>
+    with WidgetsBindingObserver {
   double _tempTextSize = 18.0;
   double _tempLineSpacing = 1.5;
   String? _tempFont;
@@ -35,6 +36,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   TermForm? _currentTermForm;
   int _buildCount = 0;
   bool _isDictionaryOpen = false;
+  AppLifecycleState? _lastLifecycleState;
+  bool _hasInitialized = false;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -74,11 +77,60 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _hasInitialized = true;
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    _lastLifecycleState = state;
+
+    if (state == AppLifecycleState.resumed && _hasInitialized) {
+      // App has resumed from background/sleep
+      // Check if we need to reload the current page
+      final pageData = ref.read(readerProvider).pageData;
+      if (pageData != null) {
+        // Reload the current page to ensure connection is fresh
+        Future.delayed(Duration(milliseconds: 500), () {
+          ref
+              .read(readerProvider.notifier)
+              .loadPage(
+                bookId: pageData.bookId,
+                pageNum: pageData.currentPage,
+                updateReaderState:
+                    false, // Don't update UI state to avoid flickering
+              )
+              .then((_) {
+                // After successful reload, update the UI state
+                ref
+                    .read(readerProvider.notifier)
+                    .loadPage(
+                      bookId: pageData.bookId,
+                      pageNum: pageData.currentPage,
+                      updateReaderState: true,
+                    );
+              })
+              .catchError((error) {
+                print('Error reloading page after resume: $error');
+                // If reload fails, try to reload with error handling
+                ref
+                    .read(readerProvider.notifier)
+                    .loadPage(
+                      bookId: pageData.bookId,
+                      pageNum: pageData.currentPage,
+                      updateReaderState: true,
+                    );
+              });
+        });
+      }
+    }
   }
 
   void _loadAudioIfNeeded() async {
