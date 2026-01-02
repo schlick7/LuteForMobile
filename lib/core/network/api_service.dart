@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:html/parser.dart' as html_parser;
 
 class ApiService {
   final Dio _dio;
@@ -356,35 +357,6 @@ class ApiService {
 
   Future<Response<String>> getBookEdit(int bookId) async {
     return await _dio.get<String>('/book/edit/$bookId');
-  }
-
-  /// Gets the current page number from the server for a book
-  /// This is used to check if the server's current page matches the reader's page
-  Future<int> getCurrentPageForBook(int bookId) async {
-    try {
-      final response = await _dio.get<String>('/book/current_page/$bookId');
-      final data = response.data;
-      if (data != null) {
-        // Try to parse the response as JSON first
-        try {
-          final json = jsonDecode(data);
-          if (json is Map<String, dynamic> && json['current_page'] != null) {
-            return json['current_page'] as int? ?? 1;
-          }
-        } catch (e) {
-          // If JSON parsing fails, try to parse as plain integer
-          final pageStr = data.trim();
-          final pageInt = int.tryParse(pageStr);
-          if (pageInt != null) {
-            return pageInt;
-          }
-        }
-      }
-      return 1; // Default to page 1 if parsing fails
-    } catch (e) {
-      print('Error getting current page for book $bookId: $e');
-      return 1; // Default to page 1 on error
-    }
   }
 
   Future<Response<String>> postPlayerData(
