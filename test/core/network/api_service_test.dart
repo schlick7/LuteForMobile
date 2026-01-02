@@ -14,9 +14,9 @@ void main() {
     });
 
     group('URL construction', () {
-      test('getBookPage should construct correct URL', () async {
+      test('loadBookPageForReading should construct correct URL', () async {
         try {
-          await apiService.getBookPage(14, 1);
+          await apiService.loadBookPageForReading(14, 1);
         } catch (e) {
           expect(e, isA<Exception>());
         }
