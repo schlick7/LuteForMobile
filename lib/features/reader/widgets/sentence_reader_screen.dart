@@ -798,83 +798,91 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       builder: (context) {
         final repository = ref.read(readerRepositoryProvider);
         final settings = ref.read(termFormSettingsProvider);
-        return PopScope(
-          canPop: !_isDictionaryOpen,
-          onPopInvoked: (didPop) async {
-            if (didPop && settings.autoSave) {
-              final updatedForm = _currentTermForm ?? termForm;
-              final success = await ref
-                  .read(readerProvider.notifier)
-                  .saveTerm(updatedForm);
-              if (!success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Failed to save term')),
-                );
+        return AnimatedPadding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeInOut,
+          child: PopScope(
+            canPop: !_isDictionaryOpen,
+            onPopInvoked: (didPop) async {
+              if (didPop && settings.autoSave) {
+                final updatedForm = _currentTermForm ?? termForm;
+                final success = await ref
+                    .read(readerProvider.notifier)
+                    .saveTerm(updatedForm);
+                if (!success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Failed to save term')),
+                  );
+                }
               }
-            }
-          },
-          child: StatefulBuilder(
-            builder: (context, setModalState) {
-              return TermFormWidget(
-                termForm: _currentTermForm ?? termForm,
-                contentService: repository.contentService,
-                dictionaryService: DictionaryService(
-                  fetchLanguageSettingsHtml: (langId) =>
-                      repository.contentService.getLanguageSettingsHtml(langId),
-                ),
-                onUpdate: (updatedForm) {
-                  setState(() {
-                    _currentTermForm = updatedForm;
-                  });
-                  setModalState(() {});
-                },
-                onSave: (updatedForm) async {
-                  final success = await ref
-                      .read(readerProvider.notifier)
-                      .saveTerm(updatedForm);
-                  if (success && mounted) {
-                    if (updatedForm.termId != null) {
-                      _termTooltips.remove(updatedForm.termId!);
-
-                      try {
-                        final freshTooltip = await ref
-                            .read(readerProvider.notifier)
-                            .fetchTermTooltip(updatedForm.termId!);
-                        if (freshTooltip != null && mounted) {
-                          setState(() {
-                            _termTooltips[updatedForm.termId!] = freshTooltip;
-                          });
-
-                          await Future.delayed(
-                            const Duration(milliseconds: 100),
-                          );
-                          await _refreshAffectedTermTooltips(freshTooltip);
-                        }
-                      } catch (e) {}
-                    }
-
-                    Navigator.of(context).pop();
-                  }
-                },
-                onCancel: () => Navigator.of(context).pop(),
-                onDictionaryToggle: (isOpen) {
-                  setState(() {
-                    _isDictionaryOpen = isOpen;
-                  });
-                  setModalState(() {});
-                },
-                onParentDoubleTap: (parent) async {
-                  if (parent.id != null) {
-                    final parentTermForm = await ref
-                        .read(readerProvider.notifier)
-                        .fetchTermFormById(parent.id!);
-                    if (parentTermForm != null && mounted) {
-                      _showParentTermForm(parentTermForm);
-                    }
-                  }
-                },
-              );
             },
+            child: StatefulBuilder(
+              builder: (context, setModalState) {
+                return TermFormWidget(
+                  termForm: _currentTermForm ?? termForm,
+                  contentService: repository.contentService,
+                  dictionaryService: DictionaryService(
+                    fetchLanguageSettingsHtml: (langId) => repository
+                        .contentService
+                        .getLanguageSettingsHtml(langId),
+                  ),
+                  onUpdate: (updatedForm) {
+                    setState(() {
+                      _currentTermForm = updatedForm;
+                    });
+                    setModalState(() {});
+                  },
+                  onSave: (updatedForm) async {
+                    final success = await ref
+                        .read(readerProvider.notifier)
+                        .saveTerm(updatedForm);
+                    if (success && mounted) {
+                      if (updatedForm.termId != null) {
+                        _termTooltips.remove(updatedForm.termId!);
+
+                        try {
+                          final freshTooltip = await ref
+                              .read(readerProvider.notifier)
+                              .fetchTermTooltip(updatedForm.termId!);
+                          if (freshTooltip != null && mounted) {
+                            setState(() {
+                              _termTooltips[updatedForm.termId!] = freshTooltip;
+                            });
+
+                            await Future.delayed(
+                              const Duration(milliseconds: 100),
+                            );
+                            await _refreshAffectedTermTooltips(freshTooltip);
+                          }
+                        } catch (e) {}
+                      }
+
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  onCancel: () => Navigator.of(context).pop(),
+                  onDictionaryToggle: (isOpen) {
+                    setState(() {
+                      _isDictionaryOpen = isOpen;
+                    });
+                    setModalState(() {});
+                  },
+                  onParentDoubleTap: (parent) async {
+                    if (parent.id != null) {
+                      final parentTermForm = await ref
+                          .read(readerProvider.notifier)
+                          .fetchTermFormById(parent.id!);
+                      if (parentTermForm != null && mounted) {
+                        _showParentTermForm(parentTermForm);
+                      }
+                    }
+                  },
+                );
+              },
+            ),
           ),
         );
       },
@@ -890,119 +898,127 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       builder: (context) {
         final repository = ref.read(readerRepositoryProvider);
         final settings = ref.read(termFormSettingsProvider);
-        return PopScope(
-          canPop: !_isDictionaryOpen,
-          onPopInvoked: (didPop) async {
-            if (didPop && settings.autoSave) {
-              final updatedForm = _currentTermForm ?? termForm;
-              final success = await ref
-                  .read(readerProvider.notifier)
-                  .saveTerm(updatedForm);
-              if (success && mounted) {
-                if (updatedForm.termId != null) {
-                  _termTooltips.remove(updatedForm.termId!);
+        return AnimatedPadding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeInOut,
+          child: PopScope(
+            canPop: !_isDictionaryOpen,
+            onPopInvoked: (didPop) async {
+              if (didPop && settings.autoSave) {
+                final updatedForm = _currentTermForm ?? termForm;
+                final success = await ref
+                    .read(readerProvider.notifier)
+                    .saveTerm(updatedForm);
+                if (success && mounted) {
+                  if (updatedForm.termId != null) {
+                    _termTooltips.remove(updatedForm.termId!);
 
-                  try {
-                    final freshTooltip = await ref
-                        .read(readerProvider.notifier)
-                        .fetchTermTooltip(updatedForm.termId!);
-                    if (freshTooltip != null && mounted) {
-                      setState(() {
-                        _termTooltips[updatedForm.termId!] = freshTooltip;
-                      });
+                    try {
+                      final freshTooltip = await ref
+                          .read(readerProvider.notifier)
+                          .fetchTermTooltip(updatedForm.termId!);
+                      if (freshTooltip != null && mounted) {
+                        setState(() {
+                          _termTooltips[updatedForm.termId!] = freshTooltip;
+                        });
 
-                      await Future.delayed(const Duration(milliseconds: 100));
-                      await _refreshAffectedTermTooltips(freshTooltip);
-                    }
-                  } catch (e) {}
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        await _refreshAffectedTermTooltips(freshTooltip);
+                      }
+                    } catch (e) {}
+                  }
+                } else if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Failed to save term')),
+                  );
                 }
-              } else if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Failed to save term')),
-                );
               }
-            }
-          },
-          child: StatefulBuilder(
-            builder: (context, setModalState) {
-              TermForm? currentForm = termForm;
-              return TermFormWidget(
-                termForm: currentForm,
-                contentService: repository.contentService,
-                dictionaryService: DictionaryService(
-                  fetchLanguageSettingsHtml: (langId) =>
-                      repository.contentService.getLanguageSettingsHtml(langId),
-                ),
-                onUpdate: (updatedForm) {
-                  setState(() {
-                    currentForm = updatedForm;
-                  });
-                  setModalState(() {});
-                },
-                onSave: (updatedForm) async {
-                  final success = await ref
-                      .read(readerProvider.notifier)
-                      .saveTerm(updatedForm);
-                  if (success && mounted) {
-                    if (updatedForm.termId != null) {
-                      setState(() {
-                        final existingTooltip =
-                            _termTooltips[updatedForm.termId!];
-                        if (existingTooltip != null) {
-                          _termTooltips[updatedForm.termId!] = TermTooltip(
-                            term: existingTooltip.term,
-                            translation: updatedForm.translation,
-                            termId: existingTooltip.termId,
-                            status: existingTooltip.status,
-                            statusText: existingTooltip.statusText,
-                            sentences: existingTooltip.sentences,
-                            language: existingTooltip.language,
-                            languageId: existingTooltip.languageId,
-                            parents: existingTooltip.parents,
-                            children: existingTooltip.children,
-                          );
-                        }
-                      });
-
-                      try {
-                        final freshTooltip = await ref
-                            .read(readerProvider.notifier)
-                            .fetchTermTooltip(updatedForm.termId!);
-                        if (freshTooltip != null && mounted) {
-                          setState(() {
-                            _termTooltips[updatedForm.termId!] = freshTooltip;
-                          });
-
-                          await Future.delayed(
-                            const Duration(milliseconds: 100),
-                          );
-                          await _refreshAffectedTermTooltips(freshTooltip);
-                        }
-                      } catch (e) {}
-                    }
-
-                    Navigator.of(context).pop();
-                  }
-                },
-                onCancel: () => Navigator.of(context).pop(),
-                onDictionaryToggle: (isOpen) {
-                  setState(() {
-                    _isDictionaryOpen = isOpen;
-                  });
-                  setModalState(() {});
-                },
-                onParentDoubleTap: (parent) async {
-                  if (parent.id != null) {
-                    final parentTermForm = await ref
-                        .read(readerProvider.notifier)
-                        .fetchTermFormById(parent.id!);
-                    if (parentTermForm != null && mounted) {
-                      _showParentTermForm(parentTermForm);
-                    }
-                  }
-                },
-              );
             },
+            child: StatefulBuilder(
+              builder: (context, setModalState) {
+                TermForm? currentForm = termForm;
+                return TermFormWidget(
+                  termForm: currentForm,
+                  contentService: repository.contentService,
+                  dictionaryService: DictionaryService(
+                    fetchLanguageSettingsHtml: (langId) => repository
+                        .contentService
+                        .getLanguageSettingsHtml(langId),
+                  ),
+                  onUpdate: (updatedForm) {
+                    setState(() {
+                      currentForm = updatedForm;
+                    });
+                    setModalState(() {});
+                  },
+                  onSave: (updatedForm) async {
+                    final success = await ref
+                        .read(readerProvider.notifier)
+                        .saveTerm(updatedForm);
+                    if (success && mounted) {
+                      if (updatedForm.termId != null) {
+                        setState(() {
+                          final existingTooltip =
+                              _termTooltips[updatedForm.termId!];
+                          if (existingTooltip != null) {
+                            _termTooltips[updatedForm.termId!] = TermTooltip(
+                              term: existingTooltip.term,
+                              translation: updatedForm.translation,
+                              termId: existingTooltip.termId,
+                              status: existingTooltip.status,
+                              statusText: existingTooltip.statusText,
+                              sentences: existingTooltip.sentences,
+                              language: existingTooltip.language,
+                              languageId: existingTooltip.languageId,
+                              parents: existingTooltip.parents,
+                              children: existingTooltip.children,
+                            );
+                          }
+                        });
+
+                        try {
+                          final freshTooltip = await ref
+                              .read(readerProvider.notifier)
+                              .fetchTermTooltip(updatedForm.termId!);
+                          if (freshTooltip != null && mounted) {
+                            setState(() {
+                              _termTooltips[updatedForm.termId!] = freshTooltip;
+                            });
+
+                            await Future.delayed(
+                              const Duration(milliseconds: 100),
+                            );
+                            await _refreshAffectedTermTooltips(freshTooltip);
+                          }
+                        } catch (e) {}
+                      }
+
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  onCancel: () => Navigator.of(context).pop(),
+                  onDictionaryToggle: (isOpen) {
+                    setState(() {
+                      _isDictionaryOpen = isOpen;
+                    });
+                    setModalState(() {});
+                  },
+                  onParentDoubleTap: (parent) async {
+                    if (parent.id != null) {
+                      final parentTermForm = await ref
+                          .read(readerProvider.notifier)
+                          .fetchTermFormById(parent.id!);
+                      if (parentTermForm != null && mounted) {
+                        _showParentTermForm(parentTermForm);
+                      }
+                    }
+                  },
+                );
+              },
+            ),
           ),
         );
       },
