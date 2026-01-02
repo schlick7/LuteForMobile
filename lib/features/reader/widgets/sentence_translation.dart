@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../models/sentence_translation.dart';
@@ -295,6 +297,9 @@ class _SentenceTranslationWidgetState extends State<SentenceTranslationWidget> {
         userAgent:
             'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
       ),
+      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+        Factory(() => VerticalDragGestureRecognizer()),
+      },
       onWebViewCreated: (controller) {
         _webviewControllers[dictionary.hashCode] = controller;
       },
