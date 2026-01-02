@@ -4,7 +4,10 @@ import 'package:dio/dio.dart';
 import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../shared/theme/app_theme.dart';
+import '../../../shared/theme/theme_definitions.dart';
 import '../../../app.dart';
+import 'theme_selector_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -242,13 +245,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ? Icons.check_circle
                                     : Icons.error,
                                 color: _connectionTestPassed
-                                    ? Theme.of(context).colorScheme.success
+                                    ? Theme.of(context)
+                                              .extension<
+                                                AppThemeColorExtension
+                                              >()
+                                              ?.colorScheme
+                                              .semantic
+                                              .success ??
+                                          Colors.green
                                     : Theme.of(context).colorScheme.error,
                               )
                             : settings.isUrlValid
                             ? Icon(
                                 Icons.check_circle,
-                                color: Theme.of(context).colorScheme.connected,
+                                color:
+                                    Theme.of(context)
+                                        .extension<AppThemeColorExtension>()
+                                        ?.colorScheme
+                                        .semantic
+                                        .connected ??
+                                    Colors.green,
                               )
                             : Icon(
                                 Icons.error,
@@ -311,16 +327,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: _connectionStatus!.contains('successful')
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.success.withValues(alpha: 0.1)
+                              ? Theme.of(context)
+                                        .extension<AppThemeColorExtension>()
+                                        ?.colorScheme
+                                        .semantic
+                                        .success
+                                        .withValues(alpha: 0.1) ??
+                                    Colors.green.withValues(alpha: 0.1)
                               : Theme.of(
                                   context,
                                 ).colorScheme.error.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: _connectionStatus!.contains('successful')
-                                ? Theme.of(context).colorScheme.success
+                                ? Theme.of(context)
+                                          .extension<AppThemeColorExtension>()
+                                          ?.colorScheme
+                                          .semantic
+                                          .success ??
+                                      Colors.green
                                 : Theme.of(context).colorScheme.error,
                           ),
                         ),
@@ -331,7 +356,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   ? Icons.check_circle
                                   : Icons.error,
                               color: _connectionStatus!.contains('successful')
-                                  ? Theme.of(context).colorScheme.success
+                                  ? Theme.of(context)
+                                            .extension<AppThemeColorExtension>()
+                                            ?.colorScheme
+                                            .semantic
+                                            .success ??
+                                        Colors.green
                                   : Theme.of(context).colorScheme.error,
                             ),
                             const SizedBox(width: 8),
@@ -341,7 +371,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 style: TextStyle(
                                   color:
                                       _connectionStatus!.contains('successful')
-                                      ? Theme.of(context).colorScheme.success
+                                      ? Theme.of(context)
+                                                .extension<
+                                                  AppThemeColorExtension
+                                                >()
+                                                ?.colorScheme
+                                                .semantic
+                                                .success ??
+                                            Colors.green
                                       : Theme.of(context).colorScheme.error,
                                 ),
                               ),
@@ -570,6 +607,49 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       (color) => ref
                           .read(themeSettingsProvider.notifier)
                           .updateCustomAccentButtonColor(color),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Theme',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const ThemeSelectorScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.tune),
+                          label: Text(_getThemeLabel(themeSettings.themeType)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _getThemeDescription(themeSettings.themeType),
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
                     ),
                   ],
                 ),
@@ -902,5 +982,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  String _getThemeLabel(ThemeType themeType) {
+    switch (themeType) {
+      case ThemeType.light:
+        return 'Light';
+      case ThemeType.dark:
+        return 'Dark';
+    }
+  }
+
+  String _getThemeDescription(ThemeType themeType) {
+    switch (themeType) {
+      case ThemeType.light:
+        return 'Bright, clean interface';
+      case ThemeType.dark:
+        return 'Dark interface for low light';
+    }
   }
 }
