@@ -437,78 +437,85 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
           ),
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeInOut,
-          child: PopScope(
-            canPop: !_isDictionaryOpen,
-            onPopInvoked: (didPop) async {
-              if (didPop && settings.autoSave) {
-                final updatedForm = _currentTermForm ?? termForm;
-                final success = await ref
-                    .read(readerProvider.notifier)
-                    .saveTerm(updatedForm);
-                if (!success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Failed to save term')),
-                  );
+          child: GestureDetector(
+            onVerticalDragStart: _isDictionaryOpen ? (_) {} : null,
+            onVerticalDragUpdate: _isDictionaryOpen ? (_) {} : null,
+            behavior: HitTestBehavior.translucent,
+            child: PopScope(
+              canPop: !_isDictionaryOpen,
+              onPopInvoked: (didPop) async {
+                if (didPop && settings.autoSave) {
+                  final updatedForm = _currentTermForm ?? termForm;
+                  final success = await ref
+                      .read(readerProvider.notifier)
+                      .saveTerm(updatedForm);
+                  if (!success && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to save term')),
+                    );
+                  }
                 }
-              }
-            },
-            child: StatefulBuilder(
-              builder: (context, setModalState) {
-                return TermFormWidget(
-                  termForm: _currentTermForm ?? termForm,
-                  contentService: repository.contentService,
-                  dictionaryService: DictionaryService(
-                    fetchLanguageSettingsHtml: (langId) => repository
-                        .contentService
-                        .getLanguageSettingsHtml(langId),
-                  ),
-                  onUpdate: (updatedForm) {
-                    setState(() {
-                      _currentTermForm = updatedForm;
-                    });
-                    setModalState(() {});
-                  },
-                  onSave: (updatedForm) async {
-                    final success = await ref
-                        .read(readerProvider.notifier)
-                        .saveTerm(updatedForm);
-                    if (success && mounted) {
-                      if (updatedForm.termId != null) {
-                        ref
-                            .read(readerProvider.notifier)
-                            .updateTermStatus(
-                              updatedForm.termId!,
-                              updatedForm.status,
-                            );
-                      }
-                      Navigator.of(context).pop();
-                    } else {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Failed to save term')),
-                        );
-                      }
-                    }
-                  },
-                  onCancel: () => Navigator.of(context).pop(),
-                  onDictionaryToggle: (isOpen) {
-                    setState(() {
-                      _isDictionaryOpen = isOpen;
-                    });
-                    setModalState(() {});
-                  },
-                  onParentDoubleTap: (parent) async {
-                    if (parent.id != null) {
-                      final parentTermForm = await ref
-                          .read(readerProvider.notifier)
-                          .fetchTermFormById(parent.id!);
-                      if (parentTermForm != null && mounted) {
-                        _showParentTermForm(parentTermForm);
-                      }
-                    }
-                  },
-                );
               },
+              child: StatefulBuilder(
+                builder: (context, setModalState) {
+                  return TermFormWidget(
+                    termForm: _currentTermForm ?? termForm,
+                    contentService: repository.contentService,
+                    dictionaryService: DictionaryService(
+                      fetchLanguageSettingsHtml: (langId) => repository
+                          .contentService
+                          .getLanguageSettingsHtml(langId),
+                    ),
+                    onUpdate: (updatedForm) {
+                      setState(() {
+                        _currentTermForm = updatedForm;
+                      });
+                      setModalState(() {});
+                    },
+                    onSave: (updatedForm) async {
+                      final success = await ref
+                          .read(readerProvider.notifier)
+                          .saveTerm(updatedForm);
+                      if (success && mounted) {
+                        if (updatedForm.termId != null) {
+                          ref
+                              .read(readerProvider.notifier)
+                              .updateTermStatus(
+                                updatedForm.termId!,
+                                updatedForm.status,
+                              );
+                        }
+                        Navigator.of(context).pop();
+                      } else {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to save term'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    onCancel: () => Navigator.of(context).pop(),
+                    onDictionaryToggle: (isOpen) {
+                      setState(() {
+                        _isDictionaryOpen = isOpen;
+                      });
+                      setModalState(() {});
+                    },
+                    onParentDoubleTap: (parent) async {
+                      if (parent.id != null) {
+                        final parentTermForm = await ref
+                            .read(readerProvider.notifier)
+                            .fetchTermFormById(parent.id!);
+                        if (parentTermForm != null && mounted) {
+                          _showParentTermForm(parentTermForm);
+                        }
+                      }
+                    },
+                  );
+                },
+              ),
             ),
           ),
         );
@@ -531,81 +538,88 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
           ),
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeInOut,
-          child: PopScope(
-            canPop: !_isDictionaryOpen,
-            onPopInvoked: (didPop) async {
-              if (didPop && settings.autoSave) {
-                final updatedForm = _currentTermForm ?? termForm;
-                final success = await ref
-                    .read(readerProvider.notifier)
-                    .saveTerm(updatedForm);
-                if (success && mounted) {
-                  // Update term display in page data after autosave
-                  if (updatedForm.termId != null) {
-                    ref
-                        .read(readerProvider.notifier)
-                        .updateTermStatus(
-                          updatedForm.termId!,
-                          updatedForm.status,
-                        );
-                  }
-                } else if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Failed to save term')),
-                  );
-                }
-              }
-            },
-            child: StatefulBuilder(
-              builder: (context, setModalState) {
-                TermForm? currentForm = termForm;
-                return TermFormWidget(
-                  termForm: currentForm,
-                  contentService: repository.contentService,
-                  dictionaryService: DictionaryService(
-                    fetchLanguageSettingsHtml: (langId) => repository
-                        .contentService
-                        .getLanguageSettingsHtml(langId),
-                  ),
-                  onUpdate: (updatedForm) {
-                    setState(() {
-                      currentForm = updatedForm;
-                    });
-                    setModalState(() {});
-                  },
-                  onSave: (updatedForm) async {
-                    final success = await ref
-                        .read(readerProvider.notifier)
-                        .saveTerm(updatedForm);
-                    if (success && mounted) {
-                      Navigator.of(context).pop();
-                    } else {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Failed to save term')),
-                        );
-                      }
-                    }
-                  },
-                  onCancel: () => Navigator.of(context).pop(),
-                  onDictionaryToggle: (isOpen) {
-                    setState(() {
-                      _isDictionaryOpen = isOpen;
-                    });
-                    setModalState(() {});
-                  },
-                  onParentDoubleTap: (parent) async {
-                    if (parent.id != null) {
-                      final parentTermForm = await ref
+          child: GestureDetector(
+            onVerticalDragStart: _isDictionaryOpen ? (_) {} : null,
+            onVerticalDragUpdate: _isDictionaryOpen ? (_) {} : null,
+            behavior: HitTestBehavior.translucent,
+            child: PopScope(
+              canPop: !_isDictionaryOpen,
+              onPopInvoked: (didPop) async {
+                if (didPop && settings.autoSave) {
+                  final updatedForm = _currentTermForm ?? termForm;
+                  final success = await ref
+                      .read(readerProvider.notifier)
+                      .saveTerm(updatedForm);
+                  if (success && mounted) {
+                    // Update term display in page data after autosave
+                    if (updatedForm.termId != null) {
+                      ref
                           .read(readerProvider.notifier)
-                          .fetchTermFormById(parent.id!);
-                      if (parentTermForm != null && mounted) {
-                        _showParentTermForm(parentTermForm);
-                      }
+                          .updateTermStatus(
+                            updatedForm.termId!,
+                            updatedForm.status,
+                          );
                     }
-                  },
-                );
+                  } else if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to save term')),
+                    );
+                  }
+                }
               },
+              child: StatefulBuilder(
+                builder: (context, setModalState) {
+                  TermForm? currentForm = termForm;
+                  return TermFormWidget(
+                    termForm: currentForm,
+                    contentService: repository.contentService,
+                    dictionaryService: DictionaryService(
+                      fetchLanguageSettingsHtml: (langId) => repository
+                          .contentService
+                          .getLanguageSettingsHtml(langId),
+                    ),
+                    onUpdate: (updatedForm) {
+                      setState(() {
+                        currentForm = updatedForm;
+                      });
+                      setModalState(() {});
+                    },
+                    onSave: (updatedForm) async {
+                      final success = await ref
+                          .read(readerProvider.notifier)
+                          .saveTerm(updatedForm);
+                      if (success && mounted) {
+                        Navigator.of(context).pop();
+                      } else {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Failed to save term'),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    onCancel: () => Navigator.of(context).pop(),
+                    onDictionaryToggle: (isOpen) {
+                      setState(() {
+                        _isDictionaryOpen = isOpen;
+                      });
+                      setModalState(() {});
+                    },
+                    onParentDoubleTap: (parent) async {
+                      if (parent.id != null) {
+                        final parentTermForm = await ref
+                            .read(readerProvider.notifier)
+                            .fetchTermFormById(parent.id!);
+                        if (parentTermForm != null && mounted) {
+                          _showParentTermForm(parentTermForm);
+                        }
+                      }
+                    },
+                  );
+                },
+              ),
             ),
           ),
         );
