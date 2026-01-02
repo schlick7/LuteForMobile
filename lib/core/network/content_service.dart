@@ -334,7 +334,29 @@ class ContentService {
 
   /// Gets the current page number from the server for a book
   /// This is used to check if the server's current page matches the reader's page
+  /// This uses the existing getBookPageStructure method which already calls the correct endpoint
   Future<int> getCurrentPageForBook(int bookId) async {
-    return await _apiService.getCurrentPageForBook(bookId);
+    try {
+      final response = await _apiService.getBookPageStructure(bookId);
+      final data = response.data;
+      if (data != null) {
+        // Parse the HTML response to extract current page
+        final document = html_parser.parse(data);
+        final pageInput = document.querySelector('#page_num');
+        if (pageInput != null) {
+          final value = pageInput.attributes['value'];
+          if (value != null) {
+            final pageInt = int.tryParse(value);
+            if (pageInt != null) {
+              return pageInt;
+            }
+          }
+        }
+      }
+      return 1; // Default to page 1 if parsing fails
+    } catch (e) {
+      print('Error getting current page for book $bookId: $e');
+      return 1; // Default to page 1 on error
+    }
   }
 }
