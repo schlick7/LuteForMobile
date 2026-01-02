@@ -138,7 +138,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyShowKnownTermsInSentenceReader, show);
   }
 
-  Future<void> updateCurrentBook(int bookId, int page) async {
+  Future<void> updateCurrentBook(int bookId, [int? page]) async {
     state = state.copyWith(
       currentBookId: bookId,
       currentBookPage: page,
@@ -147,7 +147,11 @@ class SettingsNotifier extends Notifier<Settings> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyCurrentBookId, bookId);
-    await prefs.setInt(_keyCurrentBookPage, page);
+    if (page != null) {
+      await prefs.setInt(_keyCurrentBookPage, page);
+    } else {
+      await prefs.remove(_keyCurrentBookPage);
+    }
     await prefs.remove(_keyCurrentBookSentenceIndex);
   }
 

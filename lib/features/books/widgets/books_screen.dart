@@ -206,11 +206,9 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
       final updatedBook = await ref
           .read(booksProvider.notifier)
           .getUpdatedBook(book.id);
-      ref
-          .read(navigationProvider)
-          .navigateToReader(updatedBook.id, updatedBook.currentPage);
+      ref.read(navigationProvider).navigateToReader(updatedBook.id);
     } catch (e) {
-      ref.read(navigationProvider).navigateToReader(book.id, book.currentPage);
+      ref.read(navigationProvider).navigateToReader(book.id);
     }
   }
 

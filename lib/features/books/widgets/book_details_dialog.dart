@@ -262,9 +262,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        ref
-                            .read(navigationProvider)
-                            .navigateToReader(book.id, book.currentPage);
+                        ref.read(navigationProvider).navigateToReader(book.id);
                         Navigator.of(context).pop();
                       },
                       icon: const Icon(Icons.play_arrow),

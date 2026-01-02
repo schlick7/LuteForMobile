@@ -111,7 +111,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen> {
     }
   }
 
-  Future<void> loadBook(int bookId, int pageNum) async {
+  Future<void> loadBook(int bookId, [int? pageNum]) async {
     print('DEBUG: loadBook called with bookId=$bookId, pageNum=$pageNum');
     try {
       await ref

@@ -10,9 +10,13 @@ class ReaderRepository {
   ReaderRepository({required ContentService contentService})
     : contentService = contentService;
 
-  Future<PageData> getPage({required int bookId, required int pageNum}) async {
+  Future<PageData> getPage({required int bookId, int? pageNum}) async {
     try {
-      return await contentService.getPageContent(bookId, pageNum);
+      return await contentService.getPageContent(
+        bookId,
+        pageNum: pageNum,
+        mode: ContentMode.reading,
+      );
     } catch (e) {
       throw Exception('Failed to load page: $e');
     }

@@ -59,7 +59,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
   Future<void> loadPage({
     required int bookId,
-    required int pageNum,
+    int? pageNum,
     bool updateReaderState = true,
   }) async {
     if (!_repository.contentService.isConfigured) {

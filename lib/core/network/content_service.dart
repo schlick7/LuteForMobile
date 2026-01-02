@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:html/parser.dart' as html_parser;
+import 'package:html/dom.dart' as html;
 import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
@@ -44,9 +45,8 @@ class ContentService {
   }
 
   int _extractPageNumFromMetadata(dynamic metadataDocument) {
-    if (metadataDocument is! html_parser.Document) return 1;
-    final document = metadataDocument as html_parser.Document;
-    final pageInput = document.querySelector('#page_num');
+    if (metadataDocument is! html.Document) return 1;
+    final pageInput = metadataDocument.querySelector('#page_num');
     if (pageInput != null) {
       final value = pageInput.attributes['value'];
       return int.tryParse(value ?? '') ?? 1;
@@ -57,7 +57,7 @@ class ContentService {
   Future<PageData> markPageDone(int bookId, int pageNum, bool restKnown) async {
     await _apiService.postPageDone(bookId, pageNum, restKnown);
 
-    return getPageContent(bookId, pageNum, mode: ContentMode.reading);
+    return getPageContent(bookId, pageNum: pageNum, mode: ContentMode.reading);
   }
 
   Future<Response<String>> _getPageHtml(

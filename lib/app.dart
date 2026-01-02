@@ -61,14 +61,14 @@ final currentScreenRouteProvider =
     });
 
 class NavigationController {
-  final List<Function(int, int)> _readerListeners = [];
+  final List<Function(int, int?)> _readerListeners = [];
   final List<Function(int)> _screenListeners = [];
 
-  void addReaderListener(Function(int, int) listener) {
+  void addReaderListener(Function(int, int?) listener) {
     _readerListeners.add(listener);
   }
 
-  void removeReaderListener(Function(int, int) listener) {
+  void removeReaderListener(Function(int, int?) listener) {
     _readerListeners.remove(listener);
   }
 
@@ -80,7 +80,7 @@ class NavigationController {
     _screenListeners.remove(listener);
   }
 
-  void navigateToReader(int bookId, int pageNum) {
+  void navigateToReader(int bookId, [int? pageNum]) {
     print(
       'DEBUG: NavigationController.navigateToReader called with bookId=$bookId, pageNum=$pageNum',
     );
@@ -166,7 +166,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     super.dispose();
   }
 
-  void _handleNavigateToReader(int bookId, int pageNum) {
+  void _handleNavigateToReader(int bookId, [int? pageNum]) {
     print(
       'DEBUG: _handleNavigateToReader called with bookId=$bookId, pageNum=$pageNum',
     );
@@ -211,21 +211,15 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           'DEBUG: Loaded book from server: bookId=${book.id}, currentPage=${book.currentPage}',
         );
 
-        ref
-            .read(settingsProvider.notifier)
-            .updateCurrentBook(book.id, book.currentPage);
+        ref.read(settingsProvider.notifier).updateCurrentBook(book.id);
 
         if (_readerKey.currentState != null) {
-          _readerKey.currentState!.loadBook(book.id, book.currentPage);
+          _readerKey.currentState!.loadBook(book.id);
         }
       } catch (e) {
         print('DEBUG: Failed to load book from server: $e');
-        if (settings.currentBookPage != null &&
-            _readerKey.currentState != null) {
-          _readerKey.currentState!.loadBook(
-            settings.currentBookId!,
-            settings.currentBookPage!,
-          );
+        if (_readerKey.currentState != null) {
+          _readerKey.currentState!.loadBook(settings.currentBookId!);
         }
       }
     }
