@@ -51,14 +51,37 @@ extension BuildContextExtension on BuildContext {
   Color getStatusTextColor(String status) {
     switch (status) {
       case '1':
+        if (appColorScheme.status.isTransparent1) {
+          return appColorScheme.text.primary;
+        }
+        return appColorScheme.status.highlightedText;
       case '2':
+        if (appColorScheme.status.isTransparent2) {
+          return appColorScheme.text.primary;
+        }
+        return appColorScheme.status.highlightedText;
       case '3':
+        if (appColorScheme.status.isTransparent3) {
+          return appColorScheme.text.primary;
+        }
+        return appColorScheme.status.highlightedText;
       case '4':
+        if (appColorScheme.status.isTransparent4) {
+          return appColorScheme.text.primary;
+        }
         return appColorScheme.status.highlightedText;
       case '5':
+        if (appColorScheme.status.isTransparent5) {
+          return appColorScheme.text.primary;
+        }
+        return appColorScheme.status.highlightedText;
       case '98':
-      case '99':
         return appColorScheme.text.primary;
+      case '99':
+        if (appColorScheme.status.isTransparent99) {
+          return appColorScheme.text.primary;
+        }
+        return appColorScheme.status.highlightedText;
       case '0':
       default:
         return appColorScheme.status.status0;
@@ -68,18 +91,28 @@ extension BuildContextExtension on BuildContext {
   Color? getStatusBackgroundColor(String status) {
     switch (status) {
       case '1':
+        if (appColorScheme.status.isTransparent1) return null;
         return appColorScheme.status.status1;
       case '2':
+        if (appColorScheme.status.isTransparent2) return null;
         return appColorScheme.status.status2;
       case '3':
+        if (appColorScheme.status.isTransparent3) return null;
         return appColorScheme.status.status3;
       case '4':
+        if (appColorScheme.status.isTransparent4) return null;
         return appColorScheme.status.status4;
       case '5':
+        if (appColorScheme.status.isTransparent5) return null;
         return appColorScheme.status.status5;
       case '0':
+        if (appColorScheme.status.isTransparent0) return null;
+        return appColorScheme.status.status0;
       case '98':
+        return null;
       case '99':
+        if (appColorScheme.status.isTransparent99) return null;
+        return appColorScheme.status.status99;
       default:
         return null;
     }
