@@ -379,22 +379,41 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
     final settings = ref.watch(settingsProvider);
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text('Terms', style: Theme.of(context).textTheme.titleLarge),
-        ),
-        Expanded(
-          child: TermListDisplay(
-            sentence: currentSentence,
-            tooltips: _termTooltips,
-            onTermTap: (item, position) => _handleTap(item, position),
-            onTermDoubleTap: (item) => _handleDoubleTap(item),
-            showKnownTerms: settings.showKnownTermsInSentenceReader,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        final sentenceReaderNotifier = ref.read(
+          sentenceReaderProvider.notifier,
+        );
+
+        if (velocity > 0) {
+          if (sentenceReaderNotifier.canGoPrevious) {
+            _goPrevious();
+          }
+        } else if (velocity < 0) {
+          if (sentenceReaderNotifier.canGoNext) {
+            _goNext();
+          }
+        }
+      },
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('Terms', style: Theme.of(context).textTheme.titleLarge),
           ),
-        ),
-      ],
+          Expanded(
+            child: TermListDisplay(
+              sentence: currentSentence,
+              tooltips: _termTooltips,
+              onTermTap: (item, position) => _handleTap(item, position),
+              onTermDoubleTap: (item) => _handleDoubleTap(item),
+              showKnownTerms: settings.showKnownTermsInSentenceReader,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
