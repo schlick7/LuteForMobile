@@ -1,5 +1,6 @@
 # Theme System Expansion - v1 Plan
 
+
 ## **Objective**
 Add Light Mode theme alongside existing Dark Mode, with theme selector UI. Accent colors remain separate from theme selection.
 
@@ -11,426 +12,29 @@ Add Light Mode theme alongside existing Dark Mode, with theme selector UI. Accen
 
 ---
 
-## **Phase 1: Create Theme Data Structure**
+## **Phase 1: Create Theme Data Structure** ✅ COMPLETED
 
-### **New Files to Create**
+### **New Files Created**
 
-#### 1. `lib/shared/theme/theme_definitions.dart`
+#### 1. `lib/shared/theme/theme_definitions.dart` ✅
+- **ThemeType** enum: { dark, light }
+- **TextColors** class: primary, secondary, disabled, headline, onPrimary, onSecondary, onPrimaryContainer, onSecondaryContainer, onTertiary, onTertiaryContainer
+- **BackgroundColors** class: background, surface, surfaceVariant, surfaceContainerHighest
+- **SemanticColors** class: success, onSuccess, warning, onWarning, error, onError, info, onInfo, connected, disconnected, aiProvider, localProvider
+- **StatusColors** class: status0, status1, status2, status3, status4, status5, status98, status99, highlightedText
+- **BorderColors** class: outline, outlineVariant, dividerColor
+- **AudioColors** class: background, icon, bookmark, error, errorBackground
+- **ErrorColors** class: error, onError (separate from semantic to allow different values per theme)
+- **Material3ColorScheme** class: primary, secondary, tertiary, primaryContainer, secondaryContainer, tertiaryContainer (for Material 3 ColorScheme mapping)
+- **AppThemeColorScheme** class: composition of all above color classes
 
-```dart
-import 'package:flutter/material.dart';
 
-enum ThemeType { dark, light }
+> **Note for Phase 2:** All classes include copyWith(), ==, and hashCode methods for theme manipulation and comparison.
 
-enum StatusMode { background, text }
+#### 2. `lib/shared/theme/theme_presets.dart` ✅
+- **darkThemePreset**: Complete dark theme colors (matching existing Lute theme) - includes all values from current `darkTheme()` in app_theme.dart
+- **lightThemePreset**: Complete light theme colors (matching current `lightTheme()` in app_theme.dart with AppColors values)
 
-@immutable
-class AppThemeColorScheme {
-  // Text colors
-  final Color textPrimary;
-  final Color textSecondary;
-  final Color textDisabled;
-  final Color textHeadline;
-  final Color textOnPrimary;
-  final Color textOnSecondary;
-  
-  // Background colors
-  final Color background;
-  final Color surface;
-  final Color surfaceVariant;
-  final Color surfaceContainerHighest;
-  final Color bookCardBackground;
-  final Color tooltipBackground;
-  
-  // Semantic colors
-  final Color success;
-  final Color onSuccess;
-  final Color warning;
-  final Color onWarning;
-  final Color error;
-  final Color onError;
-  final Color info;
-  final Color onInfo;
-  final Color connected;
-  final Color disconnected;
-  
-  // Provider colors
-  final Color aiProviderBadge;
-  final Color localProviderBadge;
-  
-  // Status colors
-  final Color status0;
-  final Color status1;
-  final Color status2;
-  final Color status3;
-  final Color status4;
-  final Color status5;
-  final Color status98;
-  final Color status99;
-  final Color statusHighlightedText;
-  
-  // Border colors
-  final Color outline;
-  final Color outlineVariant;
-  final Color dividerColor;
-  
-  // Audio player colors
-  final Color audioPlayerBackground;
-  final Color audioPlayerIcon;
-  final Color audioBookmark;
-  final Color audioError;
-  final Color audioErrorBackground;
-  
-  const AppThemeColorScheme({
-    required this.textPrimary,
-    required this.textSecondary,
-    required this.textDisabled,
-    required this.textHeadline,
-    required this.textOnPrimary,
-    required this.textOnSecondary,
-    required this.background,
-    required this.surface,
-    required this.surfaceVariant,
-    required this.surfaceContainerHighest,
-    required this.bookCardBackground,
-    required this.tooltipBackground,
-    required this.success,
-    required this.onSuccess,
-    required this.warning,
-    required this.onWarning,
-    required this.error,
-    required this.onError,
-    required this.info,
-    required this.onInfo,
-    required this.connected,
-    required this.disconnected,
-    required this.aiProviderBadge,
-    required this.localProviderBadge,
-    required this.status0,
-    required this.status1,
-    required this.status2,
-    required this.status3,
-    required this.status4,
-    required this.status5,
-    required this.status98,
-    required this.status99,
-    required this.statusHighlightedText,
-    required this.outline,
-    required this.outlineVariant,
-    required this.dividerColor,
-    required this.audioPlayerBackground,
-    required this.audioPlayerIcon,
-    required this.audioBookmark,
-    required this.audioError,
-    required this.audioErrorBackground,
-  });
-  
-  AppThemeColorScheme copyWith({
-    Color? textPrimary,
-    Color? textSecondary,
-    Color? textDisabled,
-    Color? textHeadline,
-    Color? textOnPrimary,
-    Color? textOnSecondary,
-    Color? background,
-    Color? surface,
-    Color? surfaceVariant,
-    Color? surfaceContainerHighest,
-    Color? bookCardBackground,
-    Color? tooltipBackground,
-    Color? success,
-    Color? onSuccess,
-    Color? warning,
-    Color? onWarning,
-    Color? error,
-    Color? onError,
-    Color? info,
-    Color? onInfo,
-    Color? connected,
-    Color? disconnected,
-    Color? aiProviderBadge,
-    Color? localProviderBadge,
-    Color? status0,
-    Color? status1,
-    Color? status2,
-    Color? status3,
-    Color? status4,
-    Color? status5,
-    Color? status98,
-    Color? status99,
-    Color? statusHighlightedText,
-    Color? outline,
-    Color? outlineVariant,
-    Color? dividerColor,
-    Color? audioPlayerBackground,
-    Color? audioPlayerIcon,
-    Color? audioBookmark,
-    Color? audioError,
-    Color? audioErrorBackground,
-  }) {
-    return AppThemeColorScheme(
-      textPrimary: textPrimary ?? this.textPrimary,
-      textSecondary: textSecondary ?? this.textSecondary,
-      textDisabled: textDisabled ?? this.textDisabled,
-      textHeadline: textHeadline ?? this.textHeadline,
-      textOnPrimary: textOnPrimary ?? this.textOnPrimary,
-      textOnSecondary: textOnSecondary ?? this.textOnSecondary,
-      background: background ?? this.background,
-      surface: surface ?? this.surface,
-      surfaceVariant: surfaceVariant ?? this.surfaceVariant,
-      surfaceContainerHighest: surfaceContainerHighest ?? this.surfaceContainerHighest,
-      bookCardBackground: bookCardBackground ?? this.bookCardBackground,
-      tooltipBackground: tooltipBackground ?? this.tooltipBackground,
-      success: success ?? this.success,
-      onSuccess: onSuccess ?? this.onSuccess,
-      warning: warning ?? this.warning,
-      onWarning: onWarning ?? this.onWarning,
-      error: error ?? this.error,
-      onError: onError ?? this.onError,
-      info: info ?? this.info,
-      onInfo: onInfo ?? this.onInfo,
-      connected: connected ?? this.connected,
-      disconnected: disconnected ?? this.disconnected,
-      aiProviderBadge: aiProviderBadge ?? this.aiProviderBadge,
-      localProviderBadge: localProviderBadge ?? this.localProviderBadge,
-      status0: status0 ?? this.status0,
-      status1: status1 ?? this.status1,
-      status2: status2 ?? this.status2,
-      status3: status3 ?? this.status3,
-      status4: status4 ?? this.status4,
-      status5: status5 ?? this.status5,
-      status98: status98 ?? this.status98,
-      status99: status99 ?? this.status99,
-      statusHighlightedText: statusHighlightedText ?? this.statusHighlightedText,
-      outline: outline ?? this.outline,
-      outlineVariant: outlineVariant ?? this.outlineVariant,
-      dividerColor: dividerColor ?? this.dividerColor,
-      audioPlayerBackground: audioPlayerBackground ?? this.audioPlayerBackground,
-      audioPlayerIcon: audioPlayerIcon ?? this.audioPlayerIcon,
-      audioBookmark: audioBookmark ?? this.audioBookmark,
-      audioError: audioError ?? this.audioError,
-      audioErrorBackground: audioErrorBackground ?? this.audioErrorBackground,
-    );
-  }
-  
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is AppThemeColorScheme &&
-        other.textPrimary == textPrimary &&
-        other.textSecondary == textSecondary &&
-        other.textDisabled == textDisabled &&
-        other.textHeadline == textHeadline &&
-        other.textOnPrimary == textOnPrimary &&
-        other.textOnSecondary == textOnSecondary &&
-        other.background == background &&
-        other.surface == surface &&
-        other.surfaceVariant == surfaceVariant &&
-        other.surfaceContainerHighest == surfaceContainerHighest &&
-        other.bookCardBackground == bookCardBackground &&
-        other.tooltipBackground == tooltipBackground &&
-        other.success == success &&
-        other.onSuccess == onSuccess &&
-        other.warning == warning &&
-        other.onWarning == onWarning &&
-        other.error == error &&
-        other.onError == onError &&
-        other.info == info &&
-        other.onInfo == onInfo &&
-        other.connected == connected &&
-        other.disconnected == disconnected &&
-        other.aiProviderBadge == aiProviderBadge &&
-        other.localProviderBadge == localProviderBadge &&
-        other.status0 == status0 &&
-        other.status1 == status1 &&
-        other.status2 == status2 &&
-        other.status3 == status3 &&
-        other.status4 == status4 &&
-        other.status5 == status5 &&
-        other.status98 == status98 &&
-        other.status99 == status99 &&
-        other.statusHighlightedText == statusHighlightedText &&
-        other.outline == outline &&
-        other.outlineVariant == outlineVariant &&
-        other.dividerColor == dividerColor &&
-        other.audioPlayerBackground == audioPlayerBackground &&
-        other.audioPlayerIcon == audioPlayerIcon &&
-        other.audioBookmark == audioBookmark &&
-        other.audioError == audioError &&
-        other.audioErrorBackground == audioErrorBackground;
-  }
-  
-  @override
-  int get hashCode => Object.hash(
-    textPrimary,
-    textSecondary,
-    textDisabled,
-    textHeadline,
-    textOnPrimary,
-    textOnSecondary,
-    background,
-    surface,
-    surfaceVariant,
-    surfaceContainerHighest,
-    bookCardBackground,
-    tooltipBackground,
-    success,
-    onSuccess,
-    warning,
-    onWarning,
-    error,
-    onError,
-    info,
-    onInfo,
-    connected,
-    disconnected,
-    aiProviderBadge,
-    localProviderBadge,
-    status0,
-    status1,
-    status2,
-    status3,
-    status4,
-    status5,
-    status98,
-    status99,
-    statusHighlightedText,
-    outline,
-    outlineVariant,
-    dividerColor,
-    audioPlayerBackground,
-    audioPlayerIcon,
-    audioBookmark,
-    audioError,
-    audioErrorBackground,
-  );
-}
-```
-
-#### 2. `lib/shared/theme/theme_presets.dart`
-
-```dart
-import 'package:flutter/material.dart';
-import 'theme_definitions.dart';
-
-/// Dark theme preset - extracted from existing app colors
-final AppThemeColorScheme darkThemePreset = AppThemeColorScheme(
-  // Text colors
-  textPrimary: const Color(0xFFE6E1E5),
-  textSecondary: const Color(0xFFCAC4D0),
-  textDisabled: const Color(0xFF938F99),
-  textHeadline: const Color(0xFFE6E1E5),
-  textOnPrimary: const Color(0xFFFFFFFF),
-  textOnSecondary: const Color(0xFFFFFFFF),
-  
-  // Background colors
-  background: const Color(0xFF48484a), // Dark grey paper from Lute theme
-  surface: const Color(0xFF1E1E1E), // Cards
-  surfaceVariant: const Color(0xFF2A2A2A),
-  surfaceContainerHighest: const Color(0xFF49454F), // Headers/navigation
-  bookCardBackground: const Color(0xFF1E1E1E),
-  tooltipBackground: const Color(0xFF1E1E1E),
-  
-  // Semantic colors
-  success: const Color(0xFF419252),
-  onSuccess: const Color(0xFFFFFFFF),
-  warning: const Color(0xFFBA8050),
-  onWarning: const Color(0xFFFFFFFF),
-  error: const Color(0xFFBA1A1A),
-  onError: const Color(0xFFFFFFFF),
-  info: const Color(0xFF8095FF),
-  onInfo: const Color(0xFFFFFFFF),
-  connected: const Color(0xFF419252),
-  disconnected: const Color(0xFFBA1A1A),
-  
-  // Provider colors
-  aiProviderBadge: const Color(0xFF6750A4),
-  localProviderBadge: const Color(0xFF1976D2),
-  
-  // Status colors (from AppStatusColors)
-  status0: const Color(0xFF8095FF), // Light blue - unknown
-  status1: const Color(0x99b46b7a), // Rosy brown (0.6 opacity)
-  status2: const Color(0x99BA8050), // Burnt orange (0.6 opacity)
-  status3: const Color(0x99BD9C7B), // Tan (0.6 opacity)
-  status4: const Color(0x99756D6B), // Dark gray (0.6 opacity)
-  status5: const Color(0x3377706E), // Gray (0.2 opacity)
-  status98: Colors.transparent, // No color - ignored terms
-  status99: const Color(0xFF419252), // Green - known
-  statusHighlightedText: const Color(0xFFeff1f2),
-  
-  // Border colors
-  outline: const Color(0xFF938F99),
-  outlineVariant: const Color(0xFF49454F),
-  dividerColor: const Color(0xFF49454F),
-  
-  // Audio player colors
-  audioPlayerBackground: const Color(0xFF6750A4), // Uses accent button color
-  audioPlayerIcon: Colors.white,
-  audioBookmark: const Color(0xFFFFA000),
-  audioError: const Color(0xFFD32F2F),
-  audioErrorBackground: const Color(0x33FFCDD2),
-);
-
-/// Light theme preset - softer reading-friendly colors (not pure white)
-final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
-  // Text colors - softer than pure black
-  textPrimary: const Color(0xFF2C2C2C),
-  textSecondary: const Color(0xFF5C5C5C),
-  textDisabled: const Color(0xFF9E9E9E),
-  textHeadline: const Color(0xFF1A1A1A),
-  textOnPrimary: const Color(0xFFFFFFFF),
-  textOnSecondary: const Color(0xFFFFFFFF),
-  
-  // Background colors - warm off-whites, not pure white
-  background: const Color(0xFFF5F3EF), // Warm off-white paper
-  surface: const Color(0xFFFFFFFF), // Pure white cards
-  surfaceVariant: const Color(0xFFF0EBE5),
-  surfaceContainerHighest: const Color(0xFFE8E3DD), // Warm light gray
-  bookCardBackground: const Color(0xFFFFFFFF),
-  tooltipBackground: const Color(0xFFFFFFFF),
-  
-  // Semantic colors - same as dark theme
-  success: const Color(0xFF419252),
-  onSuccess: const Color(0xFFFFFFFF),
-  warning: const Color(0xFFBA8050),
-  onWarning: const Color(0xFFFFFFFF),
-  error: const Color(0xFFBA1A1A),
-  onError: const Color(0xFFFFFFFF),
-  info: const Color(0xFF8095FF),
-  onInfo: const Color(0xFFFFFFFF),
-  connected: const Color(0xFF419252),
-  disconnected: const Color(0xFFBA1A1A),
-  
-  // Provider colors - same as dark theme
-  aiProviderBadge: const Color(0xFF6750A4),
-  localProviderBadge: const Color(0xFF1976D2),
-  
-  // Status colors - same base colors with slightly less opacity
-  status0: const Color(0xCC8095FF), // Light blue - unknown (0.8 opacity)
-  status1: const Color(0x88b46b7a), // Rosy brown (0.53 opacity)
-  status2: const Color(0x88BA8050), // Burnt orange (0.53 opacity)
-  status3: const Color(0x88BD9C7B), // Tan (0.53 opacity)
-  status4: const Color(0x88756D6B), // Dark gray (0.53 opacity)
-  status5: const Color(0x4477706E), // Gray (0.26 opacity)
-  status98: Colors.transparent,
-  status99: const Color(0xFF419252), // Green - known
-  statusHighlightedText: const Color(0xFF2C2C2C),
-  
-  // Border colors
-  outline: const Color(0xFF79747E),
-  outlineVariant: const Color(0xFFE0E0E0),
-  dividerColor: const Color(0xFFE0E0E0),
-  
-  // Audio player colors
-  audioPlayerBackground: const Color(0xFF6750A4), // Uses accent button color
-  audioPlayerIcon: Colors.white,
-  audioBookmark: const Color(0xFFFF8F00),
-  audioError: const Color(0xFFD32F2F),
-  audioErrorBackground: const Color(0x33FFEBEE),
-);
-```
-
----
 
 ## **Phase 2: Update Theme System**
 
@@ -438,6 +42,7 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
 
 **Changes:**
 - Import `theme_definitions.dart` and `theme_presets.dart`
+- Add `AppThemeColorExtension` class at top of file (see below)
 - Update `lightTheme()` to use `lightThemePreset` values instead of `AppColors` constants:
   ```dart
   static ThemeData lightTheme(ThemeSettings themeSettings) {
@@ -446,45 +51,63 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
       brightness: Brightness.light,
       colorScheme: ColorScheme.light(
         primary: themeSettings.accentButtonColor,
-        onPrimary: lightThemePreset.textOnPrimary,
-        primaryContainer: lightThemePreset.surface,
-        onPrimaryContainer: lightThemePreset.textPrimary,
-        secondary: lightThemePreset.textSecondary,
-        onSecondary: lightThemePreset.textOnSecondary,
-        secondaryContainer: lightThemePreset.surfaceVariant,
-        onSecondaryContainer: lightThemePreset.textPrimary,
-        tertiary: lightThemePreset.warning,
-        onTertiary: lightThemePreset.onWarning,
-        tertiaryContainer: lightThemePreset.surface,
-        onTertiaryContainer: lightThemePreset.textPrimary,
-        surface: lightThemePreset.surface,
-        onSurface: lightThemePreset.textPrimary,
-        surfaceContainerHighest: lightThemePreset.surfaceContainerHighest,
-        onSurfaceVariant: lightThemePreset.textSecondary,
-        outline: lightThemePreset.outline,
-        outlineVariant: lightThemePreset.outlineVariant,
-        error: lightThemePreset.error,
-        onError: lightThemePreset.onError,
+        onPrimary: lightThemePreset.text.onPrimary,
+        primaryContainer: lightThemePreset.material3.primaryContainer,
+        onPrimaryContainer: lightThemePreset.text.onPrimaryContainer,
+        secondary: lightThemePreset.material3.secondary,
+        onSecondary: lightThemePreset.text.onSecondary,
+        secondaryContainer: lightThemePreset.material3.secondaryContainer,
+        onSecondaryContainer: lightThemePreset.text.onSecondaryContainer,
+        tertiary: lightThemePreset.material3.tertiary,
+        onTertiary: lightThemePreset.text.onTertiary,
+        tertiaryContainer: lightThemePreset.material3.tertiaryContainer,
+        onTertiaryContainer: lightThemePreset.text.onTertiaryContainer,
+        surface: lightThemePreset.background.surface,
+        onSurface: lightThemePreset.text.primary,
+        surfaceContainerHighest: lightThemePreset.background.surfaceContainerHighest,
+        onSurfaceVariant: lightThemePreset.text.secondary,
+        outline: lightThemePreset.border.outline,
+        outlineVariant: lightThemePreset.border.outlineVariant,
+        error: lightThemePreset.error.error,
+        onError: lightThemePreset.error.onError,
       ),
       textTheme: TextTheme(
-        displayLarge: TextStyle(fontSize: 57, fontWeight: FontWeight.w400, color: lightThemePreset.textPrimary),
-        displayMedium: TextStyle(fontSize: 45, fontWeight: FontWeight.w400, color: lightThemePreset.textPrimary),
-        displaySmall: TextStyle(fontSize: 36, fontWeight: FontWeight.w400, color: lightThemePreset.textPrimary),
-        headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, color: lightThemePreset.textHeadline),
-        headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.w400, color: lightThemePreset.textHeadline),
-        headlineSmall: TextStyle(fontSize: 24, fontWeight: FontWeight.w400, color: lightThemePreset.textHeadline),
-        titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w500, color: lightThemePreset.textPrimary),
-        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: lightThemePreset.textPrimary),
-        titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: lightThemePreset.textPrimary),
-        bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: lightThemePreset.textPrimary),
-        bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: lightThemePreset.textPrimary),
-        bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: lightThemePreset.textSecondary),
-        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: lightThemePreset.textPrimary),
-        labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: lightThemePreset.textSecondary),
-        labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: lightThemePreset.textSecondary),
+        displayLarge: TextStyle(fontSize: 57, fontWeight: FontWeight.w400, color: lightThemePreset.text.primary),
+        displayMedium: TextStyle(fontSize: 45, fontWeight: FontWeight.w400, color: lightThemePreset.text.primary),
+        displaySmall: TextStyle(fontSize: 36, fontWeight: FontWeight.w400, color: lightThemePreset.text.primary),
+        headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, color: lightThemePreset.text.headline),
+        headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.w400, color: lightThemePreset.text.headline),
+        headlineSmall: TextStyle(fontSize: 24, fontWeight: FontWeight.w400, color: lightThemePreset.text.headline),
+        titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w500, color: lightThemePreset.text.primary),
+        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: lightThemePreset.text.primary),
+        titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: lightThemePreset.text.primary),
+        bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: lightThemePreset.text.primary),
+        bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: lightThemePreset.text.primary),
+        bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: lightThemePreset.text.secondary),
+        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: lightThemePreset.text.primary),
+        labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: lightThemePreset.text.secondary),
+        labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: lightThemePreset.text.secondary),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: themeSettings.accentButtonColor,
+          foregroundColor: lightThemePreset.text.onPrimary,
+          elevation: 1,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: themeSettings.accentButtonColor,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: themeSettings.accentButtonColor,
+          side: const BorderSide(color: AppColors.outline),
+        ),
       ),
       cardTheme: CardThemeData(
-        color: lightThemePreset.surface,
+        color: lightThemePreset.background.surface,
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -506,45 +129,63 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
       brightness: Brightness.dark,
       colorScheme: ColorScheme.dark(
         primary: themeSettings.accentButtonColor,
-        onPrimary: darkThemePreset.textOnPrimary,
-        primaryContainer: darkThemePreset.surface,
-        onPrimaryContainer: darkThemePreset.textPrimary,
-        secondary: darkThemePreset.textSecondary,
-        onSecondary: darkThemePreset.textOnSecondary,
-        secondaryContainer: darkThemePreset.surfaceVariant,
-        onSecondaryContainer: darkThemePreset.textPrimary,
-        tertiary: darkThemePreset.warning,
-        onTertiary: darkThemePreset.onWarning,
-        tertiaryContainer: darkThemePreset.surface,
-        onTertiaryContainer: darkThemePreset.textPrimary,
-        surface: darkThemePreset.background,
-        onSurface: darkThemePreset.textPrimary,
-        surfaceContainerHighest: darkThemePreset.surfaceContainerHighest,
-        onSurfaceVariant: darkThemePreset.textSecondary,
-        outline: darkThemePreset.outline,
-        outlineVariant: darkThemePreset.outlineVariant,
-        error: darkThemePreset.error,
-        onError: darkThemePreset.onError,
+        onPrimary: darkThemePreset.text.onPrimary,
+        primaryContainer: darkThemePreset.material3.primaryContainer,
+        onPrimaryContainer: darkThemePreset.text.onPrimaryContainer,
+        secondary: darkThemePreset.material3.secondary,
+        onSecondary: darkThemePreset.text.onSecondary,
+        secondaryContainer: darkThemePreset.material3.secondaryContainer,
+        onSecondaryContainer: darkThemePreset.text.onSecondaryContainer,
+        tertiary: darkThemePreset.material3.tertiary,
+        onTertiary: darkThemePreset.text.onTertiary,
+        tertiaryContainer: darkThemePreset.material3.tertiaryContainer,
+        onTertiaryContainer: darkThemePreset.text.onTertiaryContainer,
+        surface: darkThemePreset.background.background,
+        onSurface: darkThemePreset.text.primary,
+        surfaceContainerHighest: darkThemePreset.background.surfaceContainerHighest,
+        onSurfaceVariant: darkThemePreset.text.secondary,
+        outline: darkThemePreset.border.outline,
+        outlineVariant: darkThemePreset.border.outlineVariant,
+        error: darkThemePreset.error.error,
+        onError: darkThemePreset.error.onError,
       ),
       textTheme: TextTheme(
-        displayLarge: TextStyle(fontSize: 57, fontWeight: FontWeight.w400, color: darkThemePreset.textPrimary),
-        displayMedium: TextStyle(fontSize: 45, fontWeight: FontWeight.w400, color: darkThemePreset.textPrimary),
-        displaySmall: TextStyle(fontSize: 36, fontWeight: FontWeight.w400, color: darkThemePreset.textPrimary),
-        headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, color: darkThemePreset.textHeadline),
-        headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.w400, color: darkThemePreset.textHeadline),
-        headlineSmall: TextStyle(fontSize: 24, fontWeight: FontWeight.w400, color: darkThemePreset.textHeadline),
-        titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w500, color: darkThemePreset.textPrimary),
-        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: darkThemePreset.textPrimary),
-        titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: darkThemePreset.textPrimary),
-        bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: darkThemePreset.textPrimary),
-        bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: darkThemePreset.textPrimary),
-        bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: darkThemePreset.textSecondary),
-        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: darkThemePreset.textPrimary),
-        labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: darkThemePreset.textSecondary),
-        labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: darkThemePreset.textSecondary),
+        displayLarge: TextStyle(fontSize: 57, fontWeight: FontWeight.w400, color: darkThemePreset.text.primary),
+        displayMedium: TextStyle(fontSize: 45, fontWeight: FontWeight.w400, color: darkThemePreset.text.primary),
+        displaySmall: TextStyle(fontSize: 36, fontWeight: FontWeight.w400, color: darkThemePreset.text.primary),
+        headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, color: darkThemePreset.text.headline),
+        headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.w400, color: darkThemePreset.text.headline),
+        headlineSmall: TextStyle(fontSize: 24, fontWeight: FontWeight.w400, color: darkThemePreset.text.headline),
+        titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w500, color: darkThemePreset.text.primary),
+        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: darkThemePreset.text.primary),
+        titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: darkThemePreset.text.primary),
+        bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: darkThemePreset.text.primary),
+        bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: darkThemePreset.text.primary),
+        bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: darkThemePreset.text.secondary),
+        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: darkThemePreset.text.primary),
+        labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: darkThemePreset.text.secondary),
+        labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: darkThemePreset.text.secondary),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: themeSettings.accentButtonColor,
+          foregroundColor: darkThemePreset.text.onPrimary,
+          elevation: 1,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: themeSettings.accentButtonColor,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: themeSettings.accentButtonColor,
+          side: const BorderSide(color: Color(0xFF938F99)),
+        ),
       ),
       cardTheme: CardThemeData(
-        color: darkThemePreset.surface,
+        color: darkThemePreset.background.surface,
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -575,47 +216,73 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
       if (other is! AppThemeColorExtension) return this;
       return AppThemeColorExtension(
         colorScheme: AppThemeColorScheme(
-          textPrimary: Color.lerp(colorScheme.textPrimary, other.colorScheme.textPrimary, t)!,
-          textSecondary: Color.lerp(colorScheme.textSecondary, other.colorScheme.textSecondary, t)!,
-          textDisabled: Color.lerp(colorScheme.textDisabled, other.colorScheme.textDisabled, t)!,
-          textHeadline: Color.lerp(colorScheme.textHeadline, other.colorScheme.textHeadline, t)!,
-          textOnPrimary: Color.lerp(colorScheme.textOnPrimary, other.colorScheme.textOnPrimary, t)!,
-          textOnSecondary: Color.lerp(colorScheme.textOnSecondary, other.colorScheme.textOnSecondary, t)!,
-          background: Color.lerp(colorScheme.background, other.colorScheme.background, t)!,
-          surface: Color.lerp(colorScheme.surface, other.colorScheme.surface, t)!,
-          surfaceVariant: Color.lerp(colorScheme.surfaceVariant, other.colorScheme.surfaceVariant, t)!,
-          surfaceContainerHighest: Color.lerp(colorScheme.surfaceContainerHighest, other.colorScheme.surfaceContainerHighest, t)!,
-          bookCardBackground: Color.lerp(colorScheme.bookCardBackground, other.colorScheme.bookCardBackground, t)!,
-          tooltipBackground: Color.lerp(colorScheme.tooltipBackground, other.colorScheme.tooltipBackground, t)!,
-          success: Color.lerp(colorScheme.success, other.colorScheme.success, t)!,
-          onSuccess: Color.lerp(colorScheme.onSuccess, other.colorScheme.onSuccess, t)!,
-          warning: Color.lerp(colorScheme.warning, other.colorScheme.warning, t)!,
-          onWarning: Color.lerp(colorScheme.onWarning, other.colorScheme.onWarning, t)!,
-          error: Color.lerp(colorScheme.error, other.colorScheme.error, t)!,
-          onError: Color.lerp(colorScheme.onError, other.colorScheme.onError, t)!,
-          info: Color.lerp(colorScheme.info, other.colorScheme.info, t)!,
-          onInfo: Color.lerp(colorScheme.onInfo, other.colorScheme.onInfo, t)!,
-          connected: Color.lerp(colorScheme.connected, other.colorScheme.connected, t)!,
-          disconnected: Color.lerp(colorScheme.disconnected, other.colorScheme.disconnected, t)!,
-          aiProviderBadge: Color.lerp(colorScheme.aiProviderBadge, other.colorScheme.aiProviderBadge, t)!,
-          localProviderBadge: Color.lerp(colorScheme.localProviderBadge, other.colorScheme.localProviderBadge, t)!,
-          status0: Color.lerp(colorScheme.status0, other.colorScheme.status0, t)!,
-          status1: Color.lerp(colorScheme.status1, other.colorScheme.status1, t)!,
-          status2: Color.lerp(colorScheme.status2, other.colorScheme.status2, t)!,
-          status3: Color.lerp(colorScheme.status3, other.colorScheme.status3, t)!,
-          status4: Color.lerp(colorScheme.status4, other.colorScheme.status4, t)!,
-          status5: Color.lerp(colorScheme.status5, other.colorScheme.status5, t)!,
-          status98: Color.lerp(colorScheme.status98, other.colorScheme.status98, t)!,
-          status99: Color.lerp(colorScheme.status99, other.colorScheme.status99, t)!,
-          statusHighlightedText: Color.lerp(colorScheme.statusHighlightedText, other.colorScheme.statusHighlightedText, t)!,
-          outline: Color.lerp(colorScheme.outline, other.colorScheme.outline, t)!,
-          outlineVariant: Color.lerp(colorScheme.outlineVariant, other.colorScheme.outlineVariant, t)!,
-          dividerColor: Color.lerp(colorScheme.dividerColor, other.colorScheme.dividerColor, t)!,
-          audioPlayerBackground: Color.lerp(colorScheme.audioPlayerBackground, other.colorScheme.audioPlayerBackground, t)!,
-          audioPlayerIcon: Color.lerp(colorScheme.audioPlayerIcon, other.colorScheme.audioPlayerIcon, t)!,
-          audioBookmark: Color.lerp(colorScheme.audioBookmark, other.colorScheme.audioBookmark, t)!,
-          audioError: Color.lerp(colorScheme.audioError, other.colorScheme.audioError, t)!,
-          audioErrorBackground: Color.lerp(colorScheme.audioErrorBackground, other.colorScheme.audioErrorBackground, t)!,
+          text: TextColors(
+            primary: Color.lerp(colorScheme.text.primary, other.colorScheme.text.primary, t)!,
+            secondary: Color.lerp(colorScheme.text.secondary, other.colorScheme.text.secondary, t)!,
+            disabled: Color.lerp(colorScheme.text.disabled, other.colorScheme.text.disabled, t)!,
+            headline: Color.lerp(colorScheme.text.headline, other.colorScheme.text.headline, t)!,
+            onPrimary: Color.lerp(colorScheme.text.onPrimary, other.colorScheme.text.onPrimary, t)!,
+            onSecondary: Color.lerp(colorScheme.text.onSecondary, other.colorScheme.text.onSecondary, t)!,
+            onPrimaryContainer: Color.lerp(colorScheme.text.onPrimaryContainer, other.colorScheme.text.onPrimaryContainer, t)!,
+            onSecondaryContainer: Color.lerp(colorScheme.text.onSecondaryContainer, other.colorScheme.text.onSecondaryContainer, t)!,
+            onTertiary: Color.lerp(colorScheme.text.onTertiary, other.colorScheme.text.onTertiary, t)!,
+            onTertiaryContainer: Color.lerp(colorScheme.text.onTertiaryContainer, other.colorScheme.text.onTertiaryContainer, t)!,
+          ),
+          background: BackgroundColors(
+            background: Color.lerp(colorScheme.background.background, other.colorScheme.background.background, t)!,
+            surface: Color.lerp(colorScheme.background.surface, other.colorScheme.background.surface, t)!,
+            surfaceVariant: Color.lerp(colorScheme.background.surfaceVariant, other.colorScheme.background.surfaceVariant, t)!,
+            surfaceContainerHighest: Color.lerp(colorScheme.background.surfaceContainerHighest, other.colorScheme.background.surfaceContainerHighest, t)!,
+          ),
+          semantic: SemanticColors(
+            success: Color.lerp(colorScheme.semantic.success, other.colorScheme.semantic.success, t)!,
+            onSuccess: Color.lerp(colorScheme.semantic.onSuccess, other.colorScheme.semantic.onSuccess, t)!,
+            warning: Color.lerp(colorScheme.semantic.warning, other.colorScheme.semantic.warning, t)!,
+            onWarning: Color.lerp(colorScheme.semantic.onWarning, other.colorScheme.semantic.onWarning, t)!,
+            error: Color.lerp(colorScheme.semantic.error, other.colorScheme.semantic.error, t)!,
+            onError: Color.lerp(colorScheme.semantic.onError, other.colorScheme.semantic.onError, t)!,
+            info: Color.lerp(colorScheme.semantic.info, other.colorScheme.semantic.info, t)!,
+            onInfo: Color.lerp(colorScheme.semantic.onInfo, other.colorScheme.semantic.onInfo, t)!,
+            connected: Color.lerp(colorScheme.semantic.connected, other.colorScheme.semantic.connected, t)!,
+            disconnected: Color.lerp(colorScheme.semantic.disconnected, other.colorScheme.semantic.disconnected, t)!,
+            aiProvider: Color.lerp(colorScheme.semantic.aiProvider, other.colorScheme.semantic.aiProvider, t)!,
+            localProvider: Color.lerp(colorScheme.semantic.localProvider, other.colorScheme.semantic.localProvider, t)!,
+          ),
+          status: StatusColors(
+            status0: Color.lerp(colorScheme.status.status0, other.colorScheme.status.status0, t)!,
+            status1: Color.lerp(colorScheme.status.status1, other.colorScheme.status.status1, t)!,
+            status2: Color.lerp(colorScheme.status.status2, other.colorScheme.status.status2, t)!,
+            status3: Color.lerp(colorScheme.status.status3, other.colorScheme.status.status3, t)!,
+            status4: Color.lerp(colorScheme.status.status4, other.colorScheme.status.status4, t)!,
+            status5: Color.lerp(colorScheme.status.status5, other.colorScheme.status.status5, t)!,
+            status98: Color.lerp(colorScheme.status.status98, other.colorScheme.status.status98, t)!,
+            status99: Color.lerp(colorScheme.status.status99, other.colorScheme.status.status99, t)!,
+            highlightedText: Color.lerp(colorScheme.status.highlightedText, other.colorScheme.status.highlightedText, t)!,
+          ),
+          border: BorderColors(
+            outline: Color.lerp(colorScheme.border.outline, other.colorScheme.border.outline, t)!,
+            outlineVariant: Color.lerp(colorScheme.border.outlineVariant, other.colorScheme.border.outlineVariant, t)!,
+            dividerColor: Color.lerp(colorScheme.border.dividerColor, other.colorScheme.border.dividerColor, t)!,
+          ),
+          audio: AudioColors(
+            background: Color.lerp(colorScheme.audio.background, other.colorScheme.audio.background, t)!,
+            icon: Color.lerp(colorScheme.audio.icon, other.colorScheme.audio.icon, t)!,
+            bookmark: Color.lerp(colorScheme.audio.bookmark, other.colorScheme.audio.bookmark, t)!,
+            error: Color.lerp(colorScheme.audio.error, other.colorScheme.audio.error, t)!,
+            errorBackground: Color.lerp(colorScheme.audio.errorBackground, other.colorScheme.audio.errorBackground, t)!,
+          ),
+          error: ErrorColors(
+            error: Color.lerp(colorScheme.error.error, other.colorScheme.error.error, t)!,
+            onError: Color.lerp(colorScheme.error.onError, other.colorScheme.error.onError, t)!,
+          ),
+          material3: Material3ColorScheme(
+            primary: Color.lerp(colorScheme.material3.primary, other.colorScheme.material3.primary, t)!,
+            secondary: Color.lerp(colorScheme.material3.secondary, other.colorScheme.material3.secondary, t)!,
+            tertiary: Color.lerp(colorScheme.material3.tertiary, other.colorScheme.material3.tertiary, t)!,
+            primaryContainer: Color.lerp(colorScheme.material3.primaryContainer, other.colorScheme.material3.primaryContainer, t)!,
+            secondaryContainer: Color.lerp(colorScheme.material3.secondaryContainer, other.colorScheme.material3.secondaryContainer, t)!,
+            tertiaryContainer: Color.lerp(colorScheme.material3.tertiaryContainer, other.colorScheme.material3.tertiaryContainer, t)!,
+          ),
         ),
       );
     }
@@ -625,46 +292,54 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
 ### **4. Modify: `lib/shared/theme/theme_extensions.dart`**
 
 **Changes:**
-- Update `AppColorSchemeExtension` to get colors from `AppThemeColorExtension`:
+- Add import: `import 'theme_presets.dart';`
+- **DELETE** `AppColorSchemeExtension` on `ColorScheme` (deprecated)
+- **DELETE** `CustomThemeColorsExtension` - use `ThemeExtension<CustomThemeExtension>` directly
+- **KEEP** `AppTextThemeExtension` unchanged
+- Add a new `BuildContext` extension to support accessing theme extensions:
   ```dart
-  extension AppColorSchemeExtension on ColorScheme {
+  extension BuildContextExtension on BuildContext {
+    // Access to AppThemeColorScheme from anywhere in the widget tree
     AppThemeColorScheme get appColorScheme {
-      final extension = Theme.of(Theme.of(this).navigatorKey.currentContext!)
-          .extension<AppThemeColorExtension>();
-      return extension?.colorScheme ?? darkThemePreset; // Fallback to dark
+      final extension = Theme.of(this).extension<AppThemeColorExtension>();
+      return extension?.colorScheme ?? darkThemePreset;
     }
 
-    // Custom background colors
-    Color get bookCardBackground => appColorScheme.bookCardBackground;
-    Color get tooltipBackground => appColorScheme.tooltipBackground;
-
     // Audio player colors
-    Color get audioPlayerBackground => appColorScheme.audioPlayerBackground;
-    Color get audioPlayerIcon => appColorScheme.audioPlayerIcon;
+    Color get audioPlayerBackground => appColorScheme.audio.background;
+    Color get audioPlayerIcon => appColorScheme.audio.icon;
 
     // Status colors
-    Color get status1 => appColorScheme.status1;
-    Color get status2 => appColorScheme.status2;
-    Color get status3 => appColorScheme.status3;
-    Color get status4 => appColorScheme.status4;
-    Color get status5 => appColorScheme.status5;
-    Color get status98 => appColorScheme.status98;
-    Color get status99 => appColorScheme.status99;
-    Color get status0 => appColorScheme.status0;
+    Color get status1 => appColorScheme.status.status1;
+    Color get status2 => appColorScheme.status.status2;
+    Color get status3 => appColorScheme.status.status3;
+    Color get status4 => appColorScheme.status.status4;
+    Color get status5 => appColorScheme.status.status5;
+    Color get status98 => appColorScheme.status.status98;
+    Color get status99 => appColorScheme.status.status99;
+    Color get status0 => appColorScheme.status.status0;
 
     // Semantic colors
-    Color get success => appColorScheme.success;
-    Color get warning => appColorScheme.warning;
-    Color get error => appColorScheme.error;
-    Color get info => appColorScheme.info;
+    Color get success => appColorScheme.semantic.success;
+    Color get warning => appColorScheme.semantic.warning;
+    Color get error => appColorScheme.error.error;  // Uses error.error, not semantic.error
+    Color get info => appColorScheme.semantic.info;
 
     // Connection status colors
-    Color get connected => appColorScheme.connected;
-    Color get disconnected => appColorScheme.disconnected;
+    Color get connected => appColorScheme.semantic.connected;
+    Color get disconnected => appColorScheme.semantic.disconnected;
 
     // Provider badge colors
-    Color get aiProvider => appColorScheme.aiProviderBadge;
-    Color get localProvider => appColorScheme.localProviderBadge;
+    Color get aiProvider => appColorScheme.semantic.aiProvider;
+    Color get localProvider => appColorScheme.semantic.localProvider;
+
+    // Material 3 ColorScheme accessors
+    Color get m3Primary => appColorScheme.material3.primary;
+    Color get m3Secondary => appColorScheme.material3.secondary;
+    Color get m3Tertiary => appColorScheme.material3.tertiary;
+    Color get m3PrimaryContainer => appColorScheme.material3.primaryContainer;
+    Color get m3SecondaryContainer => appColorScheme.material3.secondaryContainer;
+    Color get m3TertiaryContainer => appColorScheme.material3.tertiaryContainer;
 
     // Get status color by status string for text styling
     Color getStatusTextColor(String status) {
@@ -673,14 +348,14 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
         case '2':
         case '3':
         case '4':
-          return appColorScheme.statusHighlightedText;
+          return appColorScheme.status.highlightedText;
         case '5':
         case '98':
         case '99':
-          return onSurface;
+          return appColorScheme.text.primary;
         case '0':
         default:
-          return appColorScheme.status0;
+          return appColorScheme.status.status0;
       }
     }
 
@@ -688,15 +363,15 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
     Color? getStatusBackgroundColor(String status) {
       switch (status) {
         case '1':
-          return appColorScheme.status1;
+          return appColorScheme.status.status1;
         case '2':
-          return appColorScheme.status2;
+          return appColorScheme.status.status2;
         case '3':
-          return appColorScheme.status3;
+          return appColorScheme.status.status3;
         case '4':
-          return appColorScheme.status4;
+          return appColorScheme.status.status4;
         case '5':
-          return appColorScheme.status5;
+          return appColorScheme.status.status5;
         case '0':
         case '98':
         case '99':
@@ -709,22 +384,22 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
     Color getStatusColor(String status) {
       switch (status) {
         case '1':
-          return appColorScheme.status1;
+          return appColorScheme.status.status1;
         case '2':
-          return appColorScheme.status2;
+          return appColorScheme.status.status2;
         case '3':
-          return appColorScheme.status3;
+          return appColorScheme.status.status3;
         case '4':
-          return appColorScheme.status4;
+          return appColorScheme.status.status4;
         case '5':
-          return appColorScheme.status5;
+          return appColorScheme.status.status5;
         case '98':
-          return appColorScheme.status98;
+          return appColorScheme.status.status98;
         case '99':
-          return appColorScheme.status99;
+          return appColorScheme.status.status99;
         case '0':
         default:
-          return appColorScheme.status0;
+          return appColorScheme.status.status0;
       }
     }
 
@@ -757,7 +432,7 @@ class ThemeSettings {
   final Color accentButtonColor;
   final Color? customAccentLabelColor;
   final Color? customAccentButtonColor;
-  
+
   const ThemeSettings({
     this.themeType = ThemeType.dark,
     this.accentLabelColor = const Color(0xFF1976D2),
@@ -765,7 +440,7 @@ class ThemeSettings {
     this.customAccentLabelColor,
     this.customAccentButtonColor,
   });
-  
+
   ThemeSettings copyWith({
     ThemeType? themeType,
     Color? accentLabelColor,
@@ -776,22 +451,30 @@ class ThemeSettings {
     return ThemeSettings(
       themeType: themeType ?? this.themeType,
       accentLabelColor: accentLabelColor ?? this.accentLabelColor,
-      // ... etc
+      accentButtonColor: accentButtonColor ?? this.accentButtonColor,
+      customAccentLabelColor: customAccentLabelColor ?? this.customAccentLabelColor,
+      customAccentButtonColor: customAccentButtonColor ?? this.customAccentButtonColor,
     );
   }
-  
+
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is ThemeSettings &&
         other.themeType == themeType &&
-        // ... rest of equality checks
+        other.accentLabelColor.hashCode == accentLabelColor.hashCode &&
+        other.accentButtonColor.hashCode == accentButtonColor.hashCode &&
+        other.customAccentLabelColor?.hashCode == customAccentLabelColor?.hashCode &&
+        other.customAccentButtonColor?.hashCode == customAccentButtonColor?.hashCode;
   }
-  
+
   @override
   int get hashCode => Object.hash(
     themeType,
-    // ... rest of hash values
+    accentLabelColor.hashCode,
+    accentButtonColor.hashCode,
+    customAccentLabelColor?.hashCode,
+    customAccentButtonColor?.hashCode,
   );
 }
 ```
@@ -804,7 +487,10 @@ class ThemeSettings {
   ```dart
   final themeTypeValue = prefs.getString(_themeTypeKey);
   final themeType = themeTypeValue != null
-      ? ThemeType.values.firstWhere((e) => e.name == themeTypeValue)
+      ? ThemeType.values.firstWhere(
+          (e) => e.name == themeTypeValue,
+          orElse: () => ThemeType.dark, // Fallback for corrupted values
+        )
       : ThemeType.dark;
   ```
 - In `saveSettings()`, save theme type:
@@ -821,7 +507,8 @@ class ThemeSettings {
     await _saveSettings(updated);
   }
   ```
-- Ensure backward compatibility: default to `ThemeType.dark` if not set
+- Ensure backward compatibility: default to `ThemeType.dark` if not set or corrupted
+- Update `resetSettings()` method to remove `_themeTypeKey` when resetting all settings
 
 ---
 
@@ -947,9 +634,10 @@ class ThemeSelectorScreen extends ConsumerWidget {
 - Add import: `import 'package:lute_for_mobile/shared/theme/theme_presets.dart';`
 - Update `themeMode` selection logic to use `ThemeSettings.themeType`:
   ```dart
-  Widget build(BuildContext context, WidgetRef ref) {
-    final themeSettings = ref.watch(themeSettingsProvider);
-    final themeType = themeSettings.themeType;
+   Widget build(BuildContext context, WidgetRef ref) {
+     final settings = ref.watch(settingsProvider);
+     final themeSettings = settings.themeSettings;
+     final themeType = themeSettings.themeType;
 
     return RestartWidget(
       child: MaterialApp(
@@ -970,21 +658,80 @@ class ThemeSelectorScreen extends ConsumerWidget {
 
 ## **v1 Color Values Reference**
 
-### **Dark Theme Preset**
+### **Dark Theme Preset** (Matches Current `darkTheme()` Exactly)
+
 | Category | Property | Color Value | Notes |
 |----------|----------|--------------|-------|
-| Text | textPrimary | `0xFFE6E1E5` | Light grey font |
-| Text | textSecondary | `0xFFCAC4D0` | Lighter grey |
-| Text | textDisabled | `0xFF938F99` | Muted grey |
-| Text | textHeadline | `0xFFE6E1E5` | Same as primary |
-| Text | textOnPrimary | `0xFFFFFFFF` | White |
-| Text | textOnSecondary | `0xFFFFFFFF` | White |
+| Text | primary | `0xFFE6E1E5` | Light grey font (from current darkTheme) |
+| Text | secondary | `0xFFCAC4D0` | Lighter grey |
+| Text | disabled | `0xFF938F99` | Muted grey |
+| Text | headline | `0xFFE6E1E5` | Same as primary |
+| Text | onPrimary | `0xFFFFFFFF` | White (from AppColors) |
+| Text | onSecondary | `0xFFFFFFFF` | White (from AppColors) |
+| Text | onPrimaryContainer | `0xFFEADDFF` | From AppColors |
+| Text | onSecondaryContainer | `0xFFE8DEF8` | From AppColors |
+| Text | onTertiary | `0xFFFFD8E4` | From AppColors |
+| Text | onTertiaryContainer | `0xFFFFD8E4` | From AppColors |
 | Background | background | `0xFF48484a` | Dark grey paper |
 | Background | surface | `0xFF1E1E1E` | Cards |
 | Background | surfaceVariant | `0xFF2A2A2A` | Variant surface |
 | Background | surfaceContainerHighest | `0xFF49454F` | Headers/nav |
-| Background | bookCardBackground | `0xFF1E1E1E` | Book cards |
-| Background | tooltipBackground | `0xFF1E1E1E` | Tooltips |
+| Semantic | success | `0xFF419252` | Green |
+| Semantic | onSuccess | `0xFFFFFFFF` | White |
+| Semantic | warning | `0xFFBA8050` | Orange |
+| Semantic | onWarning | `0xFFFFFFFF` | White |
+| Semantic | error | `0xFFFFB4AB` | Red (from current darkTheme) |
+| Semantic | onError | `0xFF690005` | Red (from current darkTheme) |
+| Semantic | info | `0xFF8095FF` | Blue |
+| Semantic | onInfo | `0xFFFFFFFF` | White |
+| Semantic | connected | `0xFF419252` | Green |
+| Semantic | disconnected | `0xFFBA1A1A` | Red |
+| Provider | aiProvider | `0xFF6750A4` | Purple |
+| Provider | localProvider | `0xFF1976D2` | Blue |
+| Status | status0 | `0xFF8095FF` | Light blue (unknown) |
+| Status | status1 | `0x99b46b7a` | Rosy brown (0.6 opacity) |
+| Status | status2 | `0x99BA8050` | Burnt orange (0.6 opacity) |
+| Status | status3 | `0x99BD9C7B` | Tan (0.6 opacity) |
+| Status | status4 | `0x99756D6B` | Dark gray (0.6 opacity) |
+| Status | status5 | `0x3377706E` | Gray (0.2 opacity) |
+| Status | status98 | `transparent` | No color (ignored) |
+| Status | status99 | `0xFF419252` | Green (known) |
+| Status | highlightedText | `0xFFeff1f2` | Light text on colored bg |
+| Border | outline | `0xFF938F99` | Standard border |
+| Border | outlineVariant | `0xFF49454F` | Subtle border |
+| Border | dividerColor | `0xFF49454F` | Divider |
+| Audio | background | `0xFF6750A4` | Accent button color |
+| Audio | icon | `Colors.white` | White icons |
+| Audio | bookmark | `0xFFFFA000` | Amber |
+| Audio | error | `0xFFD32F2F` | Red |
+| Audio | errorBackground | `0x33FFCDD2` | Light red (0.2 opacity) |
+| Error | error | `0xFFFFB4AB` | Matches semantic.error |
+| Error | onError | `0xFF690005` | Matches semantic.onError |
+| Material3 | primary | `0xFF6750A4` | From AppColors (overridden by accentButtonColor) |
+| Material3 | secondary | `0xFF625B71` | From AppColors |
+| Material3 | tertiary | `0xFF633B48` | From current darkTheme |
+| Material3 | primaryContainer | `0xFF4F378B` | From current darkTheme |
+| Material3 | secondaryContainer | `0xFF4A4458` | From current darkTheme |
+| Material3 | tertiaryContainer | `0xFF8E7266` | From current darkTheme |
+
+### **Light Theme Preset** (Matches Current `lightTheme()` Exactly)
+
+| Category | Property | Color Value | Notes |
+|----------|----------|--------------|-------|
+| Text | primary | `0xFF1C1B1F` | From AppColors.textPrimary |
+| Text | secondary | `0xFF49454F` | From AppColors.textSecondary |
+| Text | disabled | `0xFF938F99` | From AppColors.textDisabled |
+| Text | headline | `0xFF1C1B1F` | Same as primary |
+| Text | onPrimary | `0xFFFFFFFF` | White (from AppColors) |
+| Text | onSecondary | `0xFFFFFFFF` | White (from AppColors) |
+| Text | onPrimaryContainer | `0xFF21005D` | From AppColors |
+| Text | onSecondaryContainer | `0xFF1D192B` | From AppColors |
+| Text | onTertiary | `0xFFFFFFFF` | From AppColors |
+| Text | onTertiaryContainer | `0xFF31111D` | From AppColors |
+| Background | background | `0xFFFFFBFE` | From AppColors.background |
+| Background | surface | `0xFFFFFBFE` | From AppColors.surface |
+| Background | surfaceVariant | `0xFFE7E0EC` | From AppColors.surfaceVariant |
+| Background | surfaceContainerHighest | `0xFFE7E0EC` | From AppColors.surfaceVariant |
 | Semantic | success | `0xFF419252` | Green |
 | Semantic | onSuccess | `0xFFFFFFFF` | White |
 | Semantic | warning | `0xFFBA8050` | Orange |
@@ -995,53 +742,8 @@ class ThemeSelectorScreen extends ConsumerWidget {
 | Semantic | onInfo | `0xFFFFFFFF` | White |
 | Semantic | connected | `0xFF419252` | Green |
 | Semantic | disconnected | `0xFFBA1A1A` | Red |
-| Provider | aiProviderBadge | `0xFF6750A4` | Purple |
-| Provider | localProviderBadge | `0xFF1976D2` | Blue |
-| Status | status0 | `0xFF8095FF` | Light blue (unknown) |
-| Status | status1 | `0x99b46b7a` | Rosy brown (0.6 opacity) |
-| Status | status2 | `0x99BA8050` | Burnt orange (0.6 opacity) |
-| Status | status3 | `0x99BD9C7B` | Tan (0.6 opacity) |
-| Status | status4 | `0x99756D6B` | Dark gray (0.6 opacity) |
-| Status | status5 | `0x3377706E` | Gray (0.2 opacity) |
-| Status | status98 | `transparent` | No color (ignored) |
-| Status | status99 | `0xFF419252` | Green (known) |
-| Status | statusHighlightedText | `0xFFeff1f2` | Light text on colored bg |
-| Border | outline | `0xFF938F99` | Standard border |
-| Border | outlineVariant | `0xFF49454F` | Subtle border |
-| Border | dividerColor | `0xFF49454F` | Divider |
-| Audio | audioPlayerBackground | `0xFF6750A4` | Accent button color |
-| Audio | audioPlayerIcon | `white` | White icons |
-| Audio | audioBookmark | `0xFFFFA000` | Amber |
-| Audio | audioError | `0xFFD32F2F` | Red |
-| Audio | audioErrorBackground | `0x33FFCDD2` | Light red (0.2 opacity) |
-
-### **Light Theme Preset**
-| Category | Property | Color Value | Notes |
-|----------|----------|--------------|-------|
-| Text | textPrimary | `0xFF2C2C2C` | Soft black |
-| Text | textSecondary | `0xFF5C5C5C` | Dark grey |
-| Text | textDisabled | `0xFF9E9E9E` | Muted grey |
-| Text | textHeadline | `0xFF1A1A1A` | Near black |
-| Text | textOnPrimary | `0xFFFFFFFF` | White |
-| Text | textOnSecondary | `0xFFFFFFFF` | White |
-| Background | background | `0xFFF5F3EF` | Warm off-white paper |
-| Background | surface | `0xFFFFFFFF` | Pure white cards |
-| Background | surfaceVariant | `0xFFF0EBE5` | Warm light grey |
-| Background | surfaceContainerHighest | `0xFFE8E3DD` | Header/nav background |
-| Background | bookCardBackground | `0xFFFFFFFF` | White book cards |
-| Background | tooltipBackground | `0xFFFFFFFF` | White tooltips |
-| Semantic | success | `0xFF419252` | Green (same as dark) |
-| Semantic | onSuccess | `0xFFFFFFFF` | White (same as dark) |
-| Semantic | warning | `0xFFBA8050` | Orange (same as dark) |
-| Semantic | onWarning | `0xFFFFFFFF` | White (same as dark) |
-| Semantic | error | `0xFFBA1A1A` | Red (same as dark) |
-| Semantic | onError | `0xFFFFFFFF` | White (same as dark) |
-| Semantic | info | `0xFF8095FF` | Blue (same as dark) |
-| Semantic | onInfo | `0xFFFFFFFF` | White (same as dark) |
-| Semantic | connected | `0xFF419252` | Green (same as dark) |
-| Semantic | disconnected | `0xFFBA1A1A` | Red (same as dark) |
-| Provider | aiProviderBadge | `0xFF6750A4` | Purple (same as dark) |
-| Provider | localProviderBadge | `0xFF1976D2` | Blue (same as dark) |
+| Provider | aiProvider | `0xFF6750A4` | Purple |
+| Provider | localProvider | `0xFF1976D2` | Blue |
 | Status | status0 | `0xCC8095FF` | Light blue (0.8 opacity) |
 | Status | status1 | `0x88b46b7a` | Rosy brown (0.53 opacity) |
 | Status | status2 | `0x88BA8050` | Burnt orange (0.53 opacity) |
@@ -1050,128 +752,280 @@ class ThemeSelectorScreen extends ConsumerWidget {
 | Status | status5 | `0x4477706E` | Gray (0.26 opacity) |
 | Status | status98 | `transparent` | No color (ignored) |
 | Status | status99 | `0xFF419252` | Green (known) |
-| Status | statusHighlightedText | `0xFF2C2C2C` | Dark text on colored bg |
-| Border | outline | `0xFF79747E` | Standard border |
-| Border | outlineVariant | `0xFFE0E0E0` | Subtle border |
-| Border | dividerColor | `0xFFE0E0E0` | Divider |
-| Audio | audioPlayerBackground | `0xFF6750A4` | Accent button color |
-| Audio | audioPlayerIcon | `white` | White icons |
-| Audio | audioBookmark | `0xFFFF8F00` | Darker amber |
-| Audio | audioError | `0xFFD32F2F` | Red |
-| Audio | audioErrorBackground | `0x33FFEBEE` | Light red (0.2 opacity) |
+| Status | highlightedText | `0xFF2C2C2C` | Dark text on colored bg |
+| Border | outline | `0xFF79747E` | From AppColors |
+| Border | outlineVariant | `0xFFCAC4D0` | From AppColors |
+| Border | dividerColor | `0xFFCAC4D0` | From AppColors |
+| Audio | background | `0xFF6750A4` | Accent button color |
+| Audio | icon | `Colors.white` | White icons |
+| Audio | bookmark | `0xFFFFA000` | Amber |
+| Audio | error | `0xFFD32F2F` | Red |
+| Audio | errorBackground | `0x33FFCDD2` | Light red (0.2 opacity) |
+| Error | error | `0xFFBA1A1A` | Red |
+| Error | onError | `0xFFFFFFFF` | White |
+| Material3 | primary | `0xFF6750A4` | From AppColors (overridden by accentButtonColor) |
+| Material3 | secondary | `0xFF625B71` | From AppColors |
+| Material3 | tertiary | `0xFF7D5260` | From AppColors |
+| Material3 | primaryContainer | `0xFFEADDFF` | From AppColors |
+| Material3 | secondaryContainer | `0xFFE8DEF8` | From AppColors |
+| Material3 | tertiaryContainer | `0xFFFFD8E4` | From AppColors |
 
 ---
 
 ## **v1 File Summary**
 
 ### **New Files (3)**
-1. `lib/shared/theme/theme_definitions.dart` - Data structures
-2. `lib/shared/theme/theme_presets.dart` - Preset values
-3. `lib/features/settings/widgets/theme_selector_screen.dart` - UI
+1. `lib/shared/theme/theme_definitions.dart` - Data structures (with ErrorColors and Material3ColorScheme classes) ✅
+2. `lib/shared/theme/theme_presets.dart` - Preset values (with all current colors exactly matched) ✅
+3. `lib/features/settings/widgets/theme_selector_screen.dart` - UI ⏳
 
-### **Modified Files (5)**
-1. `lib/shared/theme/app_theme.dart` - Theme application
-2. `lib/shared/theme/theme_extensions.dart` - Theme extensions
+### **Modified Files (6)**
+1. `lib/shared/theme/app_theme.dart` - Theme application (includes button themes, corrected ColorScheme mappings)
+2. `lib/shared/theme/theme_extensions.dart` - Theme extensions (DELETE ColorScheme extensions, ADD BuildContext extensions with error and m3* accessors)
 3. `lib/features/settings/models/settings.dart` - ThemeSettings model
 4. `lib/features/settings/providers/settings_provider.dart` - Settings state
 5. `lib/features/settings/widgets/settings_screen.dart` - Settings UI
 6. `lib/app.dart` - App theme mode
 
+### **Files to Delete After Phase 2 Complete (Post-Migration)**
+⚠️ **DO NOT DELETE until ALL 17 files are migrated** to use new extensions:
+
+1. `lib/shared/theme/colors.dart` - Old static color constants (AppColors)
+2. `lib/shared/theme/status_colors.dart` - Old static status colors (AppStatusColors)
+
+**Migration status:** These files can be deleted only after Phase 2 is complete and all files have been updated to use the new `context.appColorScheme.*` extensions instead of `AppColors.*` and `AppStatusColors.*` static references.
+
+### **Files Requiring Manual Updates**
+
+#### **Must Update All Color References**
+1. `lib/features/reader/widgets/audio_player.dart` - All 14 hardcoded colors
+2. `lib/features/settings/widgets/settings_screen.dart` - 10 `colorScheme.success/error/connected` references
+3. `lib/features/reader/widgets/reader_screen.dart` - 4 `onSurfaceVariant` references
+4. `lib/features/reader/widgets/dictionary_view.dart` - 1 `surfaceContainerHighest` reference
+5. `lib/features/reader/widgets/term_form.dart` - 8 `colorScheme.*` references
+6. `lib/features/reader/widgets/reader_drawer_settings.dart` - 3 `error` references
+7. `lib/features/books/widgets/books_screen.dart` - 2 `onSurfaceVariant` references
+8. `lib/features/books/widgets/book_details_dialog.dart` - 5 `colorScheme.*` references
+9. `lib/features/books/widgets/book_card.dart` - 12 `colorScheme.*` + AppStatusColors references
+10. `lib/shared/widgets/app_drawer.dart` - 2 `colorScheme.*` references
+11. `lib/features/reader/widgets/text_display.dart` - 1 `getStatusTextColor` reference
+12. `lib/features/reader/widgets/term_list_display.dart` - 1 `getStatusTextColor` reference
+13. `lib/features/books/widgets/books_drawer_settings.dart` - 1 `outline` reference
+14. `lib/shared/widgets/error_display.dart` - 1 `error` reference
+15. `lib/shared/home_screen.dart` - 1 `inversePrimary` reference
+16. `lib/features/reader/widgets/parent_search.dart` - 2 `colorScheme.*` + `getStatusTextColor` references
+17. `lib/features/reader/widgets/sentence_translation.dart` - 5 `colorScheme.*` references
+
+#### **Do NOT Change**
+- `lib/features/settings/widgets/settings_screen.dart` line 732, 750: `Color(0xFFBDBDBD)` - This is a fallback color for the color picker UI, not a theme color
+- `lib/features/settings/models/settings.dart` lines 167-168: Default accent colors - These are part of Settings model initialization, keep as is
+
 ### **No Changes Needed**
-- Widget files using theme (auto-update via extensions)
 - Accent color functionality
 - All other settings functionality
 - AppColors and AppStatusColors (deprecated but still work)
 
+### **Complete Color Migration Guide**
+
+#### **Audio Player Widget (`lib/features/reader/widgets/audio_player.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).primaryColor` (line 62) | `context.audioPlayerBackground` (internally `context.appColorScheme.audio.background`) | Audio player container background |
+| `Colors.grey[400]!` (line 63) | `context.appColorScheme.border.outline` | Bottom border color |
+| `Colors.red[100]` (line 74) | `context.audioErrorBackground` (internally `context.appColorScheme.audio.errorBackground`) | Error container background |
+| `Colors.red[700]` (line 77) | `context.audioError` (internally `context.appColorScheme.audio.error`) | Error text color |
+| `Colors.white` (lines 76, 176, 244, 260, 270, 287, 293, 305, 325) | `context.audioPlayerIcon` (internally `context.appColorScheme.audio.icon`) | All white icons/text |
+| `Colors.yellow[700]` (lines 157, 260) | `context.audioBookmark` (internally `context.appColorScheme.audio.bookmark`) | Bookmark indicators |
+| `Colors.black.withOpacity(0.05)` (line 224) | `context.appColorScheme.border.outline.withValues(alpha: 0.1)` | Button background |
+| `Colors.black.withOpacity(0.7)` (line 181) | `context.appColorScheme.text.disabled.withValues(alpha: 0.7)` | Text shadow |
+| `Colors.black.withOpacity(0.1)` (line 228) | `context.appColorScheme.border.outline.withValues(alpha: 0.2)` | Button shadow |
+
+#### **Settings Screen (`lib/features/settings/widgets/settings_screen.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.success` (lines 245, 323, 334, 344) | `context.success` (internally `context.appColorScheme.semantic.success`) | Success indicators |
+| `Theme.of(context).colorScheme.error` (lines 246, 255, 324, 335, 345, 644) | `context.error` (internally `context.appColorScheme.semantic.error`) | Error indicators |
+| `Theme.of(context).colorScheme.connected` (line 251) | `context.connected` (internally `context.appColorScheme.semantic.connected`) | Connection status |
+| `Theme.of(context).colorScheme.primary` (lines 485, 500) | `Theme.of(context).colorScheme.primary` | Accent button color (no change) |
+| `Theme.of(context).colorScheme.onSurface` (lines 710, 769) | `context.appColorScheme.text.primary` | Primary text color |
+| `Theme.of(context).colorScheme.inversePrimary` (N/A - in home_screen) | See home_screen section below |  |
+
+#### **Reader Screen (`lib/features/reader/widgets/reader_screen.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.onSurfaceVariant` (lines 292, 303, 329, 340) | `context.appColorScheme.text.secondary` | Secondary text |
+
+#### **Dictionary View (`lib/features/reader/widgets/dictionary_view.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.surfaceContainerHighest` (line 105) | `context.appColorScheme.background.surfaceContainerHighest` | Background |
+
+#### **Term Form (`lib/features/reader/widgets/term_form.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.surface` (lines 238, 261) | `context.appColorScheme.background.surface` | Card/modal background |
+| `Theme.of(context).colorScheme.outline` (line 335) | `context.appColorScheme.border.outline` | Border color |
+| `Theme.of(context).colorScheme.onPrimary` (line 376) | `context.appColorScheme.text.onPrimary` | Text on primary color |
+| `Theme.of(context).colorScheme.onSurface` (lines 377, 467, 487) | `context.appColorScheme.text.primary` | Primary text |
+| `Theme.of(context).colorScheme.getStatusColor(status)` (line 407) | `context.getStatusColor(status)` | Status color |
+| `Theme.of(context).colorScheme.onPrimary` (line 420) | `context.appColorScheme.text.onPrimary` | Text on primary color |
+| `Theme.of(context).colorScheme.getStatusTextColor(status)` (line 593) | `context.getStatusTextColor(status)` | Status text color |
+
+#### **Reader Drawer Settings (`lib/features/reader/widgets/reader_drawer_settings.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.errorContainer` (line 102) | `context.appColorScheme.semantic.error.withValues(alpha: 0.1)` | Error container background |
+| `Theme.of(context).colorScheme.error` (lines 112, 120) | `context.error` (internally `context.appColorScheme.semantic.error`) | Error color |
+
+#### **Books Screen (`lib/features/books/widgets/books_screen.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.onSurfaceVariant` (lines 170, 181) | `context.appColorScheme.text.secondary` | Secondary text |
+
+#### **Book Details Dialog (`lib/features/books/widgets/book_details_dialog.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.error` (lines 163, 394) | `context.error` (internally `context.appColorScheme.semantic.error`) | Error indicators |
+| `Theme.of(context).colorScheme.onSurfaceVariant` (lines 295, 301, 339, 349) | `context.appColorScheme.text.secondary` | Secondary text |
+
+#### **Book Card (`lib/features/books/widgets/book_card.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.primary` (line 48) | `Theme.of(context).colorScheme.primary` | Accent color (no change) |
+| `Theme.of(context).colorScheme.primaryContainer` (line 68) | `context.appColorScheme.background.surface` | Badge background |
+| `Theme.of(context).colorScheme.onPrimaryContainer` (line 74) | `context.appColorScheme.text.primary` | Badge text |
+| `Theme.of(context).colorScheme.onSurfaceVariant` (lines 112, 118, 142, 148, 192, 237) | `context.appColorScheme.text.secondary` | Secondary text |
+| `AppStatusColors.getStatusColor(statusNum.toString())` (line 336) | `context.getStatusColor(statusNum.toString())` | Status color |
+| `AppStatusColors.status0-99` (lines 181-188) | `context.status0-99` (internally `context.appColorScheme.status.status0-99`) | Direct status colors |
+
+#### **App Drawer (`lib/shared/widgets/app_drawer.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.surfaceContainerHighest` (line 43) | `context.appColorScheme.background.surfaceContainerHighest` | Header background |
+| `Theme.of(context).colorScheme.primary` (line 91) | `Theme.of(context).colorScheme.primary` | Accent color (no change) |
+| `Theme.of(context).colorScheme.onSurface` (line 92) | `context.appColorScheme.text.primary` | Primary text |
+
+#### **Text Display (`lib/features/reader/widgets/text_display.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.getStatusTextColor(status)` (line 66) | `context.getStatusTextColor(status)` | Status text color |
+
+#### **Term List Display (`lib/features/reader/widgets/term_list_display.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.getStatusTextColor(status)` (line 77) | `context.getStatusTextColor(status)` | Status text color |
+
+#### **Books Drawer Settings (`lib/features/books/widgets/books_drawer_settings.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.outline` (line 76) | `context.appColorScheme.border.outline` | Border color |
+
+#### **Error Display (`lib/shared/widgets/error_display.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.error` (line 20) | `context.error` (internally `context.appColorScheme.semantic.error`) | Error color |
+
+#### **Home Screen (`lib/shared/home_screen.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.inversePrimary` (line 12) | `Theme.of(context).colorScheme.primary.withValues(alpha: 0.1)` | App bar background tint |
+
+#### **Parent Search (`lib/features/reader/widgets/parent_search.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.primaryContainer` (line 178) | `context.appColorScheme.background.surface` | Chip background |
+| `Theme.of(context).colorScheme.onPrimaryContainer` (line 179) | `context.appColorScheme.text.primary` | Chip text |
+| `Theme.of(context).colorScheme.getStatusTextColor(status)` (line 242) | `context.getStatusTextColor(status)` | Status text color |
+
+#### **Sentence Translation (`lib/features/reader/widgets/sentence_translation.dart`)**
+| Current | New | Notes |
+|---------|-----|-------|
+| `Theme.of(context).colorScheme.surface` (lines 94, 105, 127) | `context.appColorScheme.background.surface` | Card/container background |
+| `Theme.of(context).colorScheme.surfaceContainerHighest` (line 177) | `context.appColorScheme.background.surfaceContainerHighest` | Header background |
+| `Theme.of(context).colorScheme.outline.withValues(alpha: 0.3)` (line 313) | `context.appColorScheme.border.outline.withValues(alpha: 0.3)` | Subtle border |
+
+#### **AppColors and AppStatusColors Static References**
+| File | Current Usage | New Usage |
+|------|---------------|----------|
+| `book_details_dialog.dart` | `AppStatusColors.getStatusColor()` | `context.getStatusColor()` |
+| `book_details_dialog.dart` | `AppStatusColors.getStatusLabel()` | No change - uses labels only |
+| `book_card.dart` | `AppStatusColors.status0-99` | `context.status0-99` (internally `context.appColorScheme.status.status0-99`) |
+| `book_card.dart` | `AppColors.success` | `context.success` (internally `context.appColorScheme.semantic.success`) |
+| `app_theme.dart` | All `AppColors.*` references | Replaced by preset values in Phase 2 |
+| `theme_extensions.dart` | All `AppColors.*` and `AppStatusColors.*` | Deleted extension, use `context.appColorScheme.*` |
+
+### **Additional Notes**
+- **IMPORTANT**: All widgets currently using `Theme.of(context).colorScheme.status1`, `Theme.of(context).colorScheme.success`, etc. must be updated to use convenience methods like `context.status1`, `context.success` etc., which internally access the grouped properties (`context.appColorScheme.status.status1`, `context.appColorScheme.semantic.success`, etc.)
+- These files need updates:
+  - `lib/features/reader/widgets/text_display.dart`
+  - `lib/features/reader/widgets/term_form.dart`
+  - `lib/features/reader/widgets/term_list_display.dart`
+  - `lib/features/reader/widgets/parent_search.dart`
+  - And all other files using `Theme.of(context).colorScheme` custom properties
+- `lib/features/reader/widgets/audio_player.dart` should be updated to use `context.audioPlayerBackground`, `context.audioPlayerIcon`, `context.audioBookmark`, `context.audioError`, `context.audioErrorBackground` instead of hardcoded colors (these access `context.appColorScheme.audio.*` properties internally)
+
 ---
 
-## **v1 Testing Checklist**
-
-### **Theme Switching**
-- [ ] Switch from dark to light theme
-- [ ] Switch from light to dark theme
-- [ ] Verify theme selection persists after app restart
-- [ ] Verify backward compatibility (existing users default to dark)
-
-### **Dark Theme Verification**
-- [ ] All text colors readable on backgrounds
-- [ ] Status colors display correctly
-- [ ] Book cards display correctly
-- [ ] Audio player colors appropriate
-- [ ] Success/error/warning colors visible
-- [ ] Tooltips readable
-- [ ] Modals readable
-- [ ] Drawer/appropriate colors
-- [ ] All semantic colors visible
-
-### **Light Theme Verification**
-- [ ] All text colors readable on backgrounds (not too harsh)
-- [ ] Status colors visible but not overwhelming (correct opacity)
-- [ ] Book cards display correctly
-- [ ] Audio player colors appropriate
-- [ ] Success/error/warning colors visible
-- [ ] Tooltips readable
-- [ ] Modals readable
-- [ ] Drawer/appropriate colors
-- [ ] All semantic colors visible
-- [ ] Reading experience comfortable (soft colors, not blinding)
-
-### **Accent Colors**
-- [ ] Accent colors work independently in dark mode
-- [ ] Accent colors work independently in light mode
-- [ ] Changing accent colors doesn't affect theme mode
-- [ ] Changing theme mode doesn't affect accent colors
-
-### **UI Elements**
-- [ ] Settings screen displays current theme correctly
-- [ ] Theme selector screen shows both theme options
-- [ ] Radio buttons display correct selection state
-- [ ] Switching themes updates immediately
-- [ ] Navigation works smoothly
-
-### **All Screens**
-- [ ] Home screen looks good in both themes
-- [ ] Books screen looks good in both themes
-- [ ] Book details dialog looks good
-- [ ] Reader screen looks good
-- [ ] Sentence reader looks good
-- [ ] Term form looks good
-- [ ] Parent search looks good
-- [ ] Sentence translation looks good
-- [ ] Dictionary view looks good
-- [ ] Audio player looks good
-- [ ] Settings screen looks good
-
-### **Edge Cases**
-- [ ] Long text in light theme doesn't cause eye strain
-- [ ] Status colors with opacity work correctly
-- [ ] Transparent status (98) displays correctly
-- [ ] Disabled state colors work in both themes
-- [ ] Error states are visible in both themes
-
----
 
 ## **v1 Implementation Order**
 
-1. Create `theme_definitions.dart` (enums + AppThemeColorScheme class)
-2. Create `theme_presets.dart` with darkThemePreset and lightThemePreset
-3. Add `AppThemeColorExtension` class to `app_theme.dart`
-4. Update `app_theme.dart` methods to use preset values
-5. Update `settings.dart` model with ThemeType field
-6. Update `settings_provider.dart` to save/load theme type
-7. Update `theme_extensions.dart` to use AppThemeColorExtension
-8. Create `theme_selector_screen.dart` (simple selector, no previews)
-9. Update `settings_screen.dart` to add Theme section
-10. Update `app.dart` to apply theme mode based on selection
-11. Test thoroughly
+1. ✅ Create `theme_definitions.dart` with grouped color classes (TextColors, BackgroundColors, SemanticColors, StatusColors, BorderColors, AudioColors, **ErrorColors**, **Material3ColorScheme**) and AppThemeColorScheme
+2. ✅ Create `theme_presets.dart` with darkThemePreset and lightThemePreset using grouped structure, including **error** and **material3** classes with values matching current app exactly
+3. ⏳ Add `AppThemeColorExtension` class to `app_theme.dart` with lerp support for grouped properties (including new ErrorColors and Material3ColorScheme)
+4. ⏳ Update `app_theme.dart` lightTheme() and darkTheme() methods to use preset values via grouped properties, **including button themes**
+5. ⏳ Update `settings.dart` model with ThemeType field
+6. ⏳ Update `settings_provider.dart` to save/load theme type
+7. ⏳ Update `theme_extensions.dart` - add import for `theme_presets.dart`, DELETE `AppColorSchemeExtension`, DELETE `CustomThemeColorsExtension`, ADD `BuildContextExtension` with convenience methods that delegate to grouped properties, **including error and m3* accessors**
+8. ⏳ Create `theme_selector_screen.dart` (simple selector, no previews)
+9. ⏳ Update `settings_screen.dart` to add Theme section
+10. ⏳ Update `app.dart` to apply theme mode based on selection
+11. **CRITICAL**: Update ALL 17 files listed in "Files Requiring Manual Updates" section to use new color extensions
+12. Test thoroughly - verify both dark and light themes work correctly in all screens, ensuring **all current colors are preserved**
 
 ---
 
-## **Notes for v2**
-- Custom theme editor will reuse `AppThemeColorScheme`
-- Add `ThemeType.custom` enum value
-- Theme preview widgets in theme selector (show samples of text, colors, status badges)
-- Status mode toggles (background/text) will be added
-- JSON serialization will be needed for custom themes
-- Color contrast validation optional
-- More preset themes (Sepia, High Contrast) can be added
+## **Complete AppColors to Preset Mapping Reference**
+
+This table shows exactly where each `AppColors.*` constant maps to in the new preset structure:
+
+| AppColors Constant | Light Preset Path | Dark Preset Path |
+|---------------------|-------------------|------------------|
+| `primary` | material3.primary (0xFF6750A4) | material3.primary (0xFF6750A4) |
+| `onPrimary` | text.onPrimary (0xFFFFFFFF) | text.onPrimary (0xFFFFFFFF) |
+| `primaryContainer` | material3.primaryContainer (0xFFEADDFF) | material3.primaryContainer (0xFF4F378B) |
+| `onPrimaryContainer` | text.onPrimaryContainer (0xFF21005D) | text.onPrimaryContainer (0xFFEADDFF) |
+| `secondary` | material3.secondary (0xFF625B71) | material3.secondary (0xFF625B71) |
+| `onSecondary` | text.onSecondary (0xFFFFFFFF) | text.onSecondary (0xFFFFFFFF) |
+| `secondaryContainer` | material3.secondaryContainer (0xFFE8DEF8) | material3.secondaryContainer (0xFF4A4458) |
+| `onSecondaryContainer` | text.onSecondaryContainer (0xFF1D192B) | text.onSecondaryContainer (0xFFE8DEF8) |
+| `tertiary` | material3.tertiary (0xFF7D5260) | material3.tertiary (0xFF633B48) |
+| `onTertiary` | text.onTertiary (0xFFFFFFFF) | text.onTertiary (0xFFFFD8E4) |
+| `tertiaryContainer` | material3.tertiaryContainer (0xFFFFD8E4) | material3.tertiaryContainer (0xFF8E7266) |
+| `onTertiaryContainer` | text.onTertiaryContainer (0xFF31111D) | text.onTertiaryContainer (0xFFFFD8E4) |
+| `surface` | background.surface (0xFFFFFBFE) | background.surface (0xFF1E1E1E) |
+| `onSurface` | text.primary (0xFF1C1B1F) | text.primary (0xFFE6E1E5) |
+| `surfaceVariant` | background.surfaceVariant (0xFFE7E0EC) | background.surfaceVariant (0xFF2A2A2A) |
+| `onSurfaceVariant` | text.secondary (0xFF49454F) | text.secondary (0xFFCAC4D0) |
+| `background` | background.background (0xFFFFFBFE) | background.background (0xFF48484a) |
+| `onBackground` | text.primary (0xFF1C1B1F) | text.primary (0xFFE6E1E5) |
+| `outline` | border.outline (0xFF79747E) | border.outline (0xFF938F99) |
+| `outlineVariant` | border.outlineVariant (0xFFCAC4D0) | border.outlineVariant (0xFF49454F) |
+| `success` | semantic.success (0xFF419252) | semantic.success (0xFF419252) |
+| `onSuccess` | semantic.onSuccess (0xFFFFFFFF) | semantic.onSuccess (0xFFFFFFFF) |
+| `warning` | semantic.warning (0xFFBA8050) | semantic.warning (0xFFBA8050) |
+| `onWarning` | semantic.onWarning (0xFFFFFFFF) | semantic.onWarning (0xFFFFFFFF) |
+| `error` | error.error (0xFFBA1A1A) | error.error (0xFFFFB4AB) |
+| `onError` | error.onError (0xFFFFFFFF) | error.onError (0xFF690005) |
+| `info` | semantic.info (0xFF8095FF) | semantic.info (0xFF8095FF) |
+| `onInfo` | semantic.onInfo (0xFFFFFFFF) | semantic.onInfo (0xFFFFFFFF) |
+| `connected` | semantic.connected (0xFF419252) | semantic.connected (0xFF419252) |
+| `disconnected` | semantic.disconnected (0xFFBA1A1A) | semantic.disconnected (0xFFBA1A1A) |
+| `aiProvider` | semantic.aiProvider (0xFF6750A4) | semantic.aiProvider (0xFF6750A4) |
+| `localProvider` | semantic.localProvider (0xFF1976D2) | semantic.localProvider (0xFF1976D2) |
+| `textPrimary` | text.primary (0xFF1C1B1F) | text.primary (0xFFE6E1E5) |
+| `textSecondary` | text.secondary (0xFF49454F) | text.secondary (0xFFCAC4D0) |
+| `textDisabled` | text.disabled (0xFF938F99) | text.disabled (0xFF938F99) |
+| `accentLabel` | CustomThemeColors (separate) | CustomThemeColors (separate) |
+| `accentButton` | CustomThemeColors (separate) | CustomThemeColors (separate) |
+
+**Note:** `accentLabel` and `accentButton` remain in `CustomThemeColors` as user-customizable accent colors, separate from the preset theme colors.

@@ -1,5 +1,6 @@
 # Theme System Expansion - v2 Plan
 
+
 ## **Objective**
 Add comprehensive custom theme editor allowing users to customize all colors in the application, with live previews and intuitive organization.
 
@@ -7,7 +8,7 @@ Add comprehensive custom theme editor allowing users to customize all colors in 
 - ✅ Full custom theme editor with all color categories
 - ✅ Color picker with presets and custom hex input
 - ✅ Live preview panel showing all color usages
-- ✅ Status color mode toggles (background vs text)
+- ✅ Status color mode toggles (background vs text) - **StatusMode enum deferred from v1**
 - ✅ Reset functionality (full theme, individual sections, individual colors)
 - ✅ Custom theme persistence
 - ✅ Copy from Dark/Light presets
@@ -75,6 +76,22 @@ class ThemeSettings {
       statusModes: statusModes ?? this.statusModes,
     );
   }
+
+  // Add helper method to copy with statusModes only
+  ThemeSettings copyWithStatusModes(Map<int, StatusMode> newStatusModes) {
+    return copyWith(statusModes: newStatusModes);
+  }
+  }) {
+    return ThemeSettings(
+      themeType: themeType ?? this.themeType,
+      accentLabelColor: accentLabelColor ?? this.accentLabelColor,
+      accentButtonColor: accentButtonColor ?? this.accentButtonColor,
+      customAccentLabelColor: customAccentLabelColor ?? this.customAccentLabelColor,
+      customAccentButtonColor: customAccentButtonColor ?? this.customAccentButtonColor,
+      customColorScheme: customColorScheme ?? this.customColorScheme,
+      statusModes: statusModes ?? this.statusModes,
+    );
+  }
   
   @override
   bool operator ==(Object other) {
@@ -125,6 +142,12 @@ class ThemeSerialization {
       'textHeadline': _colorToJson(scheme.textHeadline),
       'textOnPrimary': _colorToJson(scheme.textOnPrimary),
       'textOnSecondary': _colorToJson(scheme.textOnSecondary),
+      'onPrimary': _colorToJson(scheme.onPrimary),
+      'onPrimaryContainer': _colorToJson(scheme.onPrimaryContainer),
+      'onSecondary': _colorToJson(scheme.onSecondary),
+      'onSecondaryContainer': _colorToJson(scheme.onSecondaryContainer),
+      'onTertiary': _colorToJson(scheme.onTertiary),
+      'onTertiaryContainer': _colorToJson(scheme.onTertiaryContainer),
       'background': _colorToJson(scheme.background),
       'surface': _colorToJson(scheme.surface),
       'surfaceVariant': _colorToJson(scheme.surfaceVariant),
@@ -175,6 +198,12 @@ class ThemeSerialization {
         textHeadline: _jsonToColor(json['textHeadline']),
         textOnPrimary: _jsonToColor(json['textOnPrimary']),
         textOnSecondary: _jsonToColor(json['textOnSecondary']),
+        onPrimary: _jsonToColor(json['onPrimary']),
+        onPrimaryContainer: _jsonToColor(json['onPrimaryContainer']),
+        onSecondary: _jsonToColor(json['onSecondary']),
+        onSecondaryContainer: _jsonToColor(json['onSecondaryContainer']),
+        onTertiary: _jsonToColor(json['onTertiary']),
+        onTertiaryContainer: _jsonToColor(json['onTertiaryContainer']),
         background: _jsonToColor(json['background']),
         surface: _jsonToColor(json['surface']),
         surfaceVariant: _jsonToColor(json['surfaceVariant']),
@@ -1202,6 +1231,11 @@ extension AppColorSchemeExtension on ColorScheme {
 4. `lib/shared/theme/app_theme.dart` - Use custom theme when available
 5. `lib/shared/theme/theme_extensions.dart` - Status mode awareness
 
+### **Updates from v1 Deferred to v2**
+1. `StatusMode` enum - Moved from v1 definitions, now used in custom theme editor
+2. Theme preview widgets in theme selector - Added as live preview panel in v2
+3. `ThemeType.custom` enum value - Added to enable custom theme selection
+
 ---
 
 ## **v2 Testing Checklist**
@@ -1295,7 +1329,18 @@ extension AppColorSchemeExtension on ColorScheme {
 
 ## **Future Enhancements (Beyond v2)**
 
-1. **More Preset Themes**
+**Deferred from v1:**
+1. **Theme Preview Widgets in Theme Selector**
+   - Show samples of text, colors, status badges in theme selector
+   - Visual preview of Dark/Light themes before selecting
+   - Currently v1 has simple RadioListTile selection only
+
+2. **StatusMode Enum**
+   - Added to v1 definitions but not used until v2
+   - Enables toggling between background highlight vs text color for status colors
+   - Status 0 defaults to text mode, others default to background mode
+
+3. **More Preset Themes**
    - Sepia theme for classic reading experience
    - High contrast theme for accessibility
    - Blue light filter theme for night reading

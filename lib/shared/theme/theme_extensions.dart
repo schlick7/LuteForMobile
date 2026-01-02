@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'colors.dart';
-import 'status_colors.dart';
+import 'theme_definitions.dart';
+import 'theme_presets.dart';
 import 'app_theme.dart';
 
-extension CustomThemeColorsExtension on BuildContext {
+extension BuildContextExtension on BuildContext {
   CustomThemeColors get customColors {
     final extension = Theme.of(this).extension<CustomThemeExtension>();
     return extension?.colors ??
@@ -12,77 +12,103 @@ extension CustomThemeColorsExtension on BuildContext {
           accentButtonColor: Color(0xFF6750A4),
         );
   }
-}
 
-extension AppColorSchemeExtension on ColorScheme {
-  // Status colors
-  Color get status1 => AppStatusColors.status1;
-  Color get status2 => AppStatusColors.status2;
-  Color get status3 => AppStatusColors.status3;
-  Color get status4 => AppStatusColors.status4;
-  Color get status5 => AppStatusColors.status5;
-  Color get status98 => AppStatusColors.status98;
-  Color get status99 => AppStatusColors.status99;
-  Color get status0 => AppStatusColors.status0;
+  AppThemeColorScheme get appColorScheme {
+    final extension = Theme.of(this).extension<AppThemeColorExtension>();
+    return extension?.colorScheme ?? darkThemePreset;
+  }
 
-  // Semantic colors
-  Color get success => AppColors.success;
-  Color get warning => AppColors.warning;
-  Color get error => AppColors.error;
-  Color get info => AppColors.info;
+  Color get audioPlayerBackground => appColorScheme.audio.background;
+  Color get audioPlayerIcon => appColorScheme.audio.icon;
 
-  // Connection status colors
-  Color get connected => AppColors.connected;
-  Color get disconnected => AppColors.disconnected;
+  Color get status1 => appColorScheme.status.status1;
+  Color get status2 => appColorScheme.status.status2;
+  Color get status3 => appColorScheme.status.status3;
+  Color get status4 => appColorScheme.status.status4;
+  Color get status5 => appColorScheme.status.status5;
+  Color get status98 => appColorScheme.status.status98;
+  Color get status99 => appColorScheme.status.status99;
+  Color get status0 => appColorScheme.status.status0;
 
-  // Provider badge colors
-  Color get aiProvider => AppColors.aiProvider;
-  Color get localProvider => AppColors.localProvider;
+  Color get success => appColorScheme.semantic.success;
+  Color get warning => appColorScheme.semantic.warning;
+  Color get error => appColorScheme.error.error;
+  Color get info => appColorScheme.semantic.info;
 
-  // Get status color by status string for text styling
+  Color get connected => appColorScheme.semantic.connected;
+  Color get disconnected => appColorScheme.semantic.disconnected;
+
+  Color get aiProvider => appColorScheme.semantic.aiProvider;
+  Color get localProvider => appColorScheme.semantic.localProvider;
+
+  Color get m3Primary => appColorScheme.material3.primary;
+  Color get m3Secondary => appColorScheme.material3.secondary;
+  Color get m3Tertiary => appColorScheme.material3.tertiary;
+  Color get m3PrimaryContainer => appColorScheme.material3.primaryContainer;
+  Color get m3SecondaryContainer => appColorScheme.material3.secondaryContainer;
+  Color get m3TertiaryContainer => appColorScheme.material3.tertiaryContainer;
+
   Color getStatusTextColor(String status) {
     switch (status) {
       case '1':
       case '2':
       case '3':
       case '4':
-        return AppStatusColors
-            .highlightedText; // Light text on colored backgrounds
+        return appColorScheme.status.highlightedText;
       case '5':
       case '98':
       case '99':
-        return onSurface; // Default text color for these statuses
+        return appColorScheme.text.primary;
       case '0':
       default:
-        return AppStatusColors.status0; // Light blue for unknown
+        return appColorScheme.status.status0;
     }
   }
 
-  // Get status background color for highlighting
   Color? getStatusBackgroundColor(String status) {
     switch (status) {
       case '1':
+        return appColorScheme.status.status1;
       case '2':
+        return appColorScheme.status.status2;
       case '3':
+        return appColorScheme.status.status3;
       case '4':
+        return appColorScheme.status.status4;
       case '5':
-        return AppStatusColors.getStatusColor(status);
+        return appColorScheme.status.status5;
       case '0':
       case '98':
       case '99':
       default:
-        return null; // No background for these statuses
+        return null;
     }
   }
 
-  // Get status color by status string (legacy method)
   Color getStatusColor(String status) {
-    return AppStatusColors.getStatusColor(status);
+    switch (status) {
+      case '1':
+        return appColorScheme.status.status1;
+      case '2':
+        return appColorScheme.status.status2;
+      case '3':
+        return appColorScheme.status.status3;
+      case '4':
+        return appColorScheme.status.status4;
+      case '5':
+        return appColorScheme.status.status5;
+      case '98':
+        return appColorScheme.status.status98;
+      case '99':
+        return appColorScheme.status.status99;
+      case '0':
+      default:
+        return appColorScheme.status.status0;
+    }
   }
 
-  // Get status color with opacity (legacy method)
   Color getStatusColorWithOpacity(String status, {double opacity = 0.1}) {
-    return AppStatusColors.getStatusColorWithOpacity(status, opacity: opacity);
+    return getStatusColor(status).withValues(alpha: opacity);
   }
 }
 
