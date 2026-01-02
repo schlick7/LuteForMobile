@@ -18,11 +18,7 @@ lazy loading?
 
 Remove the ability to close the term form with a downward swipe when the dictionary is open. It is making it so i can't scroll the webviews. 
 
-The term form autosave on tapping away (out of the form) doesn't trigger the tooltip refresh in the termslist like it does when i press the save button or the close button
-
 make swipe to turn page work on the termslist as well. 
-
-The back button on the sentencereader on sentence 1 needs to navigate back 1 page in the book
 
 can the server handle async requests for tooltips?
 
@@ -30,15 +26,15 @@ termlist chips don't handle multiple parents well
 
 Add light Theme
 
-upside down ? are at the start (and ? at the end as well) of spanish question words but the sentence parse doesn't pull them in if its at a new sentence and it stays on the last sentence. Anyway to do this inteligently from the language settings that we have access to or would be need to hard code this in the parser. 
-
-I only what the 'show known terms' toggle to show up when we are in the sentence reader not when we're in the Readerscreen
+upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parse doesn't pull them in if its at a new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
 Add back the add parent button to the termform with dictionary open and parents toggled on. 
 
 Add more custom theme options
   - have custom open up a popup?
     - include examples for everything if possible. 
+    
+status should have a toggle for showing the selected color as the background highlight(like 1-5) or the text color (like status0) 
 
 Future:
 - add a toggle to book details to select between Server parsing or App parsing
