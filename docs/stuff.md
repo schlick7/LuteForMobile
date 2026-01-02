@@ -33,6 +33,8 @@ Add back the add parent button to the termform with dictionary open and parents 
 Add more custom theme options
   - have custom open up a popup?
     - include examples for everything if possible. 
+  - have a create theme button
+    - have a create from selector where we pick one of the already existing themes or selected none. This will auto fill in all of the options with those colors. This is so users can have a custom them with minor changes or a custom theme with major changes -- best of both worlds. 
     
 status should have a toggle for showing the selected color as the background highlight(like 1-5) or the text color (like status0) 
 
