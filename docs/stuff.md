@@ -24,6 +24,8 @@ can the server handle async requests for tooltips?
 
 termlist chips don't handle multiple parents well
 
+On the termform add longpress on the termlabel to open a popup and have a textbox to edit the term text. popup has save and cancel buttons. Make sure this can not be saved without pressing save. We can not allow the user to change the number of characters in the term. The ONLY thing allow is to change the capitalization of the letters, thats it. Save should only be allowed if it follows all of these rules! 'This to this' and 'this to THIs' is ok. 'this to thi' or 'this to thiss' is NOT ok
+
 ##
 we need to make sure that the dictionary/webview has vertical scrolling/swiping abilities. 
  We NEED vertical scrolling to work in the webview. 
