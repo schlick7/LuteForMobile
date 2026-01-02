@@ -90,117 +90,37 @@ Add Light Mode theme alongside existing Dark Mode, with theme selector UI. Accen
 
 ---
 
-## **Phase 4: Create Theme Selector UI** ⏳ PENDING
+## **Phase 4: Create Theme Selector UI** ✅ COMPLETED
 
-### **7. Create: `lib/features/settings/widgets/theme_selector_screen.dart`**
+### **7. Create: `lib/features/settings/widgets/theme_selector_screen.dart`** ✅
 
-**UI Structure:**
-```dart
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
-import 'package:lute_for_mobile/shared/theme/theme_definitions.dart';
+**Implementation Summary:**
+- Created `ThemeSelectorScreen` widget with visual theme preview cards
+- Uses existing `ThemeType` enum (dark/light) for compatibility with current system
+- Integrates with `ThemeSettingsProvider` for theme persistence
+- Features gradient color previews showing primary, secondary, and background colors
+- Implements clean navigation back to settings after selection
 
-class ThemeSelectorScreen extends ConsumerWidget {
-  const ThemeSelectorScreen({super.key});
+**Key Features:**
+- Visual theme cards with live color previews
+- Selection indicators (checkmark icons)
+- Smooth navigation and state management
+- Responsive design with proper Material 3 styling
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(settingsProvider);
+### **8. Modify: `lib/features/settings/widgets/settings_screen.dart`** ✅
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Theme Mode'),
-      ),
-      body: ListView(
-        children: [
-          _buildThemeCard(
-            context,
-            ThemeType.dark,
-            'Dark Mode',
-            'Default dark theme for comfortable reading',
-            settings.themeSettings.themeType == ThemeType.dark,
-            ref,
-          ),
-          _buildThemeCard(
-            context,
-            ThemeType.light,
-            'Light Mode',
-            'Light theme for daytime reading',
-            settings.themeSettings.themeType == ThemeType.light,
-            ref,
-          ),
-        ],
-      ),
-    );
-  }
+**Implementation Summary:**
+- Added theme section with current theme display and navigation button
+- Integrated theme selector navigation with proper imports
+- Added helper methods for theme labels and descriptions
+- Maintains consistency with existing UI patterns
+- Fixed theme extension usage for semantic colors (success, connected)
 
-  Widget _buildThemeCard(
-    BuildContext context,
-    ThemeType themeType,
-    String title,
-    String description,
-    bool isSelected,
-    WidgetRef ref,
-  ) {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: RadioListTile<ThemeType>(
-        value: themeType,
-        groupValue: ref.read(settingsProvider).themeSettings.themeType,
-        onChanged: (value) async {
-          if (value != null) {
-            await ref.read(settingsProvider.notifier).updateThemeType(value);
-          }
-        },
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Text(description),
-        selected: isSelected,
-        activeColor: Theme.of(context).colorScheme.primary,
-      ),
-    );
-  }
-}
-```
-
-### **8. Modify: `lib/features/settings/widgets/settings_screen.dart`**
-
-**Changes:**
-- Add "Theme" section before "Accent Colors" section:
-  ```dart
-  _buildSection(
-    context,
-    Icons.palette,
-    'Theme',
-    children: [
-      ListTile(
-        leading: Icon(Icons.brightness_4),
-        title: Text('Theme Mode'),
-        subtitle: Text(_getThemeLabel(settings.themeSettings.themeType)),
-        trailing: Icon(Icons.chevron_right),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ThemeSelectorScreen()),
-          );
-        },
-      ),
-    ],
-  ),
-  ```
-
-- Add helper method:
-  ```dart
-  String _getThemeLabel(ThemeType type) {
-    switch (type) {
-      case ThemeType.dark: return 'Dark Mode';
-      case ThemeType.light: return 'Light Mode';
-    }
-  }
-  ```
+**Changes Made:**
+- Added import for `ThemeSelectorScreen` and theme definitions
+- Added theme card showing current selection with "tune" button for navigation
+- Implemented `_getThemeLabel()` and `_getThemeDescription()` helper methods
+- Updated color references to use theme extensions for semantic colors
 
 ---
 
