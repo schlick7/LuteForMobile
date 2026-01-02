@@ -24,17 +24,19 @@ can the server handle async requests for tooltips?
 
 termlist chips don't handle multiple parents well
 
-Add light Theme
+## The keyboard on mobile covers up the text box on the termform! can we make the term form "float" so it can get push upwards on the screen so it always stays above the keyboard?  
 
 upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parse doesn't pull them in if its at a new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
 Add back the add parent button to the termform with dictionary open and parents toggled on. 
 
+Add light Theme
+
 Add more custom theme options
   - have custom open up a popup?
     - include examples for everything if possible. 
   - have a create theme button
-    - have a create from selector where we pick one of the already existing themes or selected none. This will auto fill in all of the options with those colors. This is so users can have a custom them with minor changes or a custom theme with major changes -- best of both worlds. 
+    - have a create from selector where we pick one of the already existing themes or select none. This will auto fill in all of the options with those colors. This is so users can have a custom theme with minor changes or a custom theme with major changes -- best of both worlds. 
     
 status should have a toggle for showing the selected color as the background highlight(like 1-5) or the text color (like status0) 
 
