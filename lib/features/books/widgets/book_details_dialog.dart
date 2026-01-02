@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../shared/theme/status_colors.dart';
+import '../../../shared/theme/theme_extensions.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 import '../providers/books_provider.dart';
@@ -333,7 +333,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                 decoration: BoxDecoration(
                   color: isIgnored
                       ? Colors.transparent
-                      : AppStatusColors.getStatusColor(statusNum.toString()),
+                      : context.getStatusColor(statusNum.toString()),
                   borderRadius: BorderRadius.circular(2),
                   border: Border.all(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -356,7 +356,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  AppStatusColors.getStatusLabel(statusNum),
+                  _getStatusLabel(statusNum),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -420,5 +420,28 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
       ),
     );
     return result ?? false;
+  }
+
+  String _getStatusLabel(int status) {
+    switch (status) {
+      case 0:
+        return 'Unknown (0)';
+      case 1:
+        return 'Learning (1)';
+      case 2:
+        return 'Learning (2)';
+      case 3:
+        return 'Learning (3)';
+      case 4:
+        return 'Learning (4)';
+      case 5:
+        return 'Learning (5)';
+      case 98:
+        return 'Ignored (98)';
+      case 99:
+        return 'Known (99)';
+      default:
+        return 'Unknown';
+    }
   }
 }

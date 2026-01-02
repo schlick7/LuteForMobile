@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../shared/theme/colors.dart';
-import '../../../shared/theme/status_colors.dart';
+import '../../../shared/theme/theme_extensions.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 
@@ -35,11 +34,7 @@ class BookCard extends ConsumerWidget {
               Row(
                 children: [
                   if (book.isCompleted)
-                    Icon(
-                      Icons.check_circle,
-                      size: 20,
-                      color: AppColors.success,
-                    ),
+                    Icon(Icons.check_circle, size: 20, color: context.success),
                   if (book.isCompleted) const SizedBox(width: 8),
                   if (book.hasAudio)
                     Icon(
@@ -178,14 +173,14 @@ class BookCard extends ConsumerWidget {
 
     double currentLeft = 0.0;
     final statusColors = [
-      AppStatusColors.status0,
-      AppStatusColors.status1,
-      AppStatusColors.status2,
-      AppStatusColors.status3,
-      AppStatusColors.status4,
-      AppStatusColors.status5,
-      AppStatusColors.status98,
-      AppStatusColors.status99,
+      context.status0,
+      context.status1,
+      context.status2,
+      context.status3,
+      context.status4,
+      context.status5,
+      context.status98,
+      context.status99,
     ];
 
     final borderSide = BorderSide(

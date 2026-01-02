@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'colors.dart';
 import '../../features/settings/models/settings.dart';
 import 'theme_definitions.dart';
 import 'theme_presets.dart';
@@ -474,7 +473,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: themeSettings.accentButtonColor,
-          side: const BorderSide(color: AppColors.outline),
+          side: const BorderSide(color: Color(0xFF79747E)),
         ),
       ),
       cardTheme: CardThemeData(
