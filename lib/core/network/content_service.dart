@@ -30,7 +30,7 @@ class ContentService {
     final pageTextResponse = await _getPageHtml(bookId, pageNum, mode);
     final pageTextHtml = pageTextResponse.data ?? '';
 
-    final pageMetadataResponse = await _apiService.getBookPageMetadata(
+    final pageMetadataResponse = await _apiService.getBookPageStructure(
       bookId,
       pageNum,
     );
@@ -57,7 +57,7 @@ class ContentService {
   ) async {
     switch (mode) {
       case ContentMode.reading:
-        return await _apiService.getBookPage(bookId, pageNum);
+        return await _apiService.loadBookPageForReading(bookId, pageNum);
       case ContentMode.peeking:
         return await _apiService.peekBookPage(bookId, pageNum);
       case ContentMode.refresh:
