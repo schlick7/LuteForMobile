@@ -29,490 +29,68 @@ Add Light Mode theme alongside existing Dark Mode, with theme selector UI. Accen
 - **AppThemeColorScheme** class: composition of all above color classes
 
 
-> **Note for Phase 2:** All classes include copyWith(), ==, and hashCode methods for theme manipulation and comparison.
-
 #### 2. `lib/shared/theme/theme_presets.dart` ✅
 - **darkThemePreset**: Complete dark theme colors (matching existing Lute theme) - includes all values from current `darkTheme()` in app_theme.dart
 - **lightThemePreset**: Complete light theme colors (matching current `lightTheme()` in app_theme.dart with AppColors values)
 
 
-## **Phase 2: Update Theme System**
+## **Phase 2: Update Theme System** ✅ COMPLETED
 
-### **3. Modify: `lib/shared/theme/app_theme.dart`**
+### **3. Modify: `lib/shared/theme/app_theme.dart`** ✅
 
 **Changes:**
 - Import `theme_definitions.dart` and `theme_presets.dart`
-- Add `AppThemeColorExtension` class at top of file (see below)
-- Update `lightTheme()` to use `lightThemePreset` values instead of `AppColors` constants:
-  ```dart
-  static ThemeData lightTheme(ThemeSettings themeSettings) {
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.light,
-      colorScheme: ColorScheme.light(
-        primary: themeSettings.accentButtonColor,
-        onPrimary: lightThemePreset.text.onPrimary,
-        primaryContainer: lightThemePreset.material3.primaryContainer,
-        onPrimaryContainer: lightThemePreset.text.onPrimaryContainer,
-        secondary: lightThemePreset.material3.secondary,
-        onSecondary: lightThemePreset.text.onSecondary,
-        secondaryContainer: lightThemePreset.material3.secondaryContainer,
-        onSecondaryContainer: lightThemePreset.text.onSecondaryContainer,
-        tertiary: lightThemePreset.material3.tertiary,
-        onTertiary: lightThemePreset.text.onTertiary,
-        tertiaryContainer: lightThemePreset.material3.tertiaryContainer,
-        onTertiaryContainer: lightThemePreset.text.onTertiaryContainer,
-        surface: lightThemePreset.background.surface,
-        onSurface: lightThemePreset.text.primary,
-        surfaceContainerHighest: lightThemePreset.background.surfaceContainerHighest,
-        onSurfaceVariant: lightThemePreset.text.secondary,
-        outline: lightThemePreset.border.outline,
-        outlineVariant: lightThemePreset.border.outlineVariant,
-        error: lightThemePreset.error.error,
-        onError: lightThemePreset.error.onError,
-      ),
-      textTheme: TextTheme(
-        displayLarge: TextStyle(fontSize: 57, fontWeight: FontWeight.w400, color: lightThemePreset.text.primary),
-        displayMedium: TextStyle(fontSize: 45, fontWeight: FontWeight.w400, color: lightThemePreset.text.primary),
-        displaySmall: TextStyle(fontSize: 36, fontWeight: FontWeight.w400, color: lightThemePreset.text.primary),
-        headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, color: lightThemePreset.text.headline),
-        headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.w400, color: lightThemePreset.text.headline),
-        headlineSmall: TextStyle(fontSize: 24, fontWeight: FontWeight.w400, color: lightThemePreset.text.headline),
-        titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w500, color: lightThemePreset.text.primary),
-        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: lightThemePreset.text.primary),
-        titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: lightThemePreset.text.primary),
-        bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: lightThemePreset.text.primary),
-        bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: lightThemePreset.text.primary),
-        bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: lightThemePreset.text.secondary),
-        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: lightThemePreset.text.primary),
-        labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: lightThemePreset.text.secondary),
-        labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: lightThemePreset.text.secondary),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: themeSettings.accentButtonColor,
-          foregroundColor: lightThemePreset.text.onPrimary,
-          elevation: 1,
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: themeSettings.accentButtonColor,
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: themeSettings.accentButtonColor,
-          side: const BorderSide(color: AppColors.outline),
-        ),
-      ),
-      cardTheme: CardThemeData(
-        color: lightThemePreset.background.surface,
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      extensions: [
-        AppThemeColorExtension(colorScheme: lightThemePreset),
-        CustomThemeExtension(colors: CustomThemeColors(
-          accentLabelColor: themeSettings.accentLabelColor,
-          accentButtonColor: themeSettings.accentButtonColor,
-        )),
-      ],
-    );
-  }
-  ```
-- Update `darkTheme()` to use `darkThemePreset` values:
-  ```dart
-  static ThemeData darkTheme(ThemeSettings themeSettings) {
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      colorScheme: ColorScheme.dark(
-        primary: themeSettings.accentButtonColor,
-        onPrimary: darkThemePreset.text.onPrimary,
-        primaryContainer: darkThemePreset.material3.primaryContainer,
-        onPrimaryContainer: darkThemePreset.text.onPrimaryContainer,
-        secondary: darkThemePreset.material3.secondary,
-        onSecondary: darkThemePreset.text.onSecondary,
-        secondaryContainer: darkThemePreset.material3.secondaryContainer,
-        onSecondaryContainer: darkThemePreset.text.onSecondaryContainer,
-        tertiary: darkThemePreset.material3.tertiary,
-        onTertiary: darkThemePreset.text.onTertiary,
-        tertiaryContainer: darkThemePreset.material3.tertiaryContainer,
-        onTertiaryContainer: darkThemePreset.text.onTertiaryContainer,
-        surface: darkThemePreset.background.background,
-        onSurface: darkThemePreset.text.primary,
-        surfaceContainerHighest: darkThemePreset.background.surfaceContainerHighest,
-        onSurfaceVariant: darkThemePreset.text.secondary,
-        outline: darkThemePreset.border.outline,
-        outlineVariant: darkThemePreset.border.outlineVariant,
-        error: darkThemePreset.error.error,
-        onError: darkThemePreset.error.onError,
-      ),
-      textTheme: TextTheme(
-        displayLarge: TextStyle(fontSize: 57, fontWeight: FontWeight.w400, color: darkThemePreset.text.primary),
-        displayMedium: TextStyle(fontSize: 45, fontWeight: FontWeight.w400, color: darkThemePreset.text.primary),
-        displaySmall: TextStyle(fontSize: 36, fontWeight: FontWeight.w400, color: darkThemePreset.text.primary),
-        headlineLarge: TextStyle(fontSize: 32, fontWeight: FontWeight.w400, color: darkThemePreset.text.headline),
-        headlineMedium: TextStyle(fontSize: 28, fontWeight: FontWeight.w400, color: darkThemePreset.text.headline),
-        headlineSmall: TextStyle(fontSize: 24, fontWeight: FontWeight.w400, color: darkThemePreset.text.headline),
-        titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w500, color: darkThemePreset.text.primary),
-        titleMedium: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: darkThemePreset.text.primary),
-        titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: darkThemePreset.text.primary),
-        bodyLarge: TextStyle(fontSize: 16, fontWeight: FontWeight.w400, color: darkThemePreset.text.primary),
-        bodyMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w400, color: darkThemePreset.text.primary),
-        bodySmall: TextStyle(fontSize: 12, fontWeight: FontWeight.w400, color: darkThemePreset.text.secondary),
-        labelLarge: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: darkThemePreset.text.primary),
-        labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: darkThemePreset.text.secondary),
-        labelSmall: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: darkThemePreset.text.secondary),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: themeSettings.accentButtonColor,
-          foregroundColor: darkThemePreset.text.onPrimary,
-          elevation: 1,
-        ),
-      ),
-      textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: themeSettings.accentButtonColor,
-        ),
-      ),
-      outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: themeSettings.accentButtonColor,
-          side: const BorderSide(color: Color(0xFF938F99)),
-        ),
-      ),
-      cardTheme: CardThemeData(
-        color: darkThemePreset.background.surface,
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      extensions: [
-        AppThemeColorExtension(colorScheme: darkThemePreset),
-        CustomThemeExtension(colors: CustomThemeColors(
-          accentLabelColor: themeSettings.accentLabelColor,
-          accentButtonColor: themeSettings.accentButtonColor,
-        )),
-      ],
-    );
-  }
-  ```
-- Add `AppThemeColorExtension` class at top of file:
-  ```dart
-  class AppThemeColorExtension extends ThemeExtension<AppThemeColorExtension> {
-    final AppThemeColorScheme colorScheme;
+- Add `AppThemeColorExtension` class at top of file
+- Update `lightTheme()` to use `lightThemePreset` values instead of `AppColors` constants
+- Update `darkTheme()` to use `darkThemePreset` values
+- Add `AppThemeColorExtension` class at top of file with copyWith() and lerp() methods
 
-    const AppThemeColorExtension({required this.colorScheme});
-
-    @override
-    AppThemeColorExtension copyWith({AppThemeColorScheme? colorScheme}) {
-      return AppThemeColorExtension(colorScheme: colorScheme ?? this.colorScheme);
-    }
-
-    @override
-    AppThemeColorExtension lerp(covariant ThemeExtension<AppThemeColorExtension>? other, double t) {
-      if (other is! AppThemeColorExtension) return this;
-      return AppThemeColorExtension(
-        colorScheme: AppThemeColorScheme(
-          text: TextColors(
-            primary: Color.lerp(colorScheme.text.primary, other.colorScheme.text.primary, t)!,
-            secondary: Color.lerp(colorScheme.text.secondary, other.colorScheme.text.secondary, t)!,
-            disabled: Color.lerp(colorScheme.text.disabled, other.colorScheme.text.disabled, t)!,
-            headline: Color.lerp(colorScheme.text.headline, other.colorScheme.text.headline, t)!,
-            onPrimary: Color.lerp(colorScheme.text.onPrimary, other.colorScheme.text.onPrimary, t)!,
-            onSecondary: Color.lerp(colorScheme.text.onSecondary, other.colorScheme.text.onSecondary, t)!,
-            onPrimaryContainer: Color.lerp(colorScheme.text.onPrimaryContainer, other.colorScheme.text.onPrimaryContainer, t)!,
-            onSecondaryContainer: Color.lerp(colorScheme.text.onSecondaryContainer, other.colorScheme.text.onSecondaryContainer, t)!,
-            onTertiary: Color.lerp(colorScheme.text.onTertiary, other.colorScheme.text.onTertiary, t)!,
-            onTertiaryContainer: Color.lerp(colorScheme.text.onTertiaryContainer, other.colorScheme.text.onTertiaryContainer, t)!,
-          ),
-          background: BackgroundColors(
-            background: Color.lerp(colorScheme.background.background, other.colorScheme.background.background, t)!,
-            surface: Color.lerp(colorScheme.background.surface, other.colorScheme.background.surface, t)!,
-            surfaceVariant: Color.lerp(colorScheme.background.surfaceVariant, other.colorScheme.background.surfaceVariant, t)!,
-            surfaceContainerHighest: Color.lerp(colorScheme.background.surfaceContainerHighest, other.colorScheme.background.surfaceContainerHighest, t)!,
-          ),
-          semantic: SemanticColors(
-            success: Color.lerp(colorScheme.semantic.success, other.colorScheme.semantic.success, t)!,
-            onSuccess: Color.lerp(colorScheme.semantic.onSuccess, other.colorScheme.semantic.onSuccess, t)!,
-            warning: Color.lerp(colorScheme.semantic.warning, other.colorScheme.semantic.warning, t)!,
-            onWarning: Color.lerp(colorScheme.semantic.onWarning, other.colorScheme.semantic.onWarning, t)!,
-            error: Color.lerp(colorScheme.semantic.error, other.colorScheme.semantic.error, t)!,
-            onError: Color.lerp(colorScheme.semantic.onError, other.colorScheme.semantic.onError, t)!,
-            info: Color.lerp(colorScheme.semantic.info, other.colorScheme.semantic.info, t)!,
-            onInfo: Color.lerp(colorScheme.semantic.onInfo, other.colorScheme.semantic.onInfo, t)!,
-            connected: Color.lerp(colorScheme.semantic.connected, other.colorScheme.semantic.connected, t)!,
-            disconnected: Color.lerp(colorScheme.semantic.disconnected, other.colorScheme.semantic.disconnected, t)!,
-            aiProvider: Color.lerp(colorScheme.semantic.aiProvider, other.colorScheme.semantic.aiProvider, t)!,
-            localProvider: Color.lerp(colorScheme.semantic.localProvider, other.colorScheme.semantic.localProvider, t)!,
-          ),
-          status: StatusColors(
-            status0: Color.lerp(colorScheme.status.status0, other.colorScheme.status.status0, t)!,
-            status1: Color.lerp(colorScheme.status.status1, other.colorScheme.status.status1, t)!,
-            status2: Color.lerp(colorScheme.status.status2, other.colorScheme.status.status2, t)!,
-            status3: Color.lerp(colorScheme.status.status3, other.colorScheme.status.status3, t)!,
-            status4: Color.lerp(colorScheme.status.status4, other.colorScheme.status.status4, t)!,
-            status5: Color.lerp(colorScheme.status.status5, other.colorScheme.status.status5, t)!,
-            status98: Color.lerp(colorScheme.status.status98, other.colorScheme.status.status98, t)!,
-            status99: Color.lerp(colorScheme.status.status99, other.colorScheme.status.status99, t)!,
-            highlightedText: Color.lerp(colorScheme.status.highlightedText, other.colorScheme.status.highlightedText, t)!,
-          ),
-          border: BorderColors(
-            outline: Color.lerp(colorScheme.border.outline, other.colorScheme.border.outline, t)!,
-            outlineVariant: Color.lerp(colorScheme.border.outlineVariant, other.colorScheme.border.outlineVariant, t)!,
-            dividerColor: Color.lerp(colorScheme.border.dividerColor, other.colorScheme.border.dividerColor, t)!,
-          ),
-          audio: AudioColors(
-            background: Color.lerp(colorScheme.audio.background, other.colorScheme.audio.background, t)!,
-            icon: Color.lerp(colorScheme.audio.icon, other.colorScheme.audio.icon, t)!,
-            bookmark: Color.lerp(colorScheme.audio.bookmark, other.colorScheme.audio.bookmark, t)!,
-            error: Color.lerp(colorScheme.audio.error, other.colorScheme.audio.error, t)!,
-            errorBackground: Color.lerp(colorScheme.audio.errorBackground, other.colorScheme.audio.errorBackground, t)!,
-          ),
-          error: ErrorColors(
-            error: Color.lerp(colorScheme.error.error, other.colorScheme.error.error, t)!,
-            onError: Color.lerp(colorScheme.error.onError, other.colorScheme.error.onError, t)!,
-          ),
-          material3: Material3ColorScheme(
-            primary: Color.lerp(colorScheme.material3.primary, other.colorScheme.material3.primary, t)!,
-            secondary: Color.lerp(colorScheme.material3.secondary, other.colorScheme.material3.secondary, t)!,
-            tertiary: Color.lerp(colorScheme.material3.tertiary, other.colorScheme.material3.tertiary, t)!,
-            primaryContainer: Color.lerp(colorScheme.material3.primaryContainer, other.colorScheme.material3.primaryContainer, t)!,
-            secondaryContainer: Color.lerp(colorScheme.material3.secondaryContainer, other.colorScheme.material3.secondaryContainer, t)!,
-            tertiaryContainer: Color.lerp(colorScheme.material3.tertiaryContainer, other.colorScheme.material3.tertiaryContainer, t)!,
-          ),
-        ),
-      );
-    }
-  }
-  ```
-
-### **4. Modify: `lib/shared/theme/theme_extensions.dart`**
+### **4. Modify: `lib/shared/theme/theme_extensions.dart`** ✅
 
 **Changes:**
 - Add import: `import 'theme_presets.dart';`
 - **DELETE** `AppColorSchemeExtension` on `ColorScheme` (deprecated)
 - **DELETE** `CustomThemeColorsExtension` - use `ThemeExtension<CustomThemeExtension>` directly
 - **KEEP** `AppTextThemeExtension` unchanged
-- Add a new `BuildContext` extension to support accessing theme extensions:
-  ```dart
-  extension BuildContextExtension on BuildContext {
-    // Access to AppThemeColorScheme from anywhere in the widget tree
-    AppThemeColorScheme get appColorScheme {
-      final extension = Theme.of(this).extension<AppThemeColorExtension>();
-      return extension?.colorScheme ?? darkThemePreset;
-    }
-
-    // Audio player colors
-    Color get audioPlayerBackground => appColorScheme.audio.background;
-    Color get audioPlayerIcon => appColorScheme.audio.icon;
-
-    // Status colors
-    Color get status1 => appColorScheme.status.status1;
-    Color get status2 => appColorScheme.status.status2;
-    Color get status3 => appColorScheme.status.status3;
-    Color get status4 => appColorScheme.status.status4;
-    Color get status5 => appColorScheme.status.status5;
-    Color get status98 => appColorScheme.status.status98;
-    Color get status99 => appColorScheme.status.status99;
-    Color get status0 => appColorScheme.status.status0;
-
-    // Semantic colors
-    Color get success => appColorScheme.semantic.success;
-    Color get warning => appColorScheme.semantic.warning;
-    Color get error => appColorScheme.error.error;  // Uses error.error, not semantic.error
-    Color get info => appColorScheme.semantic.info;
-
-    // Connection status colors
-    Color get connected => appColorScheme.semantic.connected;
-    Color get disconnected => appColorScheme.semantic.disconnected;
-
-    // Provider badge colors
-    Color get aiProvider => appColorScheme.semantic.aiProvider;
-    Color get localProvider => appColorScheme.semantic.localProvider;
-
-    // Material 3 ColorScheme accessors
-    Color get m3Primary => appColorScheme.material3.primary;
-    Color get m3Secondary => appColorScheme.material3.secondary;
-    Color get m3Tertiary => appColorScheme.material3.tertiary;
-    Color get m3PrimaryContainer => appColorScheme.material3.primaryContainer;
-    Color get m3SecondaryContainer => appColorScheme.material3.secondaryContainer;
-    Color get m3TertiaryContainer => appColorScheme.material3.tertiaryContainer;
-
-    // Get status color by status string for text styling
-    Color getStatusTextColor(String status) {
-      switch (status) {
-        case '1':
-        case '2':
-        case '3':
-        case '4':
-          return appColorScheme.status.highlightedText;
-        case '5':
-        case '98':
-        case '99':
-          return appColorScheme.text.primary;
-        case '0':
-        default:
-          return appColorScheme.status.status0;
-      }
-    }
-
-    // Get status background color for highlighting
-    Color? getStatusBackgroundColor(String status) {
-      switch (status) {
-        case '1':
-          return appColorScheme.status.status1;
-        case '2':
-          return appColorScheme.status.status2;
-        case '3':
-          return appColorScheme.status.status3;
-        case '4':
-          return appColorScheme.status.status4;
-        case '5':
-          return appColorScheme.status.status5;
-        case '0':
-        case '98':
-        case '99':
-        default:
-          return null;
-      }
-    }
-
-    // Get status color by status string (legacy method)
-    Color getStatusColor(String status) {
-      switch (status) {
-        case '1':
-          return appColorScheme.status.status1;
-        case '2':
-          return appColorScheme.status.status2;
-        case '3':
-          return appColorScheme.status.status3;
-        case '4':
-          return appColorScheme.status.status4;
-        case '5':
-          return appColorScheme.status.status5;
-        case '98':
-          return appColorScheme.status.status98;
-        case '99':
-          return appColorScheme.status.status99;
-        case '0':
-        default:
-          return appColorScheme.status.status0;
-      }
-    }
-
-    // Get status color with opacity (legacy method)
-    Color getStatusColorWithOpacity(String status, {double opacity = 0.1}) {
-      return getStatusColor(status).withValues(alpha: opacity);
-    }
-  }
-  ```
-- Remove `CustomThemeColorsExtension` (no longer needed, can access via `context.customColors` directly)
-- Keep `AppTextThemeExtension` unchanged
+- Add a new `BuildContext` extension to support accessing theme extensions with convenience methods:
+  - `appColorScheme`
+  - `audioPlayerBackground`, `audioPlayerIcon`
+  - `status1-5,98,99,0`
+  - `success`, `warning`, `error`, `info`
+  - `connected`, `disconnected`
+  - `aiProvider`, `localProvider`
+  - `m3Primary`, `m3Secondary`, `m3Tertiary`, `m3PrimaryContainer`, `m3SecondaryContainer`, `m3TertiaryContainer`
+  - `getStatusTextColor()`
+  - `getStatusBackgroundColor()`
+  - `getStatusColor()`
+  - `getStatusColorWithOpacity()`
 
 ---
 
-## **Phase 3: Update Settings Model & Provider**
+## **Phase 3: Update Settings Model & Provider** ✅ COMPLETED
 
 ### **5. Modify: `lib/features/settings/models/settings.dart`**
 
 **Changes to `ThemeSettings` class:**
-- Add `final ThemeType themeType = ThemeType.dark;`
-- Add `ThemeType?` to `copyWith()` method
-- Add `themeType` to `operator ==`
-- Add `themeType.hashCode` to `hashCode`
-- Keep `accentLabelColor` and `accentButtonColor` unchanged
-
-```dart
-class ThemeSettings {
-  final ThemeType themeType;
-  final Color accentLabelColor;
-  final Color accentButtonColor;
-  final Color? customAccentLabelColor;
-  final Color? customAccentButtonColor;
-
-  const ThemeSettings({
-    this.themeType = ThemeType.dark,
-    this.accentLabelColor = const Color(0xFF1976D2),
-    this.accentButtonColor = const Color(0xFF6750A4),
-    this.customAccentLabelColor,
-    this.customAccentButtonColor,
-  });
-
-  ThemeSettings copyWith({
-    ThemeType? themeType,
-    Color? accentLabelColor,
-    Color? accentButtonColor,
-    Color? customAccentLabelColor,
-    Color? customAccentButtonColor,
-  }) {
-    return ThemeSettings(
-      themeType: themeType ?? this.themeType,
-      accentLabelColor: accentLabelColor ?? this.accentLabelColor,
-      accentButtonColor: accentButtonColor ?? this.accentButtonColor,
-      customAccentLabelColor: customAccentLabelColor ?? this.customAccentLabelColor,
-      customAccentButtonColor: customAccentButtonColor ?? this.customAccentButtonColor,
-    );
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is ThemeSettings &&
-        other.themeType == themeType &&
-        other.accentLabelColor.hashCode == accentLabelColor.hashCode &&
-        other.accentButtonColor.hashCode == accentButtonColor.hashCode &&
-        other.customAccentLabelColor?.hashCode == customAccentLabelColor?.hashCode &&
-        other.customAccentButtonColor?.hashCode == customAccentButtonColor?.hashCode;
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    themeType,
-    accentLabelColor.hashCode,
-    accentButtonColor.hashCode,
-    customAccentLabelColor?.hashCode,
-    customAccentButtonColor?.hashCode,
-  );
-}
-```
+- Added `final ThemeType themeType = ThemeType.dark;`
+- Updated `copyWith()` to include `ThemeType? themeType`
+- Updated `operator ==` to include `themeType` and `customAccent*` colors
+- Updated `hashCode` to include all new fields
+- Kept `accentLabelColor` and `accentButtonColor` unchanged
 
 ### **6. Modify: `lib/features/settings/providers/settings_provider.dart`**
 
 **Changes:**
-- Add storage key: `static const String _themeTypeKey = 'themeType';`
-- In `loadSettings()`, load theme type from storage:
-  ```dart
-  final themeTypeValue = prefs.getString(_themeTypeKey);
-  final themeType = themeTypeValue != null
-      ? ThemeType.values.firstWhere(
-          (e) => e.name == themeTypeValue,
-          orElse: () => ThemeType.dark, // Fallback for corrupted values
-        )
-      : ThemeType.dark;
-  ```
-- In `saveSettings()`, save theme type:
-  ```dart
-  await prefs.setString(_themeTypeKey, settings.themeSettings.themeType.name);
-  ```
-- Add new method:
-  ```dart
-  Future<void> updateThemeType(ThemeType themeType) async {
-    final updated = settings.copyWith(
-      themeSettings: settings.themeSettings.copyWith(themeType: themeType),
-    );
-    state = AsyncValue.data(updated);
-    await _saveSettings(updated);
-  }
-  ```
-- Ensure backward compatibility: default to `ThemeType.dark` if not set or corrupted
-- Update `resetSettings()` method to remove `_themeTypeKey` when resetting all settings
+- Added storage key: `static const String _themeTypeKey = 'themeType';`
+- Added import: `import '../../../shared/theme/theme_definitions.dart';`
+- Updated `_loadSettingsInBackground()` to load theme type with fallback
+- Added `updateThemeType(ThemeType themeType)` method
+- Added `resetThemeSettings()` method
+- Backward compatibility: defaults to `ThemeType.dark` if not set or corrupted
 
 ---
 
-## **Phase 4: Create Theme Selector UI**
+## **Phase 4: Create Theme Selector UI** ⏳ PENDING
 
 ### **7. Create: `lib/features/settings/widgets/theme_selector_screen.dart`**
 
@@ -626,7 +204,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
 
 ---
 
-## **Phase 5: Apply Theme in App**
+## **Phase 5: Apply Theme in App** ⏳ PENDING
 
 ### **9. Modify: `lib/app.dart`**
 
@@ -780,12 +358,12 @@ class ThemeSelectorScreen extends ConsumerWidget {
 3. `lib/features/settings/widgets/theme_selector_screen.dart` - UI ⏳
 
 ### **Modified Files (6)**
-1. `lib/shared/theme/app_theme.dart` - Theme application (includes button themes, corrected ColorScheme mappings)
-2. `lib/shared/theme/theme_extensions.dart` - Theme extensions (DELETE ColorScheme extensions, ADD BuildContext extensions with error and m3* accessors)
-3. `lib/features/settings/models/settings.dart` - ThemeSettings model
-4. `lib/features/settings/providers/settings_provider.dart` - Settings state
-5. `lib/features/settings/widgets/settings_screen.dart` - Settings UI
-6. `lib/app.dart` - App theme mode
+1. `lib/shared/theme/app_theme.dart` - Theme application (includes button themes, corrected ColorScheme mappings) ✅
+2. `lib/shared/theme/theme_extensions.dart` - Theme extensions (DELETE ColorScheme extensions, ADD BuildContext extensions with error and m3* accessors) ✅
+3. `lib/features/settings/models/settings.dart` - ThemeSettings model ⏳
+4. `lib/features/settings/providers/settings_provider.dart` - Settings state ⏳
+5. `lib/features/settings/widgets/settings_screen.dart` - Settings UI ⏳
+6. `lib/app.dart` - App theme mode ⏳
 
 ### **Files to Delete After Phase 2 Complete (Post-Migration)**
 ⚠️ **DO NOT DELETE until ALL 17 files are migrated** to use new extensions:
@@ -971,11 +549,11 @@ class ThemeSelectorScreen extends ConsumerWidget {
 
 1. ✅ Create `theme_definitions.dart` with grouped color classes (TextColors, BackgroundColors, SemanticColors, StatusColors, BorderColors, AudioColors, **ErrorColors**, **Material3ColorScheme**) and AppThemeColorScheme
 2. ✅ Create `theme_presets.dart` with darkThemePreset and lightThemePreset using grouped structure, including **error** and **material3** classes with values matching current app exactly
-3. ⏳ Add `AppThemeColorExtension` class to `app_theme.dart` with lerp support for grouped properties (including new ErrorColors and Material3ColorScheme)
-4. ⏳ Update `app_theme.dart` lightTheme() and darkTheme() methods to use preset values via grouped properties, **including button themes**
+3. ✅ Add `AppThemeColorExtension` class to `app_theme.dart` with lerp support for grouped properties (including new ErrorColors and Material3ColorScheme)
+4. ✅ Update `app_theme.dart` lightTheme() and darkTheme() methods to use preset values via grouped properties, **including button themes**
 5. ⏳ Update `settings.dart` model with ThemeType field
 6. ⏳ Update `settings_provider.dart` to save/load theme type
-7. ⏳ Update `theme_extensions.dart` - add import for `theme_presets.dart`, DELETE `AppColorSchemeExtension`, DELETE `CustomThemeColorsExtension`, ADD `BuildContextExtension` with convenience methods that delegate to grouped properties, **including error and m3* accessors**
+7. ✅ Update `theme_extensions.dart` - add import for `theme_presets.dart`, DELETE `AppColorSchemeExtension`, DELETE `CustomThemeColorsExtension`, ADD `BuildContextExtension` with convenience methods that delegate to grouped properties, **including error and m3* accessors**
 8. ⏳ Create `theme_selector_screen.dart` (simple selector, no previews)
 9. ⏳ Update `settings_screen.dart` to add Theme section
 10. ⏳ Update `app.dart` to apply theme mode based on selection

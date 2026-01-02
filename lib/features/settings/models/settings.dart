@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lute_for_mobile/shared/theme/theme_definitions.dart';
 
 @immutable
 class Settings {
@@ -158,12 +159,14 @@ class Settings {
 
 @immutable
 class ThemeSettings {
+  final ThemeType themeType;
   final Color accentLabelColor;
   final Color accentButtonColor;
   final Color? customAccentLabelColor;
   final Color? customAccentButtonColor;
 
   const ThemeSettings({
+    this.themeType = ThemeType.dark,
     this.accentLabelColor = const Color(0xFF1976D2),
     this.accentButtonColor = const Color(0xFF6750A4),
     this.customAccentLabelColor,
@@ -171,12 +174,14 @@ class ThemeSettings {
   });
 
   ThemeSettings copyWith({
+    ThemeType? themeType,
     Color? accentLabelColor,
     Color? accentButtonColor,
     Color? customAccentLabelColor,
     Color? customAccentButtonColor,
   }) {
     return ThemeSettings(
+      themeType: themeType ?? this.themeType,
       accentLabelColor: accentLabelColor ?? this.accentLabelColor,
       accentButtonColor: accentButtonColor ?? this.accentButtonColor,
       customAccentLabelColor:
@@ -190,12 +195,23 @@ class ThemeSettings {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is ThemeSettings &&
+        other.themeType == themeType &&
         other.accentLabelColor.hashCode == accentLabelColor.hashCode &&
-        other.accentButtonColor.hashCode == accentButtonColor.hashCode;
+        other.accentButtonColor.hashCode == accentButtonColor.hashCode &&
+        other.customAccentLabelColor?.hashCode ==
+            customAccentLabelColor?.hashCode &&
+        other.customAccentButtonColor?.hashCode ==
+            customAccentButtonColor?.hashCode;
   }
 
   @override
-  int get hashCode => accentLabelColor.hashCode ^ accentButtonColor.hashCode;
+  int get hashCode => Object.hash(
+    themeType,
+    accentLabelColor.hashCode,
+    accentButtonColor.hashCode,
+    customAccentLabelColor?.hashCode,
+    customAccentButtonColor?.hashCode,
+  );
 
   static const ThemeSettings defaultSettings = ThemeSettings();
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
 import '../../../core/providers/initial_providers.dart';
+import '../../../shared/theme/theme_definitions.dart';
 
 typedef DrawerSettingsBuilder =
     Widget Function(BuildContext context, WidgetRef ref);
@@ -512,6 +513,7 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
   static const String _keyCustomAccentLabelColor = 'custom_accent_label_color';
   static const String _keyCustomAccentButtonColor =
       'custom_accent_button_color';
+  static const String _themeTypeKey = 'themeType';
   bool _isInitialized = false;
 
   @override
@@ -525,6 +527,13 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
 
   void _loadSettingsInBackground() async {
     final prefs = await SharedPreferences.getInstance();
+    final themeTypeValue = prefs.getString(_themeTypeKey);
+    final themeType = themeTypeValue != null
+        ? ThemeType.values.firstWhere(
+            (e) => e.name == themeTypeValue,
+            orElse: () => ThemeType.dark,
+          )
+        : ThemeType.dark;
     final accentLabelColorValue = prefs.getInt(_keyAccentLabelColor);
     final accentButtonColorValue = prefs.getInt(_keyAccentButtonColor);
     final customAccentLabelColorValue = prefs.getInt(
@@ -535,6 +544,7 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     );
 
     final loadedSettings = ThemeSettings(
+      themeType: themeType,
       accentLabelColor: accentLabelColorValue != null
           ? Color(accentLabelColorValue!)
           : ThemeSettings.defaultSettings.accentLabelColor,
@@ -592,6 +602,23 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     await prefs.setInt(_keyCustomAccentButtonColor, color.value);
     await prefs.setInt(_keyAccentButtonColor, color.value);
     print('DEBUG: Saved customAccentButtonColor.value = ${color.value}');
+  }
+
+  Future<void> updateThemeType(ThemeType themeType) async {
+    state = state.copyWith(themeType: themeType);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeTypeKey, themeType.name);
+  }
+
+  Future<void> resetThemeSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyAccentLabelColor);
+    await prefs.remove(_keyAccentButtonColor);
+    await prefs.remove(_keyCustomAccentLabelColor);
+    await prefs.remove(_keyCustomAccentButtonColor);
+    await prefs.remove(_themeTypeKey);
+
+    state = ThemeSettings.defaultSettings;
   }
 }
 

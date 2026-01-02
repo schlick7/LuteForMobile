@@ -44,6 +44,10 @@ Add back the add parent button to the termform with dictionary open and parents 
 
 Add light Theme
 
+Why are we showing(saving?!??) current bookid in the 'Current Settings' display
+
+Add a space between translation textbox newlines. 
+
 Add more custom theme options
   - have custom open up a popup?
     - include examples for everything if possible. 
