@@ -18,12 +18,28 @@ class ApiService {
 
   bool get isConfigured => _dio.options.baseUrl.isNotEmpty;
 
-  Future<Response<String>> getBookPage(int bookId, int pageNum) async {
+  /// Loads a book page for active reading session.
+  ///
+  /// This method fetches the HTML content for a specific page and starts
+  /// tracking the reading session by setting a start date. Use this when
+  /// the user begins reading a new page or navigates to another page.
+  ///
+  /// Parameters:
+  /// - [bookId]: The ID of the book to read from
+  /// - [pageNum]: The page number to load
+  ///
+  /// Returns: HTML response containing the parsed page content with
+  /// reading session tracking initialized
+  ///
+  /// See also:
+  /// - [getBookPageStructure] - to get full HTML page with metadata
+  /// - [peekBookPage] - to view a page without tracking
+  /// - [refreshBookPage] - to reload current page without changing start date
+  Future<Response<String>> loadBookPageForReading(
+    int bookId,
+    int pageNum,
+  ) async {
     return await _dio.get<String>('/read/start_reading/$bookId/$pageNum');
-  }
-
-  Future<Response<String>> getBookPageRead(int bookId, int pageNum) async {
-    return await _dio.get<String>('/read/$bookId/page/$pageNum');
   }
 
   Future<Response<String>> peekBookPage(int bookId, int pageNum) async {
@@ -211,8 +227,31 @@ class ApiService {
     return await _dio.get<String>('/book/table_stats/$bookId');
   }
 
-  Future<Response<String>> getBookPageMetadata(int bookId, int pageNum) async {
-    return await _dio.get<String>('/read/$bookId/page/$pageNum');
+  /// Gets full HTML page structure for a book page.
+  ///
+  /// This method fetches the complete HTML page including metadata
+  /// like title, page count, audio settings, and navigation elements.
+  /// The text content placeholder (`<div id="thetext">`) will be empty.
+  ///
+  /// Use this to extract metadata (title, page count, audio info).
+  /// Use [loadBookPageForReading] to get actual parsed text content.
+  ///
+  /// Parameters:
+  /// - [bookId]: The ID of the book
+  /// - [pageNum]: The page number (or leave out to get current page)
+  ///
+  /// Returns: Full HTML page structure with metadata elements
+  ///
+  /// See also:
+  /// - [loadBookPageForReading] - to get actual page text content
+  Future<Response<String>> getBookPageStructure(
+    int bookId, [
+    int? pageNum,
+  ]) async {
+    final path = pageNum != null
+        ? '/read/$bookId/page/$pageNum'
+        : '/read/$bookId';
+    return await _dio.get<String>(path);
   }
 
   Future<Response<String>> searchTerms(String text, int langId) async {
