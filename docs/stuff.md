@@ -12,8 +12,6 @@ lazy loading?
 
 ## Add page turn animation? - First attempt broke hard!
 
-add readme
-
 TTS options: On device, local-OpenAI endpoint, OpenAI, None
   - unique settings for each option
 AI options: local-OpenAI endpoint, OpenAI, None, others in the future.
@@ -50,7 +48,14 @@ Future:
 ## Build the web app first
 flutter build web
 
-## Create the zip
+## Add script
+cp setup_pwa.py build/web/
+
+## Fix permissions
 cd build/web
-7z a ../../lute-pwa.zip * -x!.last_build_id
-cd ../..
+sudo find build/web -type f -exec chmod 644 {} \;
+sudo find build/web -type d -exec chmod 755 {} \;
+sudo chown -R $USER:$USER build/web
+
+## Create the zip
+zip -r ../../LuteForMobilePWA.zip * -x "*.last_build_id"
