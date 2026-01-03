@@ -8,7 +8,7 @@
 
 lazy loading?
 
-Add page turn animation? - First attempt broke hard!
+## Add page turn animation? - First attempt broke hard!
 
 Fixed? the ONLY thing that we should do when we know the phone has woken from sleep (however it is we know that) is to it make 1 fetch to the sever for the books metadata to make sure that the servers current pagenum matchs the page that the reader is on. if they match to NOTHING. if they DON'T match than trigger a navigation to goto the page that the server is on
 
