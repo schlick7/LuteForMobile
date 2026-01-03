@@ -47,8 +47,11 @@ class _KokoroVoiceChipsState extends ConsumerState<KokoroVoiceChips> {
                 _VoiceChip(
                   voice: voices[i],
                   canAddVoice: canAddVoice,
-                  onEditWeight: () =>
-                      _showWeightDialog(context, ref, voices[i]),
+                  onWeightChanged: (weight) {
+                    ref
+                        .read(ttsSettingsProvider.notifier)
+                        .updateKokoroVoiceWeight(voices[i].voice, weight);
+                  },
                   onRemove: () {
                     ref
                         .read(ttsSettingsProvider.notifier)
@@ -98,48 +101,6 @@ class _KokoroVoiceChipsState extends ConsumerState<KokoroVoiceChips> {
       context: context,
       barrierDismissible: false,
       builder: (context) => const _VoiceSelectionDialog(),
-    );
-  }
-
-  void _showWeightDialog(
-    BuildContext context,
-    WidgetRef ref,
-    KokoroVoiceWeight voice,
-  ) {
-    final controller = TextEditingController(text: voice.weight.toString());
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Edit Weight for ${voice.voice}'),
-        content: TextField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Weight',
-            hintText: '1-10',
-            errorText: 'Weight must be between 1 and 10',
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              final weight = int.tryParse(controller.text);
-              if (weight != null && weight >= 1 && weight <= 10) {
-                ref
-                    .read(ttsSettingsProvider.notifier)
-                    .updateKokoroVoiceWeight(voice.voice, weight);
-                Navigator.of(context).pop();
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -255,28 +216,41 @@ class _VoiceSelectionDialogState extends ConsumerState<_VoiceSelectionDialog> {
 class _VoiceChip extends StatelessWidget {
   final KokoroVoiceWeight voice;
   final bool canAddVoice;
-  final VoidCallback onEditWeight;
+  final ValueChanged<int> onWeightChanged;
   final VoidCallback onRemove;
 
   const _VoiceChip({
     required this.voice,
     required this.canAddVoice,
-    required this.onEditWeight,
+    required this.onWeightChanged,
     required this.onRemove,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPress: onEditWeight,
-      child: Chip(
-        label: Text(
-          voice.weight > 1 ? '${voice.voice}(${voice.weight})' : voice.voice,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Chip(
+              label: Text(voice.voice),
+              avatar: const Icon(Icons.record_voice_over, size: 20),
+              deleteIcon: const Icon(Icons.close, size: 18),
+              onDeleted: onRemove,
+            ),
+          ],
         ),
-        deleteIcon: const Icon(Icons.close, size: 18),
-        onDeleted: onRemove,
-        avatar: const Icon(Icons.record_voice_over, size: 20),
-      ),
+        Slider(
+          value: voice.weight.toDouble(),
+          min: 1,
+          max: 10,
+          divisions: 9,
+          label: voice.weight.toString(),
+          onChanged: (value) => onWeightChanged(value.toInt()),
+        ),
+      ],
     );
   }
 }
