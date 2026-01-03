@@ -84,11 +84,11 @@ class TermListDisplay extends StatelessWidget {
     String? parentTranslation;
 
     if (tooltip != null) {
-      translation = tooltip.translation;
+      translation = tooltip.translation?.replaceAll('\n', ' ');
       if (tooltip.parents.isNotEmpty) {
         final parent = tooltip.parents.first;
         parentTerm = parent.term;
-        parentTranslation = parent.translation;
+        parentTranslation = parent.translation?.replaceAll('\n', ' ');
       }
     }
 

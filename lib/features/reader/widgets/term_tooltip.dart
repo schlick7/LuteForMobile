@@ -67,7 +67,7 @@ class TermTooltipClass {
                         fontStyle: FontStyle.italic,
                         color: Theme.of(
                           ctx,
-                        ).colorScheme.onSurface.withValues(alpha: 0.8),
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                       maxLines: 3,
                       overflow: TextOverflow.ellipsis,
