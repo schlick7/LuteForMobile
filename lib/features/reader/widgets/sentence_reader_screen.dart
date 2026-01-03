@@ -5,11 +5,13 @@ import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../providers/reader_provider.dart';
 import '../providers/sentence_reader_provider.dart';
+import '../providers/sentence_tts_provider.dart';
 import '../widgets/term_tooltip.dart';
 import '../widgets/term_form.dart';
 import '../widgets/sentence_translation.dart';
 import '../widgets/sentence_reader_display.dart';
 import '../widgets/term_list_display.dart';
+import '../widgets/sentence_tts_button.dart';
 import '../utils/sentence_parser.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../../../features/settings/providers/settings_provider.dart';
@@ -98,6 +100,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    ref.read(sentenceTTSProvider.notifier).stop();
     super.dispose();
   }
 
@@ -441,7 +444,19 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text('Terms', style: Theme.of(context).textTheme.titleLarge),
+            child: Row(
+              children: [
+                Text('Terms', style: Theme.of(context).textTheme.titleLarge),
+                const Spacer(),
+                if (currentSentence != null)
+                  SentenceTTSButton(
+                    text: currentSentence!.textItems
+                        .map((item) => item.text)
+                        .join(),
+                    sentenceId: currentSentence!.id,
+                  ),
+              ],
+            ),
           ),
           Expanded(
             child: TermListDisplay(

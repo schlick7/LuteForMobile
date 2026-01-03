@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/text_item.dart';
 import '../utils/sentence_parser.dart';
 import 'text_display.dart';
 import 'term_tooltip.dart';
 
-class SentenceReaderDisplay extends StatefulWidget {
+class SentenceReaderDisplay extends ConsumerStatefulWidget {
   final CustomSentence? sentence;
   final void Function(TextItem, Offset)? onTap;
   final void Function(TextItem)? onDoubleTap;
@@ -30,10 +31,11 @@ class SentenceReaderDisplay extends StatefulWidget {
   });
 
   @override
-  State<SentenceReaderDisplay> createState() => _SentenceReaderDisplayState();
+  ConsumerState<SentenceReaderDisplay> createState() =>
+      _SentenceReaderDisplayState();
 }
 
-class _SentenceReaderDisplayState extends State<SentenceReaderDisplay> {
+class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
   Timer? _doubleTapTimer;
   TextItem? _lastTappedItem;
   int _buildCount = 0;
@@ -42,6 +44,12 @@ class _SentenceReaderDisplayState extends State<SentenceReaderDisplay> {
   void initState() {
     super.initState();
     print('DEBUG: SentenceReaderDisplay initialized');
+  }
+
+  @override
+  void dispose() {
+    _doubleTapTimer?.cancel();
+    super.dispose();
   }
 
   void _handleTap(TextItem item, Offset tapPosition) {
@@ -65,12 +73,6 @@ class _SentenceReaderDisplayState extends State<SentenceReaderDisplay> {
         _lastTappedItem = null;
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _doubleTapTimer?.cancel();
-    super.dispose();
   }
 
   @override
