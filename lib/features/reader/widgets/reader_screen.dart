@@ -481,21 +481,22 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeInOut,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
           child: PopScope(
             canPop: true,
             onPopInvoked: (didPop) async {
               if (didPop && settings.autoSave) {
                 final updatedForm = _currentTermForm ?? termForm;
-                final success = await ref
-                    .read(readerProvider.notifier)
-                    .saveTerm(updatedForm);
-                if (!success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Failed to save term')),
-                  );
-                }
+                ref.read(readerProvider.notifier).saveTerm(updatedForm).then((
+                  success,
+                ) {
+                  if (!success && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to save term')),
+                    );
+                  }
+                });
               }
             },
             child: StatefulBuilder(
@@ -504,11 +505,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   key: const Key('termFormModal'),
                   direction: DismissDirection.down,
                   onDismissed: (_) {
-                    if (settings.autoSave) {
-                      ref
-                          .read(readerProvider.notifier)
-                          .saveTerm(_currentTermForm ?? termForm);
-                    }
                     Navigator.of(context).pop();
                   },
                   child: TermFormWidget(
@@ -589,18 +585,17 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-          duration: const Duration(milliseconds: 150),
-          curve: Curves.easeInOut,
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
           child: PopScope(
             canPop: true,
             onPopInvoked: (didPop) async {
               if (didPop && settings.autoSave) {
                 final updatedForm = _currentTermForm ?? termForm;
-                final success = await ref
-                    .read(readerProvider.notifier)
-                    .saveTerm(updatedForm);
-                if (success && mounted) {
-                  if (updatedForm.termId != null) {
+                ref.read(readerProvider.notifier).saveTerm(updatedForm).then((
+                  success,
+                ) {
+                  if (success && mounted && updatedForm.termId != null) {
                     ref
                         .read(readerProvider.notifier)
                         .updateTermStatus(
@@ -608,11 +603,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                           updatedForm.status,
                         );
                   }
-                } else if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Failed to save term')),
-                  );
-                }
+                });
               }
             },
             child: StatefulBuilder(
@@ -621,11 +612,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   key: const Key('parentTermFormModal'),
                   direction: DismissDirection.down,
                   onDismissed: (_) {
-                    if (settings.autoSave) {
-                      ref
-                          .read(readerProvider.notifier)
-                          .saveTerm(_currentTermForm ?? termForm);
-                    }
                     Navigator.of(context).pop();
                   },
                   child: TermFormWidget(
