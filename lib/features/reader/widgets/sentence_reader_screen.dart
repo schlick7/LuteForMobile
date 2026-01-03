@@ -548,26 +548,50 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     _tooltipsLoadInProgress = true;
 
     try {
+      final termsToFetch = termsNeedingTooltips
+          .where(
+            (term) =>
+                term.wordId != null && !_termTooltips.containsKey(term.wordId!),
+          )
+          .toList();
+
+      if (termsToFetch.isEmpty) {
+        print('DEBUG: All tooltips already cached');
+        return;
+      }
+
+      print(
+        'DEBUG: Concurrently fetching ${termsToFetch.length} tooltips for sentence ID: ${currentSentence.id}',
+      );
+
+      final futures = termsToFetch.map((term) async {
+        if (term.wordId == null) return null;
+        try {
+          final termTooltip = await ref
+              .read(readerProvider.notifier)
+              .fetchTermTooltip(term.wordId!);
+          return termTooltip;
+        } catch (e) {
+          print('DEBUG: Failed to fetch tooltip for wordId=${term.wordId}: $e');
+          return null;
+        }
+      }).toList();
+
+      final results = await Future.wait(futures, eagerError: false);
+
       final Map<int, TermTooltip> newTooltips = {};
-      for (final term in termsNeedingTooltips) {
-        if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
-          print(
-            'DEBUG: Fetching tooltip for wordId=${term.wordId}, term="${term.text}"',
-          );
-          try {
-            final termTooltip = await ref
-                .read(readerProvider.notifier)
-                .fetchTermTooltip(term.wordId!);
-            if (termTooltip != null) {
-              newTooltips[term.wordId!] = termTooltip;
-            }
-          } catch (e) {
-            print(
-              'DEBUG: Failed to fetch tooltip for wordId=${term.wordId}: $e',
-            );
-          }
+      for (int i = 0; i < results.length; i++) {
+        final tooltip = results[i];
+        final wordId = termsToFetch[i].wordId;
+        if (tooltip != null && wordId != null && tooltip.hasData) {
+          newTooltips[wordId!] = tooltip;
         }
       }
+
+      print(
+        'DEBUG: Successfully loaded ${newTooltips.length}/${termsToFetch.length} tooltips',
+      );
+
       if (mounted && newTooltips.isNotEmpty) {
         setState(() {
           _termTooltips.addAll(newTooltips);
@@ -649,28 +673,56 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       'DEBUG: Preloading tooltips for next sentence ID: ${nextSentence.id} (${termsNeedingTooltips.length} terms)',
     );
 
-    final Map<int, TermTooltip> newTooltips = {};
-    for (final term in termsNeedingTooltips) {
-      if (term.wordId != null && !_termTooltips.containsKey(term.wordId!)) {
-        if (!_canPreload()) {
-          print('DEBUG: Stopping preload - not visible');
-          return;
-        }
+    final termsToFetch = termsNeedingTooltips
+        .where(
+          (term) =>
+              term.wordId != null && !_termTooltips.containsKey(term.wordId!),
+        )
+        .toList();
 
-        try {
-          final termTooltip = await ref
-              .read(readerProvider.notifier)
-              .fetchTermTooltip(term.wordId!);
-          if (termTooltip != null) {
-            newTooltips[term.wordId!] = termTooltip;
-          }
-        } catch (e) {
-          print(
-            'DEBUG: Failed to preload tooltip for wordId=${term.wordId}: $e',
-          );
+    if (termsToFetch.isEmpty) {
+      print('DEBUG: All next sentence tooltips already cached');
+      return;
+    }
+
+    if (!_canPreload()) {
+      print('DEBUG: Stopping preload - not visible');
+      return;
+    }
+
+    print('DEBUG: Concurrently preloading ${termsToFetch.length} tooltips');
+
+    final futures = termsToFetch.map((term) async {
+      if (term.wordId == null) return null;
+      try {
+        if (!_canPreload()) {
+          print('DEBUG: Canceling preload - not visible');
+          return null;
         }
+        final termTooltip = await ref
+            .read(readerProvider.notifier)
+            .fetchTermTooltip(term.wordId!);
+        return termTooltip;
+      } catch (e) {
+        print('DEBUG: Failed to preload tooltip for wordId=${term.wordId}: $e');
+        return null;
+      }
+    }).toList();
+
+    final results = await Future.wait(futures, eagerError: false);
+
+    final Map<int, TermTooltip> newTooltips = {};
+    for (int i = 0; i < results.length; i++) {
+      final tooltip = results[i];
+      final wordId = termsToFetch[i].wordId;
+      if (tooltip != null && wordId != null && tooltip.hasData) {
+        newTooltips[wordId!] = tooltip;
       }
     }
+
+    print(
+      'DEBUG: Successfully preloaded ${newTooltips.length}/${termsToFetch.length} tooltips',
+    );
 
     if (mounted && _canPreload() && newTooltips.isNotEmpty) {
       setState(() {
