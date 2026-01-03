@@ -31,12 +31,29 @@ This PWA allows you to use Lute on your mobile device. The PWA must be served fr
 Download the PWA files from GitHub Releases:
 1. Go to: https://github.com/schlick7/LuteForMobile/releases
 2. Download the latest `lute-pwa.zip` file
-3. Extract the zip file to a folder (e.g., `~/lute-pwa/`)
+3. Extract the zip file to a folder:
+
+```bash
+# Extract the zip file
+unzip lute-pwa.zip -d lute-pwa/
+cd lute-pwa
+
+# OR using the automated setup script (recommended):
+python3 setup_pwa.py
+```
+
+The `setup_pwa.py` script will:
+- ✅ Auto-detect your Lute installation (pip/venv, Docker, or source)
+- ✅ Find the correct static directory
+- ✅ Copy all PWA files
+- ✅ Fix the base href automatically
+- ✅ Show you the URL to access the PWA
 
 **Alternative: Clone the repo:**
 ```bash
 git clone https://github.com/schlick7/LuteForMobile.git
-cd LuteForMobile/build/web
+cd LuteForMobile
+python3 setup_pwa.py
 ```
 
 ## Step 2: Choose Setup Method
