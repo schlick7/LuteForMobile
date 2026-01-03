@@ -405,10 +405,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildSettingRow('Server URL', settings.serverUrl),
-                    _buildSettingRow(
-                      'Current Book ID',
-                      settings.currentBookId?.toString() ?? 'null',
-                    ),
                   ],
                 ),
               ),
