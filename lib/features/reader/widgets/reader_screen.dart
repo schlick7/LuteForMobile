@@ -474,6 +474,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      transitionAnimationController: AnimationController(
+        duration: const Duration(milliseconds: 100),
+        vsync: Navigator.of(context),
+      ),
       builder: (context) {
         final repository = ref.read(readerRepositoryProvider);
         final settings = ref.read(termFormSettingsProvider);
@@ -501,12 +505,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             },
             child: StatefulBuilder(
               builder: (context, setModalState) {
-                return Dismissible(
-                  key: const Key('termFormModal'),
-                  direction: DismissDirection.down,
-                  onDismissed: (_) {
-                    Navigator.of(context).pop();
+                return GestureDetector(
+                  onVerticalDragEnd: (details) {
+                    if (details.primaryVelocity != null &&
+                        details.primaryVelocity! > 500) {
+                      Navigator.of(context).pop();
+                    }
                   },
+                  behavior: HitTestBehavior.translucent,
                   child: TermFormWidget(
                     termForm: _currentTermForm ?? termForm,
                     contentService: repository.contentService,
@@ -578,6 +584,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      transitionAnimationController: AnimationController(
+        duration: const Duration(milliseconds: 100),
+        vsync: Navigator.of(context),
+      ),
       builder: (context) {
         final repository = ref.read(readerRepositoryProvider);
         final settings = ref.read(termFormSettingsProvider);
@@ -608,12 +618,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             },
             child: StatefulBuilder(
               builder: (context, setModalState) {
-                return Dismissible(
-                  key: const Key('parentTermFormModal'),
-                  direction: DismissDirection.down,
-                  onDismissed: (_) {
-                    Navigator.of(context).pop();
+                return GestureDetector(
+                  onVerticalDragEnd: (details) {
+                    if (details.primaryVelocity != null &&
+                        details.primaryVelocity! > 500) {
+                      Navigator.of(context).pop();
+                    }
                   },
+                  behavior: HitTestBehavior.translucent,
                   child: TermFormWidget(
                     termForm: termForm,
                     contentService: repository.contentService,
@@ -678,6 +690,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      transitionAnimationController: AnimationController(
+        duration: const Duration(milliseconds: 100),
+        vsync: Navigator.of(context),
+      ),
       builder: (context) {
         return SentenceTranslationWidget(
           sentence: sentence,
