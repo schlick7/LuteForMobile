@@ -16,21 +16,17 @@ lazy loading?
 
 ## Add page turn animation? - First attempt broke hard!
 
-TTS options: On device, local-OpenAI endpoint, OpenAI, None
-  - unique settings for each option
-  - have selected voices show as chips 
-    - have mixing arrow show up on chips when there is more than 1 voice added. 
-      - instead of chips maybe just have 2 drop down selectors. Let the the 2nd one be set to known. Then have mixing get enabled with selectors when both drop downs have valid voices. 
-  - TTS button in termform
-  - TTS button for sentences in SentenceReader
-  - longpress Dictionary has AI tab that (ONLY) when opened fetches translation
+### TTS options: On device, local-OpenAI endpoint, OpenAI, None
+  - better on device Names?
   - Future: add a selector in language settings to apply voices based on languages. 
   - add test server button
-AI options: local-OpenAI endpoint, OpenAI, None, others in the future.
+  
+### AI options: local-OpenAI endpoint, OpenAI, None, others in the future.
   - support auto model fetching
   - unique settings for each option
   - "Using the sentence '[sentence]' Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations"
   - "Translate the following sentence from [language] to English: [sentence]"
+  - longpress Dictionary has AI tab that (ONLY) when opened fetches translation
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
