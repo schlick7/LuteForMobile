@@ -133,7 +133,31 @@ class HtmlParser {
     final paragraphs = document.querySelectorAll('p');
     String? translation;
     if (paragraphs.length > 1) {
-      translation = paragraphs[1].text.trim();
+      final paragraph = paragraphs[1];
+      print('HTML Parser: Paragraph innerHtml: "${paragraph.innerHtml}"');
+      print(
+        'HTML Parser: Paragraph contains <br>: ${paragraph.innerHtml.contains("<br>")}',
+      );
+      print(
+        'HTML Parser: Paragraph contains \\n: ${paragraph.innerHtml.contains("\\n")}',
+      );
+
+      // Replace <br> tags with \n before extracting text to preserve line breaks
+      String innerHtml = paragraph.innerHtml;
+      if (innerHtml.contains('<br') || innerHtml.contains('<BR')) {
+        innerHtml = innerHtml.replaceAll(
+          RegExp(r'<br\s*/?>', caseSensitive: false),
+          '\n',
+        );
+        print('HTML Parser: Replaced <br> tags with \\n');
+      }
+
+      // Create a temporary element to extract text with our preserved newlines
+      final tempElement = document.createElement('div');
+      tempElement.innerHtml = innerHtml;
+      translation = tempElement.text.trim();
+      print('HTML Parser: Translation after <br> handling: "$translation"');
+
       if (translation.isEmpty) {
         translation = null;
       }
@@ -190,7 +214,19 @@ class HtmlParser {
           '.translation, span.translation, .tr',
         );
         if (translationSpan != null) {
-          parentTranslation = translationSpan.text.trim();
+          // Replace <br> tags with \n before extracting text
+          String innerHtml = translationSpan.innerHtml;
+          if (innerHtml.contains('<br') || innerHtml.contains('<BR')) {
+            innerHtml = innerHtml.replaceAll(
+              RegExp(r'<br\s*/?>', caseSensitive: false),
+              '\n',
+            );
+          }
+
+          final tempElement = document.createElement('div');
+          tempElement.innerHtml = innerHtml;
+          parentTranslation = tempElement.text.trim();
+
           if (parentTranslation.isEmpty) {
             parentTranslation = null;
           }
@@ -225,7 +261,19 @@ class HtmlParser {
               final parentTerm = boldElement.text.trim();
               String? parentTranslation;
 
-              final pText = pElement.text.trim();
+              // Replace <br> tags with \n before extracting text
+              String innerHtml = pElement.innerHtml;
+              if (innerHtml.contains('<br') || innerHtml.contains('<BR')) {
+                innerHtml = innerHtml.replaceAll(
+                  RegExp(r'<br\s*/?>', caseSensitive: false),
+                  '\n',
+                );
+              }
+
+              final tempElement = document.createElement('div');
+              tempElement.innerHtml = innerHtml;
+              final pText = tempElement.text.trim();
+
               final brSplit = pText.split(parentTerm);
               if (brSplit.length > 1) {
                 parentTranslation = brSplit[1].trim();
