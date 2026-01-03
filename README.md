@@ -16,6 +16,7 @@ Native:
 - 📱 Android 
 
 PWA: (they should work, but may have issues)
+- 📱 Android (PWA)
 - 📱 iOS (PWA)
 - 🌐 Web (PWA)
 
