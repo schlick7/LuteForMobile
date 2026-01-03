@@ -458,7 +458,7 @@ lib/
 ---
 
 ## PART 1: Complete TTS Implementation
-**Status**: Next Phase
+**Status**: Part 1, Phase 3 (Next Phase)
 
 **Goal**: Implement all TTS functionality end-to-end including services, settings UI, and reader integration
 
@@ -908,17 +908,17 @@ lib/
 - [ ] Local-OpenAI TTS works with custom endpoint
 - [ ] All TTS services handle errors gracefully
 
-#### Part 1, Phase 2 (TTS Settings UI)
-- [ ] KokoroTTS voice chips UI displays correctly
-- [ ] KokoroTTS mixing arrows show when voices.length > 1
-- [ ] KokoroTTS **2-voice limit enforced**
-- [ ] KokoroTTS "Add Voice" button disabled when at limit
-- [ ] KokoroTTS error message shown when trying to add 3rd voice
-- [ ] KokoroTTS add/edit/remove voice functions work
-- [ ] Test Speech button works for all TTS providers
-- [ ] Loading states display correctly
-- [ ] Error handling displays user-friendly messages
-- [ ] Settings persist correctly
+#### Part 1, Phase 2 (TTS Settings UI) - COMPLETE ✅
+- [x] KokoroTTS voice chips UI displays correctly
+- [x] KokoroTTS mixing arrows show when voices.length > 1
+- [x] KokoroTTS **2-voice limit enforced** (cannot add 3rd voice)
+- [x] KokoroTTS "Add Voice" button disabled when at limit
+- [x] KokoroTTS error message shown when trying to add 3rd voice
+- [x] KokoroTTS add/edit/remove voice functions work
+- [x] Test Speech button works for all TTS providers
+- [x] Loading states display correctly
+- [x] Error handling displays user-friendly messages
+- [x] Settings persist correctly
 
 #### Part 1, Phase 3 (TTS Reader Integration)
 - [ ] TTS button in sentence reader works correctly

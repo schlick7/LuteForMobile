@@ -177,12 +177,12 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
     await prefs.setString(key, jsonEncode(json));
   }
 
-  Future<void> addKokoroVoice(String voice, int weight) async {
+  Future<bool> addKokoroVoice(String voice, int weight) async {
     final currentConfig = state.providerConfigs[TTSProvider.kokoroTTS]!;
     final currentVoices = currentConfig.kokoroVoices ?? [];
 
     if (currentVoices.length >= 2) {
-      return;
+      return false;
     }
 
     final newVoices = [
@@ -191,6 +191,7 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
     ];
     final newConfig = currentConfig.copyWith(kokoroVoices: newVoices);
     await updateKokoroConfig(newConfig);
+    return true;
   }
 
   Future<void> removeKokoroVoice(String voice) async {

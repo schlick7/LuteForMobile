@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lute_for_mobile/core/providers/tts_provider.dart';
 import 'package:lute_for_mobile/features/settings/models/tts_settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/tts_settings_provider.dart';
+import 'package:lute_for_mobile/features/settings/widgets/kokoro_voice_chips.dart';
 
 class TTSSettingsSection extends ConsumerWidget {
   const TTSSettingsSection({super.key});
@@ -147,6 +149,8 @@ class TTSSettingsSection extends ConsumerWidget {
                 .updateOnDeviceConfig(config!.copyWith(volume: value));
           },
         ),
+        const SizedBox(height: 16),
+        _TestSpeechButton(provider: TTSProvider.onDevice),
       ],
     );
   }
@@ -173,6 +177,10 @@ class TTSSettingsSection extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 16),
+        const Text('Voices', style: TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        const KokoroVoiceChips(),
+        const SizedBox(height: 16),
         Text('Speed: ${(config?.speed ?? 1.0).toStringAsFixed(2)}'),
         Slider(
           value: config?.speed ?? 1.0,
@@ -196,6 +204,8 @@ class TTSSettingsSection extends ConsumerWidget {
                 .updateKokoroConfig(config!.copyWith(useStreaming: value));
           },
         ),
+        const SizedBox(height: 16),
+        _TestSpeechButton(provider: TTSProvider.kokoroTTS),
       ],
     );
   }
@@ -249,6 +259,8 @@ class TTSSettingsSection extends ConsumerWidget {
                 .updateOpenAIConfig(config!.copyWith(openAIVoice: value));
           },
         ),
+        const SizedBox(height: 16),
+        _TestSpeechButton(provider: TTSProvider.openAI),
       ],
     );
   }
@@ -317,6 +329,67 @@ class TTSSettingsSection extends ConsumerWidget {
                   config!.copyWith(apiKey: value.isEmpty ? null : value),
                 );
           },
+        ),
+        const SizedBox(height: 16),
+        _TestSpeechButton(provider: TTSProvider.localOpenAI),
+      ],
+    );
+  }
+}
+
+class _TestSpeechButton extends ConsumerStatefulWidget {
+  final TTSProvider provider;
+
+  const _TestSpeechButton({required this.provider});
+
+  @override
+  ConsumerState<_TestSpeechButton> createState() => _TestSpeechButtonState();
+}
+
+class _TestSpeechButtonState extends ConsumerState<_TestSpeechButton> {
+  bool _isPlaying = false;
+  String? _error;
+
+  Future<void> _testSpeech() async {
+    setState(() {
+      _isPlaying = true;
+      _error = null;
+    });
+
+    try {
+      final service = ref.read(ttsServiceProvider);
+      await service.speak('Hello, this is a test of the text to speech.');
+      await Future.delayed(const Duration(seconds: 3));
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      setState(() => _isPlaying = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_error != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: Text(
+              _error!,
+              style: const TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ),
+        ElevatedButton.icon(
+          onPressed: _isPlaying ? null : _testSpeech,
+          icon: _isPlaying
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.volume_up, size: 18),
+          label: Text(_isPlaying ? 'Playing...' : 'Test Speech'),
         ),
       ],
     );
