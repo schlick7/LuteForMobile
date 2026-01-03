@@ -12,23 +12,15 @@ lazy loading?
 
 Add page turn animation? - First attempt broke hard!
 
-have termform 'show tags' toggled off by default and 'auto save on close' and 'Show parents in dictionary' toggled on. 
-
 can the server handle async requests for tooltips?
 
-termlist chips don't handle multiple parents well
+On the termform lets add longpress on the termlabel to open a popup and have a textbox to edit the term text. popup has save and cancel buttons. Make sure this can not be saved without pressing save. We can not allow the user to change the number of characters in the term. The ONLY thing allowed is to change the capitalization of the letters, thats it. Save should only be allowed if it follows all of these rules! 'This to this' and 'this to THIs' is ok. 'this to thi' or 'this to thiss' is NOT ok
 
-On the termform add longpress on the termlabel to open a popup and have a textbox to edit the term text. popup has save and cancel buttons. Make sure this can not be saved without pressing save. We can not allow the user to change the number of characters in the term. The ONLY thing allow is to change the capitalization of the letters, thats it. Save should only be allowed if it follows all of these rules! 'This to this' and 'this to THIs' is ok. 'this to thi' or 'this to thiss' is NOT ok
-
-Fixed? the ONLY thing that we should do when we know the phone has woken from sleep (however it is we know that) so it make 1 fetch to the sever for the books metadata to make sure that the servers current pagenum matchs the page that the reader is on. if they match to NOTHING. if they DON'T match than trigger a navigation to goto the page that the server is on
+Fixed? the ONLY thing that we should do when we know the phone has woken from sleep (however it is we know that) is to it make 1 fetch to the sever for the books metadata to make sure that the servers current pagenum matchs the page that the reader is on. if they match to NOTHING. if they DON'T match than trigger a navigation to goto the page that the server is on
 
 upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
-Add back the add parent button to the termform with dictionary open and parents toggled on. 
-
-Why are we showing(saving?!??) current bookid in the 'Current Settings' display
-
-Add a space between translation textbox newlines. The textbox allow pressing enter and having text on a second line. In our chips though we keep it all on one line so we need to insert a space so the translations are smashed together
+When we combine sentences with the sentence parser lets make sure theres at least 1 space between the sentences
 
 Add more custom theme options
   - have custom open up a popup?
@@ -39,6 +31,9 @@ Add more custom theme options
 Themes for colorblind?
     
 status should have a toggle for showing the selected color as the background highlight(like 1-5) or the text color (like status0) 
+
+
+
 
 Future:
 - add a toggle to book details to select between Server parsing or App parsing
