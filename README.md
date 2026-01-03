@@ -58,54 +58,51 @@ flutter pub get
 flutter build ios
 ```
 
-### Option 2: PWA
+### Option 2: PWA - limited web dictionary support (all are considered embedded)
 
-For quick access without installing, use the Progressive Web App.
+Supports all platforms (untested)
 
-#### Automated Setup (Recommended)
+#### Quick Setup (Download)
 
-```bash
-# Clone the repository
-git clone https://github.com/schlick7/LuteForMobile.git
-cd LuteForMobile
-
-# Run the setup script
-python3 setup_pwa.py
-```
-
-**Windows users:** Run with `python setup_pwa.py` instead. Requires Docker Desktop on Windows.
-
-Access the PWA at: `http://YOUR_LUTE_IP:5001/static/luteformobile/index.html`
-
-#### Manual Setup
-
-If you prefer to install manually, copy the PWA files to your Lute installation:
+1. Download the latest PWA zip from the [Releases page](https://github.com/schlick7/LuteForMobile/releases)
+2. Extract the zip file
+3. Copy the extracted files to your Lute installation:
 
 **Pip/Venv Installation:**
 ```
-{your_venv_path}/lib/python{version}/site-packages/lute/static/luteformobile/
+{your_venv_path}/lib/python{version}/site-packages/lute/static/
 ```
 
 **Docker Installation:**
 ```
-/lute/static/luteformobile/
+/lute/static/
 ```
 or
 ```
-/lute-data/web/luteformobile/
+/lute-data/web/
 ```
 
 **Source Installation:**
 ```
-{lute_source_path}/lute/static/luteformobile/
+{lute_source_path}/lute/static/
 ```
 
-**Important:** After copying files, edit `index.html` and change the base tag to:
-```html
-<base href="/static/luteformobile/">
-```
+4. The files should be placed in a `luteformobile/` subdirectory
 
 Access the PWA at: `http://YOUR_LUTE_IP:5001/static/luteformobile/index.html`
+
+#### Advanced: Build from Source
+
+If you prefer to build from source, clone the repo and use the setup script:
+
+```bash
+git clone https://github.com/schlick7/LuteForMobile.git
+cd LuteForMobile
+flutter build web
+python3 setup_pwa.py
+```
+
+**Windows users:** Run with `python setup_pwa.py` instead. Requires Docker Desktop on Windows.
 
 For detailed setup instructions, see [docs/QUICK_START.md](docs/QUICK_START.md).
 
