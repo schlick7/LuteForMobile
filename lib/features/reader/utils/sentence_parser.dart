@@ -156,17 +156,39 @@ class SentenceParser {
         final sentenceItems = items.sublist(start, end);
         final sentenceText = sentenceItems.map((item) => item.text).join();
 
+        // Ensure sentence text has proper spacing at boundaries
+        final normalizedSentenceText = _normalizeSentenceSpacing(sentenceText);
+
         sentences.add(
           CustomSentence(
             id: i,
             textItems: sentenceItems,
-            fullText: sentenceText,
+            fullText: normalizedSentenceText,
           ),
         );
       }
     }
 
     return sentences;
+  }
+
+  String _normalizeSentenceSpacing(String text) {
+    // Ensure there's always a space after sentence-ending punctuation
+    String result = text;
+
+    // Replace patterns like "?5." with "?5. " (add space after punctuation)
+    result = result.replaceAllMapped(
+      RegExp(r'([.!?])([^\s])'),
+      (match) => '${match.group(1)} ${match.group(2)}',
+    );
+
+    // Handle specific cases where punctuation is followed by Spanish punctuation
+    result = result.replaceAllMapped(
+      RegExp(r'([.!?])([¿¡])'),
+      (match) => '${match.group(1)} ${match.group(2)}',
+    );
+
+    return result;
   }
 
   List<CustomSentence> _combineShortSentences(
@@ -235,8 +257,32 @@ class SentenceParser {
     final absorber = sentences[absorberIndex];
     final absorbed = sentences[absorbedIndex];
 
-    final combinedTextItems = [...absorber.textItems, ...absorbed.textItems];
-    final combinedText = absorber.fullText + ' ' + absorbed.fullText;
+    // Always ensure there's proper spacing between sentences
+    String combinedText = absorber.fullText + ' ' + absorbed.fullText;
+
+    // Apply normalization to ensure proper spacing after punctuation
+    combinedText = _normalizeSentenceSpacing(combinedText);
+
+    // Create a space text item to ensure separation between sentences
+    final spaceTextItem = TextItem(
+      text: ' ',
+      statusClass: '',
+      wordId: null,
+      sentenceId: absorber.textItems.isNotEmpty
+          ? absorber.textItems.first.sentenceId
+          : 0,
+      paragraphId: absorber.textItems.isNotEmpty
+          ? absorber.textItems.first.paragraphId
+          : 0,
+      isStartOfSentence: false,
+      order: absorber.textItems.length,
+    );
+
+    final combinedTextItems = [
+      ...absorber.textItems,
+      spaceTextItem,
+      ...absorbed.textItems,
+    ];
 
     final combinedSentence = CustomSentence(
       id: absorber.id,
