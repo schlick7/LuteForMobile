@@ -2,6 +2,38 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/term_tooltip.dart';
 
+String _formatTranslation(String? translation) {
+  if (translation == null) return '';
+
+  final punctuation = RegExp(r'[.,!?;:，。！？；：]');
+
+  final lines = translation.split('\n');
+  final result = StringBuffer();
+  for (var i = 0; i < lines.length; i++) {
+    final trimmedLine = lines[i].trim();
+    if (trimmedLine.isEmpty) continue;
+
+    if (result.isNotEmpty) {
+      final lastLineIndex = i - 1;
+      if (lastLineIndex >= 0) {
+        final prevLine = lines[lastLineIndex].trim();
+        if (prevLine.isNotEmpty) {
+          final lastChar = prevLine[prevLine.length - 1];
+          if (!punctuation.hasMatch(lastChar)) {
+            result.write(', ');
+          } else {
+            result.write(' ');
+          }
+        }
+      }
+    }
+
+    result.write(trimmedLine);
+  }
+
+  return result.toString();
+}
+
 class TermTooltipClass {
   static OverlayEntry? _currentEntry;
   static Timer? _dismissTimer;
@@ -62,7 +94,7 @@ class TermTooltipClass {
                   if (termTooltip.translation != null) ...[
                     const SizedBox(height: 4),
                     Text(
-                      termTooltip.translation!,
+                      _formatTranslation(termTooltip.translation),
                       style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
                         fontStyle: FontStyle.italic,
                         color: Theme.of(
@@ -93,7 +125,7 @@ class TermTooltipClass {
                           if (parent.translation != null) ...[
                             const SizedBox(height: 2),
                             Text(
-                              parent.translation!,
+                              _formatTranslation(parent.translation),
                               style: Theme.of(ctx).textTheme.bodySmall
                                   ?.copyWith(
                                     fontStyle: FontStyle.italic,
@@ -184,7 +216,7 @@ class TermTooltipClass {
                       if (termTooltip.translation != null) ...[
                         const SizedBox(height: 4),
                         Text(
-                          termTooltip.translation!,
+                          _formatTranslation(termTooltip.translation),
                           style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
                             fontStyle: FontStyle.italic,
                             color: Theme.of(
@@ -215,7 +247,7 @@ class TermTooltipClass {
                               if (parent.translation != null) ...[
                                 const SizedBox(height: 2),
                                 Text(
-                                  parent.translation!,
+                                  _formatTranslation(parent.translation),
                                   style: Theme.of(ctx).textTheme.bodySmall
                                       ?.copyWith(
                                         fontStyle: FontStyle.italic,
