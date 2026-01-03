@@ -80,16 +80,101 @@ class TermListDisplay extends StatelessWidget {
     final tooltip = tooltips[term.wordId];
 
     String? translation;
-    String? parentTerm;
-    String? parentTranslation;
 
     if (tooltip != null) {
       translation = tooltip.translation?.replaceAll('\n', ' ');
-      if (tooltip.parents.isNotEmpty) {
-        final parent = tooltip.parents.first;
-        parentTerm = parent.term;
-        parentTranslation = parent.translation?.replaceAll('\n', ' ');
+    }
+
+    final children = <Widget>[
+      Text(
+        term.text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ];
+
+    if (translation != null) {
+      children.add(const SizedBox(width: 4));
+      children.add(
+        Text(
+          '- $translation',
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.8),
+          ),
+        ),
+      );
+    }
+
+    if (tooltip != null && tooltip.parents.isNotEmpty) {
+      children.add(const SizedBox(width: 4));
+      children.add(
+        Text(
+          '(',
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.8),
+          ),
+        ),
+      );
+      for (var i = 0; i < tooltip.parents.length; i++) {
+        final parent = tooltip.parents[i];
+        children.add(
+          Text(
+            parent.term,
+            style: TextStyle(
+              fontSize: 11,
+              color: Theme.of(
+                context,
+              ).colorScheme.onSurface.withValues(alpha: 0.8),
+            ),
+          ),
+        );
+        if (parent.translation != null) {
+          children.add(
+            Text(
+              ' - ${parent.translation?.replaceAll('\n', ' ')}',
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
+            ),
+          );
+        }
+        if (i < tooltip.parents.length - 1) {
+          children.add(
+            Text(
+              ', ',
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(
+                  context,
+                ).colorScheme.onSurface.withValues(alpha: 0.8),
+              ),
+            ),
+          );
+        }
       }
+      children.add(
+        Text(
+          ')',
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(
+              context,
+            ).colorScheme.onSurface.withValues(alpha: 0.8),
+          ),
+        ),
+      );
     }
 
     return Align(
@@ -102,63 +187,7 @@ class TermListDisplay extends StatelessWidget {
           onDoubleTap: () => onTermDoubleTap?.call(term),
           child: Chip(
             backgroundColor: backgroundColor,
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  term.text,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                if (translation != null) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    '- $translation',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ],
-                if (parentTerm != null) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    '($parentTerm',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.8),
-                    ),
-                  ),
-                  if (parentTranslation != null) ...[
-                    Text(
-                      ' - $parentTranslation',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.8),
-                      ),
-                    ),
-                  ],
-                  Text(
-                    ')',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+            label: Row(mainAxisSize: MainAxisSize.min, children: children),
             visualDensity: VisualDensity.compact,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
           ),

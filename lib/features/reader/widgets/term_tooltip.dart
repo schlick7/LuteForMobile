@@ -75,42 +75,38 @@ class TermTooltipClass {
                   ],
                   if (termTooltip.parents.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    ...termTooltip.parents
-                        .take(2)
-                        .map(
-                          (parent) => Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '(${parent.term})',
-                                style: Theme.of(ctx).textTheme.bodySmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w500,
-                                      color: Theme.of(ctx).colorScheme.onSurface
-                                          .withValues(alpha: 1.0),
-                                    ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              if (parent.translation != null) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  parent.translation!,
-                                  style: Theme.of(ctx).textTheme.bodySmall
-                                      ?.copyWith(
-                                        fontStyle: FontStyle.italic,
-                                        color: Theme.of(ctx)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 0.7),
-                                      ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ],
+                    ...termTooltip.parents.map(
+                      (parent) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '(${parent.term})',
+                            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: Theme.of(
+                                ctx,
+                              ).colorScheme.onSurface.withValues(alpha: 1.0),
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
+                          if (parent.translation != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              parent.translation!,
+                              style: Theme.of(ctx).textTheme.bodySmall
+                                  ?.copyWith(
+                                    fontStyle: FontStyle.italic,
+                                    color: Theme.of(ctx).colorScheme.onSurface
+                                        .withValues(alpha: 0.7),
+                                  ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -201,44 +197,40 @@ class TermTooltipClass {
                       ],
                       if (termTooltip.parents.isNotEmpty) ...[
                         const SizedBox(height: 8),
-                        ...termTooltip.parents
-                            .take(2)
-                            .map(
-                              (parent) => Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '(${parent.term})',
-                                    style: Theme.of(ctx).textTheme.bodySmall
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w500,
-                                          color: Theme.of(ctx)
-                                              .colorScheme
-                                              .onSurface
-                                              .withValues(alpha: 1.0),
-                                        ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  if (parent.translation != null) ...[
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      parent.translation!,
-                                      style: Theme.of(ctx).textTheme.bodySmall
-                                          ?.copyWith(
-                                            fontStyle: FontStyle.italic,
-                                            color: Theme.of(ctx)
-                                                .colorScheme
-                                                .onSurface
-                                                .withValues(alpha: 0.6),
-                                          ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
+                        ...termTooltip.parents.map(
+                          (parent) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '(${parent.term})',
+                                style: Theme.of(ctx).textTheme.bodySmall
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      color: Theme.of(ctx).colorScheme.onSurface
+                                          .withValues(alpha: 1.0),
                                     ),
-                                  ],
-                                ],
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
+                              if (parent.translation != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  parent.translation!,
+                                  style: Theme.of(ctx).textTheme.bodySmall
+                                      ?.copyWith(
+                                        fontStyle: FontStyle.italic,
+                                        color: Theme.of(ctx)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.6),
+                                      ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
                       ],
                     ],
                   ),

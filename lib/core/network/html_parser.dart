@@ -218,8 +218,8 @@ class HtmlParser {
       for (final div in allDivs) {
         final styleAttr = div.attributes['style'];
         if (styleAttr != null && styleAttr.contains('margin-top: 1.5em')) {
-          final pElement = div.querySelector('p');
-          if (pElement != null) {
+          final pElements = div.querySelectorAll('p');
+          for (final pElement in pElements) {
             final boldElement = pElement.querySelector('b');
             if (boldElement != null) {
               final parentTerm = boldElement.text.trim();
@@ -245,6 +245,7 @@ class HtmlParser {
               }
             }
           }
+          break;
         }
       }
     }
