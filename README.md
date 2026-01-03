@@ -8,7 +8,7 @@ A Flutter mobile frontend for Lute v3 language learning server. Read books and l
 - **Sentence Reader** - Sentence parsing with term status tracking and highlighting
 - **Audio Playback** - Integrated audio player with bookmark support
 - **Dictionary Integration** - Inline dictionary lookup for terms
-- **Theme System** - Multiple themes with custom font support
+- **Theme System** - Dark, Light, Black and White
 - **PWA Support** - Install as a web app on any device
 
 ## Supported Server Features
