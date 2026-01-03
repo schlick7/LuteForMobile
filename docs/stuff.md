@@ -45,3 +45,12 @@ Future:
 - add a toggle to book details to select between Server parsing or App parsing
   - include hint
   - put this in the edit button and move the confirmation to the edit button popup for editing the term.
+
+# PWA
+## Build the web app first
+flutter build web
+
+## Create the zip
+cd build/web
+7z a ../../lute-pwa.zip * -x!.last_build_id
+cd ../..
