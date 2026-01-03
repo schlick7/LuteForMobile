@@ -580,7 +580,7 @@ lib/
 
 ---
 
-### Part 1, Phase 4: TTS TermForm integration
+### Part 1, Phase 4: TTS TermForm integration COMPLETED ✅
 1. Add TTS to term form
   - button to the right of the term label
   - Reads only term name
@@ -588,7 +588,7 @@ lib/
   
 ---
 
-### Part 1, Phase 5: TTS page in sentence dictionary
+### Part 1, Phase 5: TTS page in sentence dictionary COMPLETED ✅
 1. Add TTS to SentenceTranslation dictionary
   - Add a button to the right of the 'Orginal' label. 
 
@@ -598,9 +598,9 @@ ___
 
 1. Comprehensive TTS testing
    - Test complete flow: settings → reader → TTS usage
-   - Test with all TTS provider options (onDevice, kokoroTTS, OpenAI, local-OpenAI, none)
-   - Test with different languages
-   - Test switching between providers at runtime
+   - Test with all TTS provider options (onDevice✅, kokoroTTS✅, OpenAI, local-OpenAI, none)
+   - Test with different languages ✅
+   - Test switching between providers at runtime ✅
    - Test all provider-specific settings
 
 2. Edge case testing
