@@ -3,7 +3,11 @@
 - source myenv/bin/activate
   - python3 -m lute.main
 
+####
 
+Fix fullscreen from cutting off the top menu!
+
+##
 
 # Terms Screen
 - Use Termform for term editing
@@ -14,6 +18,11 @@ lazy loading?
 
 TTS options: On device, local-OpenAI endpoint, OpenAI, None
   - unique settings for each option
+  - have selected voices show as chips 
+    - have mixing arrow show up on chips when there is more than 1 voice added. 
+  - TTS button in termform
+  - TTS button for sentences in SentenceReader
+  - longpress Dictionary has AI tab that (ONLY) when opened fetches translation
 AI options: local-OpenAI endpoint, OpenAI, None, others in the future.
   - support auto model fetching
   - unique settings for each option
