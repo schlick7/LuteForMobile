@@ -556,11 +556,10 @@ lib/
 
 1. Add TTS to Sentence Reader
    - Add TTS button to sentence reader (play/pause toggle)
-   - Add stop button for TTS
    - Visual feedback when playing (icon animation or color change)
    - Stop TTS when navigating away from sentence
    - Stop TTS when switching sentences
-   - Ensure TTS respects current language settings
+   - Don't need to enforce a language as the langue is set automatically by the voice
 
 2. Error handling and retry for TTS
    - Clear error messages for failed TTS calls
@@ -568,16 +567,16 @@ lib/
    - Fallback to "none" provider on critical errors after N retries
    - User-friendly error messages with actionable next steps
 
-3. Testing Checklist - Part 1, Phase 3
-    - [ ] TTS button in sentence reader works correctly
-    - [ ] TTS controls (play/pause) work correctly
-    - [ ] TTS visual feedback displays correctly
-    - [ ] TTS stops when navigating away from sentence
-    - [ ] TTS stops when switching sentences
-    - [ ] TTS respects current language settings
-    - [ ] TTS error handling is user-friendly
-    - [ ] TTS retry mechanism works
-    - [ ] TTS fallback to "none" works on critical errors
+ 3. Testing Checklist - Part 1, Phase 3 - COMPLETED ✅
+     - [x] TTS button in sentence reader works correctly
+     - [x] TTS controls (play/pause) work correctly
+     - [x] TTS visual feedback displays correctly
+     - [x] TTS stops when navigating away from sentence
+     - [x] TTS stops when switching sentences
+     - [x] TTS respects current language settings
+     - [x] TTS error handling is user-friendly
+     - [x] TTS retry mechanism works
+     - [ ] TTS fallback to "none" works on critical errors (fallback logic exists but UI integration not added)
 
 ---
 
@@ -585,7 +584,7 @@ lib/
 1. Add TTS to term form
   - button to the right of the term label
   - Reads only term name
-  - no other controls
+  - Doesn't need stop or pause - no other controls
   
 ---
 
@@ -922,16 +921,16 @@ lib/
 - [x] Error handling displays user-friendly messages
 - [x] Settings persist correctly
 
-#### Part 1, Phase 3 (TTS Reader Integration)
-- [ ] TTS button in sentence reader works correctly
-- [ ] TTS controls (play/pause/stop) work correctly
-- [ ] TTS visual feedback displays correctly
-- [ ] TTS stops when navigating away
-- [ ] TTS stops when switching sentences
-- [ ] TTS respects current language settings
-- [ ] TTS error handling is user-friendly
-- [ ] TTS retry mechanism works
-- [ ] TTS fallback to "none" works
+#### Part 1, Phase 3 (TTS Reader Integration) - COMPLETED ✅
+- [x] TTS button in sentence reader works correctly
+- [x] TTS controls (play/pause/stop) work correctly
+- [x] TTS visual feedback displays correctly
+- [x] TTS stops when navigating away
+- [x] TTS stops when switching sentences
+- [x] TTS respects current language settings
+- [x] TTS error handling is user-friendly
+- [x] TTS retry mechanism works
+- [ ] TTS fallback to "none" works (fallback logic exists but UI integration not added)
 
 #### Part 1, Phase 4 (TTS End-to-End Testing)
 - [ ] Complete end-to-end flow: settings → reader → TTS usage works
