@@ -47,7 +47,7 @@ class TTSNotifier extends Notifier<TTSService> {
           return OpenAITTSService(
             apiKey: config?.apiKey ?? '',
             model: config?.model,
-            voice: config?.openAIVoice,
+            voice: config?.voice,
           );
         case TTSProvider.localOpenAI:
           return LocalOpenAITTSService(

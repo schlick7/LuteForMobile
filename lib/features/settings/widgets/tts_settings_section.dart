@@ -4,6 +4,7 @@ import 'package:lute_for_mobile/core/providers/tts_provider.dart';
 import 'package:lute_for_mobile/features/settings/models/tts_settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/tts_settings_provider.dart';
 import 'package:lute_for_mobile/features/settings/widgets/kokoro_voice_chips.dart';
+import 'package:lute_for_mobile/features/settings/widgets/on_device_voice_selector.dart';
 
 class TTSSettingsSection extends ConsumerWidget {
   const TTSSettingsSection({super.key});
@@ -97,14 +98,9 @@ class TTSSettingsSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          decoration: const InputDecoration(
-            labelText: 'Voice',
-            hintText: 'e.g., en-us',
-            border: OutlineInputBorder(),
-          ),
-          controller: TextEditingController(text: config?.voice),
-          onSubmitted: (value) {
+        OnDeviceVoiceSelector(
+          selectedVoice: config?.voice,
+          onVoiceChanged: (value) {
             ref
                 .read(ttsSettingsProvider.notifier)
                 .updateOnDeviceConfig(config!.copyWith(voice: value));
@@ -252,11 +248,11 @@ class TTSSettingsSection extends ConsumerWidget {
             hintText: 'e.g., alloy, echo, fable',
             border: OutlineInputBorder(),
           ),
-          controller: TextEditingController(text: config?.openAIVoice),
+          controller: TextEditingController(text: config?.voice),
           onSubmitted: (value) {
             ref
                 .read(ttsSettingsProvider.notifier)
-                .updateOpenAIConfig(config!.copyWith(openAIVoice: value));
+                .updateOpenAIConfig(config!.copyWith(voice: value));
           },
         ),
         const SizedBox(height: 16),

@@ -84,7 +84,6 @@ class TTSSettingsConfig {
 
   final String? apiKey;
   final String? model;
-  final String? openAIVoice;
 
   final String? endpointUrl;
 
@@ -99,7 +98,6 @@ class TTSSettingsConfig {
     this.volume,
     this.apiKey,
     this.model,
-    this.openAIVoice,
     this.endpointUrl,
     this.kokoroVoices,
     this.speed,
@@ -113,7 +111,6 @@ class TTSSettingsConfig {
     double? volume,
     String? apiKey,
     String? model,
-    String? openAIVoice,
     String? endpointUrl,
     List<KokoroVoiceWeight>? kokoroVoices,
     double? speed,
@@ -126,7 +123,6 @@ class TTSSettingsConfig {
       volume: volume ?? this.volume,
       apiKey: apiKey ?? this.apiKey,
       model: model ?? this.model,
-      openAIVoice: openAIVoice ?? this.openAIVoice,
       endpointUrl: endpointUrl ?? this.endpointUrl,
       kokoroVoices: kokoroVoices ?? this.kokoroVoices,
       speed: speed ?? this.speed,
@@ -144,7 +140,6 @@ class TTSSettingsConfig {
         other.volume == volume &&
         other.apiKey == apiKey &&
         other.model == model &&
-        other.openAIVoice == openAIVoice &&
         other.endpointUrl == endpointUrl &&
         _listEquals(other.kokoroVoices, kokoroVoices) &&
         other.speed == speed &&
@@ -159,7 +154,6 @@ class TTSSettingsConfig {
     volume,
     apiKey,
     model,
-    openAIVoice,
     endpointUrl,
     kokoroVoices?.hashCode,
     speed,

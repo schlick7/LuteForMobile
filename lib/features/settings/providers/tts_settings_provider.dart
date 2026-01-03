@@ -38,7 +38,7 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
         ),
         TTSProvider.openAI: const TTSSettingsConfig(
           model: 'tts-1',
-          openAIVoice: 'alloy',
+          voice: 'alloy',
         ),
         TTSProvider.localOpenAI: const TTSSettingsConfig(
           endpointUrl: '',
@@ -103,7 +103,6 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
         volume: (json['volume'] as num?)?.toDouble(),
         apiKey: json['apiKey'] as String?,
         model: json['model'] as String?,
-        openAIVoice: json['openAIVoice'] as String?,
         endpointUrl: json['endpointUrl'] as String?,
         speed: (json['speed'] as num?)?.toDouble(),
         useStreaming: json['useStreaming'] as bool?,
@@ -165,7 +164,6 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
       if (config.volume != null) 'volume': config.volume,
       if (config.apiKey != null) 'apiKey': config.apiKey,
       if (config.model != null) 'model': config.model,
-      if (config.openAIVoice != null) 'openAIVoice': config.openAIVoice,
       if (config.endpointUrl != null) 'endpointUrl': config.endpointUrl,
       if (config.speed != null) 'speed': config.speed,
       if (config.useStreaming != null) 'useStreaming': config.useStreaming,
