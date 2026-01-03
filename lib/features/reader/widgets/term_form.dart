@@ -496,7 +496,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     final isInDictionaryMode =
         _isDictionaryOpen && settings.showParentsInDictionary;
 
-    if (isInDictionaryMode && widget.termForm.parents.isNotEmpty) {
+    if (isInDictionaryMode) {
       // When dictionary is open with show parents enabled, show label inline with chips
       return Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -513,9 +513,22 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             child: Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: widget.termForm.parents.map((parent) {
-                return _buildParentChip(context, parent);
-              }).toList(),
+              children: [
+                ...widget.termForm.parents.map((parent) {
+                  return _buildParentChip(context, parent);
+                }).toList(),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddParentDialog(context),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Add Parent'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
