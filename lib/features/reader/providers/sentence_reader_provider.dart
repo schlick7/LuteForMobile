@@ -354,9 +354,20 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     final reader = ref.read(readerProvider);
     if (reader.pageData == null) return;
 
+    print(
+      'DEBUG: nextSentence called, currentSentenceIndex=${state.currentSentenceIndex}, customSentences.length=${state.customSentences.length}, currentSentenceId=${state.currentSentence?.id}',
+    );
+
     if (state.currentSentenceIndex < state.customSentences.length - 1) {
+      print('DEBUG: nextSentence: Moving to next sentence within page');
+      final oldIndex = state.currentSentenceIndex;
+      final oldSentenceId = state.currentSentence?.id;
       state = state.copyWith(
         currentSentenceIndex: state.currentSentenceIndex + 1,
+      );
+      final newSentenceId = state.currentSentence?.id;
+      print(
+        'DEBUG: nextSentence: Updated index from $oldIndex to ${state.currentSentenceIndex}, sentenceId from $oldSentenceId to $newSentenceId',
       );
 
       if (state.currentSentenceIndex >= state.customSentences.length - 3) {
