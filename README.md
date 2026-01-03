@@ -66,8 +66,17 @@ Supports all platforms (untested)
 #### Quick Setup (Download)
 
 1. Download the latest PWA zip from the [Releases page](https://github.com/schlick7/LuteForMobile/releases)
-2. Extract the zip file
-3. Copy the extracted files to your Lute installation:
+2. Extract the zip file:
+
+```bash
+unzip LuteForMobilePWA-[version].zip -d LuteForMobilePWA/
+cd LuteForMobilePWA
+
+# Run the automated setup script
+python3 setup_pwa.py
+```
+
+The script will auto-detect your Lute installation and deploy the files. Or manually copy to:
 
 **Pip/Venv Installation:**
 ```
