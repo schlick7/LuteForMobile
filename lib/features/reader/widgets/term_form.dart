@@ -292,18 +292,97 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     );
   }
 
+  void _showEditTermDialog(BuildContext context) {
+    final TextEditingController termEditController = TextEditingController(
+      text: widget.termForm.term,
+    );
+
+    bool canSave(String newText) {
+      if (newText.length != widget.termForm.term.length) {
+        return false;
+      }
+      if (newText.toLowerCase() != widget.termForm.term.toLowerCase()) {
+        return false;
+      }
+      return true;
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('Edit Term Capitalization'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'You can only change the capitalization of letters. '
+                  'The number of characters must remain the same.',
+                  style: TextStyle(fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: termEditController,
+                  autofocus: true,
+                  decoration: InputDecoration(
+                    labelText: 'Term',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    errorText: canSave(termEditController.text)
+                        ? null
+                        : 'Capitalization only - same characters and length',
+                  ),
+                  onChanged: (value) {
+                    setDialogState(() {});
+                  },
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: canSave(termEditController.text)
+                    ? () {
+                        final updatedForm = widget.termForm.copyWith(
+                          term: termEditController.text,
+                        );
+                        widget.onUpdate(updatedForm);
+                        Navigator.of(dialogContext).pop();
+                      }
+                    : null,
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildHeader(BuildContext context) {
     final settings = ref.watch(termFormSettingsProvider);
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: Text(
-            widget.termForm.term,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            overflow: TextOverflow.ellipsis,
+          child: GestureDetector(
+            onLongPress: () => _showEditTermDialog(context),
+            child: Tooltip(
+              message: 'Long press to edit capitalization',
+              child: Text(
+                widget.termForm.term,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ),
         ),
         Row(
