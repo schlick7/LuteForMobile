@@ -243,9 +243,9 @@ class TermFormSettings {
 
   const TermFormSettings({
     this.showRomanization = true,
-    this.showTags = true,
-    this.autoSave = false,
-    this.showParentsInDictionary = false,
+    this.showTags = false,
+    this.autoSave = true,
+    this.showParentsInDictionary = true,
   });
 
   TermFormSettings copyWith({
@@ -303,10 +303,10 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final showRomanization = prefs.getBool(_keyShowRomanization) ?? true;
-    final showTags = prefs.getBool(_keyShowTags) ?? true;
-    final autoSave = prefs.getBool(_keyAutoSave) ?? false;
+    final showTags = prefs.getBool(_keyShowTags) ?? false;
+    final autoSave = prefs.getBool(_keyAutoSave) ?? true;
     final showParentsInDictionary =
-        prefs.getBool(_keyShowParentsInDictionary) ?? false;
+        prefs.getBool(_keyShowParentsInDictionary) ?? true;
 
     final loadedSettings = TermFormSettings(
       showRomanization: showRomanization,
