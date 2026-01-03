@@ -634,4 +634,145 @@ class AppTheme {
       ],
     );
   }
+
+  static ThemeData blackAndWhiteTheme(ThemeSettings themeSettings) {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.light(
+        primary: themeSettings.accentButtonColor,
+        onPrimary: blackAndWhiteThemePreset.text.onPrimary,
+        primaryContainer: blackAndWhiteThemePreset.material3.primaryContainer,
+        onPrimaryContainer: blackAndWhiteThemePreset.text.onPrimaryContainer,
+        secondary: blackAndWhiteThemePreset.material3.secondary,
+        onSecondary: blackAndWhiteThemePreset.text.onSecondary,
+        secondaryContainer:
+            blackAndWhiteThemePreset.material3.secondaryContainer,
+        onSecondaryContainer:
+            blackAndWhiteThemePreset.text.onSecondaryContainer,
+        tertiary: blackAndWhiteThemePreset.material3.tertiary,
+        onTertiary: blackAndWhiteThemePreset.text.onTertiary,
+        tertiaryContainer: blackAndWhiteThemePreset.material3.tertiaryContainer,
+        onTertiaryContainer: blackAndWhiteThemePreset.text.onTertiaryContainer,
+        surface: blackAndWhiteThemePreset.background.surface,
+        onSurface: blackAndWhiteThemePreset.text.primary,
+        surfaceContainerHighest:
+            blackAndWhiteThemePreset.background.surfaceContainerHighest,
+        onSurfaceVariant: blackAndWhiteThemePreset.text.secondary,
+        outline: blackAndWhiteThemePreset.border.outline,
+        outlineVariant: blackAndWhiteThemePreset.border.outlineVariant,
+        error: blackAndWhiteThemePreset.error.error,
+        onError: blackAndWhiteThemePreset.error.onError,
+      ),
+      textTheme: TextTheme(
+        displayLarge: TextStyle(
+          fontSize: 57,
+          fontWeight: FontWeight.w400,
+          color: blackAndWhiteThemePreset.text.primary,
+        ),
+        displayMedium: TextStyle(
+          fontSize: 45,
+          fontWeight: FontWeight.w400,
+          color: blackAndWhiteThemePreset.text.primary,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 36,
+          fontWeight: FontWeight.w400,
+          color: blackAndWhiteThemePreset.text.primary,
+        ),
+        headlineLarge: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w400,
+          color: blackAndWhiteThemePreset.text.headline,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w400,
+          color: blackAndWhiteThemePreset.text.headline,
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w400,
+          color: blackAndWhiteThemePreset.text.headline,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w500,
+          color: blackAndWhiteThemePreset.text.primary,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: blackAndWhiteThemePreset.text.primary,
+        ),
+        titleSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: blackAndWhiteThemePreset.text.primary,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: blackAndWhiteThemePreset.text.primary,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: blackAndWhiteThemePreset.text.primary,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: blackAndWhiteThemePreset.text.secondary,
+        ),
+        labelLarge: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: blackAndWhiteThemePreset.text.primary,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: blackAndWhiteThemePreset.text.secondary,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: blackAndWhiteThemePreset.text.secondary,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: themeSettings.accentButtonColor,
+          foregroundColor: blackAndWhiteThemePreset.text.onPrimary,
+          elevation: 1,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: themeSettings.accentButtonColor,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: themeSettings.accentButtonColor,
+          side: const BorderSide(color: Color(0xFF999999)),
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: blackAndWhiteThemePreset.background.surface,
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      extensions: [
+        AppThemeColorExtension(colorScheme: blackAndWhiteThemePreset),
+        CustomThemeExtension(
+          colors: CustomThemeColors(
+            accentLabelColor: themeSettings.accentLabelColor,
+            accentButtonColor: themeSettings.accentButtonColor,
+          ),
+        ),
+      ],
+    );
+  }
 }

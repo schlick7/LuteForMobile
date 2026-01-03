@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum ThemeType { dark, light }
+enum ThemeType { dark, light, blackAndWhite }
 
 @immutable
 class TextColors {

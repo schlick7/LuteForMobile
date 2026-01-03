@@ -38,9 +38,13 @@ class ThemeSelectorScreen extends ConsumerWidget {
     ThemeType currentThemeType,
   ) {
     final isSelected = themeType == currentThemeType;
-    final themeData = themeType == ThemeType.light
-        ? AppTheme.lightTheme(ref.watch(themeSettingsProvider))
-        : AppTheme.darkTheme(ref.watch(themeSettingsProvider));
+    final themeData = switch (themeType) {
+      ThemeType.light => AppTheme.lightTheme(ref.watch(themeSettingsProvider)),
+      ThemeType.dark => AppTheme.darkTheme(ref.watch(themeSettingsProvider)),
+      ThemeType.blackAndWhite => AppTheme.blackAndWhiteTheme(
+        ref.watch(themeSettingsProvider),
+      ),
+    };
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -131,6 +135,8 @@ class ThemeSelectorScreen extends ConsumerWidget {
         return 'Light';
       case ThemeType.dark:
         return 'Dark';
+      case ThemeType.blackAndWhite:
+        return 'Black and White device';
     }
   }
 
@@ -140,6 +146,8 @@ class ThemeSelectorScreen extends ConsumerWidget {
         return 'Bright, clean interface';
       case ThemeType.dark:
         return 'Dark interface for low light';
+      case ThemeType.blackAndWhite:
+        return 'Optimized for black and white screens';
     }
   }
 }

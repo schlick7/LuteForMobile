@@ -120,7 +120,7 @@ class App extends ConsumerWidget {
       'DEBUG: App.build called, themeSettings.accentLabelColor: ${themeSettings.accentLabelColor}, themeType: ${themeSettings.themeType}',
     );
 
-    // Determine theme mode based on ThemeSettings
+    // Determine theme based on ThemeSettings
     ThemeMode themeMode;
     switch (themeSettings.themeType) {
       case ThemeType.light:
@@ -129,13 +129,19 @@ class App extends ConsumerWidget {
       case ThemeType.dark:
         themeMode = ThemeMode.dark;
         break;
+      case ThemeType.blackAndWhite:
+        themeMode = ThemeMode.light;
+        break;
     }
 
     return RestartWidget(
       child: MaterialApp(
         title: 'LuteForMobile',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme(themeSettings),
+        theme: switch (themeSettings.themeType) {
+          ThemeType.blackAndWhite => AppTheme.blackAndWhiteTheme(themeSettings),
+          _ => AppTheme.lightTheme(themeSettings),
+        },
         darkTheme: AppTheme.darkTheme(themeSettings),
         themeMode: themeMode,
         home: const MainNavigation(),

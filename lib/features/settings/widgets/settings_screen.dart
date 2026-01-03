@@ -985,6 +985,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return 'Light';
       case ThemeType.dark:
         return 'Dark';
+      case ThemeType.blackAndWhite:
+        return 'Black and White device';
     }
   }
 
@@ -994,6 +996,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return 'Bright, clean interface';
       case ThemeType.dark:
         return 'Dark interface for low light';
+      case ThemeType.blackAndWhite:
+        return 'Optimized for black and white screens';
     }
   }
 }
