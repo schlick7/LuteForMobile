@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/text_item.dart';
 import '../models/paragraph.dart';
 import '../../../shared/theme/theme_extensions.dart';
-import '../../../shared/theme/app_theme.dart';
 import 'term_tooltip.dart';
 
 class TextDisplay extends StatefulWidget {
@@ -16,6 +15,7 @@ class TextDisplay extends StatefulWidget {
   final String fontFamily;
   final FontWeight fontWeight;
   final bool isItalic;
+  final ScrollController? scrollController;
 
   const TextDisplay({
     super.key,
@@ -28,6 +28,7 @@ class TextDisplay extends StatefulWidget {
     this.fontFamily = 'Roboto',
     this.fontWeight = FontWeight.normal,
     this.isItalic = false,
+    this.scrollController,
   });
 
   static Widget buildInteractiveWord(
@@ -158,6 +159,7 @@ class _TextDisplayState extends State<TextDisplay> {
     );
     return RepaintBoundary(
       child: SingleChildScrollView(
+        controller: widget.scrollController,
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

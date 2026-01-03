@@ -360,6 +360,7 @@ class TextFormattingSettings {
   final String fontFamily;
   final FontWeight fontWeight;
   final bool isItalic;
+  final bool fullscreenMode;
 
   const TextFormattingSettings({
     this.textSize = 20.0,
@@ -367,6 +368,7 @@ class TextFormattingSettings {
     this.fontFamily = 'LinBiolinum',
     this.fontWeight = FontWeight.w500,
     this.isItalic = false,
+    this.fullscreenMode = false,
   });
 
   TextFormattingSettings copyWith({
@@ -375,6 +377,7 @@ class TextFormattingSettings {
     String? fontFamily,
     FontWeight? fontWeight,
     bool? isItalic,
+    bool? fullscreenMode,
   }) {
     return TextFormattingSettings(
       textSize: textSize ?? this.textSize,
@@ -382,6 +385,7 @@ class TextFormattingSettings {
       fontFamily: fontFamily ?? this.fontFamily,
       fontWeight: fontWeight ?? this.fontWeight,
       isItalic: isItalic ?? this.isItalic,
+      fullscreenMode: fullscreenMode ?? this.fullscreenMode,
     );
   }
 
@@ -393,12 +397,19 @@ class TextFormattingSettings {
         other.lineSpacing == lineSpacing &&
         other.fontFamily == fontFamily &&
         other.fontWeight == fontWeight &&
-        other.isItalic == isItalic;
+        other.isItalic == isItalic &&
+        other.fullscreenMode == fullscreenMode;
   }
 
   @override
-  int get hashCode =>
-      Object.hash(textSize, lineSpacing, fontFamily, fontWeight, isItalic);
+  int get hashCode => Object.hash(
+    textSize,
+    lineSpacing,
+    fontFamily,
+    fontWeight,
+    isItalic,
+    fullscreenMode,
+  );
 
   static const TextFormattingSettings defaultSettings =
       TextFormattingSettings();
@@ -410,6 +421,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
   static const String _keyFontFamily = 'font_family';
   static const String _keyFontWeight = 'font_weight';
   static const String _keyIsItalic = 'is_italic';
+  static const String _keyFullscreenMode = 'fullscreen_mode';
   bool _isInitialized = false;
 
   @override
@@ -428,6 +440,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
     final fontFamily = prefs.getString(_keyFontFamily) ?? 'LinBiolinum';
     final fontWeightIndex = prefs.getInt(_keyFontWeight) ?? 3;
     final isItalic = prefs.getBool(_keyIsItalic) ?? false;
+    final fullscreenMode = prefs.getBool(_keyFullscreenMode) ?? false;
 
     final fontWeightMap = [
       FontWeight.w200,
@@ -446,6 +459,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
       fontWeight:
           fontWeightMap[fontWeightIndex.clamp(0, fontWeightMap.length - 1)],
       isItalic: isItalic,
+      fullscreenMode: fullscreenMode,
     );
     if (state != loadedSettings) {
       state = loadedSettings;
@@ -497,6 +511,13 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyIsItalic, italic);
+  }
+
+  Future<void> updateFullscreenMode(bool fullscreen) async {
+    state = state.copyWith(fullscreenMode: fullscreen);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyFullscreenMode, fullscreen);
   }
 }
 

@@ -68,6 +68,8 @@ class ReaderDrawerSettings extends ConsumerWidget {
           _buildFontWeightSlider(context, ref, textSettings, weightIndex),
           const SizedBox(height: 16),
           _buildItalicToggle(context, ref, textSettings),
+          const SizedBox(height: 16),
+          _buildFullscreenToggle(context, ref, textSettings),
           const SizedBox(height: 32),
           Consumer(
             builder: (context, ref, _) {
@@ -417,6 +419,33 @@ class ReaderDrawerSettings extends ConsumerWidget {
               ref
                   .read(textFormattingSettingsProvider.notifier)
                   .updateIsItalic(value);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFullscreenToggle(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic textSettings,
+  ) {
+    return Row(
+      children: [
+        const Text(
+          'Fullscreen Mode',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const Spacer(),
+        Transform.scale(
+          scale: 0.8,
+          child: Switch(
+            value: textSettings.fullscreenMode,
+            onChanged: (value) {
+              ref
+                  .read(textFormattingSettingsProvider.notifier)
+                  .updateFullscreenMode(value);
             },
           ),
         ),

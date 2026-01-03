@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
@@ -38,6 +39,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isDictionaryOpen = false;
   AppLifecycleState? _lastLifecycleState;
   bool _hasInitialized = false;
+  bool _isUiVisible = true;
+  Timer? _hideUiTimer;
+  ScrollController _scrollController = ScrollController();
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -79,11 +83,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _hasInitialized = true;
+    _scrollController.addListener(_handleScrollPosition);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _hideUiTimer?.cancel();
+    _scrollController.removeListener(_handleScrollPosition);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -126,6 +134,54 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         // Don't show error, just continue with current page
       }
     }
+  }
+
+  void _handleScrollPosition() {
+    final textSettings = ref.read(textFormattingSettingsProvider);
+
+    if (!textSettings.fullscreenMode) {
+      _cancelHideTimer();
+      return;
+    }
+
+    final scrollPosition = _scrollController.offset;
+    const topThreshold = 100.0;
+
+    if (scrollPosition < topThreshold) {
+      if (!_isUiVisible) {
+        _showUi();
+      }
+      _resetHideTimer();
+    }
+  }
+
+  void _showUi() {
+    setState(() {
+      _isUiVisible = true;
+    });
+    _startHideTimer();
+  }
+
+  void _hideUi() {
+    setState(() {
+      _isUiVisible = false;
+    });
+    _cancelHideTimer();
+  }
+
+  void _startHideTimer() {
+    _hideUiTimer?.cancel();
+    _hideUiTimer = Timer(const Duration(seconds: 2), _hideUi);
+  }
+
+  void _resetHideTimer() {
+    _cancelHideTimer();
+    _startHideTimer();
+  }
+
+  void _cancelHideTimer() {
+    _hideUiTimer?.cancel();
+    _hideUiTimer = null;
   }
 
   void _loadAudioIfNeeded() async {
@@ -184,6 +240,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       readerProvider.select((s) => s.errorMessage),
     );
     final pageData = ref.watch(readerProvider.select((s) => s.pageData));
+    final textSettings = ref.watch(textFormattingSettingsProvider);
+    final settings = ref.watch(settingsProvider);
     _buildCount++;
     if (_buildCount > 1) {
       print(
@@ -192,64 +250,184 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     return Scaffold(
-      appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
-        ),
-        title: Text(pageData?.title ?? 'Reader'),
-        actions: [
-          if (pageData != null && pageData!.pageCount > 1)
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    onPressed: pageData!.currentPage > 1
-                        ? () => _goToPage(pageData!.currentPage - 1)
-                        : null,
-                    tooltip: 'Previous page',
-                  ),
-                  Text(pageData!.pageIndicator),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    onPressed: pageData!.currentPage < pageData!.pageCount
-                        ? () => _goToPage(pageData!.currentPage + 1)
-                        : null,
-                    tooltip: 'Next page',
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
+      appBar: _buildAppBar(context, pageData, textSettings.fullscreenMode),
       body: Stack(
         children: [
           Column(
             children: [
-              if (ref.watch(settingsProvider).showAudioPlayer &&
-                  pageData?.hasAudio == true)
-                AudioPlayerWidget(
-                  audioUrl:
-                      '${ref.read(settingsProvider).serverUrl}/useraudio/stream/${pageData!.bookId}',
-                  bookId: pageData!.bookId,
-                  page: pageData!.currentPage,
-                  bookmarks: pageData?.audioBookmarks,
+              if (settings.showAudioPlayer && pageData?.hasAudio == true)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  margin: EdgeInsets.only(
+                    top: textSettings.fullscreenMode && !_isUiVisible
+                        ? MediaQuery.of(context).padding.top + kToolbarHeight
+                        : 0,
+                  ),
+                  child: AudioPlayerWidget(
+                    audioUrl:
+                        '${settings.serverUrl}/useraudio/stream/${pageData!.bookId}',
+                    bookId: pageData!.bookId,
+                    page: pageData!.currentPage,
+                    bookmarks: pageData?.audioBookmarks,
+                  ),
                 ),
               Expanded(child: _buildBody(isLoading, errorMessage, pageData)),
             ],
           ),
+          if (textSettings.fullscreenMode &&
+              pageData != null &&
+              pageData.pageCount > 1)
+            _buildFloatingPageControls(context, pageData),
         ],
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    BuildContext context,
+    PageData? pageData,
+    bool fullscreenMode,
+  ) {
+    if (fullscreenMode) {
+      return PreferredSize(
+        preferredSize: Size.fromHeight(_isUiVisible ? kToolbarHeight : 0),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          height: _isUiVisible ? kToolbarHeight : 0,
+          child: AppBar(
+            leading: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () {
+                  if (widget.scaffoldKey != null &&
+                      widget.scaffoldKey!.currentState != null) {
+                    widget.scaffoldKey!.currentState!.openDrawer();
+                  } else {
+                    Scaffold.of(context).openDrawer();
+                  }
+                },
+              ),
+            ),
+            title: Text(pageData?.title ?? 'Reader'),
+            actions: [
+              if (pageData != null && pageData!.pageCount > 1)
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        onPressed: pageData!.currentPage > 1
+                            ? () => _goToPage(pageData!.currentPage - 1)
+                            : null,
+                        tooltip: 'Previous page',
+                      ),
+                      Text(pageData!.pageIndicator),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        onPressed: pageData!.currentPage < pageData!.pageCount
+                            ? () => _goToPage(pageData!.currentPage + 1)
+                            : null,
+                        tooltip: 'Next page',
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return AppBar(
+      leading: Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu),
+          onPressed: () {
+            if (widget.scaffoldKey != null &&
+                widget.scaffoldKey!.currentState != null) {
+              widget.scaffoldKey!.currentState!.openDrawer();
+            } else {
+              Scaffold.of(context).openDrawer();
+            }
+          },
+        ),
+      ),
+      title: Text(pageData?.title ?? 'Reader'),
+      actions: [
+        if (pageData != null && pageData!.pageCount > 1)
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: pageData!.currentPage > 1
+                      ? () => _goToPage(pageData!.currentPage - 1)
+                      : null,
+                  tooltip: 'Previous page',
+                ),
+                Text(pageData!.pageIndicator),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: pageData!.currentPage < pageData!.pageCount
+                      ? () => _goToPage(pageData!.currentPage + 1)
+                      : null,
+                  tooltip: 'Next page',
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildFloatingPageControls(BuildContext context, PageData pageData) {
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      bottom: _isUiVisible ? 16 : -100,
+      right: 16,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 200),
+        opacity: _isUiVisible ? 1.0 : 0.0,
+        child: Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: pageData.currentPage > 1
+                      ? () => _goToPage(pageData.currentPage - 1)
+                      : null,
+                  tooltip: 'Previous page',
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    pageData.pageIndicator,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: pageData.currentPage < pageData.pageCount
+                      ? () => _goToPage(pageData.currentPage + 1)
+                      : null,
+                  tooltip: 'Next page',
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -358,6 +536,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     return GestureDetector(
       onTapDown: (_) => TermTooltipClass.close(),
+      onTap: () {
+        if (textSettings.fullscreenMode && !_isUiVisible) {
+          _showUi();
+        }
+      },
       onHorizontalDragEnd: (details) {
         if (pageData!.pageCount <= 1) return;
 
@@ -374,6 +557,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       },
       child: TextDisplay(
         paragraphs: pageData!.paragraphs,
+        scrollController: _scrollController,
         onTap: (item, position) {
           _handleTap(item, position);
         },
