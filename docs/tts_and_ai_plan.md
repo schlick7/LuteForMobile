@@ -364,7 +364,7 @@ Add two new cards after "Reading" section:
 1. **TTS Settings Card**
 2. **AI Settings Card**
 
-#### Reader Integration (Future phases)
+#### Reader Integration
 - Add TTS button to sentence reader
 - Add term translation via AI in tooltip or separate action
 - Add sentence translation via AI in sentence reader
@@ -414,7 +414,7 @@ lib/
 ## Implementation Phases
 
 ### Phase 1: Foundation (Ground Work)
-**Status**: Current Request
+**Status**: COMPLETE ✅
 
 1. Create data models
    - `TTSSettings`, `TTSSettingsConfig`, `TTSProvider` enum (include kokoroTTS)
@@ -447,7 +447,7 @@ lib/
 
 6. Create model selector widget
    - Basic UI structure
-   - Placeholder fetch logic (to be implemented in Phase 4)
+   - Placeholder fetch logic (to be implemented in Part 2)
 
 7. Create Kokoro voice chips widget
    - Display voices as chips with weights
@@ -457,154 +457,339 @@ lib/
 
 ---
 
-### Phase 2: TTS Implementation
+## PART 1: Complete TTS Implementation
+**Status**: Next Phase
+
+**Goal**: Implement all TTS functionality end-to-end including services, settings UI, and reader integration
+
+### Part 1, Phase 1: TTS Service Implementation
 
 1. Implement `OnDeviceTTSService`
    - Voice selection from flutter_tts
    - Rate, pitch, volume controls
    - Language setting
+   - Stop functionality
+   - Get available voices functionality
 
 2. Implement `KokoroTTSService`
    - Use dio to call Kokoro-FastAPI endpoint
    - Call `/v1/audio/speech` with model="kokoro"
    - Support voice mixing with weights
    - Always use mp3 format
-   - Implement `/v1/audio/voices` fetching
+   - Implement `/v1/audio/voices` endpoint fetching
    - Generate voice mix string from List<KokoroVoiceWeight>
    - Play audio via audioplayers
-   - **Optional**: Implement streaming for long texts (useStreaming flag)
-     - Kokoro-FastAPI supports streaming via OpenAI-compatible API
-     - Can use `with_streaming_response.create()` for real-time playback
-     - Streaming benefits: faster time-to-first-byte, better UX for long texts
-   - Handle API errors
-
-3. Implement `KokoroVoiceChips` widget
-   - Display selected voices as chips with weights
-   - Show mixing arrows (→) when voices.length > 1
-   - Add voice button with available voices from `/v1/audio/voices`
-   - **Validate: Prevent adding 3rd voice (2-voice maximum limit)**
-   - Edit weight dialog
-   - Remove voice (swipe or X button)
-   - Persist voice list in SharedPreferences
+   - Stop functionality
+   - Get available voices functionality
+   - Handle API errors with user-friendly messages
 
 3. Implement `OpenAITTSService`
    - Use openai_dart to generate speech
    - Play generated audio via audioplayers
-   - Handle API errors
+   - Stop functionality
+   - Get available voices functionality
+   - Handle API errors with user-friendly messages
 
 4. Implement `LocalOpenAITTSService`
    - Use dio to call local endpoint
-   - OpenAI-compatible API calls
+   - OpenAI-compatible API calls (`/v1/audio/speech`)
    - Play audio via audioplayers
+   - Stop functionality
+   - Get available voices functionality
+   - Handle API errors with user-friendly messages
 
-5. Connect TTS settings to services
-   - Update factory provider to use real implementations
-   - Apply settings changes at runtime
+5. Complete `NoTTSService`
+   - No-op implementations for all methods
+   - Return early with logged warnings
 
-6. Add TTS to reader (basic)
-   - Add speak button to sentence reader
-   - Connect to `ttsServiceProvider`
-   - Test with different languages
+6. Testing Checklist - Part 1, Phase 1
+    - [ ] On-device TTS works with voice/rate/pitch/volume settings
+    - [ ] KokoroTTS generates and plays audio with correct voice/format/speed
+    - [ ] KokoroTTS voice mixing with weights works correctly
+    - [ ] KokoroTTS voice mix string generated in "af_bella(2)+af_sky(1)" format
+    - [ ] KokoroTTS fetches available voices from /v1/audio/voices endpoint
+    - [ ] OpenAI TTS generates and plays audio correctly
+    - [ ] Local-OpenAI TTS works with custom endpoint
+    - [ ] All TTS services handle errors gracefully
 
 ---
 
-### Phase 3: AI Service Implementation
+### Part 1, Phase 2: TTS Settings UI
+
+1. Enhance `KokoroVoiceChips` widget
+   - Implement "Add Voice" button that fetches available voices from `/v1/audio/voices`
+   - **Validate: Prevent adding 3rd voice (2-voice maximum limit)**
+   - Show error message when limit reached: "Maximum 2 voices allowed for mixing"
+   - Disable "Add Voice" button when at limit
+   - Edit weight dialog with input validation (1-10 range)
+   - Remove voice (X button on chip)
+   - Show mixing arrows (→) when voices.length > 1
+   - Display chips with weights in format: `af_bella(2)` or `af_bella`
+
+2. Update TTS Settings UI
+   - Add "Test Speech" button for each provider
+   - Show loading state during audio generation/playback
+   - Display error messages inline
+   - Verify all settings persist correctly
+   - Ensure UI updates when settings change
+
+3. Connect TTS settings to services
+   - Update `ttsServiceProvider` factory to use real implementations
+   - Ensure service updates when settings change
+   - Apply settings changes at runtime
+
+4. Testing Checklist - Part 1, Phase 2
+    - [ ] KokoroTTS voice chips UI displays correctly
+    - [ ] KokoroTTS mixing arrows show when voices.length > 1
+    - [ ] KokoroTTS **2-voice limit enforced** (cannot add 3rd voice)
+    - [ ] KokoroTTS "Add Voice" button disabled when at limit
+    - [ ] KokoroTTS error message shown when trying to add 3rd voice
+    - [ ] KokoroTTS add/edit/remove voice functions work
+    - [ ] Test Speech button works for all TTS providers
+    - [ ] Loading states display correctly
+    - [ ] Error handling displays user-friendly messages
+    - [ ] Settings persist correctly across app restarts
+
+---
+
+### Part 1, Phase 3: TTS Reader Integration
+
+1. Add TTS to Sentence Reader
+   - Add TTS button to sentence reader (play/pause toggle)
+   - Add stop button for TTS
+   - Visual feedback when playing (icon animation or color change)
+   - Stop TTS when navigating away from sentence
+   - Stop TTS when switching sentences
+   - Ensure TTS respects current language settings
+
+2. Create TTS controls widget (optional, for better UX)
+   - Floating widget or persistent controls
+   - Play/Pause, Stop, Next Sentence, Previous Sentence
+   - Speed control slider
+   - Volume control
+
+3. Error handling and retry for TTS
+   - Clear error messages for failed TTS calls
+   - Retry mechanism (automatic or manual)
+   - Fallback to "none" provider on critical errors after N retries
+   - User-friendly error messages with actionable next steps
+
+4. Testing Checklist - Part 1, Phase 3
+    - [ ] TTS button in sentence reader works correctly
+    - [ ] TTS controls (play/pause/stop) work correctly
+    - [ ] TTS visual feedback displays correctly
+    - [ ] TTS stops when navigating away from sentence
+    - [ ] TTS stops when switching sentences
+    - [ ] TTS respects current language settings
+    - [ ] TTS error handling is user-friendly
+    - [ ] TTS retry mechanism works
+    - [ ] TTS fallback to "none" works on critical errors
+
+---
+
+### Part 1, Phase 4: End-to-End TTS Testing
+
+1. Comprehensive TTS testing
+   - Test complete flow: settings → reader → TTS usage
+   - Test with all TTS provider options (onDevice, kokoroTTS, OpenAI, local-OpenAI, none)
+   - Test with different languages
+   - Test switching between providers at runtime
+   - Test all provider-specific settings
+
+2. Edge case testing
+   - Test TTS with very long sentences
+   - Test TTS with special characters
+   - Test TTS with empty text
+   - Test TTS when network is unavailable
+   - Test TTS with invalid API keys
+   - Test TTS with invalid endpoint URLs
+
+3. Testing Checklist - Part 1, Phase 4
+    - [ ] Complete end-to-end flow: settings → reader → TTS usage works
+    - [ ] All TTS provider options work correctly
+    - [ ] Switching TTS providers at runtime works
+    - [ ] Different languages work correctly with TTS
+    - [ ] All provider-specific settings apply correctly
+    - [ ] TTS handles long sentences correctly
+    - [ ] TTS handles special characters correctly
+    - [ ] TTS handles empty text gracefully
+    - [ ] TTS handles network unavailability gracefully
+    - [ ] TTS handles invalid API keys gracefully
+    - [ ] TTS handles invalid endpoint URLs gracefully
+
+---
+
+## PART 2: Complete AI Implementation
+**Status**: Future Phase
+
+**Goal**: Implement all AI functionality end-to-end including services, model fetching, prompt customization, and reader integration
+
+### Part 2, Phase 1: AI Service Implementation
 
 1. Implement `OpenAIService`
-   - `translateTerm()` method
-   - `translateSentence()` method
+   - `translateTerm(String term, String language)` method
+   - `translateSentence(String sentence, String language)` method
+   - `fetchAvailableModels()` method using openai_dart
+   - `getPromptForType(AIPromptType type)` to load custom or default prompts
    - Placeholder replacement logic: `[term]`, `[sentence]`, `[language]`
-   - `getPromptForType()` to load custom or default prompts
+   - Handle API errors with user-friendly messages
 
 2. Implement `LocalOpenAIService`
    - Same methods as OpenAIService
    - Use dio to call local endpoint
-   - OpenAI-compatible API (`/v1/chat/completions`, `/v1/models`)
+   - OpenAI-compatible API calls:
+     - `/v1/chat/completions` for translations
+     - `/v1/models` for model fetching
+   - Handle API errors with user-friendly messages
 
-3. Implement prompt configuration
-   - Load custom prompts from SharedPreferences
-   - Apply placeholders at runtime
-   - Handle missing placeholders gracefully
+3. Implement `NoAIService`
+   - No-op implementations for all methods
+   - Return early with logged warnings
 
-4. Test AI services
-   - Test with OpenAI API
-   - Test with local endpoint
-   - Verify prompt templates work correctly
+4. Testing Checklist - Part 2, Phase 1
+    - [ ] OpenAI service translates terms correctly
+    - [ ] OpenAI service translates sentences correctly
+    - [ ] Local-OpenAI service works with custom endpoint
+    - [ ] Prompt templates apply correctly
+    - [ ] Placeholder replacement works for all three types: `[term]`, `[sentence]`, `[language]`
+    - [ ] All AI services handle errors gracefully
 
 ---
 
-### Phase 4: Model Fetching UI
+### Part 2, Phase 2: Model Fetching
 
-1. Implement model fetching logic
-   - `OpenAIService.fetchAvailableModels()` using openai_dart
-   - `LocalOpenAIService.fetchAvailableModels()` using dio
-   - Call `/v1/models` endpoint
+1. Implement model fetching
+   - `fetchAvailableModels()` calls `/v1/models` endpoint
+   - Cache models in SharedPreferences to avoid repeated calls
+   - On-demand fetching (when user clicks refresh, not on startup)
+   - Handle offline/error scenarios gracefully
 
 2. Enhance `ModelSelector` widget
-   - On-tap fetch models
-   - Show loading indicator
+   - On-tap refresh button fetches models from current AI provider
+   - Show loading indicator during fetch
    - Display fetched models in dropdown
+   - Display error message on fetch failure
    - Cache models in SharedPreferences
-   - Handle fetch errors gracefully
+   - Manual refresh button
 
-3. Add refresh capability
-   - Manual refresh button in model dropdown
-   - Clear cache option
+3. Complete `AISettingsSection` widget
+   - Model selector for OpenAI and local-OpenAI providers
+   - Ensure model selector integrates with provider-specific configs
 
-4. Test model fetching
-   - Test with OpenAI API
-   - Test with local endpoint
-   - Test offline/error scenarios
+4. Testing Checklist - Part 2, Phase 2
+    - [ ] Model fetching works on-refresh
+    - [ ] Models display correctly in dropdown
+    - [ ] Models are cached in SharedPreferences
+    - [ ] Refresh button works
+    - [ ] Errors are handled gracefully for model fetching
+    - [ ] Model selector integrates correctly with AI settings
 
 ---
 
-### Phase 5: Prompt Customization UI
+### Part 2, Phase 3: Prompt Customization
 
 1. Complete prompt configuration UI
-   - Term translation prompt: enable/disable toggle, textarea, placeholders hint
-   - Sentence translation prompt: enable/disable toggle, textarea, placeholders hint
+   - Term translation prompt section:
+     - Enable/disable toggle
+     - Textarea for custom prompt
+     - Placeholders hint: `[term]`, `[language]`
+     - Example tooltip
+   - Sentence translation prompt section:
+     - Enable/disable toggle
+     - Textarea for custom prompt
+     - Placeholders hint: `[sentence]`, `[language]`
+     - Example tooltip
 
-2. Add placeholder hints
+2. Add placeholder hints and tooltips
    - Show available placeholders: `[term]`, `[sentence]`, `[language]`
    - Provide examples in tooltips
+   - Document each placeholder's purpose
 
 3. Add default template restoration
-   - Button to reset to default template
+   - "Reset to Default" button for each prompt type
    - Confirm dialog before reset
+   - Reload default template from `AIPromptTemplates`
 
-4. Test prompt templates
-   - Test with various inputs
-   - Test placeholder replacement
-   - Test custom prompts
+4. Implement prompt configuration logic
+   - Load custom prompts from SharedPreferences
+   - Apply placeholders at runtime (`_replacePlaceholders()`)
+   - Handle missing placeholders gracefully (use default values)
+   - Persist prompt changes immediately
+
+5. Testing Checklist - Part 2, Phase 3
+    - [ ] Custom prompts save and load correctly
+    - [ ] Enable/disable toggles work for prompts
+    - [ ] Default template restoration works
+    - [ ] Placeholders are documented with examples in UI
+    - [ ] Prompt changes persist across app restarts
 
 ---
 
-### Phase 6: Reader Integration
+### Part 2, Phase 4: AI Reader Integration
 
-1. Add TTS controls to sentence reader
-   - Play/pause button for each sentence
-   - Stop button
-   - Visual feedback when playing
+1. Add term translation via AI
+   - Add "Translate" button in term tooltip/form
+   - Display translation result in tooltip or separate dialog
+   - Loading state during AI call (spinner or progress indicator)
+   - Error handling for failed translations
 
-2. Add term translation via AI
-   - Translate button in term tooltip
-   - Display translation result
+2. Add sentence translation via AI
+   - Add "Translate" button in sentence reader header
+   - Display translation inline below sentence or in dialog
    - Loading state during AI call
+   - Error handling for failed translations
 
-3. Add sentence translation via AI
-   - Translate button in sentence reader
-   - Display translation inline or in dialog
-   - Loading state during AI call
+3. Error handling and retry for AI
+   - Clear error messages for failed AI calls
+   - Retry mechanism (automatic or manual)
+   - Fallback to "none" provider on critical errors after N retries
+   - User-friendly error messages with actionable next steps
 
-4. Error handling
-   - Clear error messages for failed AI/TTS calls
-   - Retry mechanism
-   - Fallback to "none" provider on critical errors
+4. Testing Checklist - Part 2, Phase 4
+    - [ ] Term translation via AI works with all AI providers
+    - [ ] Sentence translation via AI works with all AI providers
+    - [ ] Loading states display correctly for AI calls
+    - [ ] Error messages are clear and actionable
+    - [ ] Retry mechanism works for failed AI calls
+    - [ ] Fallback to "none" provider works on critical errors
 
-5. End-to-end testing
-   - Test complete flow: settings → reader → TTS/AI usage
-   - Test with all provider options
+---
+
+### Part 2, Phase 5: End-to-End AI Testing
+
+1. Comprehensive AI testing
+   - Test complete flow: settings → reader → AI usage
+   - Test with all AI provider options (OpenAI, local-OpenAI, none)
    - Test with different languages
+   - Test switching between providers at runtime
+   - Test all provider-specific settings
+   - Test custom prompts
+   - Test model selection
+
+2. Edge case testing
+   - Test AI translation with very long text
+   - Test AI translation with special characters
+   - Test AI translation with empty text
+   - Test AI when network is unavailable
+   - Test AI with invalid API keys
+   - Test AI with invalid endpoint URLs
+   - Test AI with missing prompt placeholders
+
+3. Testing Checklist - Part 2, Phase 5
+    - [ ] Complete end-to-end flow: settings → reader → AI usage works
+    - [ ] All AI provider options work correctly
+    - [ ] Switching AI providers at runtime works
+    - [ ] Different languages work correctly with AI
+    - [ ] All provider-specific settings apply correctly
+    - [ ] Custom prompts work correctly
+    - [ ] Model selection works correctly
+    - [ ] AI handles long text correctly
+    - [ ] AI handles special characters correctly
+    - [ ] AI handles empty text gracefully
+    - [ ] AI handles network unavailability gracefully
+    - [ ] AI handles invalid API keys gracefully
+    - [ ] AI handles invalid endpoint URLs gracefully
+    - [ ] AI handles missing prompt placeholders gracefully
 
 ---
 
@@ -702,70 +887,107 @@ lib/
 
 ---
 
-## Testing Checklist
+## Testing Checklist Summary
 
-### Phase 1 (Foundation)
-- [ ] Data models created and compile
-- [ ] Settings providers persist and load correctly
-- [ ] UI sections display in settings screen
-- [ ] Provider dropdowns work
-- [ ] Settings are saved to SharedPreferences
+### Phase 1 (Foundation) - COMPLETE ✅
+- [x] Data models created and compile
+- [x] Settings providers persist and load correctly
+- [x] UI sections display in settings screen
+- [x] Provider dropdowns work
+- [x] Settings are saved to SharedPreferences
 
-### Phase 2 (TTS)
+### Part 1: Complete TTS Implementation
+
+#### Part 1, Phase 1 (TTS Services)
 - [ ] On-device TTS works with voice/rate/pitch/volume
 - [ ] KokoroTTS generates and plays audio with correct voice/format/speed
-- [ ] KokoroTTS voice chips UI displays correctly
 - [ ] KokoroTTS voice mixing with weights works correctly
 - [ ] KokoroTTS voice mix string generated in "af_bella(2)+af_sky(1)" format
-- [ ] KokoroTTS mixing arrows show when voices.length > 1
-- [ ] KokoroTTS **2-voice limit enforced** (cannot add 3rd voice)
-- [ ] KokoroTTS "Add Voice" button disabled when at limit
-- [ ] KokoroTTS error message shown when trying to add 3rd voice
 - [ ] KokoroTTS fetches available voices from /v1/audio/voices
-- [ ] KokoroTTS add/edit/remove voice functions work
-- [ ] **KokoroTTS streaming support** (optional - future enhancement for long texts)
-  - [ ] Streaming toggle in settings
-  - [ ] Use `with_streaming_response.create()` for real-time playback
-  - [ ] Handle streaming chunks in audio player
 - [ ] OpenAI TTS generates and plays audio
 - [ ] Local-OpenAI TTS works with custom endpoint
-- [ ] Switching providers works at runtime
-- [ ] TTS controls in reader function correctly
+- [ ] All TTS services handle errors gracefully
 
-### Phase 3 (AI Service)
+#### Part 1, Phase 2 (TTS Settings UI)
+- [ ] KokoroTTS voice chips UI displays correctly
+- [ ] KokoroTTS mixing arrows show when voices.length > 1
+- [ ] KokoroTTS **2-voice limit enforced**
+- [ ] KokoroTTS "Add Voice" button disabled when at limit
+- [ ] KokoroTTS error message shown when trying to add 3rd voice
+- [ ] KokoroTTS add/edit/remove voice functions work
+- [ ] Test Speech button works for all TTS providers
+- [ ] Loading states display correctly
+- [ ] Error handling displays user-friendly messages
+- [ ] Settings persist correctly
+
+#### Part 1, Phase 3 (TTS Reader Integration)
+- [ ] TTS button in sentence reader works correctly
+- [ ] TTS controls (play/pause/stop) work correctly
+- [ ] TTS visual feedback displays correctly
+- [ ] TTS stops when navigating away
+- [ ] TTS stops when switching sentences
+- [ ] TTS respects current language settings
+- [ ] TTS error handling is user-friendly
+- [ ] TTS retry mechanism works
+- [ ] TTS fallback to "none" works
+
+#### Part 1, Phase 4 (TTS End-to-End Testing)
+- [ ] Complete end-to-end flow: settings → reader → TTS usage works
+- [ ] All TTS provider options work correctly
+- [ ] Switching TTS providers at runtime works
+- [ ] Different languages work correctly
+- [ ] All provider-specific settings apply correctly
+- [ ] TTS handles edge cases (long text, special chars, empty text, network issues)
+
+### Part 2: Complete AI Implementation
+
+#### Part 2, Phase 1 (AI Services)
 - [ ] OpenAI service translates terms correctly
 - [ ] OpenAI service translates sentences correctly
 - [ ] Local-OpenAI service works with custom endpoint
 - [ ] Prompt templates apply correctly
-- [ ] Placeholder replacement works for all three types
+- [ ] Placeholder replacement works for all types
+- [ ] All AI services handle errors gracefully
 
-### Phase 4 (Model Fetching)
-- [ ] Model fetching works on-tap
+#### Part 2, Phase 2 (Model Fetching)
+- [ ] Model fetching works on-refresh
 - [ ] Models display correctly in dropdown
 - [ ] Models are cached in SharedPreferences
 - [ ] Refresh button works
 - [ ] Errors are handled gracefully
+- [ ] Model selector integrates correctly
 
-### Phase 5 (Prompt Customization)
+#### Part 2, Phase 3 (Prompt Customization)
 - [ ] Custom prompts save and load correctly
 - [ ] Enable/disable toggles work
 - [ ] Default template restoration works
 - [ ] Placeholders are documented with examples
+- [ ] Prompt changes persist
 
-### Phase 6 (Reader Integration)
-- [ ] TTS works for sentence playback
-- [ ] Term translation via AI works
-- [ ] Sentence translation via AI works
+#### Part 2, Phase 4 (AI Reader Integration)
+- [ ] Term translation via AI works with all providers
+- [ ] Sentence translation via AI works with all providers
 - [ ] Loading states display correctly
 - [ ] Error messages are clear
-- [ ] All providers work end-to-end
+- [ ] Retry mechanism works
+- [ ] Fallback to "none" works
+
+#### Part 2, Phase 5 (AI End-to-End Testing)
+- [ ] Complete end-to-end flow: settings → reader → AI usage works
+- [ ] All AI provider options work correctly
+- [ ] Switching AI providers at runtime works
+- [ ] Different languages work correctly
+- [ ] All provider-specific settings apply correctly
+- [ ] Custom prompts work correctly
+- [ ] Model selection works correctly
+- [ ] AI handles edge cases (long text, special chars, empty text, network issues, missing placeholders)
 
 ---
 
 ## Notes
 
-- This plan focuses on ground work (Phase 1) for now
-- Future phases will be implemented incrementally
+- This plan focuses on complete TTS implementation (Part 1) after foundation
+- Part 2 implements all AI features independently
 - Design is flexible to add new providers (TTS/AI) and prompt types
 - All settings are persisted, so users don't lose configuration
 - UI follows existing app patterns (Cards, sliders, dropdowns)
@@ -823,12 +1045,12 @@ String generateKokoroVoiceString(List<KokoroVoiceWeight> voices) {
 // In TTSSettingsNotifier
 Future<void> addKokoroVoice(String voice, int weight) async {
   final currentVoices = config.kokoroVoices ?? [];
-  
+
   if (currentVoices.length >= 2) {
     // Show error: "Maximum 2 voices allowed for mixing"
     return;
   }
-  
+
   final newVoices = [...currentVoices, KokoroVoiceWeight(voice: voice, weight: weight)];
   updateKokoroConfig(newVoices);
 }
@@ -900,5 +1122,5 @@ final response = await dio.post(
 //   - Benefit: Time-to-first-byte ~300ms vs waiting for full audio
 //
 // Note: For ground work (Phase 1), use simple non-streaming approach
-// Streaming can be added in Phase 2+ as an enhancement for long texts
+// Streaming can be added in Part 1+ as an enhancement for long texts
 ```
