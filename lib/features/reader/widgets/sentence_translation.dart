@@ -2,11 +2,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/sentence_translation.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../core/network/dictionary_service.dart';
+import '../../../core/network/tts_service.dart';
+import '../../../core/providers/tts_provider.dart';
 
-class SentenceTranslationWidget extends StatefulWidget {
+class SentenceTranslationWidget extends ConsumerStatefulWidget {
   final String sentence;
   final SentenceTranslation? translation;
   final String translationProvider;
@@ -31,12 +34,14 @@ class SentenceTranslationWidget extends StatefulWidget {
   });
 
   @override
-  State<SentenceTranslationWidget> createState() =>
+  ConsumerState<SentenceTranslationWidget> createState() =>
       _SentenceTranslationWidgetState();
 }
 
-class _SentenceTranslationWidgetState extends State<SentenceTranslationWidget> {
+class _SentenceTranslationWidgetState
+    extends ConsumerState<SentenceTranslationWidget> {
   late PageController _pageController;
+  late TTSService _ttsService;
   List<DictionarySource> _dictionaries = [];
   int _currentPage = 0;
   final Map<int, InAppWebViewController> _webviewControllers = {};
@@ -46,6 +51,7 @@ class _SentenceTranslationWidgetState extends State<SentenceTranslationWidget> {
   @override
   void initState() {
     super.initState();
+    _ttsService = ref.read(ttsServiceProvider);
     _pageController = PageController(initialPage: 0);
     _loadDictionaries();
   }
@@ -84,6 +90,7 @@ class _SentenceTranslationWidgetState extends State<SentenceTranslationWidget> {
   @override
   void dispose() {
     _pageController.dispose();
+    _ttsService.stop();
     super.dispose();
   }
 
@@ -232,12 +239,26 @@ class _SentenceTranslationWidgetState extends State<SentenceTranslationWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Original',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: context.customColors.accentLabelColor,
-            fontWeight: FontWeight.w600,
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Original',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: context.customColors.accentLabelColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            IconButton(
+              onPressed: () {
+                _ttsService.speak(widget.sentence);
+              },
+              icon: const Icon(Icons.volume_up),
+              tooltip: 'Read sentence',
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              padding: EdgeInsets.zero,
+            ),
+          ],
         ),
         const SizedBox(height: 8),
         Container(
