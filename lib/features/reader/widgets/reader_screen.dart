@@ -145,7 +145,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     final scrollPosition = _scrollController.offset;
-    const topThreshold = 100.0;
+    const topThreshold = 70.0;
 
     if (scrollPosition < topThreshold) {
       if (!_isUiVisible) {
@@ -290,12 +290,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     bool fullscreenMode,
   ) {
     if (fullscreenMode) {
+      final topPadding = MediaQuery.of(context).padding.top;
       return PreferredSize(
-        preferredSize: Size.fromHeight(_isUiVisible ? kToolbarHeight : 0),
+        preferredSize: Size.fromHeight(
+          _isUiVisible ? kToolbarHeight + topPadding : 0,
+        ),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          height: _isUiVisible ? kToolbarHeight : 0,
+          height: _isUiVisible ? kToolbarHeight + topPadding : 0,
           child: AppBar(
             leading: Builder(
               builder: (context) => IconButton(
