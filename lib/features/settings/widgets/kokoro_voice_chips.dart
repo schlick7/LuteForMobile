@@ -114,7 +114,7 @@ class _VoiceSelectionDialog extends ConsumerStatefulWidget {
 }
 
 class _VoiceSelectionDialogState extends ConsumerState<_VoiceSelectionDialog> {
-  List<String>? _availableVoices;
+  List<TTSVoice>? _availableVoices;
   bool _isLoading = true;
   String? _error;
 
@@ -181,10 +181,10 @@ class _VoiceSelectionDialogState extends ConsumerState<_VoiceSelectionDialog> {
                 itemBuilder: (context, index) {
                   final voice = _availableVoices![index];
                   final isSelected = selectedVoices.any(
-                    (v) => v.voice == voice,
+                    (v) => v.voice == voice.name,
                   );
                   return ListTile(
-                    title: Text(voice),
+                    title: Text(voice.displayName),
                     trailing: isSelected
                         ? const Icon(Icons.check, color: Colors.green)
                         : null,
@@ -194,8 +194,8 @@ class _VoiceSelectionDialogState extends ConsumerState<_VoiceSelectionDialog> {
                         : () async {
                             final success = await ref
                                 .read(ttsSettingsProvider.notifier)
-                                .addKokoroVoice(voice, 1);
-                            if (success && mounted) {
+                                .addKokoroVoice(voice.name, 1);
+                            if (success && context.mounted) {
                               Navigator.of(context).pop();
                             }
                           },

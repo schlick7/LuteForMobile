@@ -19,7 +19,7 @@ class OnDeviceVoiceSelector extends ConsumerStatefulWidget {
 }
 
 class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
-  List<String> _availableVoices = [];
+  List<TTSVoice> _availableVoices = [];
   bool _isLoading = false;
   String? _error;
 
@@ -64,10 +64,31 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
   }
 
   void _showVoicePicker() {
+    final groupedVoices = <String, List<TTSVoice>>{};
+    for (final voice in _availableVoices) {
+      final locale = voice.locale.isEmpty ? 'Other' : voice.locale;
+      groupedVoices.putIfAbsent(locale, () => []);
+      groupedVoices[locale]!.add(voice);
+    }
+    final sortedLocales = groupedVoices.keys.toList()..sort();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select Voice'),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Select Voice'),
+            if (_availableVoices.isNotEmpty)
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _fetchVoices();
+                },
+                child: const Text('Refresh', style: TextStyle(fontSize: 12)),
+              ),
+          ],
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: _isLoading
@@ -97,23 +118,53 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
                       Icon(Icons.warning, color: Colors.orange, size: 48),
                       SizedBox(height: 16),
                       Text('No voices found on this device'),
+                      SizedBox(height: 8),
+                      Text(
+                        'Try downloading TTS voices in your device settings',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
                     ],
                   ),
                 )
               : ListView.builder(
                   shrinkWrap: true,
-                  itemCount: _availableVoices.length,
-                  itemBuilder: (context, index) {
-                    final voice = _availableVoices[index];
-                    return ListTile(
-                      title: Text(voice),
-                      trailing: widget.selectedVoice == voice
-                          ? const Icon(Icons.check, color: Colors.green)
-                          : null,
-                      onTap: () {
-                        widget.onVoiceChanged(voice);
-                        Navigator.of(context).pop();
-                      },
+                  itemCount: sortedLocales.length,
+                  itemBuilder: (context, localeIndex) {
+                    final locale = sortedLocales[localeIndex];
+                    final voices = groupedVoices[locale]!;
+                    return ExpansionTile(
+                      title: Text(
+                        locale,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text('${voices.length} voices'),
+                      initiallyExpanded:
+                          widget.selectedVoice != null &&
+                          voices.any((v) => v.name == widget.selectedVoice),
+                      children: voices.map((voice) {
+                        return ListTile(
+                          dense: true,
+                          title: Text(voice.displayName.split(' [')[0]),
+                          subtitle:
+                              voice.quality != null ||
+                                  voice.isNetworkConnectionRequired
+                              ? Text(
+                                  '${voice.quality != null ? '${voice.quality} • ' : ''}${voice.isNetworkConnectionRequired ? 'Online' : 'Local'}',
+                                )
+                              : null,
+                          trailing: widget.selectedVoice == voice.name
+                              ? const Icon(
+                                  Icons.check,
+                                  color: Colors.green,
+                                  size: 20,
+                                )
+                              : null,
+                          onTap: () {
+                            widget.onVoiceChanged(voice.name);
+                            Navigator.of(context).pop();
+                          },
+                        );
+                      }).toList(),
                     );
                   },
                 ),
@@ -141,14 +192,25 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Enter Voice Name'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'Voice name',
-            hintText: 'e.g., en-us, com.apple.ttsbundle.Tingting-compact',
-            border: OutlineInputBorder(),
-          ),
-          autofocus: true,
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'Voice name',
+                hintText: 'e.g., en-us-x-sfg#female_2-local',
+                border: OutlineInputBorder(),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Tip: You can find available voice names in the voice picker or by running the app with debug logging.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -172,6 +234,11 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedVoiceObj = _availableVoices.firstWhere(
+      (v) => v.name == widget.selectedVoice,
+      orElse: () => TTSVoice(name: widget.selectedVoice ?? '', locale: ''),
+    );
+
     return InkWell(
       onTap: _showVoicePicker,
       child: InputDecorator(
@@ -182,7 +249,9 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
           suffixIcon: Icon(Icons.arrow_drop_down),
         ),
         child: Text(
-          widget.selectedVoice ?? 'Select a voice',
+          widget.selectedVoice != null && selectedVoiceObj.name.isNotEmpty
+              ? selectedVoiceObj.displayName
+              : 'Select a voice',
           style: TextStyle(
             color: widget.selectedVoice != null
                 ? null

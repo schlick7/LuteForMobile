@@ -4,12 +4,76 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:lute_for_mobile/features/settings/models/tts_settings.dart';
 
+class TTSVoice {
+  final String name;
+  final String locale;
+  final String? quality;
+  final bool isNetworkConnectionRequired;
+
+  TTSVoice({
+    required this.name,
+    required this.locale,
+    this.quality,
+    this.isNetworkConnectionRequired = false,
+  });
+
+  String get displayName {
+    String displayName = name;
+
+    displayName = displayName.replaceFirst(
+      RegExp(r'^([a-z]{2}-[a-z]{2})-'),
+      '',
+    );
+    displayName = displayName.replaceFirst(
+      RegExp(r'^com\.google\.android\.tts\.'),
+      '',
+    );
+    displayName = displayName.replaceFirst(
+      RegExp(r'^com\.apple\.ttsbundle\.'),
+      '',
+    );
+    displayName = displayName.replaceFirst(RegExp(r'^com\.samsung\.smt\.'), '');
+    displayName = displayName.replaceAll('#', ' ');
+    displayName = displayName.replaceAll('_', ' ');
+
+    if (displayName.isEmpty) {
+      displayName = name;
+    }
+
+    final parts = displayName.split(' ');
+    final formattedName = parts
+        .map(
+          (part) => part.isEmpty
+              ? ''
+              : '${part[0].toUpperCase()}${part.substring(1)}',
+        )
+        .join(' ');
+
+    final localeDisplay = locale.isNotEmpty ? ' [$locale]' : '';
+    final qualitySuffix = quality != null && quality != 'normal'
+        ? ' ($quality)'
+        : '';
+    final networkSuffix = isNetworkConnectionRequired ? ' (Online)' : '';
+
+    return '$formattedName$localeDisplay$qualitySuffix$networkSuffix';
+  }
+
+  factory TTSVoice.fromMap(Map<dynamic, dynamic> map) {
+    return TTSVoice(
+      name: map['name']?.toString() ?? '',
+      locale: map['locale']?.toString() ?? '',
+      quality: map['quality']?.toString(),
+      isNetworkConnectionRequired: map['isNetworkConnectionRequired'] == true,
+    );
+  }
+}
+
 abstract class TTSService {
   Future<void> speak(String text);
   Future<void> stop();
   Future<void> setLanguage(String languageCode);
   Future<void> setSettings(TTSSettingsConfig config);
-  Future<List<String>> getAvailableVoices();
+  Future<List<TTSVoice>> getAvailableVoices();
   void dispose();
 }
 
@@ -66,16 +130,25 @@ class OnDeviceTTSService implements TTSService {
   }
 
   @override
-  Future<List<String>> getAvailableVoices() async {
+  Future<List<TTSVoice>> getAvailableVoices() async {
     try {
       final voices = await _flutterTts.getVoices;
-      final result = <String>[];
+      final result = <TTSVoice>[];
       for (final v in voices) {
-        final name = v['name']?.toString();
-        if (name != null && name.isNotEmpty) {
-          result.add(name);
+        try {
+          final voice = TTSVoice.fromMap(v);
+          if (voice.name.isNotEmpty) {
+            result.add(voice);
+          }
+        } catch (e) {
+          debugPrint('Error parsing voice: $e');
         }
       }
+      result.sort((a, b) {
+        final localeCompare = a.locale.compareTo(b.locale);
+        if (localeCompare != 0) return localeCompare;
+        return a.name.compareTo(b.name);
+      });
       return result;
     } catch (e) {
       throw TTSException('Failed to get available voices: $e');
@@ -164,12 +237,14 @@ class KokoroTTSService implements TTSService {
   Future<void> setSettings(TTSSettingsConfig config) async {}
 
   @override
-  Future<List<String>> getAvailableVoices() async {
+  Future<List<TTSVoice>> getAvailableVoices() async {
     try {
       final response = await _dio.get('$endpointUrl/audio/voices');
       final data = response.data;
       if (data is Map && data.containsKey('voices')) {
-        return List<String>.from(data['voices']);
+        return (data['voices'] as List)
+            .map((v) => TTSVoice(name: v.toString(), locale: ''))
+            .toList();
       }
       return [];
     } on DioException catch (e) {
@@ -251,8 +326,15 @@ class OpenAITTSService implements TTSService {
   Future<void> setSettings(TTSSettingsConfig config) async {}
 
   @override
-  Future<List<String>> getAvailableVoices() async {
-    return ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+  Future<List<TTSVoice>> getAvailableVoices() async {
+    return [
+      'alloy',
+      'echo',
+      'fable',
+      'onyx',
+      'nova',
+      'shimmer',
+    ].map((v) => TTSVoice(name: v, locale: 'en-US')).toList();
   }
 
   @override
@@ -330,8 +412,15 @@ class LocalOpenAITTSService implements TTSService {
   Future<void> setSettings(TTSSettingsConfig config) async {}
 
   @override
-  Future<List<String>> getAvailableVoices() async {
-    return ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+  Future<List<TTSVoice>> getAvailableVoices() async {
+    return [
+      'alloy',
+      'echo',
+      'fable',
+      'onyx',
+      'nova',
+      'shimmer',
+    ].map((v) => TTSVoice(name: v, locale: 'en-US')).toList();
   }
 
   @override
@@ -362,7 +451,7 @@ class NoTTSService implements TTSService {
   }
 
   @override
-  Future<List<String>> getAvailableVoices() async {
+  Future<List<TTSVoice>> getAvailableVoices() async {
     debugPrint('TTS is disabled');
     return [];
   }
