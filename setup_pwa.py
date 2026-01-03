@@ -86,8 +86,13 @@ def deploy_to_venv(lute_info, pwa_path):
     
     print(f"\n📂 Deploying to: {dest_path}")
     
-    # Create directory
-    dest_path.mkdir(parents=True, exist_ok=True)
+    # Clean existing files
+    if dest_path.exists():
+        print("🗑️  Cleaning existing files...")
+        shutil.rmtree(dest_path)
+        dest_path.mkdir(parents=True, exist_ok=True)
+    else:
+        dest_path.mkdir(parents=True, exist_ok=True)
     
     # Copy files
     print("📋 Copying PWA files...")
@@ -143,6 +148,10 @@ def deploy_to_docker(lute_info, pwa_path):
     
     dest_path = f"{container_static}/luteformobile"
     
+    # Clean existing files
+    print("🗑️  Cleaning existing files...")
+    subprocess.run(["docker", "exec", container_name, "rm", "-rf", dest_path], check=True)
+    
     # Create directory in container
     print(f"📂 Creating directory: {dest_path}")
     subprocess.run(["docker", "exec", container_name, "mkdir", "-p", dest_path], check=True)
@@ -173,8 +182,13 @@ def deploy_to_source(lute_info, pwa_path):
     
     print(f"\n📂 Deploying to: {dest_path}")
     
-    # Create directory
-    dest_path.mkdir(parents=True, exist_ok=True)
+    # Clean existing files
+    if dest_path.exists():
+        print("🗑️  Cleaning existing files...")
+        shutil.rmtree(dest_path)
+        dest_path.mkdir(parents=True, exist_ok=True)
+    else:
+        dest_path.mkdir(parents=True, exist_ok=True)
     
     # Copy files
     print("📋 Copying PWA files...")
