@@ -8,6 +8,7 @@ import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/dictionary_service.dart';
+import '../../../core/providers/tts_provider.dart';
 import 'parent_search.dart';
 import 'dictionary_view.dart';
 
@@ -371,18 +372,35 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: GestureDetector(
-            onLongPress: () => _showEditTermDialog(context),
-            child: Tooltip(
-              message: 'Long press to edit capitalization',
-              child: Text(
-                widget.termForm.term,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                overflow: TextOverflow.ellipsis,
+          child: Row(
+            children: [
+              Flexible(
+                child: GestureDetector(
+                  onLongPress: () => _showEditTermDialog(context),
+                  child: Tooltip(
+                    message: 'Long press to edit capitalization',
+                    child: Text(
+                      widget.termForm.term,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () {
+                  final ttsService = ref.read(ttsServiceProvider);
+                  ttsService.speak(widget.termForm.term);
+                },
+                icon: const Icon(Icons.volume_up),
+                tooltip: 'Read term',
+                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                padding: EdgeInsets.zero,
+              ),
+            ],
           ),
         ),
         Row(
