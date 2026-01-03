@@ -576,38 +576,19 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         _isDictionaryOpen && settings.showParentsInDictionary;
 
     if (isInDictionaryMode) {
-      // When dictionary is open with show parents enabled, show label inline with chips
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: [
-          Text(
-            'Parent Terms',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: context.customColors.accentLabelColor,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                ...widget.termForm.parents.map((parent) {
-                  return _buildParentChip(context, parent);
-                }).toList(),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddParentDialog(context),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Parent'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                  ),
-                ),
-              ],
+          ...widget.termForm.parents.map((parent) {
+            return _buildParentChip(context, parent);
+          }).toList(),
+          ElevatedButton.icon(
+            onPressed: () => _showAddParentDialog(context),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Parent'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             ),
           ),
         ],
