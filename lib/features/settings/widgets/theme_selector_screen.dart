@@ -57,7 +57,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
-                  ? themeData.colorScheme.primary
+                  ? Theme.of(context).colorScheme.primary
                   : Colors.transparent,
               width: 2,
             ),
@@ -92,7 +92,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: themeData.colorScheme.onSurface,
+                        color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -100,9 +100,9 @@ class ThemeSelectorScreen extends ConsumerWidget {
                       _getThemeDescription(themeType),
                       style: TextStyle(
                         fontSize: 14,
-                        color: themeData.colorScheme.onSurface.withValues(
-                          alpha: 0.7,
-                        ),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                   ],
@@ -112,8 +112,10 @@ class ThemeSelectorScreen extends ConsumerWidget {
               Icon(
                 isSelected ? Icons.check_circle : Icons.circle_outlined,
                 color: isSelected
-                    ? themeData.colorScheme.primary
-                    : themeData.colorScheme.onSurface.withValues(alpha: 0.5),
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.5),
                 size: 24,
               ),
             ],
