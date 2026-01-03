@@ -379,7 +379,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     }
 
     return GestureDetector(
-      behavior: HitTestBehavior.translucent,
       onTapDown: (_) => TermTooltipClass.close(),
       onHorizontalDragEnd: (details) {
         final velocity = details.primaryVelocity ?? 0;
@@ -422,7 +421,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final settings = ref.watch(settingsProvider);
 
     return GestureDetector(
-      behavior: HitTestBehavior.translucent,
       onHorizontalDragEnd: (details) {
         final velocity = details.primaryVelocity ?? 0;
         final sentenceReaderNotifier = ref.read(
