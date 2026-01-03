@@ -36,13 +36,13 @@ PWA: (they should work, but may have issues)
 
 ## Installation
 
-### Option 1: Native - Download Release
+### Option 1: Native - Download Release (Recommended)
 
 #### Android
 
 Download the latest APK from the [Releases page](https://github.com/schlick7/LuteForMobile/releases) and install it on your device.
 
-### Option 2: Build Native Apps (Recommended)
+### Option 2: Build Native Apps
 
 Build native apps for the best performance and full feature support.
 
