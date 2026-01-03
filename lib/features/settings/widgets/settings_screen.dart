@@ -8,6 +8,8 @@ import '../../../shared/theme/app_theme.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../app.dart';
 import 'theme_selector_screen.dart';
+import 'tts_settings_section.dart';
+import 'ai_settings_section.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -567,6 +569,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            const TTSSettingsSection(),
+            const SizedBox(height: 16),
+            const AISettingsSection(),
             const SizedBox(height: 16),
             Card(
               elevation: 2,
