@@ -26,7 +26,7 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
       providerConfigs: {
         TTSProvider.onDevice: const TTSSettingsConfig(
           voice: null,
-          rate: 1.0,
+          rate: 0.5,
           pitch: 1.0,
           volume: 1.0,
         ),

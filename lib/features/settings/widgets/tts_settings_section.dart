@@ -107,10 +107,10 @@ class TTSSettingsSection extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 16),
-        Text('Rate: ${(config?.rate ?? 1.0).toStringAsFixed(2)}'),
+        Text('Rate: ${(config?.rate ?? 0.5).toStringAsFixed(2)}'),
         Slider(
-          value: config?.rate ?? 1.0,
-          min: 0.5,
+          value: config?.rate ?? 0.5,
+          min: 0.1,
           max: 2.0,
           divisions: 30,
           onChanged: (value) {
