@@ -193,16 +193,6 @@ class _VoiceSelectionDialogState extends ConsumerState<_VoiceSelectionDialog> {
     final settings = ref.watch(ttsSettingsProvider);
     final config = settings.providerConfigs[TTSProvider.kokoroTTS];
     final selectedVoices = config?.kokoroVoices ?? [];
-    final canAddVoice = selectedVoices.length < 2;
-
-    if (!canAddVoice) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          Navigator.of(context).pop();
-        }
-      });
-      return const SizedBox.shrink();
-    }
 
     return AlertDialog(
       title: const Text('Add Voice'),

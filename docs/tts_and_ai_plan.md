@@ -562,21 +562,15 @@ lib/
    - Stop TTS when switching sentences
    - Ensure TTS respects current language settings
 
-2. Create TTS controls widget (optional, for better UX)
-   - Floating widget or persistent controls
-   - Play/Pause, Stop, Next Sentence, Previous Sentence
-   - Speed control slider
-   - Volume control
-
-3. Error handling and retry for TTS
+2. Error handling and retry for TTS
    - Clear error messages for failed TTS calls
    - Retry mechanism (automatic or manual)
    - Fallback to "none" provider on critical errors after N retries
    - User-friendly error messages with actionable next steps
 
-4. Testing Checklist - Part 1, Phase 3
+3. Testing Checklist - Part 1, Phase 3
     - [ ] TTS button in sentence reader works correctly
-    - [ ] TTS controls (play/pause/stop) work correctly
+    - [ ] TTS controls (play/pause) work correctly
     - [ ] TTS visual feedback displays correctly
     - [ ] TTS stops when navigating away from sentence
     - [ ] TTS stops when switching sentences
@@ -587,7 +581,15 @@ lib/
 
 ---
 
-### Part 1, Phase 4: End-to-End TTS Testing
+### Part 1, Phase 4: TTS TermForm integration
+1. Add TTS to term form
+  - button to the right of the term label
+  - Reads only term name
+  - no other controls
+  
+---
+
+### Part 1, Phase 5: End-to-End TTS Testing
 
 1. Comprehensive TTS testing
    - Test complete flow: settings → reader → TTS usage

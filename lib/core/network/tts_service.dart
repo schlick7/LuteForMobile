@@ -10,6 +10,7 @@ abstract class TTSService {
   Future<void> setLanguage(String languageCode);
   Future<void> setSettings(TTSSettingsConfig config);
   Future<List<String>> getAvailableVoices();
+  void dispose();
 }
 
 class OnDeviceTTSService implements TTSService {
@@ -79,6 +80,11 @@ class OnDeviceTTSService implements TTSService {
     } catch (e) {
       throw TTSException('Failed to get available voices: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer?.dispose();
   }
 }
 
@@ -177,6 +183,11 @@ class KokoroTTSService implements TTSService {
       throw TTSException('Failed to get available voices: $e');
     }
   }
+
+  @override
+  void dispose() {
+    _audioPlayer?.dispose();
+  }
 }
 
 class OpenAITTSService implements TTSService {
@@ -242,6 +253,11 @@ class OpenAITTSService implements TTSService {
   @override
   Future<List<String>> getAvailableVoices() async {
     return ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
   }
 }
 
@@ -317,6 +333,11 @@ class LocalOpenAITTSService implements TTSService {
   Future<List<String>> getAvailableVoices() async {
     return ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'];
   }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+  }
 }
 
 class NoTTSService implements TTSService {
@@ -345,6 +366,9 @@ class NoTTSService implements TTSService {
     debugPrint('TTS is disabled');
     return [];
   }
+
+  @override
+  void dispose() {}
 }
 
 class TTSException implements Exception {
