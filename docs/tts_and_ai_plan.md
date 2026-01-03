@@ -8,6 +8,7 @@ Implementation of Text-to-Speech (TTS) and AI features with multiple provider op
 
 ### TTS Options
 - **On device**: Use flutter_tts package
+- **KokoroTTS**: Kokoro-FastAPI local server with OpenAI-compatible TTS API
 - **local-OpenAI endpoint**: Custom local server with OpenAI-compatible TTS API
 - **OpenAI**: Official OpenAI TTS API
 - **None**: Disable TTS functionality
@@ -33,6 +34,7 @@ Implementation of Text-to-Speech (TTS) and AI features with multiple provider op
 ```dart
 enum TTSProvider {
   onDevice,
+  kokoroTTS,
   localOpenAI,
   openAI,
   none,
@@ -42,6 +44,13 @@ enum TTSProvider {
 class TTSSettings {
   final TTSProvider provider;
   final Map<TTSProvider, TTSSettingsConfig> providerConfigs;
+}
+
+@immutable
+class KokoroVoiceWeight {
+  final String voice;
+  final int weight;
+  const KokoroVoiceWeight({required this.voice, this.weight = 1});
 }
 
 @immutable
@@ -59,6 +68,12 @@ class TTSSettingsConfig {
 
   // Local endpoint settings only
   final String? endpointUrl;
+
+  // KokoroTTS settings
+  final List<KokoroVoiceWeight>? kokoroVoices; // List of voices with weights for chips UI
+  final double? speed; // Playback speed (default 1.0)
+  final bool? useStreaming; // Enable streaming for long texts (future enhancement)
+  // Audio format: Always mp3 for universal compatibility
 }
 ```
 
@@ -121,8 +136,13 @@ final AIProvider? aiProvider;      // Default: AIProvider.none
 
 #### `lib/features/settings/providers/tts_settings_provider.dart`
 - `TTSSettingsNotifier` with SharedPreferences persistence
-- Methods: `updateProvider()`, `updateOnDeviceConfig()`, `updateOpenAIConfig()`, `updateLocalOpenAIConfig()`
-- Keys: `tts_provider`, `on_device_tts_config`, `openai_tts_config`, `local_openai_tts_config`
+- Methods: `updateProvider()`, `updateOnDeviceConfig()`, `updateKokoroTTSConfig()`, `updateOpenAIConfig()`, `updateLocalOpenAIConfig()`
+- KokoroTTS methods:
+  - `addKokoroVoice(String voice, int weight)`
+  - `removeKokoroVoice(String voice)`
+  - `updateKokoroVoiceWeight(String voice, int weight)`
+  - `generateKokoroVoiceString()` - Returns "af_bella(2)+af_sky(1)" format
+- Keys: `tts_provider`, `on_device_tts_config`, `kokoro_tts_config`, `openai_tts_config`, `local_openai_tts_config`
 
 #### `lib/features/settings/providers/ai_settings_provider.dart`
 - `AISettingsNotifier` with SharedPreferences persistence
@@ -145,6 +165,17 @@ abstract class TTSService {
 
 class OnDeviceTTSService implements TTSService {
   // Uses flutter_tts package
+}
+
+class KokoroTTSService implements TTSService {
+  // Uses dio to call Kokoro-FastAPI endpoint
+  // OpenAI-compatible /v1/audio/speech endpoint
+  // Supports voice mixing with weights: "af_bella(2)+af_sky(1)"
+  // Always uses mp3 format for universal compatibility
+  // Default port: 8880, base URL: http://localhost:8880/v1
+  // Voices stored as List<KokoroVoiceWeight> for UI chips management
+  // Supports streaming (future enhancement for long texts)
+  // Currently uses non-streaming for simplicity (sufficient for short texts like sentences)
 }
 
 class OpenAITTSService implements TTSService {
@@ -198,6 +229,13 @@ final ttsServiceProvider = Provider<TTSService>((ref) {
       final service = OnDeviceTTSService();
       if (config != null) service.setSettings(config);
       return service;
+    case TTSProvider.kokoroTTS:
+      return KokoroTTSService(
+        endpointUrl: config?.endpointUrl ?? 'http://localhost:8880/v1',
+        voices: config?.kokoroVoices ?? [],
+        audioFormat: 'mp3', // Always mp3 for universal compatibility
+        speed: config?.speed ?? 1.0,
+      );
     case TTSProvider.openAI:
       return OpenAITTSService(
         apiKey: config?.apiKey ?? '',
@@ -256,11 +294,45 @@ final aiModelsProvider = FutureProvider<List<String>>((ref) async {
 #### `lib/features/settings/widgets/tts_settings_section.dart`
 
 Structure:
-- Provider dropdown (On device, OpenAI, local-OpenAI, None)
+- Provider dropdown (On device, KokoroTTS, OpenAI, local-OpenAI, None)
 - Provider-specific settings panels:
   - **On device**: Voice dropdown, Rate slider, Pitch slider, Volume slider
+  - **KokoroTTS**:
+    - Endpoint URL field (default: http://localhost:8880/v1)
+    - **Voice chips UI**:
+      - Display selected voices as chips (e.g., [af_bella])
+      - When multiple voices selected, show mixing arrows between chips
+      - Example for 2 voices: [af_bella(2)] → [af_sky(1)]
+      - Example for 3 voices: [af_bella(2)] → [af_sky(1)] → [am_michael(1)]
+      - Tap chip to edit weight (opens weight input dialog)
+      - Swipe left/right or tap delete button to remove voice from mix
+      - Add voice button shows available voices list from /v1/audio/voices
+      - Maximum 2 voices allowed (API limit)
+    - **Streaming toggle** (optional - future enhancement):
+      - Enable/disable for long texts (books, paragraphs)
+      - Default: disabled (use non-streaming for short texts)
+      - When enabled: Use `with_streaming_response.create()` for real-time playback
+    - Speed slider
   - **OpenAI**: API key field, Model field (e.g., tts-1), Voice field (alloy/echo/fable)
   - **local-OpenAI**: Endpoint URL field, Model field, Voice field, API key field (optional)
+
+#### `lib/features/settings/widgets/kokoro_voice_chips.dart`
+- Widget for displaying and managing KokoroTTS voice selection
+- State: List of `{voice: String, weight: int}`
+- **Constraints**: Maximum 2 voices allowed (API limit based on documentation examples)
+- Methods:
+  - `addVoice(String voiceName, int weight)` - Validates < 2 voices before adding
+  - `removeVoice(String voiceName)`
+  - `updateWeight(String voiceName, int newWeight)`
+  - `generateVoiceString()` - Returns "af_bella(2)+af_sky(1)" format
+- UI behavior:
+  - Single voice: `Chip(af_bella)`
+  - Multiple voices (2 max): `Chip(af_bella(2)) → Chip(af_sky(1))`
+  - Arrow only appears when voices.length > 1
+  - Weight shown in parentheses
+  - Dismissible chips (swipe or X button)
+  - **"Add Voice" button disabled** when voices.length >= 2
+  - **Error message** shown when trying to add 3rd voice: "Maximum 2 voices allowed for mixing"
 
 #### `lib/features/settings/widgets/ai_settings_section.dart`
 
@@ -327,6 +399,7 @@ lib/
 │   │   └── widgets/
 │   │       ├── settings_screen.dart      # MODIFY - add TTS/AI sections
 │   │       ├── tts_settings_section.dart  # NEW
+│   │       ├── kokoro_voice_chips.dart   # NEW - voice chips with mixing UI
 │   │       ├── ai_settings_section.dart   # NEW
 │   │       └── model_selector.dart       # NEW - on-demand model fetching
 │   └── reader/
@@ -344,7 +417,7 @@ lib/
 **Status**: Current Request
 
 1. Create data models
-   - `TTSSettings`, `TTSSettingsConfig`, `TTSProvider` enum
+   - `TTSSettings`, `TTSSettingsConfig`, `TTSProvider` enum (include kokoroTTS)
    - `AISettings`, `AISettingsConfig`, `AIPromptConfig`, `AIProvider`, `AIPromptType` enums
    - `AIPromptTemplates` with default prompts
    - Modify `Settings` model to add `ttsProvider` and `aiProvider` fields
@@ -355,14 +428,14 @@ lib/
    - Placeholder implementations (empty/stubs for now)
 
 3. Create provider infrastructure
-   - `TTSSettingsNotifier` with SharedPreferences persistence
+   - `TTSSettingsNotifier` with SharedPreferences persistence (include kokoroTTS methods)
    - `AISettingsNotifier` with SharedPreferences persistence
    - `ttsServiceProvider` factory (returns placeholder for now)
    - `aiServiceProvider` factory (returns placeholder for now)
    - `aiModelsProvider` FutureProvider for model fetching
 
 4. Add basic UI cards
-   - `TTSSettingsSection` with provider dropdown
+   - `TTSSettingsSection` with provider dropdown (include KokoroTTS)
    - `AISettingsSection` with provider dropdown
    - Provider-specific settings panels (minimal/placeholder)
    - Prompt configuration UI (minimal)
@@ -376,6 +449,12 @@ lib/
    - Basic UI structure
    - Placeholder fetch logic (to be implemented in Phase 4)
 
+7. Create Kokoro voice chips widget
+   - Display voices as chips with weights
+   - Show mixing arrows when voices.length > 1
+   - Add/edit/remove voice functionality
+   - Generate voice mix string in "af_bella(2)+af_sky(1)" format
+
 ---
 
 ### Phase 2: TTS Implementation
@@ -385,21 +464,44 @@ lib/
    - Rate, pitch, volume controls
    - Language setting
 
-2. Implement `OpenAITTSService`
+2. Implement `KokoroTTSService`
+   - Use dio to call Kokoro-FastAPI endpoint
+   - Call `/v1/audio/speech` with model="kokoro"
+   - Support voice mixing with weights
+   - Always use mp3 format
+   - Implement `/v1/audio/voices` fetching
+   - Generate voice mix string from List<KokoroVoiceWeight>
+   - Play audio via audioplayers
+   - **Optional**: Implement streaming for long texts (useStreaming flag)
+     - Kokoro-FastAPI supports streaming via OpenAI-compatible API
+     - Can use `with_streaming_response.create()` for real-time playback
+     - Streaming benefits: faster time-to-first-byte, better UX for long texts
+   - Handle API errors
+
+3. Implement `KokoroVoiceChips` widget
+   - Display selected voices as chips with weights
+   - Show mixing arrows (→) when voices.length > 1
+   - Add voice button with available voices from `/v1/audio/voices`
+   - **Validate: Prevent adding 3rd voice (2-voice maximum limit)**
+   - Edit weight dialog
+   - Remove voice (swipe or X button)
+   - Persist voice list in SharedPreferences
+
+3. Implement `OpenAITTSService`
    - Use openai_dart to generate speech
    - Play generated audio via audioplayers
    - Handle API errors
 
-3. Implement `LocalOpenAITTSService`
+4. Implement `LocalOpenAITTSService`
    - Use dio to call local endpoint
    - OpenAI-compatible API calls
    - Play audio via audioplayers
 
-4. Connect TTS settings to services
+5. Connect TTS settings to services
    - Update factory provider to use real implementations
    - Apply settings changes at runtime
 
-5. Add TTS to reader (basic)
+6. Add TTS to reader (basic)
    - Add speak button to sentence reader
    - Connect to `ttsServiceProvider`
    - Test with different languages
@@ -577,6 +679,23 @@ lib/
 - Generates audio from text
 - OpenAI official endpoint only
 
+#### `/v1/audio/speech` (for KokoroTTS)
+- OpenAI-compatible TTS endpoint for Kokoro-FastAPI
+- Generates audio from text
+- Parameters:
+  - `model`: "kokoro" (or custom model)
+  - `input`: Text to speak
+  - `voice`: Voice name or voice mix (e.g., "af_bella", "af_bella(2)+af_sky(1)")
+  - `response_format`: Always "mp3" for universal compatibility
+  - `speed`: Playback speed (default 1.0)
+- Default port: 8880
+- No API key required for local instance
+
+#### `/v1/audio/voices` (for KokoroTTS)
+- Returns list of available voices
+- Example: `{"voices": ["af_bella", "af_sky", "af_heart", "am_michael", "am_adam", ...]}`
+- Supports voice mixing with weighted combinations
+
 #### Local TTS Endpoint (for local-OpenAI TTS)
 - Should be OpenAI-compatible or custom format
 - Endpoint URL configurable in settings
@@ -594,6 +713,20 @@ lib/
 
 ### Phase 2 (TTS)
 - [ ] On-device TTS works with voice/rate/pitch/volume
+- [ ] KokoroTTS generates and plays audio with correct voice/format/speed
+- [ ] KokoroTTS voice chips UI displays correctly
+- [ ] KokoroTTS voice mixing with weights works correctly
+- [ ] KokoroTTS voice mix string generated in "af_bella(2)+af_sky(1)" format
+- [ ] KokoroTTS mixing arrows show when voices.length > 1
+- [ ] KokoroTTS **2-voice limit enforced** (cannot add 3rd voice)
+- [ ] KokoroTTS "Add Voice" button disabled when at limit
+- [ ] KokoroTTS error message shown when trying to add 3rd voice
+- [ ] KokoroTTS fetches available voices from /v1/audio/voices
+- [ ] KokoroTTS add/edit/remove voice functions work
+- [ ] **KokoroTTS streaming support** (optional - future enhancement for long texts)
+  - [ ] Streaming toggle in settings
+  - [ ] Use `with_streaming_response.create()` for real-time playback
+  - [ ] Handle streaming chunks in audio player
 - [ ] OpenAI TTS generates and plays audio
 - [ ] Local-OpenAI TTS works with custom endpoint
 - [ ] Switching providers works at runtime
@@ -636,3 +769,136 @@ lib/
 - Design is flexible to add new providers (TTS/AI) and prompt types
 - All settings are persisted, so users don't lose configuration
 - UI follows existing app patterns (Cards, sliders, dropdowns)
+
+### KokoroTTS Specific Notes
+
+**Kokoro-FastAPI Integration:**
+- Repository: https://github.com/remsky/Kokoro-FastAPI
+- OpenAI-compatible TTS API at `/v1/audio/speech`
+- Default port: 8880, base URL: `http://localhost:8880/v1`
+- No API key required for local instances
+- Supports multi-language (English, Japanese, Chinese, Vietnamese coming soon)
+
+**Voice System:**
+- Voice names use format: `af_bella`, `af_sky`, `af_heart`, `am_michael`, `am_adam`, etc.
+  - `af_*` = American English female
+  - `am_*` = American English male
+- Supports voice mixing with weights: `"af_bella(2)+af_sky(1)"` = 67%/33% mix
+- Weights are automatically normalized to sum to 100%
+- Available voices endpoint: `GET /v1/audio/voices`
+- **Maximum 2 voices** can be mixed (based on API documentation examples)
+- API only shows 2-voice mixing examples in documentation
+
+**Voice Selection UI (Chips):**
+- Single voice: `[af_bella]`
+- Mixed voices (2 voices max): `[af_bella(2)] → [af_sky(1)]` with mixing arrows
+- Mixing arrows (→) only show when voices.length > 1
+- Chips show voice weight in parentheses
+- Tap chip to edit weight (opens weight input dialog)
+- Swipe left/right or tap X to remove voice from mix
+- **Validation**: Cannot add 3rd voice - show error "Maximum 2 voices allowed for mixing"
+- "Add Voice" button shows all available voices from `/v1/audio/voices` (disabled when at 2 voice limit)
+- Voice list shows: af_*, am_* voices (American English, Japanese, Chinese)
+
+**Voice Mix String Generation:**
+```dart
+String generateKokoroVoiceString(List<KokoroVoiceWeight> voices) {
+  if (voices.isEmpty) return '';
+  if (voices.length == 1) {
+    return voices.first.voice;
+  }
+  return voices
+      .map((v) => '${v.voice}(${v.weight})')
+      .join('+');
+}
+
+// Examples:
+// Single voice: "af_bella"
+// Two voices: "af_bella(2)+af_sky(1)"
+// Three voices: NOT SUPPORTED - API limit is 2 voices
+```
+
+**Validation Logic:**
+```dart
+// In TTSSettingsNotifier
+Future<void> addKokoroVoice(String voice, int weight) async {
+  final currentVoices = config.kokoroVoices ?? [];
+  
+  if (currentVoices.length >= 2) {
+    // Show error: "Maximum 2 voices allowed for mixing"
+    return;
+  }
+  
+  final newVoices = [...currentVoices, KokoroVoiceWeight(voice: voice, weight: weight)];
+  updateKokoroConfig(newVoices);
+}
+
+// In KokoroVoiceChips widget - disable add button when limit reached
+bool get _canAddVoice => voices.length < 2;
+```
+
+**Audio Formats:**
+- App always uses mp3 format for universal compatibility
+- Reasoning:
+  - Works on all platforms (Android, iOS, Web)
+  - Supported by all audio players
+  - Compatible with oldest to newest devices
+  - Reasonable file size and quality
+  - No compatibility headaches for users
+- Opus considered but rejected due to limited support on older Android versions and some browsers
+
+**Model:**
+- Primary model: "kokoro" (based on Kokoro-82M)
+- Custom models may be supported if endpoint allows
+- No `/models` endpoint like OpenAI (model selection is limited)
+
+**Additional Features:**
+- Streaming support for real-time playback
+- Natural boundary detection and auto-stitching
+- Per-word timestamped caption generation
+- Phoneme-based audio generation
+- Debug endpoints for monitoring (threads, storage, system stats)
+
+**Setup (for users):**
+```bash
+# Quick start with Docker
+docker run -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-cpu:latest
+# Or GPU:
+docker run --gpus all -p 8880:8880 ghcr.io/remsky/kokoro-fastapi-gpu:latest
+```
+
+**Example API Usage:**
+```dart
+// Using dio
+final voices = [
+  KokoroVoiceWeight(voice: 'af_bella', weight: 2),
+  KokoroVoiceWeight(voice: 'af_sky', weight: 1),
+];
+final voiceString = generateKokoroVoiceString(voices); // "af_bella(2)+af_sky(1)"
+
+final response = await dio.post(
+  'http://localhost:8880/v1/audio/speech',
+  data: {
+    'model': 'kokoro',
+    'input': 'Hello world!',
+    'voice': voiceString,  // "af_bella(2)+af_sky(1)" or "af_bella" for single
+    'response_format': 'mp3', // Always mp3 for universal compatibility
+    'speed': 1.0,
+  },
+  options: Options(responseType: ResponseType.bytes),
+);
+// Play audio via audioplayers
+```
+
+**Streaming Support (Future Enhancement):**
+```dart
+// Kokoro-FastAPI supports streaming via OpenAI-compatible API
+// Can use for long texts (books, paragraphs) to reduce latency
+// Implementation would use:
+//   - client.audio.speech.with_streaming_response.create()
+//   - Stream chunks to audioplayers or custom audio player
+//   - Benefit: Time-to-first-byte ~300ms vs waiting for full audio
+//
+// Note: For ground work (Phase 1), use simple non-streaming approach
+// Streaming can be added in Phase 2+ as an enhancement for long texts
+```
