@@ -28,15 +28,19 @@ PWA: (they should work, but may have issues)
 
 ## Installation
 
-### Option 1: Build Native Apps (Recommended)
-
-Build native apps for the best performance and full feature support.
+### Option 1: Native - Download Release
 
 #### Android
 
 Download the latest APK from the [Releases page](https://github.com/schlick7/LuteForMobile/releases) and install it on your device.
 
-Or build from source:
+### Option 2: Build Native Apps (Recommended)
+
+Build native apps for the best performance and full feature support.
+
+#### Android
+
+build from source:
 
 ```bash
 # Install dependencies
@@ -59,7 +63,7 @@ flutter pub get
 flutter build ios
 ```
 
-### Option 2: PWA - limited web dictionary support (all are considered embedded)
+### Option 3: PWA - limited web dictionary support (all are considered embedded)
 
 Supports all platforms (untested)
 
