@@ -588,7 +588,13 @@ lib/
   
 ---
 
-### Part 1, Phase 5: End-to-End TTS Testing
+### Part 1, Phase 5: TTS page in sentence dictionary
+1. Add TTS to SentenceTranslation dictionary
+  - Add a button to the right of the 'Orginal' label. 
+
+___
+
+### Part 1, Phase 6: End-to-End TTS Testing
 
 1. Comprehensive TTS testing
    - Test complete flow: settings → reader → TTS usage
