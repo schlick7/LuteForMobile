@@ -10,7 +10,7 @@ Change opacity for termlist
 
 lazy loading?
 
-Add page turn animation?
+Add page turn animation? - First attempt broke hard!
 
 have termform 'show tags' toggled off by default and 'auto save on close' and 'Show parents in dictionary' toggled on. 
 
@@ -28,7 +28,7 @@ Add back the add parent button to the termform with dictionary open and parents 
 
 Why are we showing(saving?!??) current bookid in the 'Current Settings' display
 
-Add a space between translation textbox newlines. 
+Add a space between translation textbox newlines. The textbox allow pressing enter and having text on a second line. In our chips though we keep it all on one line so we need to insert a space so the translations are smashed together
 
 Add more custom theme options
   - have custom open up a popup?
