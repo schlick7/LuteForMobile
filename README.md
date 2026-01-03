@@ -56,9 +56,6 @@ flutter pub get
 
 # Build APK
 flutter build apk
-
-# Or build App Bundle for Play Store
-flutter build appbundle
 ```
 
 #### iOS - UNTESTED - For "security" reasons this will expire 7 days after install (if you have work arounds let me know)
