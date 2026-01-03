@@ -196,7 +196,11 @@ class _VoiceSelectionDialogState extends ConsumerState<_VoiceSelectionDialog> {
     final canAddVoice = selectedVoices.length < 2;
 
     if (!canAddVoice) {
-      Navigator.of(context).pop();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      });
       return const SizedBox.shrink();
     }
 

@@ -89,14 +89,16 @@ class KokoroTTSService implements TTSService {
   final double speed;
 
   final Dio _dio = Dio();
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  AudioPlayer? _audioPlayer;
 
   KokoroTTSService({
     required this.endpointUrl,
     required this.voices,
     this.audioFormat = 'mp3',
     this.speed = 1.0,
-  });
+  }) {
+    _audioPlayer = AudioPlayer();
+  }
 
   String _generateVoiceString() {
     if (voices.isEmpty) return '';
@@ -127,7 +129,7 @@ class KokoroTTSService implements TTSService {
       );
 
       final audioBytes = response.data as List<int>;
-      await _audioPlayer.play(BytesSource(Uint8List.fromList(audioBytes)));
+      await _audioPlayer!.play(BytesSource(Uint8List.fromList(audioBytes)));
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError) {
         throw TTSException(
@@ -143,7 +145,7 @@ class KokoroTTSService implements TTSService {
   @override
   Future<void> stop() async {
     try {
-      await _audioPlayer.stop();
+      await _audioPlayer?.stop();
     } catch (e) {
       throw TTSException('Failed to stop Kokoro TTS: $e');
     }
