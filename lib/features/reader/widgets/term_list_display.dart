@@ -5,6 +5,38 @@ import '../utils/sentence_parser.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/theme/app_theme.dart';
 
+String _formatTranslation(String? translation) {
+  if (translation == null) return '';
+
+  final punctuation = RegExp(r'[.,!?;:，。！？；：]');
+
+  final lines = translation.split('\n');
+  final result = StringBuffer();
+  for (var i = 0; i < lines.length; i++) {
+    final trimmedLine = lines[i].trim();
+    if (trimmedLine.isEmpty) continue;
+
+    if (result.isNotEmpty) {
+      final lastLineIndex = i - 1;
+      if (lastLineIndex >= 0) {
+        final prevLine = lines[lastLineIndex].trim();
+        if (prevLine.isNotEmpty) {
+          final lastChar = prevLine[prevLine.length - 1];
+          if (!punctuation.hasMatch(lastChar)) {
+            result.write(', ');
+          } else {
+            result.write(' ');
+          }
+        }
+      }
+    }
+
+    result.write(trimmedLine);
+  }
+
+  return result.toString();
+}
+
 List<TextItem> extractUniqueTerms(
   CustomSentence? sentence, {
   bool showKnownTerms = true,
@@ -82,7 +114,7 @@ class TermListDisplay extends StatelessWidget {
     String? translation;
 
     if (tooltip != null) {
-      translation = tooltip.translation?.replaceAll('\n', ' ');
+      translation = _formatTranslation(tooltip.translation);
     }
 
     final children = <Widget>[
@@ -138,17 +170,22 @@ class TermListDisplay extends StatelessWidget {
           ),
         );
         if (parent.translation != null) {
-          children.add(
-            Text(
-              ' - ${parent.translation?.replaceAll('\n', ' ')}',
-              style: TextStyle(
-                fontSize: 11,
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.8),
-              ),
-            ),
+          final formattedParentTranslation = _formatTranslation(
+            parent.translation,
           );
+          if (formattedParentTranslation.isNotEmpty) {
+            children.add(
+              Text(
+                ' - $formattedParentTranslation',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.8),
+                ),
+              ),
+            );
+          }
         }
         if (i < tooltip.parents.length - 1) {
           children.add(
