@@ -42,6 +42,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isUiVisible = true;
   Timer? _hideUiTimer;
   ScrollController _scrollController = ScrollController();
+  double _lastScrollPosition = 0.0;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -141,18 +142,21 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     if (!textSettings.fullscreenMode) {
       _cancelHideTimer();
+      _lastScrollPosition = _scrollController.offset;
       return;
     }
 
     final scrollPosition = _scrollController.offset;
     const topThreshold = 70.0;
 
-    if (scrollPosition < topThreshold) {
+    if (scrollPosition < topThreshold && scrollPosition < _lastScrollPosition) {
       if (!_isUiVisible) {
         _showUi();
       }
       _resetHideTimer();
     }
+
+    _lastScrollPosition = scrollPosition;
   }
 
   void _showUi() {
