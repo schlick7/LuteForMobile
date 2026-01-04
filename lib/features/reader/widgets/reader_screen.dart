@@ -555,8 +555,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         topPadding: textSettings.fullscreenMode && !_isUiVisible
             ? MediaQuery.of(context).padding.top
             : 0.0,
-        bottomControlWidget:
-            textSettings.fullscreenMode && pageData.pageCount > 1
+        bottomControlWidget: pageData.pageCount > 1
             ? _buildPageControls(context, pageData)
             : null,
         onTap: (item, position) {
