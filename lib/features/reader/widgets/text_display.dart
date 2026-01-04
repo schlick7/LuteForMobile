@@ -17,6 +17,7 @@ class TextDisplay extends StatefulWidget {
   final bool isItalic;
   final ScrollController? scrollController;
   final double topPadding;
+  final Widget? bottomControlWidget;
 
   const TextDisplay({
     super.key,
@@ -31,6 +32,7 @@ class TextDisplay extends StatefulWidget {
     this.isItalic = false,
     this.scrollController,
     this.topPadding = 0.0,
+    this.bottomControlWidget,
   });
 
   static Widget buildInteractiveWord(
@@ -170,9 +172,15 @@ class _TextDisplayState extends State<TextDisplay> {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: widget.paragraphs.map((paragraph) {
-            return _buildParagraph(context, paragraph);
-          }).toList(),
+          children: [
+            ...widget.paragraphs.map((paragraph) {
+              return _buildParagraph(context, paragraph);
+            }).toList(),
+            if (widget.bottomControlWidget != null) ...[
+              const SizedBox(height: 16),
+              widget.bottomControlWidget!,
+            ],
+          ],
         ),
       ),
     );

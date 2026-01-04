@@ -279,10 +279,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               Expanded(child: _buildBody(isLoading, errorMessage, pageData)),
             ],
           ),
-          if (textSettings.fullscreenMode &&
-              pageData != null &&
-              pageData.pageCount > 1)
-            _buildFloatingPageControls(context, pageData),
         ],
       ),
     );
@@ -391,48 +387,39 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  Widget _buildFloatingPageControls(BuildContext context, PageData pageData) {
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      bottom: _isUiVisible ? 16 : -100,
-      right: 16,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 200),
-        opacity: _isUiVisible ? 1.0 : 0.0,
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: pageData.currentPage > 1
-                      ? () => _goToPage(pageData.currentPage - 1)
-                      : null,
-                  tooltip: 'Previous page',
+  Widget _buildPageControls(BuildContext context, PageData pageData) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: pageData.currentPage > 1
+                    ? () => _goToPage(pageData.currentPage - 1)
+                    : null,
+                tooltip: 'Previous page',
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  pageData.pageIndicator,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    pageData.pageIndicator,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: pageData.currentPage < pageData.pageCount
-                      ? () => _goToPage(pageData.currentPage + 1)
-                      : null,
-                  tooltip: 'Next page',
-                ),
-              ],
-            ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: pageData.currentPage < pageData.pageCount
+                    ? () => _goToPage(pageData.currentPage + 1)
+                    : null,
+                tooltip: 'Next page',
+              ),
+            ],
           ),
         ),
       ),
@@ -568,6 +555,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         topPadding: textSettings.fullscreenMode && !_isUiVisible
             ? MediaQuery.of(context).padding.top
             : 0.0,
+        bottomControlWidget:
+            textSettings.fullscreenMode && pageData.pageCount > 1
+            ? _buildPageControls(context, pageData)
+            : null,
         onTap: (item, position) {
           _handleTap(item, position);
         },
