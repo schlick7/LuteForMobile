@@ -565,7 +565,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       child: TextDisplay(
         paragraphs: pageData!.paragraphs,
         scrollController: _scrollController,
-        topPadding: textSettings.fullscreenMode
+        topPadding: textSettings.fullscreenMode && !_isUiVisible
             ? MediaQuery.of(context).padding.top
             : 0.0,
         onTap: (item, position) {
