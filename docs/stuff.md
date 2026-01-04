@@ -2,12 +2,7 @@
 - flutter run -d web-server --debug 
 - source myenv/bin/activate
   - python3 -m lute.main
-
-####
-
-Fix fullscreen from cutting off the top menu!
-
-##
+  
 
 # Terms Screen
 - Use Termform for term editing
@@ -15,6 +10,8 @@ Fix fullscreen from cutting off the top menu!
 lazy loading?
 
 ## Add page turn animation? - First attempt broke hard!
+
+Make it so fullscreen top bar doesn't reopen when in the top pixel range if scrolling down. 
 
 ### TTS options: On device, local-OpenAI endpoint, OpenAI, None
   - better on device Names?
