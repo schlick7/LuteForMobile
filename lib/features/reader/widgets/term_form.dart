@@ -594,22 +594,29 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         _isDictionaryOpen && settings.showParentsInDictionary;
 
     if (isInDictionaryMode) {
-      return Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          ...widget.termForm.parents.map((parent) {
-            return _buildParentChip(context, parent);
-          }).toList(),
-          ElevatedButton.icon(
-            onPressed: () => _showAddParentDialog(context),
-            icon: const Icon(Icons.add),
-            label: const Text('Add Parent'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            ...widget.termForm.parents.map((parent) {
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: _buildParentChip(context, parent),
+              );
+            }).toList(),
+            ElevatedButton.icon(
+              onPressed: () => _showAddParentDialog(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Parent'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
@@ -667,12 +674,16 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         ),
         const SizedBox(height: 4),
         if (widget.termForm.parents.isNotEmpty)
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: widget.termForm.parents.map((parent) {
-              return _buildParentChip(context, parent);
-            }).toList(),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: widget.termForm.parents.map((parent) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _buildParentChip(context, parent),
+                );
+              }).toList(),
+            ),
           ),
       ],
     );
@@ -782,15 +793,15 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Unlink Parent'),
-        content: Text('Are you sure you want to unlink from "${parent.term}"?'),
+        title: const Text('Remove Parent'),
+        content: Text('Remove parent term from "${parent.term}"?'),
         actions: [
           TextButton(
             onPressed: () {
               _removeParent(parent);
               Navigator.of(context).pop();
             },
-            child: const Text('Unlink'),
+            child: const Text('Remove'),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
