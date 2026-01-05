@@ -429,7 +429,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 onPressed: () => _markPageKnown(),
                 tooltip: 'All Known',
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 24),
               IconButton(
                 icon: const Icon(Icons.chevron_left),
                 onPressed: pageData.currentPage > 1
