@@ -124,6 +124,7 @@ class ApiService {
         'pagenum': pageNum,
         'restknown': restKnown ? 1 : 0,
       },
+      options: Options(contentType: 'application/json'),
     );
   }
 

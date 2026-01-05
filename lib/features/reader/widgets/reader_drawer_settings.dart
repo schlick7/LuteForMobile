@@ -460,15 +460,25 @@ class ReaderDrawerSettings extends ConsumerWidget {
     WidgetRef ref,
     dynamic textSettings,
   ) {
-    return SwitchListTile(
-      title: const Text('Swipe marks "Read"'),
-      subtitle: const Text('Mark pages as read when swiping to next page'),
-      value: textSettings.swipeMarksRead,
-      onChanged: (value) {
-        ref
-            .read(textFormattingSettingsProvider.notifier)
-            .updateSwipeMarksRead(value);
-      },
+    return Row(
+      children: [
+        const Text(
+          'Mark pages as read when swiping',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const Spacer(),
+        Transform.scale(
+          scale: 0.8,
+          child: Switch(
+            value: textSettings.swipeMarksRead,
+            onChanged: (value) {
+              ref
+                  .read(textFormattingSettingsProvider.notifier)
+                  .updateSwipeMarksRead(value);
+            },
+          ),
+        ),
+      ],
     );
   }
 
