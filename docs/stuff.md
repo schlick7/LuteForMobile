@@ -9,12 +9,17 @@
 
 lazy loading?
 
+- Move Swipe marks page read toggle out of the hamburger menu and into the settings screen
+
+- Make Text Formatting into a collapsable menu 
+
 ## Add page turn animation? - First attempt broke hard!
 
-Make it so fullscreen top bar doesn't reopen when in the top pixel range if scrolling down. 
+Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype?
+
+All known button should navigate to the next page. If on the last page it should reload all of the status highlights so they can properly update as all known
 
 ### TTS options: On device, local-OpenAI endpoint, OpenAI, None
-  - better on device Names?
   - Future: add a selector in language settings to apply voices based on languages. 
   - add test server button
   
