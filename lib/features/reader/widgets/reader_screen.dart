@@ -583,13 +583,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         final velocity = details.primaryVelocity ?? 0;
         if (velocity > 0) {
           if (pageData!.currentPage > 1) {
-            _goToPage(pageData!.currentPage - 1);
+            _loadPageWithoutMarkingRead(pageData!.currentPage - 1);
           }
         } else if (velocity < 0) {
           if (pageData!.currentPage < pageData!.pageCount) {
-            final textSettings = ref.read(textFormattingSettingsProvider);
+            final currentTextSettings = ref.read(
+              textFormattingSettingsProvider,
+            );
 
-            if (textSettings.swipeMarksRead) {
+            if (currentTextSettings.swipeMarksRead) {
               try {
                 await ref
                     .read(readerProvider.notifier)
@@ -600,7 +602,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             }
 
             await Future.delayed(const Duration(milliseconds: 400));
-            _goToPage(pageData!.currentPage + 1);
+            _loadPageWithoutMarkingRead(pageData!.currentPage + 1);
           }
         }
       },
