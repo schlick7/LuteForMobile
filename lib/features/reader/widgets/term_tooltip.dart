@@ -39,6 +39,7 @@ class TermTooltipClass {
   static Timer? _dismissTimer;
   static final GlobalKey _tooltipKey = GlobalKey();
   static bool _isHidden = false;
+  static bool _makeVisibleRequested = false;
 
   static void show(
     BuildContext context,
@@ -46,6 +47,7 @@ class TermTooltipClass {
     Offset position,
   ) {
     close();
+    _makeVisibleRequested = false;
 
     final screenSize = MediaQuery.of(context).size;
     _isHidden = true;
@@ -272,13 +274,21 @@ class TermTooltipClass {
           ),
         );
         Overlay.of(context).insert(_currentEntry!);
+
+        if (_makeVisibleRequested && _isHidden) {
+          makeVisible();
+        }
       }
     });
     _setupAutoDismiss();
   }
 
   static void makeVisible() {
-    if (_currentEntry == null || !_isHidden) return;
+    if (_currentEntry == null) {
+      _makeVisibleRequested = true;
+      return;
+    }
+    if (!_isHidden) return;
     _isHidden = false;
     _currentEntry?.markNeedsBuild();
   }
@@ -288,6 +298,7 @@ class TermTooltipClass {
     _currentEntry?.remove();
     _currentEntry = null;
     _isHidden = false;
+    _makeVisibleRequested = false;
   }
 
   static void _setupAutoDismiss() {
