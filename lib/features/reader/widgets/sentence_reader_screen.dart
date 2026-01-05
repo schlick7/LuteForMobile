@@ -12,9 +12,13 @@ import '../widgets/sentence_translation.dart';
 import '../widgets/sentence_reader_display.dart';
 import '../widgets/term_list_display.dart';
 import '../widgets/sentence_tts_button.dart';
+import '../widgets/sentence_ai_translation_button.dart';
+import '../widgets/sentence_ai_translation_widget.dart';
 import '../utils/sentence_parser.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../../../features/settings/providers/settings_provider.dart';
+import '../../../features/settings/providers/ai_settings_provider.dart';
+import '../../../features/settings/models/ai_settings.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../app.dart';
@@ -496,13 +500,28 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
               children: [
                 Text('Terms', style: Theme.of(context).textTheme.titleLarge),
                 const Spacer(),
-                if (currentSentence != null)
+                if (currentSentence != null) ...[
+                  SentenceAITranslationButton(
+                    text: currentSentence!.textItems
+                        .map((item) => item.text)
+                        .join(),
+                    sentenceId: currentSentence!.id,
+                    languageId: currentSentence!.textItems.first.langId ?? 0,
+                    language: 'English',
+                    onTranslationRequested: () => _showAITranslation(
+                      currentSentence!.textItems
+                          .map((item) => item.text)
+                          .join(),
+                      currentSentence!.textItems.first.langId ?? 0,
+                    ),
+                  ),
                   SentenceTTSButton(
                     text: currentSentence!.textItems
                         .map((item) => item.text)
                         .join(),
                     sentenceId: currentSentence!.id,
                   ),
+                ],
               ],
             ),
           ),
@@ -1282,6 +1301,27 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             fetchLanguageSettingsHtml: (langId) =>
                 repository.contentService.getLanguageSettingsHtml(langId),
           ),
+          onClose: () => Navigator.of(context).pop(),
+        );
+      },
+    );
+  }
+
+  void _showAITranslation(String sentence, int languageId) {
+    final aiSettings = ref.read(aiSettingsProvider);
+    final language =
+        aiSettings.promptConfigs[AIPromptType.sentenceTranslation]?.language ??
+        'English';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return SentenceAITranslationWidget(
+          sentence: sentence,
+          languageId: languageId,
+          language: language,
           onClose: () => Navigator.of(context).pop(),
         );
       },

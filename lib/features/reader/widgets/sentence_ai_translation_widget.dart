@@ -1,0 +1,225 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/providers/ai_provider.dart';
+
+class SentenceAITranslationWidget extends ConsumerStatefulWidget {
+  final String sentence;
+  final int languageId;
+  final String language;
+  final VoidCallback onClose;
+
+  const SentenceAITranslationWidget({
+    super.key,
+    required this.sentence,
+    required this.languageId,
+    required this.language,
+    required this.onClose,
+  });
+
+  @override
+  ConsumerState<SentenceAITranslationWidget> createState() =>
+      _SentenceAITranslationWidgetState();
+}
+
+enum AITranslationStatus { idle, loading, success, error }
+
+class _SentenceAITranslationWidgetState
+    extends ConsumerState<SentenceAITranslationWidget> {
+  AITranslationStatus _status = AITranslationStatus.idle;
+  String? _translation;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchTranslation();
+    });
+  }
+
+  Future<void> _fetchTranslation() async {
+    if (_status == AITranslationStatus.loading) return;
+
+    setState(() {
+      _status = AITranslationStatus.loading;
+      _translation = null;
+      _errorMessage = null;
+    });
+
+    try {
+      final aiService = ref.read(aiServiceProvider);
+      final translation = await aiService.translateSentence(
+        widget.sentence,
+        widget.language,
+      );
+
+      if (mounted) {
+        setState(() {
+          _status = AITranslationStatus.success;
+          _translation = translation;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _status = AITranslationStatus.error;
+          _errorMessage = e.toString();
+        });
+      }
+    }
+  }
+
+  void _retry() {
+    _fetchTranslation();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: BoxConstraints(
+        minHeight: 200,
+        maxHeight: MediaQuery.of(context).size.height * 0.8,
+      ),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildHeader(context),
+          const SizedBox(height: 16),
+          Expanded(child: _buildContent(context)),
+          const SizedBox(height: 16),
+          _buildActions(context),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'AI Translation',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close)),
+      ],
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    switch (_status) {
+      case AITranslationStatus.idle:
+        return const SizedBox.shrink();
+      case AITranslationStatus.loading:
+        return const Center(child: CircularProgressIndicator());
+      case AITranslationStatus.success:
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Original:',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.sentence,
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Translation:',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _translation ?? '',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        );
+      case AITranslationStatus.error:
+        return Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Translation failed',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage ?? 'An unknown error occurred',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _retry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        );
+    }
+  }
+
+  Widget _buildActions(BuildContext context) {
+    if (_status != AITranslationStatus.success) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: _translation ?? ''));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Translation copied to clipboard'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            icon: const Icon(Icons.copy),
+            label: const Text('Copy'),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: ElevatedButton.icon(
+            onPressed: widget.onClose,
+            icon: const Icon(Icons.close),
+            label: const Text('Close'),
+          ),
+        ),
+      ],
+    );
+  }
+}
