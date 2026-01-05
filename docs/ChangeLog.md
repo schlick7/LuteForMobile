@@ -17,4 +17,5 @@
 # Other Changes
 - added nav buttons to the bottom of the reader text
 - added support for marking pages as read (adds words read on page to stats)
+- added Reader preloading and caching
 - various UI tweaks
