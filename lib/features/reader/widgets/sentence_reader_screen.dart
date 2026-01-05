@@ -168,51 +168,64 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         if (_isParsing) {
           print('DEBUG: Already parsing, skipping duplicate call');
         } else {
+          final sentenceReader = ref.read(sentenceReaderProvider);
           final reader = ref.read(readerProvider);
-          print(
-            'DEBUG: reader.languageSentenceSettings=${reader.languageSentenceSettings != null}, langId=$langId',
-          );
-          _isParsing = true;
-          Future(() {
-            ref
-                .read(sentenceReaderProvider.notifier)
-                .parseSentencesForPage(langId, initialIndex: 0)
-                .then((_) {
-                  if (mounted) {
-                    _isParsing = false;
-                    final sentenceReader = ref.read(sentenceReaderProvider);
-                    print(
-                      'DEBUG: Sentences loaded: ${sentenceReader.customSentences.length}',
-                    );
-                    if (sentenceReader.customSentences.isNotEmpty) {
-                      _hasInitialized = true;
-                      _initializationFailed = false;
+
+          if (sentenceReader.lastParsedBookId == bookId &&
+              sentenceReader.lastParsedPageNum == pageNum &&
+              sentenceReader.customSentences.isNotEmpty) {
+            print(
+              'DEBUG: Sentences already loaded for this page, skipping initialization',
+            );
+            _hasInitialized = true;
+            _initializationFailed = false;
+            _loadTooltipsForCurrentSentence();
+          } else {
+            print(
+              'DEBUG: reader.languageSentenceSettings=${reader.languageSentenceSettings != null}, langId=$langId',
+            );
+            _isParsing = true;
+            Future(() {
+              ref
+                  .read(sentenceReaderProvider.notifier)
+                  .parseSentencesForPage(langId, initialIndex: 0)
+                  .then((_) {
+                    if (mounted) {
+                      _isParsing = false;
+                      final sentenceReader = ref.read(sentenceReaderProvider);
                       print(
-                        'DEBUG: Initialization successful, _hasInitialized=$_hasInitialized',
+                        'DEBUG: Sentences loaded: ${sentenceReader.customSentences.length}',
                       );
-                    } else {
+                      if (sentenceReader.customSentences.isNotEmpty) {
+                        _hasInitialized = true;
+                        _initializationFailed = false;
+                        print(
+                          'DEBUG: Initialization successful, _hasInitialized=$_hasInitialized',
+                        );
+                      } else {
+                        _hasInitialized = false;
+                        _initializationFailed = true;
+                        print(
+                          'DEBUG: Initialization failed - no sentences loaded',
+                        );
+                      }
+                      ref
+                          .read(sentenceReaderProvider.notifier)
+                          .loadSavedPosition();
+                      _loadTooltipsForCurrentSentence();
+                    }
+                  })
+                  .catchError((e, stackTrace) {
+                    print('DEBUG: Error during parsing: $e');
+                    print('DEBUG: Stack trace: $stackTrace');
+                    if (mounted) {
+                      _isParsing = false;
                       _hasInitialized = false;
                       _initializationFailed = true;
-                      print(
-                        'DEBUG: Initialization failed - no sentences loaded',
-                      );
                     }
-                    ref
-                        .read(sentenceReaderProvider.notifier)
-                        .loadSavedPosition();
-                    _loadTooltipsForCurrentSentence();
-                  }
-                })
-                .catchError((e, stackTrace) {
-                  print('DEBUG: Error during parsing: $e');
-                  print('DEBUG: Stack trace: $stackTrace');
-                  if (mounted) {
-                    _isParsing = false;
-                    _hasInitialized = false;
-                    _initializationFailed = true;
-                  }
-                });
-          });
+                  });
+            });
+          }
         }
       }
     }
