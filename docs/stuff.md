@@ -13,6 +13,9 @@
 fixed? Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
   - how hard to add elsewhere?
 
+## Add help Screen
+
+
 ### TTS options: On device, local-OpenAI endpoint, OpenAI, None
   - Future: add a selector in language settings to apply TTS voices based on languages. 
   - add test server button
@@ -47,19 +50,3 @@ Add more custom theme options
 - When page marked as done and a popup to navigate to books to pick out another. Add a great job or something and a animation of some kind to celebrate the completetion of a book. Include number of words in the book? 
 - add a selector in language settings to apply TTS voices based on languages. 
 - add todays read stats to bottom nav bar
-
-# PWA
-## Build the web app first
-flutter build web
-
-## Add script
-cp setup_pwa.py build/web/
-
-## Fix permissions
-cd build/web
-sudo find build/web -type f -exec chmod 644 {} \;
-sudo find build/web -type d -exec chmod 755 {} \;
-sudo chown -R $USER:$USER build/web
-
-## Create the zip
-zip -r ../../LuteForMobilePWA.zip * -x "*.last_build_id"
