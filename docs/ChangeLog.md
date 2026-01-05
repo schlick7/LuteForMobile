@@ -1,5 +1,6 @@
 # Bug Fixes
 - Fixed top bar getting hidden in fullscreen mode
+- Fixed (hopefully) timing on slower servers
 
 # New Feature - TTS - KokoroFastAPI
 - 4 TTS options
@@ -13,5 +14,5 @@
   - In the SentenceTranslation dictonary in the Reader for full sentence
 
 # Other Changes
-- add nav buttons to the bottom of the reader text
-PENDING - added support for marking pages as read (adds words read on page to stats)
+- added nav buttons to the bottom of the reader text
+- added support for marking pages as read (adds words read on page to stats)
