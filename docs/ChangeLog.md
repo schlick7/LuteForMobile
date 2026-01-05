@@ -1,6 +1,7 @@
 # Bug Fixes
 - Fixed top bar getting hidden in fullscreen mode
 - Fixed (hopefully) timing on slower servers
+- various minor bugs
 
 # New Feature - TTS - KokoroFastAPI
 - 4 TTS options
@@ -16,3 +17,4 @@
 # Other Changes
 - added nav buttons to the bottom of the reader text
 - added support for marking pages as read (adds words read on page to stats)
+- various UI tweaks
