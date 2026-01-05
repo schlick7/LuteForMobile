@@ -150,7 +150,7 @@ class AISettingsSection extends ConsumerWidget {
         TextField(
           decoration: const InputDecoration(
             labelText: 'Endpoint URL',
-            hintText: 'http://localhost:port',
+            hintText: 'http://localhost:port/v1',
             border: OutlineInputBorder(),
           ),
           controller: TextEditingController(text: config?.endpointUrl),
