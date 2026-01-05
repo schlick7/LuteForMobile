@@ -11,3 +11,7 @@
   - In Termform for single term TTS
   - In Sentence Reader for full sentence
   - In the SentenceTranslation dictonary in the Reader for full sentence
+
+# Other Changes
+- add nav buttons to the bottom of the reader text
+PENDING - added support for marking pages as read (adds words read on page to stats)
