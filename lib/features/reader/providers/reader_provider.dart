@@ -20,7 +20,6 @@ class ReaderState {
   final bool isTermFormLoading;
   final LanguageSentenceSettings? languageSentenceSettings;
   final bool isBackgroundRefreshing;
-  final PageData? nextPageData;
 
   const ReaderState({
     this.isLoading = false,
@@ -30,7 +29,6 @@ class ReaderState {
     this.isTermFormLoading = false,
     this.languageSentenceSettings,
     this.isBackgroundRefreshing = false,
-    this.nextPageData,
   });
 
   ReaderState copyWith({
@@ -41,7 +39,6 @@ class ReaderState {
     bool? isTermFormLoading,
     LanguageSentenceSettings? languageSentenceSettings,
     bool? isBackgroundRefreshing,
-    PageData? nextPageData,
   }) {
     return ReaderState(
       isLoading: isLoading ?? this.isLoading,
@@ -53,7 +50,6 @@ class ReaderState {
           languageSentenceSettings ?? this.languageSentenceSettings,
       isBackgroundRefreshing:
           isBackgroundRefreshing ?? this.isBackgroundRefreshing,
-      nextPageData: nextPageData ?? this.nextPageData,
     );
   }
 }
@@ -107,14 +103,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
             );
           }
         } else {
-          state = state.copyWith(
-            isLoading: false,
-            pageData: pageData,
-            nextPageData: null,
-          );
+          state = state.copyWith(isLoading: false, pageData: pageData);
 
-          if (!state.isLoading) {
-            unawaited(preloadNextPage());
+          if (pageData.currentPage < pageData.pageCount) {
+            preloadNextPage();
           }
         }
       }
@@ -176,13 +168,12 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
     while (retryCount < maxRetries) {
       try {
-        final nextPage = await _repository.getPage(
+        await _repository.getPage(
           bookId: currentPageData.bookId,
           pageNum: nextPageNum,
           useCache: true,
           forceRefresh: false,
         );
-        state = state.copyWith(nextPageData: nextPage);
         return;
       } catch (e) {
         retryCount++;
@@ -223,11 +214,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
   }
 
   void setPageDirectly(PageData pageData) {
-    state = state.copyWith(
-      isLoading: false,
-      pageData: pageData,
-      nextPageData: null,
-    );
+    state = state.copyWith(isLoading: false, pageData: pageData);
   }
 
   void clearError() {
