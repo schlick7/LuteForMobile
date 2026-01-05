@@ -967,13 +967,29 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       _isLastPageMarkedDone = false;
     });
 
-    ref
-        .read(readerProvider.notifier)
-        .loadPage(
-          bookId: pageData.bookId,
-          pageNum: pageNum,
-          showFullPageError: false,
-        );
+    final preloadedData = ref.read(readerProvider).nextPageData;
+
+    if (preloadedData != null &&
+        preloadedData.currentPage == pageNum &&
+        preloadedData.bookId == pageData.bookId) {
+      ref.read(readerProvider.notifier).setPageDirectly(preloadedData);
+
+      ref.read(readerProvider.notifier).refreshCurrentPageStatuses();
+
+      unawaited(ref.read(readerProvider.notifier).preloadNextPage());
+    } else {
+      ref
+          .read(readerProvider.notifier)
+          .loadPage(
+            bookId: pageData.bookId,
+            pageNum: pageNum,
+            showFullPageError: false,
+            useCache: true,
+            refreshStatuses: false,
+          );
+
+      ref.read(readerProvider.notifier).refreshCurrentPageStatuses();
+    }
   }
 
   Future<void> _loadPageWithoutMarkingRead(int pageNum) async {
@@ -984,13 +1000,29 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       _isLastPageMarkedDone = false;
     });
 
-    ref
-        .read(readerProvider.notifier)
-        .loadPage(
-          bookId: pageData.bookId,
-          pageNum: pageNum,
-          showFullPageError: false,
-        );
+    final preloadedData = ref.read(readerProvider).nextPageData;
+
+    if (preloadedData != null &&
+        preloadedData.currentPage == pageNum &&
+        preloadedData.bookId == pageData.bookId) {
+      ref.read(readerProvider.notifier).setPageDirectly(preloadedData);
+
+      ref.read(readerProvider.notifier).refreshCurrentPageStatuses();
+
+      unawaited(ref.read(readerProvider.notifier).preloadNextPage());
+    } else {
+      ref
+          .read(readerProvider.notifier)
+          .loadPage(
+            bookId: pageData.bookId,
+            pageNum: pageNum,
+            showFullPageError: false,
+            useCache: true,
+            refreshStatuses: false,
+          );
+
+      ref.read(readerProvider.notifier).refreshCurrentPageStatuses();
+    }
   }
 
   void _showTextFormattingOptions() {
