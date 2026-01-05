@@ -7,25 +7,11 @@
 # Terms Screen
 - Use Termform for term editing
 
-Navigating back on the sentence reader and triggering a back page turn should start the sentences on the last sentence of that page. should be like this: ' (3/5) 1/5) - back sentence button pressed - (2/5) 7/7 '
-
-- Move Swipe marks page read toggle out of the hamburger menu and into the settings screen
-
-- Make Text Formatting into a collapsable menu 
 
 ## Add page turn animation? - First attempt broke hard!
 
-Add more space/padding between all known button and back button
-
-When fetching a tooltip does it send back the 200 status before actually sending the data?
-
-Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
+fixed? Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
   - how hard to add elsewhere?
-
-
-All known button should navigate to the next page. If on the last page it should reload all of the status highlights so they can properly update as all known
-
-Remove the 'Audio Player' header from the hamburger menu settings to reduce space usage. 
 
 ### TTS options: On device, local-OpenAI endpoint, OpenAI, None
   - Future: add a selector in language settings to apply TTS voices based on languages. 
@@ -44,7 +30,7 @@ Maybe fixed? When we combine sentences with the sentence parser lets make sure t
 
 Add next page preload to ReaderScreen
 
-Make parent chips horizontal scrollable
+Make parent chips list horizontally scrollable
 
 
 Add more custom theme options
@@ -54,8 +40,6 @@ Add more custom theme options
     - have a create from selector where we pick one of the already existing themes or select none. This will auto fill in all of the options with those colors. This is so users can have a custom theme with minor changes or a custom theme with major changes -- best of both worlds. 
   - status should have a toggle for showing the selected color as the background highlight(like 1-5) or the text color (like status0) 
 
-
-  make the text weight slider smart and only show options available for that font family
 
 
 
