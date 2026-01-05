@@ -1,12 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
-import '../../settings/providers/settings_provider.dart';
 import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
 import '../models/language_sentence_settings.dart';
 import '../repositories/reader_repository.dart';
-import '../../../core/network/content_service.dart';
 import '../../../shared/providers/network_providers.dart';
 
 import 'sentence_reader_provider.dart';
@@ -233,6 +231,14 @@ class ReaderNotifier extends Notifier<ReaderState> {
       // Return -1 to indicate error
       return -1;
     }
+  }
+
+  Future<void> markPageRead(int bookId, int pageNum) async {
+    await _repository.markPageRead(bookId, pageNum);
+  }
+
+  Future<void> markPageKnown(int bookId, int pageNum) async {
+    await _repository.markPageKnown(bookId, pageNum);
   }
 }
 

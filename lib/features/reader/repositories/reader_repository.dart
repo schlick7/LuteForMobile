@@ -129,4 +129,20 @@ class ReaderRepository {
       throw Exception('Failed to get current page for book: $e');
     }
   }
+
+  Future<void> markPageRead(int bookId, int pageNum) async {
+    try {
+      await contentService.markPageReadOnly(bookId, pageNum);
+    } catch (e) {
+      throw Exception('Failed to mark page as read: $e');
+    }
+  }
+
+  Future<void> markPageKnown(int bookId, int pageNum) async {
+    try {
+      await contentService.markPageKnownOnly(bookId, pageNum);
+    } catch (e) {
+      throw Exception('Failed to mark page as known: $e');
+    }
+  }
 }

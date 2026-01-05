@@ -391,6 +391,10 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         if (currentPage < pageCount) {
           await ref
               .read(readerProvider.notifier)
+              .markPageRead(reader.pageData!.bookId, currentPage);
+
+          await ref
+              .read(readerProvider.notifier)
               .loadPage(
                 bookId: reader.pageData!.bookId,
                 pageNum: currentPage + 1,

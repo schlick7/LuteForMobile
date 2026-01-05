@@ -60,6 +60,14 @@ class ContentService {
     return getPageContent(bookId, pageNum: pageNum, mode: ContentMode.reading);
   }
 
+  Future<void> markPageReadOnly(int bookId, int pageNum) async {
+    await _apiService.postPageDone(bookId, pageNum, false);
+  }
+
+  Future<void> markPageKnownOnly(int bookId, int pageNum) async {
+    await _apiService.postPageDone(bookId, pageNum, true);
+  }
+
   Future<Response<String>> _getPageHtml(
     int bookId,
     int pageNum,

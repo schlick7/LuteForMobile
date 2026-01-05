@@ -43,6 +43,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Timer? _hideUiTimer;
   ScrollController _scrollController = ScrollController();
   double _lastScrollPosition = 0.0;
+  DateTime? _lastMarkPageTime;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -399,6 +400,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
+                icon: const Icon(Icons.check_circle_outline),
+                onPressed: () => _markPageKnown(),
+                tooltip: 'All Known',
+              ),
+              const SizedBox(width: 8),
+              IconButton(
                 icon: const Icon(Icons.chevron_left),
                 onPressed: pageData.currentPage > 1
                     ? () => _goToPage(pageData.currentPage - 1)
@@ -535,7 +542,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           _showUi();
         }
       },
-      onHorizontalDragEnd: (details) {
+      onHorizontalDragEnd: (details) async {
         if (pageData!.pageCount <= 1) return;
 
         final velocity = details.primaryVelocity ?? 0;
@@ -545,6 +552,19 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           }
         } else if (velocity < 0) {
           if (pageData!.currentPage < pageData!.pageCount) {
+            final textSettings = ref.read(textFormattingSettingsProvider);
+
+            if (textSettings.swipeMarksRead) {
+              try {
+                await ref
+                    .read(readerProvider.notifier)
+                    .markPageRead(pageData!.bookId, pageData!.currentPage);
+              } catch (e) {
+                print('Error marking page as read: $e');
+              }
+            }
+
+            await Future.delayed(const Duration(milliseconds: 400));
             _goToPage(pageData!.currentPage + 1);
           }
         }
@@ -894,15 +914,26 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  void _goToPage(int pageNum) {
+  Future<void> _goToPage(int pageNum) async {
     final pageData = ref.read(readerProvider).pageData;
     if (pageData == null) return;
+
+    if (pageNum > pageData.currentPage) {
+      try {
+        await ref
+            .read(readerProvider.notifier)
+            .markPageRead(pageData.bookId, pageData.currentPage);
+      } catch (e) {
+        print('Error marking page as read: $e');
+      }
+    }
+
     ref
         .read(readerProvider.notifier)
         .loadPage(
           bookId: pageData.bookId,
           pageNum: pageNum,
-          showFullPageError: false, // Don't show full page error for navigation
+          showFullPageError: false,
         );
   }
 
@@ -1080,5 +1111,35 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         );
       },
     );
+  }
+
+  Future<void> _markPageKnown() async {
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData == null) return;
+
+    try {
+      await ref
+          .read(readerProvider.notifier)
+          .markPageKnown(pageData!.bookId, pageData!.currentPage);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Page marked as All Known'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error marking page as known: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to mark page as known: $e'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 }

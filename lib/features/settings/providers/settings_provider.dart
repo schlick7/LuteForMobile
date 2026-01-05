@@ -361,6 +361,7 @@ class TextFormattingSettings {
   final FontWeight fontWeight;
   final bool isItalic;
   final bool fullscreenMode;
+  final bool swipeMarksRead;
 
   const TextFormattingSettings({
     this.textSize = 20.0,
@@ -369,6 +370,7 @@ class TextFormattingSettings {
     this.fontWeight = FontWeight.w500,
     this.isItalic = false,
     this.fullscreenMode = false,
+    this.swipeMarksRead = true,
   });
 
   TextFormattingSettings copyWith({
@@ -378,6 +380,7 @@ class TextFormattingSettings {
     FontWeight? fontWeight,
     bool? isItalic,
     bool? fullscreenMode,
+    bool? swipeMarksRead,
   }) {
     return TextFormattingSettings(
       textSize: textSize ?? this.textSize,
@@ -386,6 +389,7 @@ class TextFormattingSettings {
       fontWeight: fontWeight ?? this.fontWeight,
       isItalic: isItalic ?? this.isItalic,
       fullscreenMode: fullscreenMode ?? this.fullscreenMode,
+      swipeMarksRead: swipeMarksRead ?? this.swipeMarksRead,
     );
   }
 
@@ -398,7 +402,8 @@ class TextFormattingSettings {
         other.fontFamily == fontFamily &&
         other.fontWeight == fontWeight &&
         other.isItalic == isItalic &&
-        other.fullscreenMode == fullscreenMode;
+        other.fullscreenMode == fullscreenMode &&
+        other.swipeMarksRead == swipeMarksRead;
   }
 
   @override
@@ -409,6 +414,7 @@ class TextFormattingSettings {
     fontWeight,
     isItalic,
     fullscreenMode,
+    swipeMarksRead,
   );
 
   static const TextFormattingSettings defaultSettings =
@@ -422,6 +428,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
   static const String _keyFontWeight = 'font_weight';
   static const String _keyIsItalic = 'is_italic';
   static const String _keyFullscreenMode = 'fullscreen_mode';
+  static const String _keySwipeMarksRead = 'swipe_marks_read';
   bool _isInitialized = false;
 
   @override
@@ -441,6 +448,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
     final fontWeightIndex = prefs.getInt(_keyFontWeight) ?? 3;
     final isItalic = prefs.getBool(_keyIsItalic) ?? false;
     final fullscreenMode = prefs.getBool(_keyFullscreenMode) ?? false;
+    final swipeMarksRead = prefs.getBool(_keySwipeMarksRead) ?? true;
 
     final fontWeightMap = [
       FontWeight.w200,
@@ -460,6 +468,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
           fontWeightMap[fontWeightIndex.clamp(0, fontWeightMap.length - 1)],
       isItalic: isItalic,
       fullscreenMode: fullscreenMode,
+      swipeMarksRead: swipeMarksRead,
     );
     if (state != loadedSettings) {
       state = loadedSettings;
@@ -518,6 +527,12 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyFullscreenMode, fullscreen);
+  }
+
+  Future<void> updateSwipeMarksRead(bool value) async {
+    state = state.copyWith(swipeMarksRead: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keySwipeMarksRead, value);
   }
 }
 

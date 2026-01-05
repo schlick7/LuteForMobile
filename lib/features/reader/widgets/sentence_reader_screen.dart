@@ -383,7 +383,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
     return GestureDetector(
       onTapDown: (_) => TermTooltipClass.close(),
-      onHorizontalDragEnd: (details) {
+      onHorizontalDragEnd: (details) async {
         final velocity = details.primaryVelocity ?? 0;
         final sentenceReaderNotifier = ref.read(
           sentenceReaderProvider.notifier,
@@ -395,7 +395,24 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           }
         } else if (velocity < 0) {
           if (sentenceReaderNotifier.canGoNext) {
-            _goNext();
+            final textSettings = ref.read(textFormattingSettingsProvider);
+            final reader = ref.read(readerProvider);
+
+            if (textSettings.swipeMarksRead && reader.pageData != null) {
+              try {
+                await ref
+                    .read(readerProvider.notifier)
+                    .markPageRead(
+                      reader.pageData!.bookId,
+                      reader.pageData!.currentPage,
+                    );
+              } catch (e) {
+                print('Error marking page as read: $e');
+              }
+            }
+
+            await Future.delayed(const Duration(milliseconds: 400));
+            await _goNext();
           }
         }
       },
@@ -424,7 +441,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final settings = ref.watch(settingsProvider);
 
     return GestureDetector(
-      onHorizontalDragEnd: (details) {
+      onHorizontalDragEnd: (details) async {
         final velocity = details.primaryVelocity ?? 0;
         final sentenceReaderNotifier = ref.read(
           sentenceReaderProvider.notifier,
@@ -436,7 +453,24 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           }
         } else if (velocity < 0) {
           if (sentenceReaderNotifier.canGoNext) {
-            _goNext();
+            final textSettings = ref.read(textFormattingSettingsProvider);
+            final reader = ref.read(readerProvider);
+
+            if (textSettings.swipeMarksRead && reader.pageData != null) {
+              try {
+                await ref
+                    .read(readerProvider.notifier)
+                    .markPageRead(
+                      reader.pageData!.bookId,
+                      reader.pageData!.currentPage,
+                    );
+              } catch (e) {
+                print('Error marking page as read: $e');
+              }
+            }
+
+            await Future.delayed(const Duration(milliseconds: 400));
+            await _goNext();
           }
         }
       },

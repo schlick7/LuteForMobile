@@ -70,6 +70,8 @@ class ReaderDrawerSettings extends ConsumerWidget {
           _buildItalicToggle(context, ref, textSettings),
           const SizedBox(height: 16),
           _buildFullscreenToggle(context, ref, textSettings),
+          const SizedBox(height: 16),
+          _buildSwipeMarksReadToggle(context, ref, textSettings),
           const SizedBox(height: 32),
           Consumer(
             builder: (context, ref, _) {
@@ -450,6 +452,23 @@ class ReaderDrawerSettings extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSwipeMarksReadToggle(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic textSettings,
+  ) {
+    return SwitchListTile(
+      title: const Text('Swipe marks "Read"'),
+      subtitle: const Text('Mark pages as read when swiping to next page'),
+      value: textSettings.swipeMarksRead,
+      onChanged: (value) {
+        ref
+            .read(textFormattingSettingsProvider.notifier)
+            .updateSwipeMarksRead(value);
+      },
     );
   }
 
