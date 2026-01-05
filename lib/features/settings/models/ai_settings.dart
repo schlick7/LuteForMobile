@@ -143,9 +143,9 @@ class AIPromptConfig {
 class AIPromptTemplates {
   static const Map<AIPromptType, String> defaults = {
     AIPromptType.termTranslation:
-        'Translate this [language] term to English: [term]',
+        'Using the sentence "[sentence]" Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations',
     AIPromptType.sentenceTranslation:
-        'Translate this [language] sentence to English: [sentence]',
+        'Translate the following sentence from [language] to English: [sentence]',
   };
 
   static String getDefault(AIPromptType type) {

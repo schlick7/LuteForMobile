@@ -7,6 +7,7 @@ final aiServiceProvider = Provider<AIService>((ref) {
   final settings = ref.watch(aiSettingsProvider);
   final provider = settings.provider;
   final config = settings.providerConfigs[provider];
+  final promptConfigs = settings.promptConfigs;
 
   switch (provider) {
     case AIProvider.openAI:
@@ -14,12 +15,14 @@ final aiServiceProvider = Provider<AIService>((ref) {
         apiKey: config?.apiKey ?? '',
         baseUrl: config?.baseUrl,
         model: config?.model,
+        promptConfigs: promptConfigs,
       );
     case AIProvider.localOpenAI:
       return LocalOpenAIService(
         endpointUrl: config?.endpointUrl ?? '',
         model: config?.model,
         apiKey: config?.apiKey,
+        promptConfigs: promptConfigs,
       );
     case AIProvider.none:
       return NoAIService();
