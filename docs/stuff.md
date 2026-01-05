@@ -7,7 +7,6 @@
 # Terms Screen
 - Use Termform for term editing
 
-Add todays read stats to bottom nav bar 
 
 ## Add page turn animation? - First attempt broke hard!
 
@@ -47,7 +46,7 @@ Add more custom theme options
   - put this in the edit button and move the confirmation to the edit button popup for editing the term.
 - When page marked as done and a popup to navigate to books to pick out another. Add a great job or something and a animation of some kind to celebrate the completetion of a book. Include number of words in the book? 
 - add a selector in language settings to apply TTS voices based on languages. 
-
+- add todays read stats to bottom nav bar
 
 # PWA
 ## Build the web app first
