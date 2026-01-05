@@ -89,29 +89,35 @@ class ReaderDrawerSettings extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 16),
-          Text(
-            'Text Formatting',
-            style: Theme.of(context).textTheme.titleLarge,
+          ExpansionTile(
+            title: Text(
+              'Text Formatting',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            initiallyExpanded: false,
+            children: [
+              const SizedBox(height: 8),
+              _buildTextSizeSlider(context, ref, textSettings),
+              const SizedBox(height: 16),
+              _buildLineSpacingSlider(context, ref, textSettings),
+              const SizedBox(height: 16),
+              _buildFontDropdown(context, ref, textSettings),
+              const SizedBox(height: 16),
+              _buildFontWeightSlider(
+                context,
+                ref,
+                textSettings,
+                weightIndexDouble,
+                availableWeights,
+              ),
+              const SizedBox(height: 16),
+              _buildItalicToggle(context, ref, textSettings),
+              const SizedBox(height: 16),
+            ],
           ),
-          const SizedBox(height: 16),
-          _buildTextSizeSlider(context, ref, textSettings),
-          const SizedBox(height: 16),
-          _buildLineSpacingSlider(context, ref, textSettings),
-          const SizedBox(height: 16),
-          _buildFontDropdown(context, ref, textSettings),
-          const SizedBox(height: 16),
-          _buildFontWeightSlider(
-            context,
-            ref,
-            textSettings,
-            weightIndexDouble,
-            availableWeights,
-          ),
-          const SizedBox(height: 16),
-          _buildItalicToggle(context, ref, textSettings),
           const SizedBox(height: 16),
           _buildFullscreenToggle(context, ref, textSettings),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           Consumer(
             builder: (context, ref, _) {
               final reader = ref.watch(readerProvider);
