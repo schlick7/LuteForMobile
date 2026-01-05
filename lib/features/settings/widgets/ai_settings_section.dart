@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/ai_settings_provider.dart';
+import 'package:lute_for_mobile/features/settings/widgets/model_selector.dart';
 
 class AISettingsSection extends ConsumerWidget {
   const AISettingsSection({super.key});
@@ -124,14 +125,11 @@ class AISettingsSection extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 16),
-        TextField(
-          decoration: const InputDecoration(
-            labelText: 'Model',
-            hintText: 'e.g., gpt-4o',
-            border: OutlineInputBorder(),
-          ),
-          controller: TextEditingController(text: config?.model),
-          onSubmitted: (value) {
+        ModelSelector(
+          selectedModel: config?.model,
+          labelText: 'Model',
+          hintText: 'e.g., gpt-4o',
+          onModelSelected: (value) {
             ref
                 .read(aiSettingsProvider.notifier)
                 .updateOpenAIConfig(config!.copyWith(model: value));
@@ -163,14 +161,11 @@ class AISettingsSection extends ConsumerWidget {
           },
         ),
         const SizedBox(height: 16),
-        TextField(
-          decoration: const InputDecoration(
-            labelText: 'Model',
-            hintText: 'e.g., gpt-4o',
-            border: OutlineInputBorder(),
-          ),
-          controller: TextEditingController(text: config?.model),
-          onSubmitted: (value) {
+        ModelSelector(
+          selectedModel: config?.model,
+          labelText: 'Model',
+          hintText: 'e.g., gpt-4o',
+          onModelSelected: (value) {
             ref
                 .read(aiSettingsProvider.notifier)
                 .updateLocalOpenAIConfig(config!.copyWith(model: value));

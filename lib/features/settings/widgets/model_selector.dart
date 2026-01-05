@@ -21,67 +21,51 @@ class ModelSelector extends ConsumerStatefulWidget {
 }
 
 class _ModelSelectorState extends ConsumerState<ModelSelector> {
-  bool _isFetching = false;
-  List<String> _models = [];
-  String? _error;
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final modelsAsync = ref.watch(aiModelsProvider);
+    final isFetching = modelsAsync.isLoading;
+
     return DropdownButtonFormField<String>(
       value: widget.selectedModel,
       decoration: InputDecoration(
         labelText: widget.labelText,
         hintText: widget.hintText ?? 'Select or enter model',
         border: const OutlineInputBorder(),
+        errorText: modelsAsync.error != null ? 'Failed to load models' : null,
         suffixIcon: IconButton(
-          icon: _isFetching
+          icon: isFetching
               ? const SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.refresh),
-          onPressed: _fetchModels,
+          onPressed: () {
+            ref.read(aiModelsProvider.notifier).fetchModels();
+          },
           tooltip: 'Fetch available models',
         ),
       ),
-      items: _models.map((model) {
-        return DropdownMenuItem(value: model, child: Text(model));
-      }).toList(),
+      items: modelsAsync.when(
+        data: (models) {
+          return models.map((model) {
+            return DropdownMenuItem(value: model, child: Text(model));
+          }).toList();
+        },
+        loading: () => [],
+        error: (_, __) => [],
+      ),
       onChanged: (value) {
         if (value != null) {
           widget.onModelSelected(value);
         }
       },
     );
-  }
-
-  Future<void> _fetchModels() async {
-    setState(() {
-      _isFetching = true;
-      _error = null;
-    });
-
-    try {
-      final models = await ref.read(aiModelsProvider.future);
-      setState(() {
-        _models = models;
-        _isFetching = false;
-      });
-    } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isFetching = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to fetch models: $_error'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 }

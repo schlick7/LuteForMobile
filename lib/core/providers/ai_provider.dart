@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/ai_settings_provider.dart';
 import 'package:lute_for_mobile/core/network/ai_service.dart';
@@ -29,7 +31,60 @@ final aiServiceProvider = Provider<AIService>((ref) {
   }
 });
 
-final aiModelsProvider = FutureProvider<List<String>>((ref) async {
-  final service = ref.read(aiServiceProvider);
-  return await service.fetchAvailableModels();
-});
+class AIModelsNotifier extends AsyncNotifier<List<String>> {
+  static const String _modelsCacheKey = 'ai_models_cache';
+  static const String _providerCacheKey = 'ai_models_provider';
+
+  @override
+  Future<List<String>> build() async {
+    return _loadCachedModels();
+  }
+
+  Future<List<String>> _loadCachedModels() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final modelsStr = prefs.getString(_modelsCacheKey);
+      final cachedProvider = prefs.getString(_providerCacheKey);
+
+      if (modelsStr != null && cachedProvider != null) {
+        final currentProvider = ref.read(aiSettingsProvider).provider;
+        if (cachedProvider == currentProvider.toString()) {
+          final models = (jsonDecode(modelsStr) as List)
+              .map((e) => e as String)
+              .toList();
+          return models;
+        }
+      }
+    } catch (_) {}
+
+    return [];
+  }
+
+  Future<void> fetchModels() async {
+    state = const AsyncValue.loading();
+    state = await AsyncValue.guard(() async {
+      final service = ref.read(aiServiceProvider);
+      final models = await service.fetchAvailableModels();
+
+      await _cacheModels(models);
+
+      return models;
+    });
+  }
+
+  Future<void> _cacheModels(List<String> models) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentProvider = ref.read(aiSettingsProvider).provider;
+
+      await prefs.setString(_modelsCacheKey, jsonEncode(models));
+      await prefs.setString(_providerCacheKey, currentProvider.toString());
+    } catch (_) {}
+  }
+}
+
+final aiModelsProvider = AsyncNotifierProvider<AIModelsNotifier, List<String>>(
+  () {
+    return AIModelsNotifier();
+  },
+);
