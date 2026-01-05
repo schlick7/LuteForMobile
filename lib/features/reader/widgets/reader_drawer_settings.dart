@@ -117,14 +117,7 @@ class ReaderDrawerSettings extends ConsumerWidget {
               final reader = ref.watch(readerProvider);
               if (reader.pageData?.hasAudio == true) {
                 return Column(
-                  children: [
-                    Text(
-                      'Audio Player',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildAudioPlayerToggle(context, ref, settings),
-                  ],
+                  children: [_buildAudioPlayerToggle(context, ref, settings)],
                 );
               }
               return const SizedBox.shrink();
