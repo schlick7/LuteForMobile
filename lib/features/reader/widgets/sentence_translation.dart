@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/sentence_translation.dart';
+import '../../settings/models/ai_settings.dart';
+import '../../settings/providers/ai_settings_provider.dart';
+import '../../../core/providers/ai_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../../../core/network/tts_service.dart';
@@ -46,7 +49,10 @@ class _SentenceTranslationWidgetState
   int _currentPage = 0;
   final Map<int, InAppWebViewController> _webviewControllers = {};
   bool _hasLoaded = false;
-  int _initialPage = 0;
+  bool _isLoadingAI = false;
+  String? _aiTranslation;
+  String? _aiErrorMessage;
+  bool _hasFetchedAI = false;
 
   @override
   void initState() {
@@ -77,14 +83,68 @@ class _SentenceTranslationWidgetState
       }
     }
 
+    final aiSettings = ref.read(aiSettingsProvider);
+    final aiConfig = aiSettings.promptConfigs[AIPromptType.sentenceTranslation];
+    final shouldAddAI =
+        aiSettings.provider != AIProvider.none && aiConfig?.enabled == true;
+
+    final allDictionaries = List<DictionarySource>.from(dictionaries);
+    if (shouldAddAI) {
+      final modelName =
+          aiSettings.providerConfigs[aiSettings.provider]?.model ?? 'gpt-4o';
+      allDictionaries.add(
+        DictionarySource(name: 'AI: $modelName', urlTemplate: '', isAI: true),
+      );
+    }
+
     setState(() {
-      _dictionaries = dictionaries;
+      _dictionaries = allDictionaries;
       _currentPage = initialPage;
-      _initialPage = initialPage;
       _hasLoaded = true;
       _pageController.dispose();
       _pageController = PageController(initialPage: initialPage);
     });
+  }
+
+  Future<void> _fetchAITranslation() async {
+    if (_isLoadingAI || _hasFetchedAI) return;
+
+    setState(() {
+      _isLoadingAI = true;
+      _aiTranslation = null;
+      _aiErrorMessage = null;
+    });
+
+    try {
+      final aiService = ref.read(aiServiceProvider);
+      final aiSettings = ref.read(aiSettingsProvider);
+      final language =
+          aiSettings
+              .promptConfigs[AIPromptType.sentenceTranslation]
+              ?.language ??
+          'Unknown';
+
+      final translation = await aiService.translateSentence(
+        widget.sentence,
+        language,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isLoadingAI = false;
+          _aiTranslation = translation;
+          _hasFetchedAI = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingAI = false;
+          _aiErrorMessage = e.toString();
+          _hasFetchedAI = true;
+        });
+      }
+    }
   }
 
   @override
@@ -291,10 +351,15 @@ class _SentenceTranslationWidgetState
         setState(() {
           _currentPage = index;
         });
-        await widget.dictionaryService.rememberLastUsedSentenceDictionary(
-          widget.languageId,
-          _dictionaries[index].name,
-        );
+        final currentDict = _dictionaries[index];
+        if (currentDict.isAI) {
+          _fetchAITranslation();
+        } else {
+          await widget.dictionaryService.rememberLastUsedSentenceDictionary(
+            widget.languageId,
+            _dictionaries[index].name,
+          );
+        }
       },
       itemCount: _dictionaries.length,
       itemBuilder: (context, index) {
@@ -304,6 +369,10 @@ class _SentenceTranslationWidgetState
   }
 
   Widget _buildWebViewPage(BuildContext context, DictionarySource dictionary) {
+    if (dictionary.isAI) {
+      return _buildAIContent(context);
+    }
+
     final url = widget.dictionaryService.buildUrl(
       widget.sentence,
       dictionary.urlTemplate,
@@ -325,6 +394,81 @@ class _SentenceTranslationWidgetState
         _webviewControllers[dictionary.hashCode] = controller;
       },
     );
+  }
+
+  Widget _buildAIContent(BuildContext context) {
+    if (_isLoadingAI) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_aiErrorMessage != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'AI Translation Failed',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _aiErrorMessage!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _fetchAITranslation,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_aiTranslation != null) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Translation:',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: TextEditingController(text: _aiTranslation),
+              maxLines: null,
+              readOnly: true,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildNoDictionariesState(BuildContext context) {

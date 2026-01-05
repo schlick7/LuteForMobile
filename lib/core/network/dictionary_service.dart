@@ -6,18 +6,24 @@ import 'html_parser.dart';
 class DictionarySource {
   final String name;
   final String urlTemplate;
+  final bool isAI;
 
-  const DictionarySource({required this.name, required this.urlTemplate});
+  const DictionarySource({
+    required this.name,
+    required this.urlTemplate,
+    this.isAI = false,
+  });
 
   factory DictionarySource.fromJson(Map<String, dynamic> json) {
     return DictionarySource(
       name: json['name'] as String? ?? '',
       urlTemplate: json['urlTemplate'] as String? ?? '',
+      isAI: json['isAI'] as bool? ?? false,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'name': name, 'urlTemplate': urlTemplate};
+    return {'name': name, 'urlTemplate': urlTemplate, 'isAI': isAI};
   }
 }
 

@@ -302,7 +302,7 @@ class AISettingsSection extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 8),
-          _buildPlaceholdersHint(placeholders),
+          _buildPlaceholdersHint(context, placeholders),
         ],
       ],
     );
@@ -344,9 +344,12 @@ class AISettingsSection extends ConsumerWidget {
     }
   }
 
-  Widget _buildPlaceholdersHint(List<PlaceholderInfo> placeholders) {
+  Widget _buildPlaceholdersHint(
+    BuildContext context,
+    List<PlaceholderInfo> placeholders,
+  ) {
     return Card(
-      color: Colors.grey[100],
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
