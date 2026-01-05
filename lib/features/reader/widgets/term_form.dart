@@ -4,11 +4,13 @@ import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../../settings/providers/settings_provider.dart'
     show termFormSettingsProvider;
+import '../../settings/models/ai_settings.dart';
+import '../../settings/providers/ai_settings_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
-import '../../../shared/theme/app_theme.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../../../core/providers/tts_provider.dart';
+import '../../../core/providers/ai_provider.dart';
 import 'parent_search.dart';
 import 'dictionary_view.dart';
 
@@ -48,6 +50,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   late DictionaryService _dictionaryService;
   bool _isDictionaryOpen = false;
   List<DictionarySource> _dictionaries = [];
+  bool _isLoadingAITranslation = false;
 
   @override
   void initState() {
@@ -432,6 +435,11 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         ? context.customColors.accentButtonColor
         : Theme.of(context).colorScheme.outline;
 
+    final aiSettings = ref.watch(aiSettingsProvider);
+    final termConfig = aiSettings.promptConfigs[AIPromptType.termTranslation];
+    final shouldShowAI =
+        aiSettings.provider != AIProvider.none && termConfig?.enabled == true;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -462,7 +470,34 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             onChanged: (_) => _updateForm(),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 8),
+        if (shouldShowAI)
+          SizedBox(
+            width: 56,
+            height: 56,
+            child: ElevatedButton(
+              onPressed: _isLoadingAITranslation ? null : _fetchAITranslation,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: EdgeInsets.zero,
+              ),
+              child: _isLoadingAITranslation
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.psychology, size: 28),
+            ),
+          ),
+        if (shouldShowAI) const SizedBox(width: 4),
         SizedBox(
           width: 56,
           height: 56,
@@ -483,6 +518,50 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         ),
       ],
     );
+  }
+
+  Future<void> _fetchAITranslation() async {
+    if (_isLoadingAITranslation) return;
+
+    setState(() {
+      _isLoadingAITranslation = true;
+    });
+
+    try {
+      final aiService = ref.read(aiServiceProvider);
+      final aiSettings = ref.read(aiSettingsProvider);
+      final language =
+          aiSettings.promptConfigs[AIPromptType.termTranslation]?.language ??
+          'Unknown';
+
+      final translation = await aiService.translateTerm(
+        widget.termForm.term,
+        language,
+      );
+
+      final currentText = _translationController.text.trim();
+      final newText = currentText.isEmpty
+          ? translation
+          : '$currentText, $translation';
+
+      _translationController.text = newText;
+      _updateForm();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('AI translation failed: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingAITranslation = false;
+        });
+      }
+    }
   }
 
   Widget _buildStatusField(BuildContext context) {
