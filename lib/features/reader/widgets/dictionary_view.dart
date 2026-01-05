@@ -311,7 +311,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
               decoration: BoxDecoration(
                 color: Theme.of(
                   context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                ).colorScheme.onSurface.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: Theme.of(

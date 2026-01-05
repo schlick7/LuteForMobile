@@ -43,7 +43,7 @@ class _SentenceAITranslationButtonState
     final iconColor = Theme.of(context).colorScheme.primary;
 
     return IconButton(
-      icon: const Icon(Icons.translate),
+      icon: const Icon(Icons.psychology),
       color: iconColor,
       onPressed: () {
         widget.onTranslationRequested?.call();

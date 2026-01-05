@@ -37,7 +37,27 @@ class AIModelsNotifier extends AsyncNotifier<List<String>> {
 
   @override
   Future<List<String>> build() async {
-    return _loadCachedModels();
+    final initialModels = await _loadCachedModels();
+    ref.listen<AISettings>(aiSettingsProvider, (previous, next) {
+      final prevProvider = previous?.provider;
+      final nextProvider = next.provider;
+      final prevConfig = prevProvider != null
+          ? previous?.providerConfigs[prevProvider]
+          : null;
+      final nextConfig = next.providerConfigs[nextProvider];
+
+      final shouldFetch =
+          prevProvider != nextProvider ||
+          (nextProvider == AIProvider.openAI &&
+              prevConfig?.apiKey != nextConfig?.apiKey) ||
+          (nextProvider == AIProvider.localOpenAI &&
+              prevConfig?.endpointUrl != nextConfig?.endpointUrl);
+
+      if (shouldFetch && nextProvider != AIProvider.none) {
+        fetchModels();
+      }
+    }, fireImmediately: false);
+    return initialModels;
   }
 
   Future<List<String>> _loadCachedModels() async {

@@ -182,7 +182,7 @@ class LocalOpenAIService implements AIService {
       );
 
       final response = await _dio.post(
-        '/v1/chat/completions',
+        '/chat/completions',
         data: {
           'model': model ?? 'gpt-4o',
           'messages': [
@@ -209,7 +209,7 @@ class LocalOpenAIService implements AIService {
       );
 
       final response = await _dio.post(
-        '/v1/chat/completions',
+        '/chat/completions',
         data: {
           'model': model ?? 'gpt-4o',
           'messages': [
@@ -232,7 +232,7 @@ class LocalOpenAIService implements AIService {
   @override
   Future<List<String>> fetchAvailableModels() async {
     try {
-      final response = await _dio.get('/v1/models');
+      final response = await _dio.get('/models');
       final models = response.data['data'] as List;
       return models.map((m) => m['id'] as String).toList();
     } catch (e) {

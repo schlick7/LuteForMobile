@@ -32,7 +32,11 @@ class _ModelSelectorState extends ConsumerState<ModelSelector> {
     final isFetching = modelsAsync.isLoading;
 
     return DropdownButtonFormField<String>(
-      value: widget.selectedModel,
+      value: modelsAsync.maybeWhen(
+        data: (models) =>
+            models.contains(widget.selectedModel) ? widget.selectedModel : null,
+        orElse: () => null,
+      ),
       decoration: InputDecoration(
         labelText: widget.labelText,
         hintText: widget.hintText ?? 'Select or enter model',
