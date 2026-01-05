@@ -7,6 +7,7 @@
 # Terms Screen
 - Use Termform for term editing
 
+Add todays read stats to bottom nav bar 
 
 ## Add page turn animation? - First attempt broke hard!
 
@@ -28,9 +29,6 @@ edge case? upside down '?' are at the start (and ? at the end as well) of spanis
 
 Maybe fixed? When we combine sentences with the sentence parser lets make sure theres at least 1 space between the sentences
 
-Add next page preload to ReaderScreen
-
-Make parent chips list horizontally scrollable
 
 
 Add more custom theme options
