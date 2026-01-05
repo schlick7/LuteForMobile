@@ -1,8 +1,11 @@
 # Project Folder
-- cd ~/LuteForAndroid/
+- cd ~/LuteForMobile/
 
 # Update Version
 - Update pubspec.yaml
+
+# Clean Build
+- Flutter clean
 
 # Build android
 - Flutter build apk
