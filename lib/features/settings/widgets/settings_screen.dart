@@ -172,6 +172,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final themeSettings = ref.watch(themeSettingsProvider);
+    final textSettings = ref.watch(textFormattingSettingsProvider);
 
     // Sync controller with current state on every build
     if (_serverUrlController.text != settings.serverUrl) {
@@ -494,6 +495,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           context,
                         ).colorScheme.onSurface.withValues(alpha: 0.6),
                       ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Page Navigation'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Text('Mark pages as read when swiping'),
+                        const Spacer(),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: textSettings.swipeMarksRead,
+                            onChanged: (value) {
+                              ref
+                                  .read(textFormattingSettingsProvider.notifier)
+                                  .updateSwipeMarksRead(value);
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 24),
                     Container(

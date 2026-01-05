@@ -331,7 +331,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       IconButton(
                         icon: const Icon(Icons.chevron_left),
                         onPressed: pageData!.currentPage > 1
-                            ? () => _goToPage(pageData!.currentPage - 1)
+                            ? () => _loadPageWithoutMarkingRead(
+                                pageData!.currentPage - 1,
+                              )
                             : null,
                         tooltip: 'Previous page',
                       ),
@@ -339,7 +341,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       IconButton(
                         icon: const Icon(Icons.chevron_right),
                         onPressed: pageData!.currentPage < pageData!.pageCount
-                            ? () => _goToPage(pageData!.currentPage + 1)
+                            ? () => _loadPageWithoutMarkingRead(
+                                pageData!.currentPage + 1,
+                              )
                             : null,
                         tooltip: 'Next page',
                       ),
@@ -376,7 +380,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 IconButton(
                   icon: const Icon(Icons.chevron_left),
                   onPressed: pageData!.currentPage > 1
-                      ? () => _goToPage(pageData!.currentPage - 1)
+                      ? () => _loadPageWithoutMarkingRead(
+                          pageData!.currentPage - 1,
+                        )
                       : null,
                   tooltip: 'Previous page',
                 ),
@@ -384,7 +390,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
                   onPressed: pageData!.currentPage < pageData!.pageCount
-                      ? () => _goToPage(pageData!.currentPage + 1)
+                      ? () => _loadPageWithoutMarkingRead(
+                          pageData!.currentPage + 1,
+                        )
                       : null,
                   tooltip: 'Next page',
                 ),
@@ -952,6 +960,23 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         print('Error marking page as read: $e');
       }
     }
+
+    setState(() {
+      _isLastPageMarkedDone = false;
+    });
+
+    ref
+        .read(readerProvider.notifier)
+        .loadPage(
+          bookId: pageData.bookId,
+          pageNum: pageNum,
+          showFullPageError: false,
+        );
+  }
+
+  Future<void> _loadPageWithoutMarkingRead(int pageNum) async {
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData == null) return;
 
     setState(() {
       _isLastPageMarkedDone = false;
