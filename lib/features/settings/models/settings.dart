@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lute_for_mobile/shared/theme/theme_definitions.dart';
+import 'package:lute_for_mobile/features/settings/models/tts_settings.dart';
+import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
 
 @immutable
 class Settings {
@@ -18,6 +20,8 @@ class Settings {
   final int? combineShortSentences;
   final bool showKnownTermsInSentenceReader;
   final int doubleTapTimeout;
+  final TTSProvider? ttsProvider;
+  final AIProvider? aiProvider;
 
   const Settings({
     required this.serverUrl,
@@ -35,6 +39,8 @@ class Settings {
     this.combineShortSentences,
     this.showKnownTermsInSentenceReader = true,
     this.doubleTapTimeout = 300,
+    this.ttsProvider,
+    this.aiProvider,
   });
 
   Settings copyWith({
@@ -55,6 +61,8 @@ class Settings {
     int? combineShortSentences,
     bool? showKnownTermsInSentenceReader,
     int? doubleTapTimeout,
+    TTSProvider? ttsProvider,
+    AIProvider? aiProvider,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -81,6 +89,8 @@ class Settings {
       showKnownTermsInSentenceReader:
           showKnownTermsInSentenceReader ?? this.showKnownTermsInSentenceReader,
       doubleTapTimeout: doubleTapTimeout ?? this.doubleTapTimeout,
+      ttsProvider: ttsProvider ?? this.ttsProvider,
+      aiProvider: aiProvider ?? this.aiProvider,
     );
   }
 
@@ -101,6 +111,8 @@ class Settings {
       combineShortSentences: 3,
       showKnownTermsInSentenceReader: true,
       doubleTapTimeout: 300,
+      ttsProvider: TTSProvider.onDevice,
+      aiProvider: AIProvider.none,
     );
   }
 
@@ -123,7 +135,9 @@ class Settings {
         other.combineShortSentences == combineShortSentences &&
         other.showKnownTermsInSentenceReader ==
             showKnownTermsInSentenceReader &&
-        other.doubleTapTimeout == doubleTapTimeout;
+        other.doubleTapTimeout == doubleTapTimeout &&
+        other.ttsProvider == ttsProvider &&
+        other.aiProvider == aiProvider;
   }
 
   @override
@@ -143,6 +157,8 @@ class Settings {
     combineShortSentences,
     showKnownTermsInSentenceReader,
     doubleTapTimeout,
+    ttsProvider,
+    aiProvider,
   );
 
   bool isValidServerUrl(String url) {

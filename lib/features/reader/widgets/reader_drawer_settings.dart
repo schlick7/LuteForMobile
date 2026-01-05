@@ -10,43 +10,78 @@ class ReaderDrawerSettings extends ConsumerWidget {
 
   const ReaderDrawerSettings({super.key, required this.currentIndex});
 
-  final List<FontWeight> _availableWeights = const [
-    FontWeight.w200,
-    FontWeight.w300,
-    FontWeight.normal,
-    FontWeight.w500,
-    FontWeight.w600,
-    FontWeight.bold,
-    FontWeight.w800,
-  ];
+  static const Map<String, List<FontWeight>> _fontWeights = {
+    'Roboto': [
+      FontWeight.w200,
+      FontWeight.w300,
+      FontWeight.normal,
+      FontWeight.w500,
+      FontWeight.w600,
+      FontWeight.bold,
+      FontWeight.w800,
+    ],
+    'AtkinsonHyperlegibleNext': [
+      FontWeight.w200,
+      FontWeight.w300,
+      FontWeight.normal,
+      FontWeight.w500,
+      FontWeight.w600,
+      FontWeight.bold,
+      FontWeight.w800,
+    ],
+    'Vollkorn': [
+      FontWeight.normal,
+      FontWeight.w500,
+      FontWeight.w600,
+      FontWeight.bold,
+      FontWeight.w900,
+    ],
+    'LinBiolinum': [FontWeight.normal, FontWeight.bold],
+    'Literata': [
+      FontWeight.normal,
+      FontWeight.w500,
+      FontWeight.w600,
+      FontWeight.bold,
+    ],
+  };
 
-  final List<String> _weightLabels = const [
-    'Extra Light',
-    'Light',
-    'Regular',
-    'Medium',
-    'Semi Bold',
-    'Bold',
-    'Extra Bold',
-  ];
+  static const Map<int, String> _weightLabels = {
+    200: 'Extra Light',
+    300: 'Light',
+    400: 'Regular',
+    500: 'Medium',
+    600: 'Semi Bold',
+    700: 'Bold',
+    800: 'Extra Bold',
+    900: 'Black',
+  };
 
-  FontWeight _getWeightFromIndex(double index) {
-    final idx = index.round().clamp(0, _availableWeights.length - 1);
-    return _availableWeights[idx];
+  List<FontWeight> _getAvailableWeights(String fontFamily) {
+    return _fontWeights[fontFamily] ?? _fontWeights['Roboto']!;
   }
 
-  String _getWeightLabel(double index) {
-    final idx = index.round().clamp(0, _weightLabels.length - 1);
-    return _weightLabels[idx];
+  FontWeight _getWeightFromIndex(double index, List<FontWeight> weights) {
+    final idx = index.round().clamp(0, weights.length - 1);
+    return weights[idx];
+  }
+
+  String _getWeightLabel(FontWeight weight) {
+    return _weightLabels[weight.value] ?? 'Regular';
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final textSettings = ref.watch(textFormattingSettingsProvider);
     final settings = ref.watch(settingsProvider);
-    final weightIndex = _availableWeights
-        .indexOf(textSettings.fontWeight)
-        .toDouble();
+    final availableWeights = _getAvailableWeights(textSettings.fontFamily);
+    int weightIndex = availableWeights.indexOf(textSettings.fontWeight);
+    if (weightIndex == -1) {
+      weightIndex = availableWeights.indexOf(FontWeight.normal);
+      if (weightIndex == -1) {
+        weightIndex = 0;
+      }
+    }
+    final weightIndexDouble = weightIndex.toDouble();
 
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -54,36 +89,41 @@ class ReaderDrawerSettings extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 16),
-          Text(
-            'Text Formatting',
-            style: Theme.of(context).textTheme.titleLarge,
+          ExpansionTile(
+            title: Text(
+              'Text Formatting',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            initiallyExpanded: false,
+            children: [
+              const SizedBox(height: 8),
+              _buildTextSizeSlider(context, ref, textSettings),
+              const SizedBox(height: 16),
+              _buildLineSpacingSlider(context, ref, textSettings),
+              const SizedBox(height: 16),
+              _buildFontDropdown(context, ref, textSettings),
+              const SizedBox(height: 16),
+              _buildFontWeightSlider(
+                context,
+                ref,
+                textSettings,
+                weightIndexDouble,
+                availableWeights,
+              ),
+              const SizedBox(height: 16),
+              _buildItalicToggle(context, ref, textSettings),
+              const SizedBox(height: 16),
+            ],
           ),
           const SizedBox(height: 16),
-          _buildTextSizeSlider(context, ref, textSettings),
-          const SizedBox(height: 16),
-          _buildLineSpacingSlider(context, ref, textSettings),
-          const SizedBox(height: 16),
-          _buildFontDropdown(context, ref, textSettings),
-          const SizedBox(height: 16),
-          _buildFontWeightSlider(context, ref, textSettings, weightIndex),
-          const SizedBox(height: 16),
-          _buildItalicToggle(context, ref, textSettings),
-          const SizedBox(height: 16),
           _buildFullscreenToggle(context, ref, textSettings),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
           Consumer(
             builder: (context, ref, _) {
               final reader = ref.watch(readerProvider);
               if (reader.pageData?.hasAudio == true) {
                 return Column(
-                  children: [
-                    Text(
-                      'Audio Player',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildAudioPlayerToggle(context, ref, settings),
-                  ],
+                  children: [_buildAudioPlayerToggle(context, ref, settings)],
                 );
               }
               return const SizedBox.shrink();
@@ -378,24 +418,25 @@ class ReaderDrawerSettings extends ConsumerWidget {
     WidgetRef ref,
     dynamic textSettings,
     double weightIndex,
+    List<FontWeight> availableWeights,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Weight: ${_getWeightLabel(weightIndex)}',
+          'Weight: ${_getWeightLabel(availableWeights[weightIndex.toInt()])}',
           style: Theme.of(context).textTheme.labelLarge,
         ),
         Slider(
           value: weightIndex,
           min: 0,
-          max: _availableWeights.length - 1,
-          divisions: _availableWeights.length - 1,
-          label: _getWeightLabel(weightIndex),
+          max: availableWeights.length - 1,
+          divisions: availableWeights.length - 1,
+          label: _getWeightLabel(availableWeights[weightIndex.toInt()]),
           onChanged: (value) {
             ref
                 .read(textFormattingSettingsProvider.notifier)
-                .updateFontWeight(_getWeightFromIndex(value));
+                .updateFontWeight(_getWeightFromIndex(value, availableWeights));
           },
         ),
       ],

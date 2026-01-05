@@ -16,6 +16,8 @@ class TextDisplay extends StatefulWidget {
   final FontWeight fontWeight;
   final bool isItalic;
   final ScrollController? scrollController;
+  final double topPadding;
+  final Widget? bottomControlWidget;
 
   const TextDisplay({
     super.key,
@@ -29,6 +31,8 @@ class TextDisplay extends StatefulWidget {
     this.fontWeight = FontWeight.normal,
     this.isItalic = false,
     this.scrollController,
+    this.topPadding = 0.0,
+    this.bottomControlWidget,
   });
 
   static Widget buildInteractiveWord(
@@ -160,12 +164,23 @@ class _TextDisplayState extends State<TextDisplay> {
     return RepaintBoundary(
       child: SingleChildScrollView(
         controller: widget.scrollController,
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.only(
+          top: 16 + widget.topPadding,
+          left: 16,
+          right: 16,
+          bottom: 16,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: widget.paragraphs.map((paragraph) {
-            return _buildParagraph(context, paragraph);
-          }).toList(),
+          children: [
+            ...widget.paragraphs.map((paragraph) {
+              return _buildParagraph(context, paragraph);
+            }).toList(),
+            if (widget.bottomControlWidget != null) ...[
+              const SizedBox(height: 16),
+              widget.bottomControlWidget!,
+            ],
+          ],
         ),
       ),
     );

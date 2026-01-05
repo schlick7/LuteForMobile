@@ -6,6 +6,7 @@ import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
 import '../../features/reader/models/language_sentence_settings.dart';
+import '../../features/reader/services/page_cache_service.dart';
 import '../../features/books/models/book.dart';
 import '../../features/books/models/datatables_response.dart';
 import 'api_service.dart';
@@ -16,10 +17,12 @@ enum ContentMode { reading, peeking, refresh }
 class ContentService {
   final ApiService _apiService;
   final HtmlParser parser;
+  final PageCacheService _pageCacheService;
 
   ContentService({required ApiService apiService, HtmlParser? htmlParser})
     : _apiService = apiService,
-      parser = htmlParser ?? HtmlParser();
+      parser = htmlParser ?? HtmlParser(),
+      _pageCacheService = PageCacheService();
 
   bool get isConfigured => _apiService.isConfigured;
 
@@ -27,21 +30,65 @@ class ContentService {
     int bookId, {
     int? pageNum,
     ContentMode mode = ContentMode.reading,
+    bool useCache = true,
+    bool forceRefresh = false,
   }) async {
+    String pageMetadataHtml;
+    String pageTextHtml;
+
+    if (useCache && !forceRefresh) {
+      final cached = await _pageCacheService.getFromCache(bookId, pageNum ?? 1);
+      if (cached != null) {
+        pageMetadataHtml = cached.metadataHtml;
+        pageTextHtml = cached.pageTextHtml;
+      } else {
+        pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
+        final metadataDocument = html_parser.parse(pageMetadataHtml);
+        final actualPageNum =
+            pageNum ?? _extractPageNumFromMetadata(metadataDocument);
+        pageTextHtml = await _fetchPageTextHtml(bookId, actualPageNum, mode);
+        await _pageCacheService.saveToCache(
+          bookId,
+          actualPageNum,
+          pageMetadataHtml,
+          pageTextHtml,
+        );
+      }
+    } else {
+      pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
+      final metadataDocument = html_parser.parse(pageMetadataHtml);
+      final actualPageNum =
+          pageNum ?? _extractPageNumFromMetadata(metadataDocument);
+      pageTextHtml = await _fetchPageTextHtml(bookId, actualPageNum, mode);
+
+      if (useCache) {
+        await _pageCacheService.saveToCache(
+          bookId,
+          actualPageNum,
+          pageMetadataHtml,
+          pageTextHtml,
+        );
+      }
+    }
+
+    return parser.parsePage(pageTextHtml, pageMetadataHtml, bookId: bookId);
+  }
+
+  Future<String> _fetchMetadataHtml(int bookId, int? pageNum) async {
     final pageMetadataResponse = await _apiService.getBookPageStructure(
       bookId,
       pageNum,
     );
-    final pageMetadataHtml = pageMetadataResponse.data ?? '';
+    return pageMetadataResponse.data ?? '';
+  }
 
-    final metadataDocument = html_parser.parse(pageMetadataHtml);
-    final actualPageNum =
-        pageNum ?? _extractPageNumFromMetadata(metadataDocument);
-
-    final pageTextResponse = await _getPageHtml(bookId, actualPageNum, mode);
-    final pageTextHtml = pageTextResponse.data ?? '';
-
-    return parser.parsePage(pageTextHtml, pageMetadataHtml, bookId: bookId);
+  Future<String> _fetchPageTextHtml(
+    int bookId,
+    int pageNum,
+    ContentMode mode,
+  ) async {
+    final pageTextResponse = await _getPageHtml(bookId, pageNum, mode);
+    return pageTextResponse.data ?? '';
   }
 
   int _extractPageNumFromMetadata(dynamic metadataDocument) {
@@ -58,6 +105,14 @@ class ContentService {
     await _apiService.postPageDone(bookId, pageNum, restKnown);
 
     return getPageContent(bookId, pageNum: pageNum, mode: ContentMode.reading);
+  }
+
+  Future<void> markPageReadOnly(int bookId, int pageNum) async {
+    await _apiService.postPageDone(bookId, pageNum, false);
+  }
+
+  Future<void> markPageKnownOnly(int bookId, int pageNum) async {
+    await _apiService.postPageDone(bookId, pageNum, true);
   }
 
   Future<Response<String>> _getPageHtml(

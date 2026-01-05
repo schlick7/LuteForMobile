@@ -5,11 +5,13 @@ import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../providers/reader_provider.dart';
 import '../providers/sentence_reader_provider.dart';
+import '../providers/sentence_tts_provider.dart';
 import '../widgets/term_tooltip.dart';
 import '../widgets/term_form.dart';
 import '../widgets/sentence_translation.dart';
 import '../widgets/sentence_reader_display.dart';
 import '../widgets/term_list_display.dart';
+import '../widgets/sentence_tts_button.dart';
 import '../utils/sentence_parser.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../../../features/settings/providers/settings_provider.dart';
@@ -47,6 +49,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _isParsing = false;
   bool _initializationFailed = false;
   bool _isDictionaryOpen = false;
+  bool _isLastPageMarkedDone = false;
 
   @override
   void initState() {
@@ -98,6 +101,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    ref.read(sentenceTTSProvider.notifier).stop();
     super.dispose();
   }
 
@@ -164,51 +168,64 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         if (_isParsing) {
           print('DEBUG: Already parsing, skipping duplicate call');
         } else {
+          final sentenceReader = ref.read(sentenceReaderProvider);
           final reader = ref.read(readerProvider);
-          print(
-            'DEBUG: reader.languageSentenceSettings=${reader.languageSentenceSettings != null}, langId=$langId',
-          );
-          _isParsing = true;
-          Future(() {
-            ref
-                .read(sentenceReaderProvider.notifier)
-                .parseSentencesForPage(langId, initialIndex: 0)
-                .then((_) {
-                  if (mounted) {
-                    _isParsing = false;
-                    final sentenceReader = ref.read(sentenceReaderProvider);
-                    print(
-                      'DEBUG: Sentences loaded: ${sentenceReader.customSentences.length}',
-                    );
-                    if (sentenceReader.customSentences.isNotEmpty) {
-                      _hasInitialized = true;
-                      _initializationFailed = false;
+
+          if (sentenceReader.lastParsedBookId == bookId &&
+              sentenceReader.lastParsedPageNum == pageNum &&
+              sentenceReader.customSentences.isNotEmpty) {
+            print(
+              'DEBUG: Sentences already loaded for this page, skipping initialization',
+            );
+            _hasInitialized = true;
+            _initializationFailed = false;
+            _loadTooltipsForCurrentSentence();
+          } else {
+            print(
+              'DEBUG: reader.languageSentenceSettings=${reader.languageSentenceSettings != null}, langId=$langId',
+            );
+            _isParsing = true;
+            Future(() {
+              ref
+                  .read(sentenceReaderProvider.notifier)
+                  .parseSentencesForPage(langId, initialIndex: 0)
+                  .then((_) {
+                    if (mounted) {
+                      _isParsing = false;
+                      final sentenceReader = ref.read(sentenceReaderProvider);
                       print(
-                        'DEBUG: Initialization successful, _hasInitialized=$_hasInitialized',
+                        'DEBUG: Sentences loaded: ${sentenceReader.customSentences.length}',
                       );
-                    } else {
+                      if (sentenceReader.customSentences.isNotEmpty) {
+                        _hasInitialized = true;
+                        _initializationFailed = false;
+                        print(
+                          'DEBUG: Initialization successful, _hasInitialized=$_hasInitialized',
+                        );
+                      } else {
+                        _hasInitialized = false;
+                        _initializationFailed = true;
+                        print(
+                          'DEBUG: Initialization failed - no sentences loaded',
+                        );
+                      }
+                      ref
+                          .read(sentenceReaderProvider.notifier)
+                          .loadSavedPosition();
+                      _loadTooltipsForCurrentSentence();
+                    }
+                  })
+                  .catchError((e, stackTrace) {
+                    print('DEBUG: Error during parsing: $e');
+                    print('DEBUG: Stack trace: $stackTrace');
+                    if (mounted) {
+                      _isParsing = false;
                       _hasInitialized = false;
                       _initializationFailed = true;
-                      print(
-                        'DEBUG: Initialization failed - no sentences loaded',
-                      );
                     }
-                    ref
-                        .read(sentenceReaderProvider.notifier)
-                        .loadSavedPosition();
-                    _loadTooltipsForCurrentSentence();
-                  }
-                })
-                .catchError((e, stackTrace) {
-                  print('DEBUG: Error during parsing: $e');
-                  print('DEBUG: Stack trace: $stackTrace');
-                  if (mounted) {
-                    _isParsing = false;
-                    _hasInitialized = false;
-                    _initializationFailed = true;
-                  }
-                });
-          });
+                  });
+            });
+          }
         }
       }
     }
@@ -380,7 +397,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
     return GestureDetector(
       onTapDown: (_) => TermTooltipClass.close(),
-      onHorizontalDragEnd: (details) {
+      onHorizontalDragEnd: (details) async {
         final velocity = details.primaryVelocity ?? 0;
         final sentenceReaderNotifier = ref.read(
           sentenceReaderProvider.notifier,
@@ -392,7 +409,24 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           }
         } else if (velocity < 0) {
           if (sentenceReaderNotifier.canGoNext) {
-            _goNext();
+            final textSettings = ref.read(textFormattingSettingsProvider);
+            final reader = ref.read(readerProvider);
+
+            if (textSettings.swipeMarksRead && reader.pageData != null) {
+              try {
+                await ref
+                    .read(readerProvider.notifier)
+                    .markPageRead(
+                      reader.pageData!.bookId,
+                      reader.pageData!.currentPage,
+                    );
+              } catch (e) {
+                print('Error marking page as read: $e');
+              }
+            }
+
+            await Future.delayed(const Duration(milliseconds: 400));
+            await _goNext();
           }
         }
       },
@@ -421,7 +455,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final settings = ref.watch(settingsProvider);
 
     return GestureDetector(
-      onHorizontalDragEnd: (details) {
+      onHorizontalDragEnd: (details) async {
         final velocity = details.primaryVelocity ?? 0;
         final sentenceReaderNotifier = ref.read(
           sentenceReaderProvider.notifier,
@@ -433,7 +467,24 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           }
         } else if (velocity < 0) {
           if (sentenceReaderNotifier.canGoNext) {
-            _goNext();
+            final textSettings = ref.read(textFormattingSettingsProvider);
+            final reader = ref.read(readerProvider);
+
+            if (textSettings.swipeMarksRead && reader.pageData != null) {
+              try {
+                await ref
+                    .read(readerProvider.notifier)
+                    .markPageRead(
+                      reader.pageData!.bookId,
+                      reader.pageData!.currentPage,
+                    );
+              } catch (e) {
+                print('Error marking page as read: $e');
+              }
+            }
+
+            await Future.delayed(const Duration(milliseconds: 400));
+            await _goNext();
           }
         }
       },
@@ -441,7 +492,19 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Text('Terms', style: Theme.of(context).textTheme.titleLarge),
+            child: Row(
+              children: [
+                Text('Terms', style: Theme.of(context).textTheme.titleLarge),
+                const Spacer(),
+                if (currentSentence != null)
+                  SentenceTTSButton(
+                    text: currentSentence!.textItems
+                        .map((item) => item.text)
+                        .join(),
+                    sentenceId: currentSentence!.id,
+                  ),
+              ],
+            ),
           ),
           Expanded(
             child: TermListDisplay(
@@ -468,12 +531,19 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       pageDisplay = '(${pageData.pageIndicator}) - $sentencePosition';
     }
 
+    final isLastPage =
+        pageData != null && pageData.currentPage == pageData.pageCount;
+    final isLastSentence =
+        sentenceReaderState.currentSentenceIndex ==
+        sentenceReaderState.customSentences.length - 1;
+    final theme = Theme.of(context);
+
     return BottomAppBar(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            Text(pageDisplay, style: Theme.of(context).textTheme.bodyMedium),
+            Text(pageDisplay, style: theme.textTheme.bodyMedium),
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.chevron_left),
@@ -482,13 +552,26 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                   : null,
               iconSize: 24,
             ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              onPressed: sentenceReaderNotifier.canGoNext
-                  ? () => _goNext()
-                  : null,
-              iconSize: 24,
-            ),
+            if (isLastPage && isLastSentence)
+              IconButton(
+                icon: Icon(
+                  Icons.check,
+                  color: _isLastPageMarkedDone
+                      ? theme.colorScheme.primary
+                      : null,
+                ),
+                onPressed: () => _markLastPageDone(),
+                iconSize: 24,
+                tooltip: 'Mark as done',
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: sentenceReaderNotifier.canGoNext
+                    ? () => _goNext()
+                    : null,
+                iconSize: 24,
+              ),
           ],
         ),
       ),
@@ -810,6 +893,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     print('DEBUG: _goNext called');
     await ref.read(sentenceReaderProvider.notifier).nextSentence();
     _saveSentencePosition();
+
+    final pageData = ref.read(readerProvider).pageData;
+    final sentenceReader = ref.read(sentenceReaderProvider);
+    if (pageData != null && sentenceReader.currentSentenceIndex == 0) {
+      setState(() {
+        _isLastPageMarkedDone = false;
+      });
+    }
   }
 
   Future<void> _goPrevious() async {
@@ -823,6 +914,39 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     ref
         .read(settingsProvider.notifier)
         .updateCurrentBookSentenceIndex(currentIndex);
+  }
+
+  Future<void> _markLastPageDone() async {
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData == null) return;
+
+    try {
+      await ref
+          .read(readerProvider.notifier)
+          .markPageRead(pageData.bookId, pageData.currentPage);
+
+      if (mounted) {
+        setState(() {
+          _isLastPageMarkedDone = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Page marked as done'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error marking page as done: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to mark page as done: $e'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   void _handleTap(TextItem item, Offset position) async {

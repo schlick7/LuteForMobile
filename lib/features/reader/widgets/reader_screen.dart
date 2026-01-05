@@ -42,6 +42,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isUiVisible = true;
   Timer? _hideUiTimer;
   ScrollController _scrollController = ScrollController();
+  double _lastScrollPosition = 0.0;
+  DateTime? _lastMarkPageTime;
+  bool _isLastPageMarkedDone = false;
+  int? _lastAttemptedBookId;
+  int? _lastAttemptedPageNum;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -141,18 +146,21 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     if (!textSettings.fullscreenMode) {
       _cancelHideTimer();
+      _lastScrollPosition = _scrollController.offset;
       return;
     }
 
     final scrollPosition = _scrollController.offset;
-    const topThreshold = 100.0;
+    const topThreshold = 70.0;
 
-    if (scrollPosition < topThreshold) {
+    if (scrollPosition < topThreshold && scrollPosition < _lastScrollPosition) {
       if (!_isUiVisible) {
         _showUi();
       }
       _resetHideTimer();
     }
+
+    _lastScrollPosition = scrollPosition;
   }
 
   void _showUi() {
@@ -208,6 +216,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Future<void> reloadPage() async {
     final pageData = ref.read(readerProvider).pageData;
     if (pageData != null) {
+      setState(() {
+        _isLastPageMarkedDone = false;
+      });
       await ref
           .read(readerProvider.notifier)
           .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
@@ -217,6 +228,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Future<void> loadBook(int bookId, [int? pageNum]) async {
     print('DEBUG: loadBook called with bookId=$bookId, pageNum=$pageNum');
+    setState(() {
+      _isLastPageMarkedDone = false;
+      _lastAttemptedBookId = bookId;
+      _lastAttemptedPageNum = pageNum;
+    });
     try {
       await ref
           .read(readerProvider.notifier)
@@ -275,10 +291,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               Expanded(child: _buildBody(isLoading, errorMessage, pageData)),
             ],
           ),
-          if (textSettings.fullscreenMode &&
-              pageData != null &&
-              pageData.pageCount > 1)
-            _buildFloatingPageControls(context, pageData),
         ],
       ),
     );
@@ -290,12 +302,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     bool fullscreenMode,
   ) {
     if (fullscreenMode) {
+      final topPadding = MediaQuery.of(context).padding.top;
       return PreferredSize(
-        preferredSize: Size.fromHeight(_isUiVisible ? kToolbarHeight : 0),
+        preferredSize: Size.fromHeight(
+          _isUiVisible ? kToolbarHeight + topPadding : 0,
+        ),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeInOut,
-          height: _isUiVisible ? kToolbarHeight : 0,
+          height: _isUiVisible ? kToolbarHeight + topPadding : 0,
           child: AppBar(
             leading: Builder(
               builder: (context) => IconButton(
@@ -320,7 +335,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       IconButton(
                         icon: const Icon(Icons.chevron_left),
                         onPressed: pageData!.currentPage > 1
-                            ? () => _goToPage(pageData!.currentPage - 1)
+                            ? () => _loadPageWithoutMarkingRead(
+                                pageData!.currentPage - 1,
+                              )
                             : null,
                         tooltip: 'Previous page',
                       ),
@@ -328,7 +345,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       IconButton(
                         icon: const Icon(Icons.chevron_right),
                         onPressed: pageData!.currentPage < pageData!.pageCount
-                            ? () => _goToPage(pageData!.currentPage + 1)
+                            ? () => _loadPageWithoutMarkingRead(
+                                pageData!.currentPage + 1,
+                              )
                             : null,
                         tooltip: 'Next page',
                       ),
@@ -365,7 +384,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 IconButton(
                   icon: const Icon(Icons.chevron_left),
                   onPressed: pageData!.currentPage > 1
-                      ? () => _goToPage(pageData!.currentPage - 1)
+                      ? () => _loadPageWithoutMarkingRead(
+                          pageData!.currentPage - 1,
+                        )
                       : null,
                   tooltip: 'Previous page',
                 ),
@@ -373,7 +394,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
                   onPressed: pageData!.currentPage < pageData!.pageCount
-                      ? () => _goToPage(pageData!.currentPage + 1)
+                      ? () => _loadPageWithoutMarkingRead(
+                          pageData!.currentPage + 1,
+                        )
                       : null,
                   tooltip: 'Next page',
                 ),
@@ -384,48 +407,65 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  Widget _buildFloatingPageControls(BuildContext context, PageData pageData) {
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 200),
-      curve: Curves.easeInOut,
-      bottom: _isUiVisible ? 16 : -100,
-      right: 16,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 200),
-        opacity: _isUiVisible ? 1.0 : 0.0,
-        child: Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
+  Widget _buildPageControls(BuildContext context, PageData pageData) {
+    final isLastPage = pageData.currentPage == pageData.pageCount;
+    final theme = Theme.of(context);
+
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 20),
+                    SizedBox(width: 4),
+                    Text('All Known'),
+                  ],
+                ),
+                onPressed: () => _markPageKnown(),
+                tooltip: 'All Known',
+              ),
+              const SizedBox(width: 24),
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: pageData.currentPage > 1
+                    ? () => _goToPage(pageData.currentPage - 1)
+                    : null,
+                tooltip: 'Previous page',
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Text(
+                  pageData.pageIndicator,
+                  style: theme.textTheme.titleMedium,
+                ),
+              ),
+              if (isLastPage)
                 IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: pageData.currentPage > 1
-                      ? () => _goToPage(pageData.currentPage - 1)
-                      : null,
-                  tooltip: 'Previous page',
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    pageData.pageIndicator,
-                    style: Theme.of(context).textTheme.titleMedium,
+                  icon: Icon(
+                    Icons.check,
+                    color: _isLastPageMarkedDone
+                        ? theme.colorScheme.primary
+                        : null,
                   ),
-                ),
+                  onPressed: () => _markLastPageDone(pageData),
+                  tooltip: 'Mark as done',
+                )
+              else
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
-                  onPressed: pageData.currentPage < pageData.pageCount
-                      ? () => _goToPage(pageData.currentPage + 1)
-                      : null,
+                  onPressed: () => _goToPage(pageData.currentPage + 1),
                   tooltip: 'Next page',
                 ),
-              ],
-            ),
+            ],
           ),
         ),
       ),
@@ -438,17 +478,17 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     if (errorMessage != null) {
+      final bookId = pageData?.bookId ?? _lastAttemptedBookId;
+      final pageNum = pageData?.currentPage ?? _lastAttemptedPageNum;
+
       return ErrorDisplay(
         message: errorMessage,
-        onRetry: pageData != null
+        onRetry: bookId != null
             ? () {
                 ref.read(readerProvider.notifier).clearError();
                 ref
                     .read(readerProvider.notifier)
-                    .loadPage(
-                      bookId: pageData.bookId,
-                      pageNum: pageData.currentPage,
-                    );
+                    .loadPage(bookId: bookId, pageNum: pageNum);
               }
             : null,
       );
@@ -541,23 +581,42 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           _showUi();
         }
       },
-      onHorizontalDragEnd: (details) {
+      onHorizontalDragEnd: (details) async {
         if (pageData!.pageCount <= 1) return;
 
         final velocity = details.primaryVelocity ?? 0;
         if (velocity > 0) {
           if (pageData!.currentPage > 1) {
-            _goToPage(pageData!.currentPage - 1);
+            _loadPageWithoutMarkingRead(pageData!.currentPage - 1);
           }
         } else if (velocity < 0) {
           if (pageData!.currentPage < pageData!.pageCount) {
-            _goToPage(pageData!.currentPage + 1);
+            final currentTextSettings = ref.read(
+              textFormattingSettingsProvider,
+            );
+
+            if (currentTextSettings.swipeMarksRead) {
+              try {
+                await ref
+                    .read(readerProvider.notifier)
+                    .markPageRead(pageData!.bookId, pageData!.currentPage);
+              } catch (e) {
+                print('Error marking page as read: $e');
+              }
+            }
+
+            await Future.delayed(const Duration(milliseconds: 400));
+            _loadPageWithoutMarkingRead(pageData!.currentPage + 1);
           }
         }
       },
       child: TextDisplay(
         paragraphs: pageData!.paragraphs,
         scrollController: _scrollController,
+        topPadding: textSettings.fullscreenMode && !_isUiVisible
+            ? MediaQuery.of(context).padding.top
+            : 0.0,
+        bottomControlWidget: _buildPageControls(context, pageData),
         onTap: (item, position) {
           _handleTap(item, position);
         },
@@ -894,15 +953,53 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  void _goToPage(int pageNum) {
+  Future<void> _goToPage(int pageNum) async {
     final pageData = ref.read(readerProvider).pageData;
     if (pageData == null) return;
+
+    if (pageNum > pageData.currentPage) {
+      try {
+        await ref
+            .read(readerProvider.notifier)
+            .markPageRead(pageData.bookId, pageData.currentPage);
+      } catch (e) {
+        print('Error marking page as read: $e');
+      }
+    }
+
+    setState(() {
+      _isLastPageMarkedDone = false;
+      _lastAttemptedBookId = pageData.bookId;
+      _lastAttemptedPageNum = pageNum;
+    });
+
     ref
         .read(readerProvider.notifier)
         .loadPage(
           bookId: pageData.bookId,
           pageNum: pageNum,
-          showFullPageError: false, // Don't show full page error for navigation
+          showFullPageError: false,
+          useCache: true,
+        );
+  }
+
+  Future<void> _loadPageWithoutMarkingRead(int pageNum) async {
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData == null) return;
+
+    setState(() {
+      _isLastPageMarkedDone = false;
+      _lastAttemptedBookId = pageData.bookId;
+      _lastAttemptedPageNum = pageNum;
+    });
+
+    ref
+        .read(readerProvider.notifier)
+        .loadPage(
+          bookId: pageData.bookId,
+          pageNum: pageNum,
+          showFullPageError: false,
+          useCache: true,
         );
   }
 
@@ -1080,5 +1177,77 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         );
       },
     );
+  }
+
+  Future<void> _markPageKnown() async {
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData == null) return;
+
+    try {
+      await ref
+          .read(readerProvider.notifier)
+          .markPageKnown(pageData!.bookId, pageData!.currentPage);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Page marked as All Known'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+
+      if (pageData.currentPage < pageData.pageCount) {
+        _goToPage(pageData.currentPage + 1);
+      } else {
+        ref
+            .read(readerProvider.notifier)
+            .loadPage(
+              bookId: pageData.bookId,
+              pageNum: pageData.currentPage,
+              showFullPageError: false,
+            );
+      }
+    } catch (e) {
+      print('Error marking page as known: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to mark page as known: $e'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _markLastPageDone(PageData pageData) async {
+    try {
+      await ref
+          .read(readerProvider.notifier)
+          .markPageRead(pageData.bookId, pageData.currentPage);
+
+      if (mounted) {
+        setState(() {
+          _isLastPageMarkedDone = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Page marked as done'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error marking page as done: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to mark page as done: $e'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 }

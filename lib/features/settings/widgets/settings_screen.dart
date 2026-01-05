@@ -8,6 +8,8 @@ import '../../../shared/theme/app_theme.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../app.dart';
 import 'theme_selector_screen.dart';
+import 'tts_settings_section.dart';
+import 'ai_settings_section.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -170,6 +172,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final themeSettings = ref.watch(themeSettingsProvider);
+    final textSettings = ref.watch(textFormattingSettingsProvider);
 
     // Sync controller with current state on every build
     if (_serverUrlController.text != settings.serverUrl) {
@@ -494,6 +497,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       ),
                     ),
                     const SizedBox(height: 24),
+                    const Text('Page Navigation'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Text('Mark pages as read when swiping'),
+                        const Spacer(),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: textSettings.swipeMarksRead,
+                            onChanged: (value) {
+                              ref
+                                  .read(textFormattingSettingsProvider.notifier)
+                                  .updateSwipeMarksRead(value);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(12),
@@ -567,6 +590,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            const TTSSettingsSection(),
+            const SizedBox(height: 16),
+            const AISettingsSection(),
             const SizedBox(height: 16),
             Card(
               elevation: 2,

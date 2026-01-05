@@ -10,9 +10,9 @@ class ApiService {
           Dio(
             BaseOptions(
               baseUrl: baseUrl,
-              connectTimeout: const Duration(seconds: 15),
-              receiveTimeout: const Duration(seconds: 15),
-              sendTimeout: const Duration(seconds: 15),
+              connectTimeout: const Duration(seconds: 5),
+              receiveTimeout: const Duration(seconds: 5),
+              sendTimeout: const Duration(seconds: 5),
               headers: {'Content-Type': 'text/html'},
             ),
           ) {
@@ -25,16 +25,13 @@ class ApiService {
         onError: (error, handler) async {
           if (_shouldRetry(error)) {
             final retryCount = error.requestOptions.extra['retryCount'] ?? 0;
-            if (retryCount < 3) {
+            if (retryCount < 1) {
               error.requestOptions.extra['retryCount'] = retryCount + 1;
-              // Exponential backoff with reasonable delays
-              final delay = Duration(milliseconds: 500 * (1 << retryCount));
-              await Future.delayed(delay);
+              await Future.delayed(Duration(milliseconds: 200));
               try {
                 final response = await _dio.fetch(error.requestOptions);
                 return handler.resolve(response);
               } catch (e) {
-                print('Retry attempt ${retryCount + 1} failed: $e');
                 return handler.next(error);
               }
             }
@@ -124,6 +121,7 @@ class ApiService {
         'pagenum': pageNum,
         'restknown': restKnown ? 1 : 0,
       },
+      options: Options(contentType: 'application/json'),
     );
   }
 
