@@ -400,7 +400,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(Icons.check_circle_outline),
+                icon: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.check_circle_outline, size: 20),
+                    SizedBox(width: 4),
+                    Text('All Known'),
+                  ],
+                ),
                 onPressed: () => _markPageKnown(),
                 tooltip: 'All Known',
               ),
