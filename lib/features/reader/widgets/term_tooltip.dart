@@ -58,91 +58,94 @@ class TermTooltipClass {
         top: -9999,
         child: Opacity(
           opacity: _isHidden ? 0.0 : 1.0,
-          child: Material(
-            key: _tooltipKey,
-            elevation: 8,
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              constraints: const BoxConstraints(maxWidth: 200),
-              decoration: BoxDecoration(
-                color: Theme.of(ctx).colorScheme.surface,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-                border: Border.all(
-                  color: Theme.of(
-                    ctx,
-                  ).colorScheme.outline.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    termTooltip.term,
-                    style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (termTooltip.translation != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatTranslation(termTooltip.translation),
-                      style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        color: Theme.of(
-                          ctx,
-                        ).colorScheme.onSurface.withValues(alpha: 0.7),
-                      ),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
+          child: GestureDetector(
+            onTap: close,
+            child: Material(
+              key: _tooltipKey,
+              elevation: 8,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 200),
+                decoration: BoxDecoration(
+                  color: Theme.of(ctx).colorScheme.surface,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
                   ],
-                  if (termTooltip.parents.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    ...termTooltip.parents.map(
-                      (parent) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '(${parent.term})',
-                            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: Theme.of(
-                                ctx,
-                              ).colorScheme.onSurface.withValues(alpha: 1.0),
-                            ),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          if (parent.translation != null) ...[
-                            const SizedBox(height: 2),
+                  border: Border.all(
+                    color: Theme.of(
+                      ctx,
+                    ).colorScheme.outline.withValues(alpha: 0.2),
+                    width: 1,
+                  ),
+                ),
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      termTooltip.term,
+                      style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (termTooltip.translation != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatTranslation(termTooltip.translation),
+                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                          color: Theme.of(
+                            ctx,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (termTooltip.parents.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      ...termTooltip.parents.map(
+                        (parent) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              _formatTranslation(parent.translation),
+                              '(${parent.term})',
                               style: Theme.of(ctx).textTheme.bodySmall
                                   ?.copyWith(
-                                    fontStyle: FontStyle.italic,
+                                    fontWeight: FontWeight.w500,
                                     color: Theme.of(ctx).colorScheme.onSurface
-                                        .withValues(alpha: 0.7),
+                                        .withValues(alpha: 1.0),
                                   ),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            if (parent.translation != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                _formatTranslation(parent.translation),
+                                style: Theme.of(ctx).textTheme.bodySmall
+                                    ?.copyWith(
+                                      fontStyle: FontStyle.italic,
+                                      color: Theme.of(ctx).colorScheme.onSurface
+                                          .withValues(alpha: 0.7),
+                                    ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),
@@ -180,93 +183,98 @@ class TermTooltipClass {
             left: left,
             child: Opacity(
               opacity: _isHidden ? 0.0 : 1.0,
-              child: Material(
-                key: _tooltipKey,
-                elevation: 8,
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 200),
-                  decoration: BoxDecoration(
-                    color: Theme.of(ctx).colorScheme.surface,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                    border: Border.all(
-                      color: Theme.of(
-                        ctx,
-                      ).colorScheme.outline.withValues(alpha: 0.2),
-                      width: 1,
-                    ),
-                  ),
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        termTooltip.term,
-                        style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (termTooltip.translation != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          _formatTranslation(termTooltip.translation),
-                          style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                            fontStyle: FontStyle.italic,
-                            color: Theme.of(
-                              ctx,
-                            ).colorScheme.onSurface.withValues(alpha: 0.7),
-                          ),
-                          maxLines: 3,
-                          overflow: TextOverflow.ellipsis,
+              child: GestureDetector(
+                onTap: close,
+                child: Material(
+                  key: _tooltipKey,
+                  elevation: 8,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 200),
+                    decoration: BoxDecoration(
+                      color: Theme.of(ctx).colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
                       ],
-                      if (termTooltip.parents.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        ...termTooltip.parents.map(
-                          (parent) => Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '(${parent.term})',
-                                style: Theme.of(ctx).textTheme.bodySmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w500,
-                                      color: Theme.of(ctx).colorScheme.onSurface
-                                          .withValues(alpha: 1.0),
-                                    ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              if (parent.translation != null) ...[
-                                const SizedBox(height: 2),
+                      border: Border.all(
+                        color: Theme.of(
+                          ctx,
+                        ).colorScheme.outline.withValues(alpha: 0.2),
+                        width: 1,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          termTooltip.term,
+                          style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (termTooltip.translation != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatTranslation(termTooltip.translation),
+                            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
+                              fontStyle: FontStyle.italic,
+                              color: Theme.of(
+                                ctx,
+                              ).colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        if (termTooltip.parents.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          ...termTooltip.parents.map(
+                            (parent) => Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                  _formatTranslation(parent.translation),
+                                  '(${parent.term})',
                                   style: Theme.of(ctx).textTheme.bodySmall
                                       ?.copyWith(
-                                        fontStyle: FontStyle.italic,
+                                        fontWeight: FontWeight.w500,
                                         color: Theme.of(ctx)
                                             .colorScheme
                                             .onSurface
-                                            .withValues(alpha: 0.6),
+                                            .withValues(alpha: 1.0),
                                       ),
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                 ),
+                                if (parent.translation != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _formatTranslation(parent.translation),
+                                    style: Theme.of(ctx).textTheme.bodySmall
+                                        ?.copyWith(
+                                          fontStyle: FontStyle.italic,
+                                          color: Theme.of(ctx)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.6),
+                                        ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ],
-                            ],
+                            ),
                           ),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
