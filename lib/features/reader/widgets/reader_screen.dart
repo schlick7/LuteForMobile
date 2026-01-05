@@ -1137,6 +1137,18 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           ),
         );
       }
+
+      if (pageData.currentPage < pageData.pageCount) {
+        _goToPage(pageData.currentPage + 1);
+      } else {
+        ref
+            .read(readerProvider.notifier)
+            .loadPage(
+              bookId: pageData.bookId,
+              pageNum: pageData.currentPage,
+              showFullPageError: false,
+            );
+      }
     } catch (e) {
       print('Error marking page as known: $e');
       if (mounted) {
