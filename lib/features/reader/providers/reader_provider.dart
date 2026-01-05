@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart' show DioException, DioExceptionType;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 import '../models/page_data.dart';
@@ -62,6 +63,42 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
   ReaderRepository get _repository => ref.read(readerRepositoryProvider);
 
+  String _formatError(dynamic error) {
+    if (error is DioException) {
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+          return 'Connection timed out. Please check your network connection.';
+        case DioExceptionType.sendTimeout:
+          return 'Request timed out. The server may be slow or unavailable.';
+        case DioExceptionType.receiveTimeout:
+          return 'Server took too long to respond. Please try again.';
+        case DioExceptionType.connectionError:
+          return 'Unable to connect to server. Please check your network connection and server settings.';
+        case DioExceptionType.badResponse:
+          final statusCode = error.response?.statusCode;
+          if (statusCode != null && statusCode >= 500) {
+            return 'Server error ($statusCode). Please try again later.';
+          } else if (statusCode != null && statusCode >= 400) {
+            return 'Request error ($statusCode). Please check your settings.';
+          }
+          return 'Server error occurred. Please try again.';
+        case DioExceptionType.cancel:
+          return 'Request was cancelled.';
+        case DioExceptionType.unknown:
+          if (error.error?.toString().contains('Connection refused') == true) {
+            return 'Server is not running or is unreachable. Please check your server URL.';
+          }
+          return 'Network error occurred. Please check your connection.';
+        default:
+          return 'An unexpected error occurred. Please try again.';
+      }
+    }
+    if (error.toString().contains('Failed to load page')) {
+      return 'Could not load page. Please check your network connection.';
+    }
+    return 'An error occurred: $error';
+  }
+
   Future<void> loadPage({
     required int bookId,
     int? pageNum,
@@ -115,7 +152,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
         state = state.copyWith(
           isLoading: false,
           isBackgroundRefreshing: false,
-          errorMessage: e.toString(),
+          errorMessage: _formatError(e),
         );
       } else if (updateReaderState) {
         print('Navigation error (not showing full screen): $e');

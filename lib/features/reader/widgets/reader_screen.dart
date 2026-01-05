@@ -45,6 +45,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   double _lastScrollPosition = 0.0;
   DateTime? _lastMarkPageTime;
   bool _isLastPageMarkedDone = false;
+  int? _lastAttemptedBookId;
+  int? _lastAttemptedPageNum;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -228,6 +230,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     print('DEBUG: loadBook called with bookId=$bookId, pageNum=$pageNum');
     setState(() {
       _isLastPageMarkedDone = false;
+      _lastAttemptedBookId = bookId;
+      _lastAttemptedPageNum = pageNum;
     });
     try {
       await ref
@@ -474,17 +478,17 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     if (errorMessage != null) {
+      final bookId = pageData?.bookId ?? _lastAttemptedBookId;
+      final pageNum = pageData?.currentPage ?? _lastAttemptedPageNum;
+
       return ErrorDisplay(
         message: errorMessage,
-        onRetry: pageData != null
+        onRetry: bookId != null
             ? () {
                 ref.read(readerProvider.notifier).clearError();
                 ref
                     .read(readerProvider.notifier)
-                    .loadPage(
-                      bookId: pageData.bookId,
-                      pageNum: pageData.currentPage,
-                    );
+                    .loadPage(bookId: bookId, pageNum: pageNum);
               }
             : null,
       );
@@ -965,6 +969,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     setState(() {
       _isLastPageMarkedDone = false;
+      _lastAttemptedBookId = pageData.bookId;
+      _lastAttemptedPageNum = pageNum;
     });
 
     ref
@@ -983,6 +989,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     setState(() {
       _isLastPageMarkedDone = false;
+      _lastAttemptedBookId = pageData.bookId;
+      _lastAttemptedPageNum = pageNum;
     });
 
     ref
