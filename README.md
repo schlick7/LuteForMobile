@@ -31,9 +31,12 @@ PWA: (they should work, but may have issues)
 
 ## Prerequisites
 
+- Lute v3 server running on your network
+
+## To build
+
 - Flutter SDK (3.10.0+)
 - Dart SDK (3.10.0+)
-- Lute v3 server running on your network
 
 ## Installation
 
