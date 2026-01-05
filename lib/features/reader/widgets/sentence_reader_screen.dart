@@ -1046,7 +1046,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                             Navigator.of(context).pop();
                           }
                         },
-                  behavior: HitTestBehavior.translucent,
                   child: TermFormWidget(
                     termForm: _currentTermForm ?? termForm,
                     contentService: repository.contentService,
@@ -1179,7 +1178,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                             Navigator.of(context).pop();
                           }
                         },
-                  behavior: HitTestBehavior.translucent,
                   child: TermFormWidget(
                     termForm: currentForm,
                     contentService: repository.contentService,

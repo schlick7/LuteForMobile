@@ -755,7 +755,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       Navigator.of(context).pop();
                     }
                   },
-                  behavior: HitTestBehavior.translucent,
                   child: TermFormWidget(
                     termForm: _currentTermForm ?? termForm,
                     contentService: repository.contentService,
@@ -868,7 +867,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       Navigator.of(context).pop();
                     }
                   },
-                  behavior: HitTestBehavior.translucent,
                   child: TermFormWidget(
                     termForm: termForm,
                     contentService: repository.contentService,
