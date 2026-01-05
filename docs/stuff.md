@@ -7,7 +7,7 @@
 # Terms Screen
 - Use Termform for term editing
 
-lazy loading?
+Navigating back on the sentence reader and triggering a back page turn should start the sentences on the last sentence of that page. should be like this: ' (3/5) 1/5) - back sentence button pressed - (2/5) 7/7 '
 
 - Move Swipe marks page read toggle out of the hamburger menu and into the settings screen
 
@@ -15,12 +15,20 @@ lazy loading?
 
 ## Add page turn animation? - First attempt broke hard!
 
-Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype?
+Add more space/padding between all known button and back button
+
+When fetching a tooltip does it send back the 200 status before actually sending the data?
+
+Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
+  - how hard to add elsewhere?
+
 
 All known button should navigate to the next page. If on the last page it should reload all of the status highlights so they can properly update as all known
 
+Remove the 'Audio Player' header from the hamburger menu settings to reduce space usage. 
+
 ### TTS options: On device, local-OpenAI endpoint, OpenAI, None
-  - Future: add a selector in language settings to apply voices based on languages. 
+  - Future: add a selector in language settings to apply TTS voices based on languages. 
   - add test server button
   
 ### AI options: local-OpenAI endpoint, OpenAI, None, others in the future.
@@ -51,10 +59,13 @@ Add more custom theme options
 
 
 
-Future:
+# Future:
 - add a toggle to book details to select between Server parsing or App parsing
   - include hint
   - put this in the edit button and move the confirmation to the edit button popup for editing the term.
+- When page marked as done and a popup to navigate to books to pick out another. Add a great job or something and a animation of some kind to celebrate the completetion of a book. Include number of words in the book? 
+- add a selector in language settings to apply TTS voices based on languages. 
+
 
 # PWA
 ## Build the web app first
