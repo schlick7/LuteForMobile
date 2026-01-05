@@ -44,6 +44,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   ScrollController _scrollController = ScrollController();
   double _lastScrollPosition = 0.0;
   DateTime? _lastMarkPageTime;
+  bool _isLastPageMarkedDone = false;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -213,6 +214,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Future<void> reloadPage() async {
     final pageData = ref.read(readerProvider).pageData;
     if (pageData != null) {
+      setState(() {
+        _isLastPageMarkedDone = false;
+      });
       await ref
           .read(readerProvider.notifier)
           .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
@@ -222,6 +226,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Future<void> loadBook(int bookId, [int? pageNum]) async {
     print('DEBUG: loadBook called with bookId=$bookId, pageNum=$pageNum');
+    setState(() {
+      _isLastPageMarkedDone = false;
+    });
     try {
       await ref
           .read(readerProvider.notifier)
@@ -389,6 +396,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Widget _buildPageControls(BuildContext context, PageData pageData) {
+    final isLastPage = pageData.currentPage == pageData.pageCount;
+    final theme = Theme.of(context);
+
     return Align(
       alignment: Alignment.centerRight,
       child: Card(
@@ -423,16 +433,26 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 8),
                 child: Text(
                   pageData.pageIndicator,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: theme.textTheme.titleMedium,
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                onPressed: pageData.currentPage < pageData.pageCount
-                    ? () => _goToPage(pageData.currentPage + 1)
-                    : null,
-                tooltip: 'Next page',
-              ),
+              if (isLastPage)
+                IconButton(
+                  icon: Icon(
+                    Icons.check,
+                    color: _isLastPageMarkedDone
+                        ? theme.colorScheme.primary
+                        : null,
+                  ),
+                  onPressed: () => _markLastPageDone(pageData),
+                  tooltip: 'Mark as done',
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: () => _goToPage(pageData.currentPage + 1),
+                  tooltip: 'Next page',
+                ),
             ],
           ),
         ),
@@ -582,9 +602,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         topPadding: textSettings.fullscreenMode && !_isUiVisible
             ? MediaQuery.of(context).padding.top
             : 0.0,
-        bottomControlWidget: pageData.pageCount > 1
-            ? _buildPageControls(context, pageData)
-            : null,
+        bottomControlWidget: _buildPageControls(context, pageData),
         onTap: (item, position) {
           _handleTap(item, position);
         },
@@ -935,6 +953,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       }
     }
 
+    setState(() {
+      _isLastPageMarkedDone = false;
+    });
+
     ref
         .read(readerProvider.notifier)
         .loadPage(
@@ -1155,6 +1177,36 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to mark page as known: $e'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _markLastPageDone(PageData pageData) async {
+    try {
+      await ref
+          .read(readerProvider.notifier)
+          .markPageRead(pageData.bookId, pageData.currentPage);
+
+      if (mounted) {
+        setState(() {
+          _isLastPageMarkedDone = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Page marked as done'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error marking page as done: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to mark page as done: $e'),
             duration: Duration(seconds: 2),
           ),
         );
