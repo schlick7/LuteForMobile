@@ -49,6 +49,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _isParsing = false;
   bool _initializationFailed = false;
   bool _isDictionaryOpen = false;
+  bool _isLastPageMarkedDone = false;
 
   @override
   void initState() {
@@ -517,12 +518,19 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       pageDisplay = '(${pageData.pageIndicator}) - $sentencePosition';
     }
 
+    final isLastPage =
+        pageData != null && pageData.currentPage == pageData.pageCount;
+    final isLastSentence =
+        sentenceReaderState.currentSentenceIndex ==
+        sentenceReaderState.customSentences.length - 1;
+    final theme = Theme.of(context);
+
     return BottomAppBar(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Row(
           children: [
-            Text(pageDisplay, style: Theme.of(context).textTheme.bodyMedium),
+            Text(pageDisplay, style: theme.textTheme.bodyMedium),
             const Spacer(),
             IconButton(
               icon: const Icon(Icons.chevron_left),
@@ -531,13 +539,26 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                   : null,
               iconSize: 24,
             ),
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              onPressed: sentenceReaderNotifier.canGoNext
-                  ? () => _goNext()
-                  : null,
-              iconSize: 24,
-            ),
+            if (isLastPage && isLastSentence)
+              IconButton(
+                icon: Icon(
+                  Icons.check,
+                  color: _isLastPageMarkedDone
+                      ? theme.colorScheme.primary
+                      : null,
+                ),
+                onPressed: () => _markLastPageDone(),
+                iconSize: 24,
+                tooltip: 'Mark as done',
+              )
+            else
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: sentenceReaderNotifier.canGoNext
+                    ? () => _goNext()
+                    : null,
+                iconSize: 24,
+              ),
           ],
         ),
       ),
@@ -859,6 +880,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     print('DEBUG: _goNext called');
     await ref.read(sentenceReaderProvider.notifier).nextSentence();
     _saveSentencePosition();
+
+    final pageData = ref.read(readerProvider).pageData;
+    final sentenceReader = ref.read(sentenceReaderProvider);
+    if (pageData != null && sentenceReader.currentSentenceIndex == 0) {
+      setState(() {
+        _isLastPageMarkedDone = false;
+      });
+    }
   }
 
   Future<void> _goPrevious() async {
@@ -872,6 +901,39 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     ref
         .read(settingsProvider.notifier)
         .updateCurrentBookSentenceIndex(currentIndex);
+  }
+
+  Future<void> _markLastPageDone() async {
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData == null) return;
+
+    try {
+      await ref
+          .read(readerProvider.notifier)
+          .markPageRead(pageData.bookId, pageData.currentPage);
+
+      if (mounted) {
+        setState(() {
+          _isLastPageMarkedDone = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Page marked as done'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error marking page as done: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to mark page as done: $e'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   void _handleTap(TextItem item, Offset position) async {
