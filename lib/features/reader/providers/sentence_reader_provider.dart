@@ -184,12 +184,17 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       'DEBUG: Checking cache for bookId=$bookId, pageNum=$pageNum, langId=$langId, threshold=$combineThreshold',
     );
 
+    final isNavigatingBack =
+        state.customSentences.isNotEmpty &&
+        state.lastParsedPageNum != null &&
+        state.lastParsedPageNum! > pageNum;
+
     if (state.lastParsedBookId == bookId &&
         state.lastParsedPageNum != null &&
         state.lastParsedPageNum != pageNum &&
         state.customSentences.isNotEmpty) {
       print(
-        'DEBUG: BookId=$bookId matches but pageNum changed from ${state.lastParsedPageNum} to $pageNum, clearing stale data',
+        'DEBUG: BookId=$bookId matches but pageNum changed from ${state.lastParsedPageNum} to $pageNum, clearing stale data (isNavigatingBack=$isNavigatingBack)',
       );
       state = state.copyWith(
         lastParsedBookId: null,
@@ -421,7 +426,12 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     final reader = ref.read(readerProvider);
     if (reader.pageData == null) return;
 
+    print(
+      'DEBUG: previousSentence called, currentSentenceIndex=${state.currentSentenceIndex}, customSentences.length=${state.customSentences.length}, currentPage=${reader.pageData!.currentPage}',
+    );
+
     if (state.currentSentenceIndex > 0) {
+      print('DEBUG: previousSentence: Moving to previous sentence within page');
       state = state.copyWith(
         currentSentenceIndex: state.currentSentenceIndex - 1,
       );
@@ -437,6 +447,10 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       try {
         final currentPage = reader.pageData!.currentPage;
 
+        print(
+          'DEBUG: previousSentence: At first sentence, navigating from page $currentPage to page ${currentPage - 1}',
+        );
+
         if (currentPage > 1) {
           await ref
               .read(readerProvider.notifier)
@@ -450,9 +464,13 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
           final langId = _getLangIdFromPageData();
           await parseSentencesForPage(langId, initialIndex: -1);
 
+          print(
+            'DEBUG: previousSentence: Loaded page ${currentPage - 1} with ${state.customSentences.length} sentences, set index to ${state.currentSentenceIndex}',
+          );
           state = state.copyWith(isNavigating: false);
         }
       } catch (e) {
+        print('DEBUG: previousSentence: Error during page navigation: $e');
         state = state.copyWith(isNavigating: false);
       }
     }
