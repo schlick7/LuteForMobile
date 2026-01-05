@@ -18,6 +18,7 @@ class DictionaryView extends ConsumerStatefulWidget {
   final VoidCallback onClose;
   final bool isVisible;
   final DictionaryService dictionaryService;
+  final void Function(String)? onAddAITranslation;
 
   const DictionaryView({
     super.key,
@@ -27,6 +28,7 @@ class DictionaryView extends ConsumerStatefulWidget {
     required this.onClose,
     required this.isVisible,
     required this.dictionaryService,
+    this.onAddAITranslation,
   });
 
   @override
@@ -128,6 +130,13 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
   void _retryAI() {
     _hasFetchedAI = false;
     _fetchAITranslation();
+  }
+
+  void _handleAddToTranslation() {
+    if (_aiTranslation == null || widget.onAddAITranslation == null) return;
+
+    final cleanTranslation = _aiTranslation!.replaceAll('\n', ' ');
+    widget.onAddAITranslation!(cleanTranslation);
   }
 
   @override
@@ -326,6 +335,22 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
                   context,
                 ).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic),
               ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: widget.onAddAITranslation != null
+                  ? null
+                  : () {
+                      _handleAddToTranslation();
+                    },
+              icon: const Icon(Icons.add_circle_outline),
+              label: const Text('Add to'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: _retryAI,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
             ),
           ],
         ),

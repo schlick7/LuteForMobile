@@ -539,10 +539,14 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         language,
       );
 
-      final currentText = _translationController.text.trim();
+      final currentText = _translationController.text.trim().replaceAll(
+        '\n',
+        ' ',
+      );
+      final cleanTranslation = translation.replaceAll('\n', ' ');
       final newText = currentText.isEmpty
-          ? translation
-          : '$currentText, $translation';
+          ? cleanTranslation
+          : '$currentText, $cleanTranslation';
 
       _translationController.text = newText;
       _updateForm();
@@ -682,7 +686,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 padding: const EdgeInsets.only(right: 8),
                 child: _buildParentChip(context, parent),
               );
-            }).toList(),
+            }),
             ElevatedButton.icon(
               onPressed: () => _showAddParentDialog(context),
               icon: const Icon(Icons.add),
@@ -920,6 +924,21 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       onClose: _toggleDictionary,
       isVisible: _isDictionaryOpen,
       dictionaryService: _dictionaryService,
+      onAddAITranslation: _handleAddAITranslationToField,
     );
+  }
+
+  void _handleAddAITranslationToField(String translation) {
+    final currentText = _translationController.text.trim().replaceAll(
+      '\n',
+      ' ',
+    );
+    final cleanTranslation = translation.replaceAll('\n', ' ');
+    final newText = currentText.isEmpty
+        ? cleanTranslation
+        : '$currentText, $cleanTranslation';
+
+    _translationController.text = newText;
+    _updateForm();
   }
 }
