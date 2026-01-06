@@ -154,23 +154,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _isLastPageMarkedDone = false;
   SentenceTTSNotifier? _ttsNotifier;
   bool _isNavigatingForward = true;
-  Key _sentenceKey = const ValueKey('sentence');
-
-  @override
-  void initState() {
-    super.initState();
-    _setupAppLifecycleListener();
-    _ttsNotifier = ref.read(sentenceTTSProvider.notifier);
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final currentSentence = ref.read(sentenceReaderProvider).currentSentence;
-      if (currentSentence != null) {
-        setState(() {
-          _sentenceKey = ValueKey('sentence-${currentSentence.id}');
-        });
-      }
-    });
-  }
+  Key? _sentenceKey;
+  bool _isNavigating = false;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -496,10 +481,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         ],
       ),
       body: _PageTransition(
-        key: ValueKey('page-transition-$_sentenceKey'),
         isForward: _isNavigatingForward,
         child: Column(
-          key: _sentenceKey,
+          key: ValueKey('column-${currentSentence?.id ?? "null"}'),
           children: [
             Expanded(
               flex: 3,
@@ -1036,6 +1020,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     print('DEBUG: _goNext called');
     setState(() {
       _isNavigatingForward = true;
+      _isNavigating = true;
     });
     await ref.read(sentenceReaderProvider.notifier).nextSentence();
     _saveSentencePosition();
@@ -1044,6 +1029,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final sentenceReader = ref.read(sentenceReaderProvider);
     final currentSentence = ref.read(sentenceReaderProvider).currentSentence;
 
+    print(
+      'DEBUG: After nextSentence, new currentSentence=${currentSentence?.id}, currentSentenceIndex=${sentenceReader.currentSentenceIndex}',
+    );
+
     if (pageData != null && sentenceReader.currentSentenceIndex == 0) {
       setState(() {
         _isLastPageMarkedDone = false;
@@ -1051,26 +1040,41 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     }
 
     if (currentSentence != null) {
+      final newKey = ValueKey('sentence-${currentSentence.id}');
+      print('DEBUG: Updating _sentenceKey from $_sentenceKey to $newKey');
       setState(() {
-        _sentenceKey = ValueKey('sentence-${currentSentence.id}');
+        _sentenceKey = newKey;
       });
     }
+
+    await Future.delayed(const Duration(milliseconds: 350));
+    setState(() {
+      _isNavigating = false;
+    });
   }
 
   Future<void> _goPrevious() async {
     print('DEBUG: _goPrevious called');
     setState(() {
       _isNavigatingForward = false;
+      _isNavigating = true;
     });
     await ref.read(sentenceReaderProvider.notifier).previousSentence();
     _saveSentencePosition();
 
     final currentSentence = ref.read(sentenceReaderProvider).currentSentence;
     if (currentSentence != null) {
+      final newKey = ValueKey('sentence-${currentSentence.id}');
+      print('DEBUG: Updating _sentenceKey from $_sentenceKey to $newKey');
       setState(() {
-        _sentenceKey = ValueKey('sentence-${currentSentence.id}');
+        _sentenceKey = newKey;
       });
     }
+
+    await Future.delayed(const Duration(milliseconds: 350));
+    setState(() {
+      _isNavigating = false;
+    });
   }
 
   void _saveSentencePosition() {
