@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class HelpScreen extends StatelessWidget {
-  const HelpScreen({super.key});
+  final GlobalKey<ScaffoldState>? scaffoldKey;
+
+  const HelpScreen({super.key, this.scaffoldKey});
 
   @override
   Widget build(BuildContext context) {
@@ -11,7 +13,11 @@ class HelpScreen extends StatelessWidget {
           builder: (context) => IconButton(
             icon: const Icon(Icons.menu),
             onPressed: () {
-              Scaffold.of(context).openDrawer();
+              if (scaffoldKey != null && scaffoldKey!.currentState != null) {
+                scaffoldKey!.currentState!.openDrawer();
+              } else {
+                Scaffold.of(context).openDrawer();
+              }
             },
           ),
         ),

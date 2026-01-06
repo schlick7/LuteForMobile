@@ -305,7 +305,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         },
       ),
       body: _currentIndex == 2
-          ? const HelpScreen()
+          ? HelpScreen(scaffoldKey: _scaffoldKey)
           : IndexedStack(
               index: _currentIndex > 2 ? _currentIndex - 1 : _currentIndex,
               children: [
