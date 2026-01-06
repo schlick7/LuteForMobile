@@ -46,6 +46,7 @@ class _PageTransitionState extends State<_PageTransition>
   late AnimationController _controller;
   late Widget _oldChild;
   Widget? _currentChild;
+  bool _hasAnimated = false;
 
   @override
   void initState() {
@@ -55,6 +56,7 @@ class _PageTransitionState extends State<_PageTransition>
       vsync: this,
     );
     _currentChild = widget.child;
+    _controller.value = 1.0;
   }
 
   @override
@@ -64,6 +66,7 @@ class _PageTransitionState extends State<_PageTransition>
       _oldChild = oldWidget.child;
       _currentChild = widget.child;
       _controller.forward(from: 0.0);
+      _hasAnimated = true;
     }
   }
 
@@ -78,6 +81,10 @@ class _PageTransitionState extends State<_PageTransition>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
+        if (!_hasAnimated) {
+          return _currentChild ?? SizedBox();
+        }
+
         return Stack(
           children: [
             if (_oldChild.key != _currentChild?.key)
