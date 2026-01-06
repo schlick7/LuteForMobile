@@ -45,6 +45,8 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
   String? _aiErrorMessage;
   bool _isLoadingAI = false;
   bool _hasFetchedAI = false;
+  final Set<int> _preloadedPages = {};
+  bool _isPreloading = false;
 
   @override
   void initState() {
@@ -147,6 +149,63 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
 
     final cleanTranslation = _aiTranslation!.replaceAll('\n', ' ');
     widget.onAddAITranslation!(cleanTranslation);
+  }
+
+  Future<void> _preloadAdjacentPages() async {
+    if (_isPreloading || !mounted || widget.dictionaries.isEmpty) {
+      return;
+    }
+
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    if (!mounted || !widget.isVisible) {
+      return;
+    }
+
+    _isPreloading = true;
+
+    final pagesToPreload = <int>[];
+
+    if (_currentPage > 0 && !_preloadedPages.contains(_currentPage - 1)) {
+      pagesToPreload.add(_currentPage - 1);
+    }
+
+    if (_currentPage < widget.dictionaries.length - 1 &&
+        !_preloadedPages.contains(_currentPage + 1)) {
+      pagesToPreload.add(_currentPage + 1);
+    }
+
+    if (pagesToPreload.isEmpty) {
+      _isPreloading = false;
+      return;
+    }
+
+    for (final pageIndex in pagesToPreload) {
+      if (!mounted) break;
+
+      try {
+        await _pageController.animateToPage(
+          pageIndex,
+          duration: const Duration(milliseconds: 50),
+          curve: Curves.easeInOut,
+        );
+        _preloadedPages.add(pageIndex);
+
+        if (!mounted) break;
+
+        await _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 50),
+          curve: Curves.easeInOut,
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error preloading page $pageIndex: $e');
+        }
+      }
+    }
+
+    _isPreloading = false;
   }
 
   @override
@@ -466,6 +525,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
 
     return PageView.builder(
       controller: _pageController,
+      allowImplicitScrolling: true,
       onPageChanged: (index) async {
         setState(() {
           _currentPage = index;
@@ -477,12 +537,16 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
       },
       itemCount: widget.dictionaries.length,
       itemBuilder: (context, index) {
-        return _buildWebViewPage(context, widget.dictionaries[index]);
+        return _buildWebViewPage(context, widget.dictionaries[index], index);
       },
     );
   }
 
-  Widget _buildWebViewPage(BuildContext context, DictionarySource dictionary) {
+  Widget _buildWebViewPage(
+    BuildContext context,
+    DictionarySource dictionary,
+    int index,
+  ) {
     final url = widget.dictionaryService.buildUrl(
       widget.term,
       dictionary.urlTemplate,
@@ -506,6 +570,11 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
             },
             onWebViewCreated: (controller) {
               _webviewControllers[dictionary.hashCode] = controller;
+            },
+            onLoadStop: (controller, url) {
+              if (index == _currentPage) {
+                _preloadAdjacentPages();
+              }
             },
           ),
         );

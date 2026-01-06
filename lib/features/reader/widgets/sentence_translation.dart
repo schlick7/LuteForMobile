@@ -53,6 +53,8 @@ class _SentenceTranslationWidgetState
   String? _aiTranslation;
   String? _aiErrorMessage;
   bool _hasFetchedAI = false;
+  final Set<int> _preloadedPages = {};
+  bool _isPreloading = false;
 
   @override
   void initState() {
@@ -145,6 +147,66 @@ class _SentenceTranslationWidgetState
         });
       }
     }
+  }
+
+  Future<void> _preloadAdjacentPages() async {
+    if (_isPreloading || !mounted || _dictionaries.isEmpty) {
+      return;
+    }
+
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    if (!mounted) {
+      return;
+    }
+
+    _isPreloading = true;
+
+    final pagesToPreload = <int>[];
+
+    if (_currentPage > 0 &&
+        !_preloadedPages.contains(_currentPage - 1) &&
+        !_dictionaries[_currentPage - 1].isAI) {
+      pagesToPreload.add(_currentPage - 1);
+    }
+
+    if (_currentPage < _dictionaries.length - 1 &&
+        !_preloadedPages.contains(_currentPage + 1) &&
+        !_dictionaries[_currentPage + 1].isAI) {
+      pagesToPreload.add(_currentPage + 1);
+    }
+
+    if (pagesToPreload.isEmpty) {
+      _isPreloading = false;
+      return;
+    }
+
+    for (final pageIndex in pagesToPreload) {
+      if (!mounted) break;
+
+      try {
+        await _pageController.animateToPage(
+          pageIndex,
+          duration: const Duration(milliseconds: 50),
+          curve: Curves.easeInOut,
+        );
+        _preloadedPages.add(pageIndex);
+
+        if (!mounted) break;
+
+        await _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 50),
+          curve: Curves.easeInOut,
+        );
+      } catch (e) {
+        if (kDebugMode) {
+          print('Error preloading page $pageIndex: $e');
+        }
+      }
+    }
+
+    _isPreloading = false;
   }
 
   @override
@@ -347,6 +409,7 @@ class _SentenceTranslationWidgetState
   Widget _buildDictionaryContent(BuildContext context) {
     return PageView.builder(
       controller: _pageController,
+      allowImplicitScrolling: true,
       onPageChanged: (index) async {
         setState(() {
           _currentPage = index;
@@ -363,12 +426,16 @@ class _SentenceTranslationWidgetState
       },
       itemCount: _dictionaries.length,
       itemBuilder: (context, index) {
-        return _buildWebViewPage(context, _dictionaries[index]);
+        return _buildWebViewPage(context, _dictionaries[index], index);
       },
     );
   }
 
-  Widget _buildWebViewPage(BuildContext context, DictionarySource dictionary) {
+  Widget _buildWebViewPage(
+    BuildContext context,
+    DictionarySource dictionary,
+    int index,
+  ) {
     if (dictionary.isAI) {
       return _buildAIContent(context);
     }
@@ -392,6 +459,11 @@ class _SentenceTranslationWidgetState
       },
       onWebViewCreated: (controller) {
         _webviewControllers[dictionary.hashCode] = controller;
+      },
+      onLoadStop: (controller, url) {
+        if (index == _currentPage) {
+          _preloadAdjacentPages();
+        }
       },
     );
   }
