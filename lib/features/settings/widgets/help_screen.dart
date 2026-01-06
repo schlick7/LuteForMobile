@@ -70,7 +70,7 @@ class HelpScreen extends StatelessWidget {
             context,
             Icons.check_circle,
             '"All Known" button',
-            'Mark page as all known',
+            'Mark all terms on page as all known',
           ),
           _buildControlItem(
             context,
