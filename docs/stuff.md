@@ -7,6 +7,7 @@
 # Terms Screen
 - Use Termform for term editing
 
+? Can't press 'browse books' or open a book the first time the server is added
 
 ## Add page turn animation? - First attempt broke hard!
 
@@ -25,7 +26,7 @@ fixed? Some users are reporting that tooltips aren't showing. They work perfectl
   - unique settings for each option
   - "Using the sentence '[sentence]' Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations"
   - "Translate the following sentence from [language] to English: [sentence]"
-  - longpress Dictionary has AI tab that (ONLY) when opened fetches translation
+  - longpress Dictionary has AI tab(like all the web dictionaries) that - ONLY! - when opened fetches translation
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
@@ -39,6 +40,8 @@ Add more custom theme options
   - have a create theme button
     - have a create from selector where we pick one of the already existing themes or select none. This will auto fill in all of the options with those colors. This is so users can have a custom theme with minor changes or a custom theme with major changes -- best of both worlds. 
   - status should have a toggle for showing the selected color as the background highlight(like 1-5) or the text color (like status0) 
+  - add underline support
+    - and dotted underline?
 
 
 
