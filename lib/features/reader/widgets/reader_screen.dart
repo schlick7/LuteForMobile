@@ -67,6 +67,8 @@ class _PageTransitionState extends State<_PageTransition>
       _currentChild = widget.child;
       _controller.forward(from: 0.0);
       _hasAnimated = true;
+    } else if (oldWidget.child != widget.child) {
+      _currentChild = widget.child;
     }
   }
 
