@@ -116,9 +116,9 @@ class AIPromptConfig {
 class AIPromptTemplates {
   static const Map<AIPromptType, String> defaults = {
     AIPromptType.termTranslation:
-      'Translate this [language] term to English: [term]',
+      'Using the sentence "[sentence]" Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations',
     AIPromptType.sentenceTranslation:
-      'Translate this [language] sentence to English: [sentence]',
+      'Translate the following sentence from [language] to English: [sentence]',
   };
 }
 ```
@@ -366,8 +366,10 @@ Add two new cards after "Reading" section:
 
 #### Reader Integration
 - Add TTS button to sentence reader
-- Add term translation via AI in tooltip or separate action
-- Add sentence translation via AI in sentence reader
+- Add AI tab to term dictionary (only visible when AI provider != 'None' AND term translation toggle is ON)
+  - Fetches translation only when AI tab is opened
+  - Caches translation to avoid re-fetch
+- Add sentence translation via AI in sentence reader (button only visible when AI provider != 'None' AND sentence translation toggle is ON)
 - Display loading states for AI calls
 
 ---
@@ -627,7 +629,7 @@ ___
 ---
 
 ## PART 2: Complete AI Implementation
-**Status**: Future Phase
+**Status**: Part 2, Phase 4 (Next Phase)
 
 **Goal**: Implement all AI functionality end-to-end including services, model fetching, prompt customization, and reader integration
 
@@ -663,43 +665,43 @@ ___
 
 ---
 
-### Part 2, Phase 2: Model Fetching
+### Part 2, Phase 2: Model Fetching - COMPLETE ✅
 
 1. Implement model fetching
-   - `fetchAvailableModels()` calls `/v1/models` endpoint
-   - Cache models in SharedPreferences to avoid repeated calls
-   - On-demand fetching (when user clicks refresh, not on startup)
-   - Handle offline/error scenarios gracefully
+   - `fetchAvailableModels()` calls `/v1/models` endpoint ✅
+   - Cache models in SharedPreferences to avoid repeated calls ✅
+   - On-demand fetching (when user clicks refresh, not on startup) ✅
+   - Handle offline/error scenarios gracefully ✅
 
 2. Enhance `ModelSelector` widget
-   - On-tap refresh button fetches models from current AI provider
-   - Show loading indicator during fetch
-   - Display fetched models in dropdown
-   - Display error message on fetch failure
-   - Cache models in SharedPreferences
-   - Manual refresh button
+   - On-tap refresh button fetches models from current AI provider ✅
+   - Show loading indicator during fetch ✅
+   - Display fetched models in dropdown ✅
+   - Display error message on fetch failure ✅
+   - Cache models in SharedPreferences ✅
+   - Manual refresh button ✅
 
 3. Complete `AISettingsSection` widget
-   - Model selector for OpenAI and local-OpenAI providers
-   - Ensure model selector integrates with provider-specific configs
+   - Model selector for OpenAI and local-OpenAI providers ✅
+   - Ensure model selector integrates with provider-specific configs ✅
 
-4. Testing Checklist - Part 2, Phase 2
-    - [ ] Model fetching works on-refresh
-    - [ ] Models display correctly in dropdown
-    - [ ] Models are cached in SharedPreferences
-    - [ ] Refresh button works
-    - [ ] Errors are handled gracefully for model fetching
-    - [ ] Model selector integrates correctly with AI settings
+4. Testing Checklist - Part 2, Phase 2 - COMPLETE ✅
+     - [x] Model fetching works on-refresh
+     - [x] Models display correctly in dropdown
+     - [x] Models are cached in SharedPreferences
+     - [x] Refresh button works
+     - [x] Errors are handled gracefully for model fetching
+     - [x] Model selector integrates correctly with AI settings
 
 ---
 
-### Part 2, Phase 3: Prompt Customization
+### Part 2, Phase 3: Prompt Customization - COMPLETE ✅
 
 1. Complete prompt configuration UI
    - Term translation prompt section:
      - Enable/disable toggle
      - Textarea for custom prompt
-     - Placeholders hint: `[term]`, `[language]`
+     - Placeholders hint: `[term]`, `[language]`, '[sentence]',
      - Example tooltip
    - Sentence translation prompt section:
      - Enable/disable toggle
@@ -734,31 +736,41 @@ ___
 
 ### Part 2, Phase 4: AI Reader Integration
 
-1. Add term translation via AI
-   - Add "Translate" button in term tooltip/form
-   - Display translation result in tooltip or separate dialog
-   - Loading state during AI call (spinner or progress indicator)
-   - Error handling for failed translations
+1. Add AI tab to longpress Dictionary
+    - Add "AI" tab in term dictionary (similar to web dictionaries)
+    - AI tab only appears when BOTH: AI provider is NOT set to 'None' AND term translation toggle is ON
+    - Lazy loading: translation fetches ONLY when AI tab is opened
+    - Loading state during AI call (spinner in tab content)
+    - Display translation result in tab content
+    - Error handling for failed translations
+    - Cache translation result to avoid re-fetching when switching back to AI tab
 
 2. Add sentence translation via AI
-   - Add "Translate" button in sentence reader header
-   - Display translation inline below sentence or in dialog
-   - Loading state during AI call
-   - Error handling for failed translations
+    - Add "Translate" button to the left of the TTS button
+    - Button only appears when BOTH: AI provider is NOT set to 'None' AND sentence translation toggle is ON
+    - Display translation inline below sentence or in dialog
+    - Loading state during AI call
+    - Error handling for failed translations
 
 3. Error handling and retry for AI
-   - Clear error messages for failed AI calls
-   - Retry mechanism (automatic or manual)
-   - Fallback to "none" provider on critical errors after N retries
-   - User-friendly error messages with actionable next steps
+    - Clear error messages for failed AI calls
+    - Retry mechanism (automatic or manual)
+    - Fallback to "none" provider on critical errors after N retries
+    - User-friendly error messages with actionable next steps
 
 4. Testing Checklist - Part 2, Phase 4
-    - [ ] Term translation via AI works with all AI providers
-    - [ ] Sentence translation via AI works with all AI providers
-    - [ ] Loading states display correctly for AI calls
-    - [ ] Error messages are clear and actionable
-    - [ ] Retry mechanism works for failed AI calls
-    - [ ] Fallback to "none" provider works on critical errors
+     - [ ] AI tab appears only when AI provider != 'None' AND term translation toggle is ON
+     - [ ] AI tab is hidden when either AI provider = 'None' OR term translation toggle is OFF
+     - [ ] AI tab fetches translation only when opened
+     - [ ] AI tab caches translation (no re-fetch on tab switch)
+     - [ ] Sentence translation button appears only when AI provider != 'None' AND sentence translation toggle is ON
+     - [ ] Sentence translation button is hidden when either condition is not met
+     - [ ] Term translation via AI works with all AI providers
+     - [ ] Sentence translation via AI works with all AI providers
+     - [ ] Loading states display correctly for AI calls
+     - [ ] Error messages are clear and actionable
+     - [ ] Retry mechanism works for failed AI calls
+     - [ ] Fallback to "none" provider works on critical errors
 
 ---
 
@@ -956,22 +968,28 @@ ___
 - [ ] Placeholder replacement works for all types
 - [ ] All AI services handle errors gracefully
 
-#### Part 2, Phase 2 (Model Fetching)
-- [ ] Model fetching works on-refresh
-- [ ] Models display correctly in dropdown
-- [ ] Models are cached in SharedPreferences
-- [ ] Refresh button works
-- [ ] Errors are handled gracefully
-- [ ] Model selector integrates correctly
+#### Part 2, Phase 2 (Model Fetching) - COMPLETE ✅
+- [x] Model fetching works on-refresh
+- [x] Models display correctly in dropdown
+- [x] Models are cached in SharedPreferences
+- [x] Refresh button works
+- [x] Errors are handled gracefully
+- [x] Model selector integrates correctly
 
-#### Part 2, Phase 3 (Prompt Customization)
-- [ ] Custom prompts save and load correctly
-- [ ] Enable/disable toggles work
-- [ ] Default template restoration works
-- [ ] Placeholders are documented with examples
-- [ ] Prompt changes persist
+#### Part 2, Phase 3 (Prompt Customization) - COMPLETE ✅
+- [x] Custom prompts save and load correctly
+- [x] Enable/disable toggles work
+- [x] Default template restoration works
+- [x] Placeholders are documented with examples
+- [x] Prompt changes persist
 
 #### Part 2, Phase 4 (AI Reader Integration)
+- [ ] AI tab appears only when AI provider != 'None' AND term translation toggle is ON
+- [ ] AI tab hidden when either condition is not met
+- [ ] AI tab fetches translation only when opened
+- [ ] AI tab caches translation (no re-fetch on tab switch)
+- [ ] Sentence translation button appears only when AI provider != 'None' AND sentence translation toggle is ON
+- [ ] Sentence translation button hidden when either condition is not met
 - [ ] Term translation via AI works with all providers
 - [ ] Sentence translation via AI works with all providers
 - [ ] Loading states display correctly
