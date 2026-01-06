@@ -5,6 +5,7 @@ import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.d
 import 'package:lute_for_mobile/features/reader/widgets/sentence_reader_screen.dart';
 
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
+import 'package:lute_for_mobile/features/settings/widgets/help_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_drawer_settings.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
@@ -209,7 +210,13 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       _currentIndex = index;
     });
 
-    final routeNames = ['reader', 'books', 'settings', 'sentence-reader'];
+    final routeNames = [
+      'reader',
+      'books',
+      'help',
+      'settings',
+      'sentence-reader',
+    ];
     final currentRoute = routeNames[index];
     ref.read(currentScreenRouteProvider.notifier).setRoute(currentRoute);
 
@@ -264,6 +271,11 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       case 3:
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
+            .updateSettings(null);
+        break;
+      case 4:
+        ref
+            .read(currentViewDrawerSettingsProvider.notifier)
             .updateSettings(ReaderDrawerSettings(currentIndex: _currentIndex));
         break;
       default:
@@ -292,22 +304,29 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           }
         },
       ),
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          RepaintBoundary(
-            child: ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
-          ),
-          RepaintBoundary(child: BooksScreen(scaffoldKey: _scaffoldKey)),
-          RepaintBoundary(child: SettingsScreen(scaffoldKey: _scaffoldKey)),
-          RepaintBoundary(
-            child: SentenceReaderScreen(
-              key: _sentenceReaderKey,
-              scaffoldKey: _scaffoldKey,
+      body: _currentIndex == 2
+          ? const HelpScreen()
+          : IndexedStack(
+              index: _currentIndex > 2 ? _currentIndex - 1 : _currentIndex,
+              children: [
+                RepaintBoundary(
+                  child: ReaderScreen(
+                    key: _readerKey,
+                    scaffoldKey: _scaffoldKey,
+                  ),
+                ),
+                RepaintBoundary(child: BooksScreen(scaffoldKey: _scaffoldKey)),
+                RepaintBoundary(
+                  child: SettingsScreen(scaffoldKey: _scaffoldKey),
+                ),
+                RepaintBoundary(
+                  child: SentenceReaderScreen(
+                    key: _sentenceReaderKey,
+                    scaffoldKey: _scaffoldKey,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

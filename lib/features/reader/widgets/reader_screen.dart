@@ -529,7 +529,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: () =>
-                      ref.read(navigationProvider).navigateToScreen(2),
+                      ref.read(navigationProvider).navigateToScreen(3),
                   icon: const Icon(Icons.settings),
                   label: const Text('Open Settings'),
                 ),
