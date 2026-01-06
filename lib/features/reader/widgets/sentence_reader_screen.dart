@@ -287,6 +287,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             print(
               'DEBUG: Sentences already loaded for this page, skipping initialization',
             );
+            ref.read(sentenceReaderProvider.notifier).syncStatusFromPageData();
             _hasInitialized = true;
             _initializationFailed = false;
             _loadTooltipsForCurrentSentence();

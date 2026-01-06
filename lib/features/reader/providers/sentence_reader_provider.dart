@@ -240,6 +240,9 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         lastParsedBookId: bookId,
         lastParsedPageNum: pageNum,
       );
+
+      syncStatusFromPageData();
+
       print(
         'DEBUG: Loaded ${cachedSentences.length} sentences from cache - isSamePage=$isSamePage, shouldPreserveIndex=$shouldPreserveIndex, lastParsedPageNum=${state.lastParsedPageNum}, currentPageNum=$pageNum, resolvedIndex=$resolvedIndex',
       );
