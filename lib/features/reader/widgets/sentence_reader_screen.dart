@@ -489,6 +489,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         ],
       ),
       body: _PageTransition(
+        key: ValueKey('page-transition-$_sentenceKey'),
         isForward: _isNavigatingForward,
         child: Column(
           key: _sentenceKey,
