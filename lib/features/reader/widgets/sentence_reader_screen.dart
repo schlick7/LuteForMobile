@@ -23,6 +23,97 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../app.dart';
 
+class _PageTransition extends StatefulWidget {
+  final Widget child;
+  final bool isForward;
+
+  const _PageTransition({
+    required this.child,
+    required this.isForward,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<_PageTransition> createState() => _PageTransitionState();
+}
+
+class _PageTransitionState extends State<_PageTransition>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Widget _oldChild;
+  Widget? _currentChild;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _currentChild = widget.child;
+  }
+
+  @override
+  void didUpdateWidget(_PageTransition oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.child.key != widget.child.key) {
+      _oldChild = oldWidget.child;
+      _currentChild = widget.child;
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (_oldChild.key != _currentChild?.key)
+              SlideTransition(
+                position:
+                    Tween<Offset>(
+                      begin: Offset.zero,
+                      end: widget.isForward
+                          ? const Offset(-1.0, 0.0)
+                          : const Offset(1.0, 0.0),
+                    ).animate(
+                      CurvedAnimation(
+                        parent: _controller,
+                        curve: Curves.easeInOut,
+                      ),
+                    ),
+                child: _oldChild,
+              ),
+            SlideTransition(
+              position:
+                  Tween<Offset>(
+                    begin: widget.isForward
+                        ? const Offset(1.0, 0.0)
+                        : const Offset(-1.0, 0.0),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(
+                      parent: _controller,
+                      curve: Curves.easeInOut,
+                    ),
+                  ),
+              child: _currentChild,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class SentenceReaderScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
 
@@ -55,12 +146,23 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _isDictionaryOpen = false;
   bool _isLastPageMarkedDone = false;
   SentenceTTSNotifier? _ttsNotifier;
+  bool _isNavigatingForward = true;
+  Key _sentenceKey = const ValueKey('sentence');
 
   @override
   void initState() {
     super.initState();
     _setupAppLifecycleListener();
     _ttsNotifier = ref.read(sentenceTTSProvider.notifier);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentSentence = ref.read(sentenceReaderProvider).currentSentence;
+      if (currentSentence != null) {
+        setState(() {
+          _sentenceKey = ValueKey('sentence-${currentSentence.id}');
+        });
+      }
+    });
   }
 
   @override
@@ -145,6 +247,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final readerState = ref.read(readerProvider);
     final sentenceReader = ref.watch(sentenceReaderProvider);
     final currentSentence = sentenceReader.currentSentence;
+
+    if (currentSentence != null && _currentSentenceId != currentSentence.id) {
+      setState(() {
+        _currentSentenceId = currentSentence.id;
+        _sentenceKey = ValueKey('sentence-$currentSentence.id');
+      });
+    }
+
     if (isVisible && readerState.pageData != null && !readerState.isLoading) {
       final bookId = readerState.pageData!.bookId;
       final pageNum = readerState.pageData!.currentPage;
@@ -378,14 +488,18 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 3,
-            child: _buildTopSection(textSettings, currentSentence),
-          ),
-          Expanded(flex: 7, child: _buildBottomSection(currentSentence)),
-        ],
+      body: _PageTransition(
+        isForward: _isNavigatingForward,
+        child: Column(
+          key: _sentenceKey,
+          children: [
+            Expanded(
+              flex: 3,
+              child: _buildTopSection(textSettings, currentSentence),
+            ),
+            Expanded(flex: 7, child: _buildBottomSection(currentSentence)),
+          ],
+        ),
       ),
       bottomNavigationBar: _buildBottomAppBar(),
     );
@@ -912,22 +1026,43 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   Future<void> _goNext() async {
     print('DEBUG: _goNext called');
+    setState(() {
+      _isNavigatingForward = true;
+    });
     await ref.read(sentenceReaderProvider.notifier).nextSentence();
     _saveSentencePosition();
 
     final pageData = ref.read(readerProvider).pageData;
     final sentenceReader = ref.read(sentenceReaderProvider);
+    final currentSentence = ref.read(sentenceReaderProvider).currentSentence;
+
     if (pageData != null && sentenceReader.currentSentenceIndex == 0) {
       setState(() {
         _isLastPageMarkedDone = false;
+      });
+    }
+
+    if (currentSentence != null) {
+      setState(() {
+        _sentenceKey = ValueKey('sentence-${currentSentence.id}');
       });
     }
   }
 
   Future<void> _goPrevious() async {
     print('DEBUG: _goPrevious called');
+    setState(() {
+      _isNavigatingForward = false;
+    });
     await ref.read(sentenceReaderProvider.notifier).previousSentence();
     _saveSentencePosition();
+
+    final currentSentence = ref.read(sentenceReaderProvider).currentSentence;
+    if (currentSentence != null) {
+      setState(() {
+        _sentenceKey = ValueKey('sentence-${currentSentence.id}');
+      });
+    }
   }
 
   void _saveSentencePosition() {
