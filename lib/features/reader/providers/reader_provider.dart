@@ -145,6 +145,8 @@ class ReaderNotifier extends Notifier<ReaderState> {
           if (pageData.currentPage < pageData.pageCount) {
             preloadNextPage();
           }
+
+          _backgroundRefreshStatuses();
         }
       }
     } catch (e) {
@@ -159,6 +161,32 @@ class ReaderNotifier extends Notifier<ReaderState> {
         state = state.copyWith(isLoading: false, isBackgroundRefreshing: false);
       }
     }
+  }
+
+  void _backgroundRefreshStatuses() {
+    Future.microtask(() {
+      if (state.pageData == null) return;
+      state = state.copyWith(isBackgroundRefreshing: true);
+
+      _repository
+          .getPage(
+            bookId: state.pageData!.bookId,
+            pageNum: state.pageData!.currentPage,
+            useCache: false,
+            forceRefresh: true,
+          )
+          .then((freshPage) {
+            final mergedData = _mergePageStatuses(state.pageData!, freshPage);
+            state = state.copyWith(
+              isBackgroundRefreshing: false,
+              pageData: mergedData,
+            );
+          })
+          .catchError((e) {
+            print('Background status refresh error: $e');
+            state = state.copyWith(isBackgroundRefreshing: false);
+          });
+    });
   }
 
   PageData _mergePageStatuses(PageData currentPage, PageData freshPage) {
