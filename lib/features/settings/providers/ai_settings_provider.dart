@@ -144,9 +144,9 @@ class AISettingsNotifier extends Notifier<AISettings> {
     AIPromptType type,
     AIPromptConfig config,
   ) async {
+    state = state.updatePromptConfig(type, config);
     final prefs = await SharedPreferences.getInstance();
     await _savePromptConfigs(prefs);
-    state = state.updatePromptConfig(type, config);
   }
 
   Future<void> _saveConfig(

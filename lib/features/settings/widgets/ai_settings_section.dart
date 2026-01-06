@@ -274,7 +274,11 @@ class AISettingsSection extends ConsumerWidget {
                                 .read(aiSettingsProvider.notifier)
                                 .updatePromptConfig(
                                   type,
-                                  config!.copyWith(customPrompt: null),
+                                  AIPromptConfig(
+                                    customPrompt: null,
+                                    enabled: config!.enabled,
+                                    language: config.language,
+                                  ),
                                 );
                             Navigator.of(dialogContext).pop();
                           },
