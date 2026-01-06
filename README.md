@@ -11,6 +11,7 @@ A Flutter mobile frontend for Lute v3 language learning server. Read books and l
 - **Theme System** - Dark, Light, Black and White
 - **PWA Support** - Install as a web app on any device
 - **TTS Support** - ondevice, Kokoro, openai
+- **AI Translation Support** - Local OpenAI Endpoint (Ollama, Llama.cpp, etc.), OpenAI
 
 ## Supported Server Features
 - ✅ Reader View
