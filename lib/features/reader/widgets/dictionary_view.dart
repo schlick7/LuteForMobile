@@ -184,20 +184,12 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
       if (!mounted) break;
 
       try {
-        await _pageController.animateToPage(
-          pageIndex,
-          duration: const Duration(milliseconds: 50),
-          curve: Curves.easeInOut,
-        );
+        _pageController.jumpToPage(pageIndex);
         _preloadedPages.add(pageIndex);
 
         if (!mounted) break;
 
-        await _pageController.animateToPage(
-          _currentPage,
-          duration: const Duration(milliseconds: 50),
-          curve: Curves.easeInOut,
-        );
+        _pageController.jumpToPage(_currentPage);
       } catch (e) {
         if (kDebugMode) {
           print('Error preloading page $pageIndex: $e');
@@ -527,6 +519,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
       controller: _pageController,
       allowImplicitScrolling: true,
       onPageChanged: (index) async {
+        if (_isPreloading) return;
         setState(() {
           _currentPage = index;
         });
