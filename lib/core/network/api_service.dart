@@ -336,8 +336,22 @@ class ApiService {
     return await _dio.get<String>('/language/index');
   }
 
-  Future<Response<String>> refreshBookStats(int bookId) async {
-    return await _dio.get<String>('/book/table_stats/$bookId');
+  Future<Response<String>> refreshBookStats(
+    int bookId, {
+    Duration? timeout,
+  }) async {
+    return await _dio.get<String>(
+      '/book/table_stats/$bookId',
+      options: Options(receiveTimeout: timeout, sendTimeout: timeout),
+    );
+  }
+
+  Future<Response<String>> getSettingsPage() async {
+    return await _dio.get<String>('/settings/index');
+  }
+
+  Future<Response<String>> setUserSetting(String key, String value) async {
+    return await _dio.post<String>('/settings/set/$key/$value');
   }
 
   Future<Response<String>> archiveBook(int bookId) async {

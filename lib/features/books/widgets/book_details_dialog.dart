@@ -5,6 +5,7 @@ import '../../../shared/theme/theme_extensions.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 import '../providers/books_provider.dart';
+import '../../../shared/providers/network_providers.dart';
 import 'package:lute_for_mobile/app.dart';
 
 class BookDetailsDialog extends ConsumerStatefulWidget {
@@ -37,13 +38,35 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
       setState(() {
         isRefreshing = true;
       });
+
+      int? originalSampleSize;
+      bool capturedOriginalSize = false;
+
       try {
+        originalSampleSize = await ref
+            .read(contentServiceProvider)
+            .getStatsSampleSize();
+        capturedOriginalSize = true;
+
+        final detailsSampleSize = await ref
+            .read(contentServiceProvider)
+            .getUserSetting('details_calc_sample_size_override');
+        final sampleSizeToUse = detailsSampleSize ?? '500';
+
+        await ref
+            .read(contentServiceProvider)
+            .setUserSetting('stats_calc_sample_size', sampleSizeToUse);
+
         await ref
             .read(booksProvider.notifier)
-            .refreshBookStats(currentBook!.id);
+            .refreshBookStats(
+              currentBook!.id,
+              timeout: const Duration(seconds: 15),
+            );
         final updatedBook = await ref
             .read(booksProvider.notifier)
             .getBookWithStats(currentBook!.id);
+
         if (!mounted) return;
 
         await ref.read(booksProvider.notifier).updateBookInList(updatedBook);
@@ -52,10 +75,28 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
         if (mounted) {
           setState(() {
             currentBook = updatedBook;
-            isRefreshing = false;
           });
         }
       } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to refresh stats: $e')),
+          );
+        }
+      } finally {
+        if (capturedOriginalSize && originalSampleSize != null && mounted) {
+          try {
+            await ref
+                .read(contentServiceProvider)
+                .setUserSetting(
+                  'stats_calc_sample_size',
+                  originalSampleSize.toString(),
+                );
+          } catch (e) {
+            print('Failed to restore sample size: $e');
+          }
+        }
+
         if (mounted) {
           setState(() {
             isRefreshing = false;

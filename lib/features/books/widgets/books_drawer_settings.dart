@@ -1,7 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/books_provider.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../../shared/providers/network_providers.dart';
+
+class _MaxValueFormatter extends TextInputFormatter {
+  final int maxValue;
+
+  _MaxValueFormatter(this.maxValue);
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    final int? value = int.tryParse(newValue.text);
+    if (value == null || value > maxValue) {
+      return oldValue;
+    }
+
+    return newValue;
+  }
+}
 
 class BooksDrawerSettings extends ConsumerWidget {
   const BooksDrawerSettings({super.key});
@@ -102,6 +127,96 @@ class BooksDrawerSettings extends ConsumerWidget {
                 await ref.read(booksProvider.notifier).loadBooks();
               },
             ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Stats Refresh Settings',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          FutureBuilder<int>(
+            future: ref.read(contentServiceProvider).getStatsSampleSize(),
+            builder: (context, snapshot) {
+              final controller = TextEditingController(
+                text: snapshot.data?.toString() ?? '15',
+              );
+              return TextField(
+                key: ValueKey('stats_pages_${snapshot.data}'),
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Pages to Refresh',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+                controller: controller,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  _MaxValueFormatter(500),
+                ],
+                onChanged: (value) {
+                  final intValue = int.tryParse(value);
+                  if (intValue != null && intValue > 0 && intValue <= 500) {
+                    ref
+                        .read(contentServiceProvider)
+                        .setUserSetting(
+                          'stats_calc_sample_size',
+                          intValue.toString(),
+                        );
+                  }
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Book Details Refresh Settings',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          FutureBuilder<String?>(
+            future: ref
+                .read(contentServiceProvider)
+                .getUserSetting('details_calc_sample_size_override'),
+            builder: (context, snapshot) {
+              final controller = TextEditingController(
+                text: snapshot.data ?? '500',
+              );
+              return TextField(
+                key: ValueKey('details_pages_${snapshot.data ?? '500'}'),
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Pages to Refresh',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+                controller: controller,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  _MaxValueFormatter(500),
+                ],
+                onChanged: (value) {
+                  final intValue = int.tryParse(value);
+                  if (intValue != null && intValue > 0 && intValue <= 500) {
+                    ref
+                        .read(contentServiceProvider)
+                        .setUserSetting(
+                          'details_calc_sample_size_override',
+                          intValue.toString(),
+                        );
+                  }
+                },
+              );
+            },
           ),
           const SizedBox(height: 24),
           Text(

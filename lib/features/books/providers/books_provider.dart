@@ -137,9 +137,9 @@ class BooksNotifier extends Notifier<BooksState> {
     }
   }
 
-  Future<void> refreshBookStats(int bookId) async {
+  Future<void> refreshBookStats(int bookId, {Duration? timeout}) async {
     try {
-      await _repository.refreshBookStats(bookId);
+      await _repository.refreshBookStats(bookId, timeout: timeout);
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }

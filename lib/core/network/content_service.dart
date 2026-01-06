@@ -292,8 +292,8 @@ class ContentService {
     return response.data;
   }
 
-  Future<void> refreshBookStats(int bookId) async {
-    await _apiService.refreshBookStats(bookId);
+  Future<void> refreshBookStats(int bookId, {Duration? timeout}) async {
+    await _apiService.refreshBookStats(bookId, timeout: timeout);
   }
 
   Future<void> archiveBook(int bookId) async {
@@ -344,6 +344,54 @@ class ContentService {
     final response = await _apiService.getLanguages();
     final htmlContent = response.data ?? '';
     return parser.parseLanguages(htmlContent);
+  }
+
+  Future<String> getSettingsPageHtml() async {
+    final response = await _apiService.getSettingsPage();
+    return response.data ?? '';
+  }
+
+  Future<int> getStatsSampleSize() async {
+    try {
+      final html = await getSettingsPageHtml();
+      final match = RegExp(
+        r'LUTE_USER_SETTINGS\s*=\s*(\{.*?)(?=\n\s*const LUTE_USER_HOTKEYS)',
+        dotAll: true,
+      ).firstMatch(html);
+      if (match != null && match.groupCount >= 1) {
+        final jsonStr = match.group(1)!;
+        final Map<String, dynamic> settings = jsonDecode(jsonStr);
+        return int.tryParse(
+              settings['stats_calc_sample_size']?.toString() ?? '',
+            ) ??
+            5;
+      }
+    } catch (e) {
+      print('Error parsing stats sample size: $e');
+    }
+    return 5;
+  }
+
+  Future<void> setUserSetting(String key, String value) async {
+    await _apiService.setUserSetting(key, value);
+  }
+
+  Future<String?> getUserSetting(String key) async {
+    try {
+      final html = await getSettingsPageHtml();
+      final match = RegExp(
+        r'LUTE_USER_SETTINGS\s*=\s*(\{.*?)(?=\n\s*const LUTE_USER_HOTKEYS)',
+        dotAll: true,
+      ).firstMatch(html);
+      if (match != null && match.groupCount >= 1) {
+        final jsonStr = match.group(1)!;
+        final Map<String, dynamic> settings = jsonDecode(jsonStr);
+        return settings[key]?.toString();
+      }
+    } catch (e) {
+      print('Error parsing user setting: $e');
+    }
+    return null;
   }
 
   Future<LanguageSentenceSettings> getLanguageSentenceSettings(

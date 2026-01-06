@@ -33,9 +33,9 @@ class BooksRepository {
     return enrichedBooks;
   }
 
-  Future<void> refreshBookStats(int bookId) async {
+  Future<void> refreshBookStats(int bookId, {Duration? timeout}) async {
     try {
-      await contentService.refreshBookStats(bookId);
+      await contentService.refreshBookStats(bookId, timeout: timeout);
     } catch (e) {
       throw Exception('Failed to refresh book stats: $e');
     }
