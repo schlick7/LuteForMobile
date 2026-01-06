@@ -133,7 +133,17 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
   }
 
   void _handleAddToTranslation() {
-    if (_aiTranslation == null || widget.onAddAITranslation == null) return;
+    if (_aiTranslation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No AI translation available'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (widget.onAddAITranslation == null) return;
 
     final cleanTranslation = _aiTranslation!.replaceAll('\n', ' ');
     widget.onAddAITranslation!(cleanTranslation);
@@ -338,11 +348,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
             ),
             const SizedBox(height: 16),
             OutlinedButton.icon(
-              onPressed: widget.onAddAITranslation != null
-                  ? null
-                  : () {
-                      _handleAddToTranslation();
-                    },
+              onPressed: _handleAddToTranslation,
               icon: const Icon(Icons.add_circle_outline),
               label: const Text('Add to'),
             ),
