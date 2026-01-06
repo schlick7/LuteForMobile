@@ -143,7 +143,7 @@ class AIPromptConfig {
 class AIPromptTemplates {
   static const Map<AIPromptType, String> defaults = {
     AIPromptType.termTranslation:
-        'Using the sentence "[sentence]" Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations',
+        'Using the sentence "[sentence]" Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations. Respond with the translation text only without line breaks and using commas between',
     AIPromptType.sentenceTranslation:
         'Translate the following sentence from [language] to English: [sentence]',
   };
