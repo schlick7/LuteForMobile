@@ -14,8 +14,6 @@
 fixed? Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
   - how hard to add elsewhere?
 
-## Add help Screen
-
 
 ### TTS options: On device, local-OpenAI endpoint, OpenAI, None
   - Future: add a selector in language settings to apply TTS voices based on languages. 
