@@ -713,6 +713,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   void _showTermForm(TermForm termForm) {
     _currentTermForm = termForm;
     _isDictionaryOpen = false;
+    bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -733,7 +734,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           child: PopScope(
             canPop: true,
             onPopInvoked: (didPop) async {
-              if (didPop && settings.autoSave) {
+              if (didPop && settings.autoSave && _shouldAutoSaveOnClose) {
                 final updatedForm = _currentTermForm ?? termForm;
                 ref.read(readerProvider.notifier).saveTerm(updatedForm).then((
                   success,
@@ -793,7 +794,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         }
                       }
                     },
-                    onCancel: () => Navigator.of(context).pop(),
+                    onCancel: () {
+                      _shouldAutoSaveOnClose = false;
+                      Navigator.of(context).pop();
+                    },
                     onDictionaryToggle: (isOpen) {
                       setState(() {
                         _isDictionaryOpen = isOpen;
@@ -822,6 +826,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _showParentTermForm(TermForm termForm) {
     _isDictionaryOpen = false;
+    bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -842,7 +847,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           child: PopScope(
             canPop: true,
             onPopInvoked: (didPop) async {
-              if (didPop && settings.autoSave) {
+              if (didPop && settings.autoSave && _shouldAutoSaveOnClose) {
                 final updatedForm = _currentTermForm ?? termForm;
                 ref.read(readerProvider.notifier).saveTerm(updatedForm).then((
                   success,
@@ -897,7 +902,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         }
                       }
                     },
-                    onCancel: () => Navigator.of(context).pop(),
+                    onCancel: () {
+                      _shouldAutoSaveOnClose = false;
+                      Navigator.of(context).pop();
+                    },
                     onDictionaryToggle: (isOpen) {
                       setState(() {
                         _isDictionaryOpen = isOpen;

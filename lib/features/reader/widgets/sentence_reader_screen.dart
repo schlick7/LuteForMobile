@@ -1024,6 +1024,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   void _showTermForm(TermForm termForm) {
     _currentTermForm = termForm;
     _isDictionaryOpen = false;
+    bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1040,7 +1041,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           child: PopScope(
             canPop: !_isDictionaryOpen,
             onPopInvoked: (didPop) async {
-              if (didPop && settings.autoSave) {
+              if (didPop && settings.autoSave && _shouldAutoSaveOnClose) {
                 final updatedForm = _currentTermForm ?? termForm;
                 final success = await ref
                     .read(readerProvider.notifier)
@@ -1108,7 +1109,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         Navigator.of(context).pop();
                       }
                     },
-                    onCancel: () => Navigator.of(context).pop(),
+                    onCancel: () {
+                      _shouldAutoSaveOnClose = false;
+                      Navigator.of(context).pop();
+                    },
                     onDictionaryToggle: (isOpen) {
                       setState(() {
                         _isDictionaryOpen = isOpen;
@@ -1137,6 +1141,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   void _showParentTermForm(TermForm termForm) {
     _isDictionaryOpen = false;
+    bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -1153,7 +1158,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           child: PopScope(
             canPop: !_isDictionaryOpen,
             onPopInvoked: (didPop) async {
-              if (didPop && settings.autoSave) {
+              if (didPop && settings.autoSave && _shouldAutoSaveOnClose) {
                 final updatedForm = _currentTermForm ?? termForm;
                 final success = await ref
                     .read(readerProvider.notifier)
@@ -1257,7 +1262,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         Navigator.of(context).pop();
                       }
                     },
-                    onCancel: () => Navigator.of(context).pop(),
+                    onCancel: () {
+                      _shouldAutoSaveOnClose = false;
+                      Navigator.of(context).pop();
+                    },
                     onDictionaryToggle: (isOpen) {
                       setState(() {
                         _isDictionaryOpen = isOpen;
