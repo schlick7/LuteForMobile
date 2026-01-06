@@ -47,6 +47,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isLastPageMarkedDone = false;
   int? _lastAttemptedBookId;
   int? _lastAttemptedPageNum;
+  bool _isNavigatingForward = true;
+  Key _pageKey = const ValueKey('page');
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -217,6 +219,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.read(readerProvider).pageData;
     if (pageData != null) {
       setState(() {
+        _pageKey = ValueKey('${pageData.bookId}-${pageData.currentPage}');
         _isLastPageMarkedDone = false;
       });
       await ref
@@ -229,6 +232,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Future<void> loadBook(int bookId, [int? pageNum]) async {
     print('DEBUG: loadBook called with bookId=$bookId, pageNum=$pageNum');
     setState(() {
+      _pageKey = ValueKey('$bookId-${pageNum ?? 1}');
       _isLastPageMarkedDone = false;
       _lastAttemptedBookId = bookId;
       _lastAttemptedPageNum = pageNum;
@@ -610,27 +614,53 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           }
         }
       },
-      child: TextDisplay(
-        paragraphs: pageData!.paragraphs,
-        scrollController: _scrollController,
-        topPadding: textSettings.fullscreenMode && !_isUiVisible
-            ? MediaQuery.of(context).padding.top
-            : 0.0,
-        bottomControlWidget: _buildPageControls(context, pageData),
-        onTap: (item, position) {
-          _handleTap(item, position);
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 300),
+        switchInCurve: Curves.easeInOut,
+        switchOutCurve: Curves.easeInOut,
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          final beginOffset = _isNavigatingForward
+              ? const Offset(1.0, 0.0)
+              : const Offset(-1.0, 0.0);
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: beginOffset,
+              end: Offset.zero,
+            ).animate(animation),
+            child: child,
+          );
         },
-        onDoubleTap: (item) {
-          _handleDoubleTap(item);
+        layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+          return Stack(
+            children: <Widget>[
+              ...previousChildren,
+              if (currentChild != null) currentChild,
+            ],
+          );
         },
-        onLongPress: (item) {
-          _handleLongPress(item);
-        },
-        textSize: textSettings.textSize,
-        lineSpacing: textSettings.lineSpacing,
-        fontFamily: textSettings.fontFamily,
-        fontWeight: textSettings.fontWeight,
-        isItalic: textSettings.isItalic,
+        child: TextDisplay(
+          key: _pageKey,
+          paragraphs: pageData!.paragraphs,
+          scrollController: _scrollController,
+          topPadding: textSettings.fullscreenMode && !_isUiVisible
+              ? MediaQuery.of(context).padding.top
+              : 0.0,
+          bottomControlWidget: _buildPageControls(context, pageData),
+          onTap: (item, position) {
+            _handleTap(item, position);
+          },
+          onDoubleTap: (item) {
+            _handleDoubleTap(item);
+          },
+          onLongPress: (item) {
+            _handleLongPress(item);
+          },
+          textSize: textSettings.textSize,
+          lineSpacing: textSettings.lineSpacing,
+          fontFamily: textSettings.fontFamily,
+          fontWeight: textSettings.fontWeight,
+          isItalic: textSettings.isItalic,
+        ),
       ),
     );
   }
@@ -963,6 +993,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.read(readerProvider).pageData;
     if (pageData == null) return;
 
+    setState(() {
+      _isNavigatingForward = pageNum > pageData.currentPage;
+      _pageKey = ValueKey('${pageData.bookId}-$pageNum');
+      _isLastPageMarkedDone = false;
+      _lastAttemptedBookId = pageData.bookId;
+      _lastAttemptedPageNum = pageNum;
+    });
+
     if (pageNum > pageData.currentPage) {
       try {
         await ref
@@ -972,12 +1010,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         print('Error marking page as read: $e');
       }
     }
-
-    setState(() {
-      _isLastPageMarkedDone = false;
-      _lastAttemptedBookId = pageData.bookId;
-      _lastAttemptedPageNum = pageNum;
-    });
 
     ref
         .read(readerProvider.notifier)
@@ -994,6 +1026,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     if (pageData == null) return;
 
     setState(() {
+      _isNavigatingForward = pageNum > pageData.currentPage;
+      _pageKey = ValueKey('${pageData.bookId}-$pageNum');
       _isLastPageMarkedDone = false;
       _lastAttemptedBookId = pageData.bookId;
       _lastAttemptedPageNum = pageNum;

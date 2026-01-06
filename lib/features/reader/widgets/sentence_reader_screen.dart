@@ -54,11 +54,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _initializationFailed = false;
   bool _isDictionaryOpen = false;
   bool _isLastPageMarkedDone = false;
+  SentenceTTSNotifier? _ttsNotifier;
 
   @override
   void initState() {
     super.initState();
     _setupAppLifecycleListener();
+    _ttsNotifier = ref.read(sentenceTTSProvider.notifier);
   }
 
   @override
@@ -105,7 +107,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    ref.read(sentenceTTSProvider.notifier).stop();
+    _ttsNotifier?.stop();
     super.dispose();
   }
 
