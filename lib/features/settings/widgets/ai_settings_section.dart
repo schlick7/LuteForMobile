@@ -416,7 +416,8 @@ class _PromptEditorState extends State<_PromptEditor> {
   @override
   void didUpdateWidget(_PromptEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialText != oldWidget.initialText) {
+    if (widget.initialText != oldWidget.initialText &&
+        _controller.text != widget.initialText) {
       _controller.text = widget.initialText;
     }
   }

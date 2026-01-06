@@ -84,14 +84,19 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   @override
   void didUpdateWidget(TermFormWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.termForm.translation != widget.termForm.translation) {
+    if (oldWidget.termForm.translation != widget.termForm.translation &&
+        _translationController.text != (widget.termForm.translation ?? '')) {
       _translationController.text = widget.termForm.translation ?? '';
     }
-    if (oldWidget.termForm.romanization != widget.termForm.romanization) {
+    if (oldWidget.termForm.romanization != widget.termForm.romanization &&
+        _romanizationController.text != (widget.termForm.romanization ?? '')) {
       _romanizationController.text = widget.termForm.romanization ?? '';
     }
     if (oldWidget.termForm.tags != widget.termForm.tags) {
-      _tagsController.text = widget.termForm.tags?.join(', ') ?? '';
+      final newTagsText = widget.termForm.tags?.join(', ') ?? '';
+      if (_tagsController.text != newTagsText) {
+        _tagsController.text = newTagsText;
+      }
     }
     if (oldWidget.termForm.status != widget.termForm.status) {
       _selectedStatus = widget.termForm.status;
