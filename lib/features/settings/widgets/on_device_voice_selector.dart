@@ -187,47 +187,13 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
   }
 
   void _showManualInput() {
-    final controller = TextEditingController(text: widget.selectedVoice ?? '');
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Enter Voice Name'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                labelText: 'Voice name',
-                hintText: 'e.g., en-us-x-sfg#female_2-local',
-                border: OutlineInputBorder(),
-              ),
-              autofocus: true,
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Tip: You can find available voice names in the voice picker or by running the app with debug logging.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final value = controller.text.trim();
-              if (value.isNotEmpty) {
-                widget.onVoiceChanged(value.isEmpty ? null : value);
-              }
-              Navigator.of(context).pop();
-            },
-            child: const Text('OK'),
-          ),
-        ],
+      builder: (context) => _VoiceInputDialog(
+        initialVoice: widget.selectedVoice,
+        onVoiceChanged: (value) {
+          widget.onVoiceChanged(value.isEmpty ? null : value);
+        },
       ),
     );
   }
@@ -259,6 +225,78 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _VoiceInputDialog extends StatefulWidget {
+  final String? initialVoice;
+  final ValueChanged<String> onVoiceChanged;
+
+  const _VoiceInputDialog({
+    required this.initialVoice,
+    required this.onVoiceChanged,
+  });
+
+  @override
+  State<_VoiceInputDialog> createState() => _VoiceInputDialogState();
+}
+
+class _VoiceInputDialogState extends State<_VoiceInputDialog> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialVoice ?? '');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Enter Voice Name'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _controller,
+            decoration: const InputDecoration(
+              labelText: 'Voice name',
+              hintText: 'e.g., en-us-x-sfg#female_2-local',
+              border: OutlineInputBorder(),
+            ),
+            autofocus: true,
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Tip: You can find available voice names in the voice picker or by running the app with debug logging.',
+            style: TextStyle(fontSize: 12, color: Colors.grey),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            final value = _controller.text.trim();
+            if (value.isNotEmpty) {
+              widget.onVoiceChanged(value);
+            }
+            Navigator.of(context).pop();
+          },
+          child: const Text('OK'),
+        ),
+      ],
     );
   }
 }

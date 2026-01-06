@@ -49,7 +49,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _serverUrlController = TextEditingController();
+    final initialUrl = ref.read(settingsProvider).serverUrl;
+    _serverUrlController = TextEditingController(text: initialUrl);
   }
 
   @override
@@ -174,20 +175,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final themeSettings = ref.watch(themeSettingsProvider);
     final textSettings = ref.watch(textFormattingSettingsProvider);
 
-    // Sync controller with current state on every build
-    if (_serverUrlController.text != settings.serverUrl) {
-      _serverUrlController.value = TextEditingValue(
-        text: settings.serverUrl,
-        selection: TextSelection.collapsed(offset: settings.serverUrl.length),
-      );
-    }
-
     ref.listen(settingsProvider, (previous, next) {
       if (previous?.serverUrl != next.serverUrl &&
           _serverUrlController.text != next.serverUrl) {
+        final currentSelection = _serverUrlController.selection;
         _serverUrlController.value = TextEditingValue(
           text: next.serverUrl,
-          selection: TextSelection.collapsed(offset: next.serverUrl.length),
+          selection: currentSelection.baseOffset <= next.serverUrl.length
+              ? currentSelection
+              : TextSelection.collapsed(offset: next.serverUrl.length),
         );
         _connectionTestPassed = false;
         _connectionStatus = null;

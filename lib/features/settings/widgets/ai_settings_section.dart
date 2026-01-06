@@ -92,50 +92,31 @@ class AISettingsSection extends ConsumerWidget {
     WidgetRef ref,
     AISettingsConfig? config,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          decoration: const InputDecoration(
-            labelText: 'API Key',
-            border: OutlineInputBorder(),
-          ),
-          obscureText: true,
-          controller: TextEditingController(text: config?.apiKey),
-          onSubmitted: (value) {
-            ref
-                .read(aiSettingsProvider.notifier)
-                .updateOpenAIConfig(config!.copyWith(apiKey: value));
-          },
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          decoration: const InputDecoration(
-            labelText: 'Base URL (optional)',
-            hintText: 'https://api.openai.com',
-            border: OutlineInputBorder(),
-          ),
-          controller: TextEditingController(text: config?.baseUrl),
-          onSubmitted: (value) {
-            ref
-                .read(aiSettingsProvider.notifier)
-                .updateOpenAIConfig(
-                  config!.copyWith(baseUrl: value.isEmpty ? null : value),
-                );
-          },
-        ),
-        const SizedBox(height: 16),
-        ModelSelector(
-          selectedModel: config?.model,
-          labelText: 'Model',
-          hintText: 'e.g., gpt-4o',
-          onModelSelected: (value) {
-            ref
-                .read(aiSettingsProvider.notifier)
-                .updateOpenAIConfig(config!.copyWith(model: value));
-          },
-        ),
-      ],
+    return _OpenAISettings(
+      config: config,
+      onApiKeyChanged: (value) {
+        if (config != null) {
+          ref
+              .read(aiSettingsProvider.notifier)
+              .updateOpenAIConfig(config.copyWith(apiKey: value));
+        }
+      },
+      onBaseUrlChanged: (value) {
+        if (config != null) {
+          ref
+              .read(aiSettingsProvider.notifier)
+              .updateOpenAIConfig(
+                config.copyWith(baseUrl: value.isEmpty ? null : value),
+              );
+        }
+      },
+      onModelSelected: (value) {
+        if (config != null) {
+          ref
+              .read(aiSettingsProvider.notifier)
+              .updateOpenAIConfig(config.copyWith(model: value));
+        }
+      },
     );
   }
 
@@ -144,50 +125,31 @@ class AISettingsSection extends ConsumerWidget {
     WidgetRef ref,
     AISettingsConfig? config,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          decoration: const InputDecoration(
-            labelText: 'Endpoint URL',
-            hintText: 'http://localhost:port/v1',
-            border: OutlineInputBorder(),
-          ),
-          controller: TextEditingController(text: config?.endpointUrl),
-          onSubmitted: (value) {
-            ref
-                .read(aiSettingsProvider.notifier)
-                .updateLocalOpenAIConfig(config!.copyWith(endpointUrl: value));
-          },
-        ),
-        const SizedBox(height: 16),
-        ModelSelector(
-          selectedModel: config?.model,
-          labelText: 'Model',
-          hintText: 'e.g., gpt-4o',
-          onModelSelected: (value) {
-            ref
-                .read(aiSettingsProvider.notifier)
-                .updateLocalOpenAIConfig(config!.copyWith(model: value));
-          },
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          decoration: const InputDecoration(
-            labelText: 'API Key (optional)',
-            border: OutlineInputBorder(),
-          ),
-          obscureText: true,
-          controller: TextEditingController(text: config?.apiKey),
-          onSubmitted: (value) {
-            ref
-                .read(aiSettingsProvider.notifier)
-                .updateLocalOpenAIConfig(
-                  config!.copyWith(apiKey: value.isEmpty ? null : value),
-                );
-          },
-        ),
-      ],
+    return _LocalOpenAISettings(
+      config: config,
+      onEndpointUrlChanged: (value) {
+        if (config != null) {
+          ref
+              .read(aiSettingsProvider.notifier)
+              .updateLocalOpenAIConfig(config.copyWith(endpointUrl: value));
+        }
+      },
+      onModelSelected: (value) {
+        if (config != null) {
+          ref
+              .read(aiSettingsProvider.notifier)
+              .updateLocalOpenAIConfig(config.copyWith(model: value));
+        }
+      },
+      onApiKeyChanged: (value) {
+        if (config != null) {
+          ref
+              .read(aiSettingsProvider.notifier)
+              .updateLocalOpenAIConfig(
+                config.copyWith(apiKey: value.isEmpty ? null : value),
+              );
+        }
+      },
     );
   }
 
@@ -452,4 +414,181 @@ class PlaceholderInfo {
     required this.description,
     required this.example,
   });
+}
+
+class _OpenAISettings extends ConsumerStatefulWidget {
+  final AISettingsConfig? config;
+  final ValueChanged<String> onApiKeyChanged;
+  final ValueChanged<String> onBaseUrlChanged;
+  final ValueChanged<String?> onModelSelected;
+
+  const _OpenAISettings({
+    required this.config,
+    required this.onApiKeyChanged,
+    required this.onBaseUrlChanged,
+    required this.onModelSelected,
+  });
+
+  @override
+  ConsumerState<_OpenAISettings> createState() => _OpenAISettingsState();
+}
+
+class _OpenAISettingsState extends ConsumerState<_OpenAISettings> {
+  late TextEditingController _apiKeyController;
+  late TextEditingController _baseUrlController;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiKeyController = TextEditingController(
+      text: widget.config?.apiKey ?? '',
+    );
+    _baseUrlController = TextEditingController(
+      text: widget.config?.baseUrl ?? '',
+    );
+  }
+
+  @override
+  void didUpdateWidget(_OpenAISettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.config?.apiKey != oldWidget.config?.apiKey &&
+        _apiKeyController.text != (widget.config?.apiKey ?? '')) {
+      _apiKeyController.text = widget.config?.apiKey ?? '';
+    }
+    if (widget.config?.baseUrl != oldWidget.config?.baseUrl &&
+        _baseUrlController.text != (widget.config?.baseUrl ?? '')) {
+      _baseUrlController.text = widget.config?.baseUrl ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    _baseUrlController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'API Key',
+            border: OutlineInputBorder(),
+          ),
+          obscureText: true,
+          controller: _apiKeyController,
+          onSubmitted: widget.onApiKeyChanged,
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Base URL (optional)',
+            hintText: 'https://api.openai.com',
+            border: OutlineInputBorder(),
+          ),
+          controller: _baseUrlController,
+          onSubmitted: widget.onBaseUrlChanged,
+        ),
+        const SizedBox(height: 16),
+        ModelSelector(
+          selectedModel: widget.config?.model,
+          labelText: 'Model',
+          hintText: 'e.g., gpt-4o',
+          onModelSelected: widget.onModelSelected,
+        ),
+      ],
+    );
+  }
+}
+
+class _LocalOpenAISettings extends ConsumerStatefulWidget {
+  final AISettingsConfig? config;
+  final ValueChanged<String> onEndpointUrlChanged;
+  final ValueChanged<String?> onModelSelected;
+  final ValueChanged<String> onApiKeyChanged;
+
+  const _LocalOpenAISettings({
+    required this.config,
+    required this.onEndpointUrlChanged,
+    required this.onModelSelected,
+    required this.onApiKeyChanged,
+  });
+
+  @override
+  ConsumerState<_LocalOpenAISettings> createState() =>
+      _LocalOpenAISettingsState();
+}
+
+class _LocalOpenAISettingsState extends ConsumerState<_LocalOpenAISettings> {
+  late TextEditingController _endpointUrlController;
+  late TextEditingController _apiKeyController;
+
+  @override
+  void initState() {
+    super.initState();
+    _endpointUrlController = TextEditingController(
+      text: widget.config?.endpointUrl ?? '',
+    );
+    _apiKeyController = TextEditingController(
+      text: widget.config?.apiKey ?? '',
+    );
+  }
+
+  @override
+  void didUpdateWidget(_LocalOpenAISettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.config?.endpointUrl != oldWidget.config?.endpointUrl &&
+        _endpointUrlController.text != (widget.config?.endpointUrl ?? '')) {
+      _endpointUrlController.text = widget.config?.endpointUrl ?? '';
+    }
+    if (widget.config?.apiKey != oldWidget.config?.apiKey &&
+        _apiKeyController.text != (widget.config?.apiKey ?? '')) {
+      _apiKeyController.text = widget.config?.apiKey ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _endpointUrlController.dispose();
+    _apiKeyController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'Endpoint URL',
+            hintText: 'http://localhost:port/v1',
+            border: OutlineInputBorder(),
+          ),
+          controller: _endpointUrlController,
+          onSubmitted: widget.onEndpointUrlChanged,
+        ),
+        const SizedBox(height: 16),
+        ModelSelector(
+          selectedModel: widget.config?.model,
+          labelText: 'Model',
+          hintText: 'e.g., gpt-4o',
+          onModelSelected: widget.onModelSelected,
+        ),
+        const SizedBox(height: 16),
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'API Key (optional)',
+            border: OutlineInputBorder(),
+          ),
+          obscureText: true,
+          controller: _apiKeyController,
+          onSubmitted: widget.onApiKeyChanged,
+        ),
+      ],
+    );
+  }
 }
