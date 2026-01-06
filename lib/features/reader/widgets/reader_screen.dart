@@ -27,6 +27,97 @@ class ReaderScreen extends ConsumerStatefulWidget {
   ConsumerState<ReaderScreen> createState() => ReaderScreenState();
 }
 
+class _PageTransition extends StatefulWidget {
+  final Widget child;
+  final bool isForward;
+
+  const _PageTransition({
+    required this.child,
+    required this.isForward,
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  State<_PageTransition> createState() => _PageTransitionState();
+}
+
+class _PageTransitionState extends State<_PageTransition>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Widget _oldChild;
+  Widget? _currentChild;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _currentChild = widget.child;
+  }
+
+  @override
+  void didUpdateWidget(_PageTransition oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.child.key != widget.child.key) {
+      _oldChild = oldWidget.child;
+      _currentChild = widget.child;
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (_oldChild.key != _currentChild?.key)
+              SlideTransition(
+                position:
+                    Tween<Offset>(
+                      begin: Offset.zero,
+                      end: widget.isForward
+                          ? const Offset(-1.0, 0.0)
+                          : const Offset(1.0, 0.0),
+                    ).animate(
+                      CurvedAnimation(
+                        parent: _controller,
+                        curve: Curves.easeInOut,
+                      ),
+                    ),
+                child: _oldChild,
+              ),
+            SlideTransition(
+              position:
+                  Tween<Offset>(
+                    begin: widget.isForward
+                        ? const Offset(1.0, 0.0)
+                        : const Offset(-1.0, 0.0),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(
+                      parent: _controller,
+                      curve: Curves.easeInOut,
+                    ),
+                  ),
+              child: _currentChild,
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class ReaderScreenState extends ConsumerState<ReaderScreen>
     with WidgetsBindingObserver {
   double _tempTextSize = 18.0;
@@ -614,30 +705,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           }
         }
       },
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 300),
-        switchInCurve: Curves.easeInOut,
-        switchOutCurve: Curves.easeInOut,
-        transitionBuilder: (Widget child, Animation<double> animation) {
-          final beginOffset = _isNavigatingForward
-              ? const Offset(1.0, 0.0)
-              : const Offset(-1.0, 0.0);
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: beginOffset,
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
-          );
-        },
-        layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-          return Stack(
-            children: <Widget>[
-              ...previousChildren,
-              if (currentChild != null) currentChild,
-            ],
-          );
-        },
+      child: _PageTransition(
+        isForward: _isNavigatingForward,
         child: TextDisplay(
           key: _pageKey,
           paragraphs: pageData!.paragraphs,
