@@ -203,6 +203,11 @@ class AppThemeColorExtension extends ThemeExtension<AppThemeColorExtension> {
             other.colorScheme.status.highlightedText,
             t,
           )!,
+          wordGlowColor: Color.lerp(
+            colorScheme.status.wordGlowColor,
+            other.colorScheme.status.wordGlowColor,
+            t,
+          )!,
         ),
         border: BorderColors(
           outline: Color.lerp(

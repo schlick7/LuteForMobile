@@ -235,6 +235,7 @@ class StatusColors {
   final Color status98;
   final Color status99;
   final Color highlightedText;
+  final Color wordGlowColor;
   final bool isTransparent0;
   final bool isTransparent1;
   final bool isTransparent2;
@@ -254,6 +255,7 @@ class StatusColors {
     required this.status98,
     required this.status99,
     required this.highlightedText,
+    required this.wordGlowColor,
     this.isTransparent0 = false,
     this.isTransparent1 = false,
     this.isTransparent2 = false,
@@ -274,6 +276,7 @@ class StatusColors {
     Color? status98,
     Color? status99,
     Color? highlightedText,
+    Color? wordGlowColor,
     bool? isTransparent0,
     bool? isTransparent1,
     bool? isTransparent2,
@@ -293,6 +296,7 @@ class StatusColors {
       status98: status98 ?? this.status98,
       status99: status99 ?? this.status99,
       highlightedText: highlightedText ?? this.highlightedText,
+      wordGlowColor: wordGlowColor ?? this.wordGlowColor,
       isTransparent0: isTransparent0 ?? this.isTransparent0,
       isTransparent1: isTransparent1 ?? this.isTransparent1,
       isTransparent2: isTransparent2 ?? this.isTransparent2,
@@ -317,6 +321,7 @@ class StatusColors {
         other.status98 == status98 &&
         other.status99 == status99 &&
         other.highlightedText == highlightedText &&
+        other.wordGlowColor == wordGlowColor &&
         other.isTransparent0 == isTransparent0 &&
         other.isTransparent1 == isTransparent1 &&
         other.isTransparent2 == isTransparent2 &&
@@ -338,6 +343,7 @@ class StatusColors {
     status98,
     status99,
     highlightedText,
+    wordGlowColor,
     isTransparent0,
     isTransparent1,
     isTransparent2,

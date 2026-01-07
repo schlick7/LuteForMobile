@@ -18,6 +18,7 @@ class TextDisplay extends StatefulWidget {
   final ScrollController? scrollController;
   final double topPadding;
   final Widget? bottomControlWidget;
+  final int? highlightedWordId;
 
   const TextDisplay({
     super.key,
@@ -33,6 +34,7 @@ class TextDisplay extends StatefulWidget {
     this.scrollController,
     this.topPadding = 0.0,
     this.bottomControlWidget,
+    this.highlightedWordId,
   });
 
   static Widget buildInteractiveWord(
@@ -46,6 +48,7 @@ class TextDisplay extends StatefulWidget {
     void Function(TextItem, Offset)? onTap,
     void Function(TextItem)? onDoubleTap,
     void Function(TextItem)? onLongPress,
+    int? highlightedWordId,
   }) {
     if (item.isSpace) {
       return Text(
@@ -73,6 +76,18 @@ class TextDisplay extends StatefulWidget {
       backgroundColor = context.getStatusBackgroundColor(status);
     }
 
+    final isHighlighted =
+        highlightedWordId != null && highlightedWordId == item.wordId;
+
+    final glowEffect = isHighlighted
+        ? BoxShadow(
+            color: context.wordGlowColor,
+            blurRadius: 12,
+            spreadRadius: 3,
+            offset: const Offset(0, 0),
+          )
+        : null;
+
     final textStyle = TextStyle(
       color: textColor ?? Theme.of(context).textTheme.bodyLarge?.color,
       fontWeight: fontWeight,
@@ -87,12 +102,11 @@ class TextDisplay extends StatefulWidget {
       padding: backgroundColor != null
           ? const EdgeInsets.symmetric(horizontal: 2.0)
           : null,
-      decoration: backgroundColor != null
-          ? BoxDecoration(
-              color: backgroundColor,
-              borderRadius: BorderRadius.circular(4),
-            )
-          : null,
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(4),
+        boxShadow: glowEffect != null ? [glowEffect] : null,
+      ),
       child: Text(item.text, style: textStyle),
     );
 
@@ -212,6 +226,7 @@ class _TextDisplayState extends State<TextDisplay> {
       onTap: (item, position) => _handleTap(item, position),
       onDoubleTap: (item) => widget.onDoubleTap?.call(item),
       onLongPress: (item) => widget.onLongPress?.call(item),
+      highlightedWordId: widget.highlightedWordId,
     );
   }
 }

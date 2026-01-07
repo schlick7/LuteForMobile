@@ -118,6 +118,8 @@ class ReaderDrawerSettings extends ConsumerWidget {
           const SizedBox(height: 16),
           _buildFullscreenToggle(context, ref, textSettings),
           const SizedBox(height: 24),
+          _buildWordGlowToggle(context, ref),
+          const SizedBox(height: 24),
           Consumer(
             builder: (context, ref, _) {
               final reader = ref.watch(readerProvider);
@@ -512,6 +514,27 @@ class ReaderDrawerSettings extends ConsumerWidget {
             value: settings.showAudioPlayer,
             onChanged: (value) {
               ref.read(settingsProvider.notifier).updateShowAudioPlayer(value);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWordGlowToggle(BuildContext context, WidgetRef ref) {
+    final termFormSettings = ref.watch(termFormSettingsProvider);
+    return Row(
+      children: [
+        const Text('Word Glow', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Spacer(),
+        Transform.scale(
+          scale: 0.8,
+          child: Switch(
+            value: termFormSettings.wordGlowEnabled,
+            onChanged: (value) {
+              ref
+                  .read(termFormSettingsProvider.notifier)
+                  .updateWordGlowEnabled(value);
             },
           ),
         ),

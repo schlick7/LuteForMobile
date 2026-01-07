@@ -141,6 +141,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _hasInitialized = false;
   bool _isUiVisible = true;
   Timer? _hideUiTimer;
+  Timer? _glowTimer;
+  int? _highlightedWordId;
+  int? _originalWordId;
   ScrollController _scrollController = ScrollController();
   double _lastScrollPosition = 0.0;
   DateTime? _lastMarkPageTime;
@@ -197,6 +200,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _hideUiTimer?.cancel();
+    _glowTimer?.cancel();
     _scrollController.removeListener(_handleScrollPosition);
     _scrollController.dispose();
     super.dispose();
@@ -747,6 +751,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           fontFamily: textSettings.fontFamily,
           fontWeight: textSettings.fontWeight,
           isItalic: textSettings.isItalic,
+          highlightedWordId: _highlightedWordId,
         ),
       ),
     );
@@ -776,6 +781,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     if (item.wordId == null) return;
     if (item.langId == null) return;
 
+    // Store original word ID before opening term form
+    _originalWordId = item.wordId;
+    _highlightedWordId = null;
+
     print(
       '_handleDoubleTap: text="${item.text}", wordId=${item.wordId}, langId=${item.langId}',
     );
@@ -794,6 +803,30 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       print('_handleDoubleTap error: $e');
       return;
     }
+  }
+
+  void _triggerWordGlow() {
+    final settings = ref.read(termFormSettingsProvider);
+
+    // Only trigger if enabled and we have an original word ID
+    if (!settings.wordGlowEnabled || _originalWordId == null) return;
+
+    // Cancel any existing timer
+    _glowTimer?.cancel();
+
+    // Set highlight
+    setState(() {
+      _highlightedWordId = _originalWordId;
+    });
+
+    // Auto-dismiss after 100ms
+    _glowTimer = Timer(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        setState(() {
+          _highlightedWordId = null;
+        });
+      }
+    });
   }
 
   void _handleLongPress(TextItem item) {
@@ -938,7 +971,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           ),
         );
       },
-    );
+    ).then((_) {
+      if (mounted) {
+        _triggerWordGlow();
+      }
+    });
   }
 
   void _showParentTermForm(TermForm termForm) {
@@ -1046,7 +1083,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           ),
         );
       },
-    );
+    ).then((_) {
+      if (mounted) {
+        _triggerWordGlow();
+      }
+    });
   }
 
   void _showSentenceTranslation(String sentence, int languageId) {
@@ -1086,6 +1127,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       _isLastPageMarkedDone = false;
       _lastAttemptedBookId = pageData.bookId;
       _lastAttemptedPageNum = pageNum;
+      _highlightedWordId = null;
+      _originalWordId = null;
     });
 
     if (pageNum > pageData.currentPage) {
@@ -1118,6 +1161,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       _isLastPageMarkedDone = false;
       _lastAttemptedBookId = pageData.bookId;
       _lastAttemptedPageNum = pageNum;
+      _highlightedWordId = null;
+      _originalWordId = null;
     });
 
     ref

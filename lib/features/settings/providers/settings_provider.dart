@@ -240,12 +240,14 @@ class TermFormSettings {
   final bool showTags;
   final bool autoSave;
   final bool showParentsInDictionary;
+  final bool wordGlowEnabled;
 
   const TermFormSettings({
     this.showRomanization = true,
     this.showTags = false,
     this.autoSave = true,
     this.showParentsInDictionary = true,
+    this.wordGlowEnabled = true,
   });
 
   TermFormSettings copyWith({
@@ -253,6 +255,7 @@ class TermFormSettings {
     bool? showTags,
     bool? autoSave,
     bool? showParentsInDictionary,
+    bool? wordGlowEnabled,
   }) {
     return TermFormSettings(
       showRomanization: showRomanization ?? this.showRomanization,
@@ -260,6 +263,7 @@ class TermFormSettings {
       autoSave: autoSave ?? this.autoSave,
       showParentsInDictionary:
           showParentsInDictionary ?? this.showParentsInDictionary,
+      wordGlowEnabled: wordGlowEnabled ?? this.wordGlowEnabled,
     );
   }
 
@@ -270,7 +274,8 @@ class TermFormSettings {
         other.showRomanization == showRomanization &&
         other.showTags == showTags &&
         other.autoSave == autoSave &&
-        other.showParentsInDictionary == showParentsInDictionary;
+        other.showParentsInDictionary == showParentsInDictionary &&
+        other.wordGlowEnabled == wordGlowEnabled;
   }
 
   @override
@@ -278,7 +283,8 @@ class TermFormSettings {
       showRomanization.hashCode ^
       showTags.hashCode ^
       autoSave.hashCode ^
-      showParentsInDictionary.hashCode;
+      showParentsInDictionary.hashCode ^
+      wordGlowEnabled.hashCode;
 
   static const TermFormSettings defaultSettings = TermFormSettings();
 }
@@ -289,6 +295,7 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
   static const String _keyAutoSave = 'auto_save';
   static const String _keyShowParentsInDictionary =
       'show_parents_in_dictionary';
+  static const String _keyWordGlowEnabled = 'word_glow_enabled';
   bool _isInitialized = false;
 
   @override
@@ -307,12 +314,14 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
     final autoSave = prefs.getBool(_keyAutoSave) ?? true;
     final showParentsInDictionary =
         prefs.getBool(_keyShowParentsInDictionary) ?? true;
+    final wordGlowEnabled = prefs.getBool(_keyWordGlowEnabled) ?? true;
 
     final loadedSettings = TermFormSettings(
       showRomanization: showRomanization,
       showTags: showTags,
       autoSave: autoSave,
       showParentsInDictionary: showParentsInDictionary,
+      wordGlowEnabled: wordGlowEnabled,
     );
     if (state != loadedSettings) {
       state = loadedSettings;
@@ -345,6 +354,12 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyShowParentsInDictionary, show);
+  }
+
+  Future<void> updateWordGlowEnabled(bool enabled) async {
+    state = state.copyWith(wordGlowEnabled: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyWordGlowEnabled, enabled);
   }
 }
 
