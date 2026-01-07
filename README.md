@@ -25,7 +25,7 @@ A Flutter mobile frontend for Lute v3 language learning server. Read books and l
 Native:
 - 📱 Android 
 
-PWA: (they should work, but may have issues)
+PWA: (they should work, but are only lightly tested)
 - 📱 Android (PWA)
 - 📱 iOS (PWA)
 - 🌐 Web (PWA)
@@ -33,11 +33,6 @@ PWA: (they should work, but may have issues)
 ## Prerequisites
 
 - Lute v3 server running on your network
-
-## To build
-
-- Flutter SDK (3.10.0+)
-- Dart SDK (3.10.0+)
 
 ## Installation
 
@@ -47,35 +42,9 @@ PWA: (they should work, but may have issues)
 
 Download the latest APK from the [Releases page](https://github.com/schlick7/LuteForMobile/releases) and install it on your device.
 
-### Option 2: Build Native Apps
+### Option 2: PWA - limited web dictionary support (all are considered embedded) This the same as the Lute Webpage, but without popup dictionary support. 
 
-Build native apps for the best performance and full feature support.
-
-#### Android
-
-build from source:
-
-```bash
-# Install dependencies
-flutter pub get
-
-# Build APK
-flutter build apk
-```
-
-#### iOS - UNTESTED - For "security" reasons this will expire 7 days after install (if you have work arounds let me know)
-
-```bash
-# Install dependencies
-flutter pub get
-
-# Build iOS app (requires macOS and Xcode)
-flutter build ios
-```
-
-### Option 3: PWA - limited web dictionary support (all are considered embedded)
-
-Supports all platforms (untested)
+Supports all platforms (lightly tested on iOS and web)
 
 #### Quick Setup (Download)
 
@@ -89,8 +58,11 @@ cd LuteForMobilePWA
 # Run the automated setup script
 python3 setup_pwa.py
 ```
+**Windows users:** Run with `python setup_pwa.py` instead. Requires Docker Desktop on Windows.
 
-The script will auto-detect your Lute installation and deploy the files. Or manually copy to:
+The script will auto-detect your Lute installation and deploy the files. 
+
+Or manually copy to:
 
 **Pip/Venv Installation:**
 ```
@@ -113,20 +85,46 @@ or
 
 4. The files should be placed in a `luteformobile/` subdirectory
 
+Resart the Lute Server
+
 Access the PWA at: `http://YOUR_LUTE_IP:5001/static/luteformobile/index.html`
 
-#### Advanced: Build from Source
+
+### Option 3: Build Native Apps
+
+#### Android
 
 If you prefer to build from source, clone the repo and use the setup script:
 
 ```bash
 git clone https://github.com/schlick7/LuteForMobile.git
 cd LuteForMobile
-flutter build web
-python3 setup_pwa.py
 ```
 
-**Windows users:** Run with `python setup_pwa.py` instead. Requires Docker Desktop on Windows.
+
+```bash
+# Install dependencies
+flutter pub get
+```
+```bash
+# Build Web/PWA
+flutter build web
+
+# Install PWA to Lute Server (run from build/web)
+python3 setup_pwa.y
+```
+```bash
+# Build Android APK
+flutter build apk
+```
+```bash
+# Build iOS
+flutter build ios
+```
+
+#### iOS - UNTESTED - For "security" reasons this will expire 7 days after install (if you have work arounds let me know)
+
+
 
 For detailed setup instructions, see [docs/QUICK_START.md](docs/QUICK_START.md).
 
@@ -165,34 +163,6 @@ flutter run -d android   # Android
 flutter run -d ios       # iOS
 ```
 
-### Project Structure
-
-```
-lib/
-├── core/
-│   ├── network/          # API services (Dio, parsing)
-│   └── providers/        # Core providers
-├── features/
-│   ├── books/           # Book management
-│   ├── reader/          # Reading interface
-│   └── settings/        # App settings
-├── shared/
-│   ├── providers/       # Shared state (Riverpod)
-│   ├── theme/          # Theme system
-│   └── widgets/        # Common UI components
-├── app.dart            # App widget
-└── main.dart           # Entry point
-```
-
-### Key Dependencies
-
-- **State Management**: flutter_riverpod
-- **Networking**: dio
-- **Routing**: go_router
-- **Storage**: hive_ce
-- **Charts**: fl_chart
-- **Audio**: audioplayers, flutter_tts
-- **AI Integration**: openai_dart
 
 
 ## API Integration
