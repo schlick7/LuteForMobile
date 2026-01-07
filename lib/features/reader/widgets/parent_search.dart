@@ -148,6 +148,7 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
         const SizedBox(height: 8),
         TextField(
           controller: _searchController,
+          autofocus: true,
           decoration: InputDecoration(
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             hintText: 'Search for a term or type new term name...',
