@@ -529,19 +529,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             final reader = ref.read(readerProvider);
 
             if (textSettings.swipeMarksRead && reader.pageData != null) {
-              try {
-                await ref
-                    .read(readerProvider.notifier)
-                    .markPageRead(
-                      reader.pageData!.bookId,
-                      reader.pageData!.currentPage,
-                    );
-              } catch (e) {
-                print('Error marking page as read: $e');
-              }
+              ref
+                  .read(readerProvider.notifier)
+                  .markPageRead(
+                    reader.pageData!.bookId,
+                    reader.pageData!.currentPage,
+                  );
             }
 
-            await Future.delayed(const Duration(milliseconds: 400));
             await _goNext();
           }
         }
@@ -587,19 +582,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             final reader = ref.read(readerProvider);
 
             if (textSettings.swipeMarksRead && reader.pageData != null) {
-              try {
-                await ref
-                    .read(readerProvider.notifier)
-                    .markPageRead(
-                      reader.pageData!.bookId,
-                      reader.pageData!.currentPage,
-                    );
-              } catch (e) {
-                print('Error marking page as read: $e');
-              }
+              ref
+                  .read(readerProvider.notifier)
+                  .markPageRead(
+                    reader.pageData!.bookId,
+                    reader.pageData!.currentPage,
+                  );
             }
 
-            await Future.delayed(const Duration(milliseconds: 400));
             await _goNext();
           }
         }
