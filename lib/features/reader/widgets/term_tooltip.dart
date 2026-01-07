@@ -5,27 +5,15 @@ import '../models/term_tooltip.dart';
 String _formatTranslation(String? translation) {
   if (translation == null) return '';
 
-  final punctuation = RegExp(r'[.,!?;:，。！？；：]');
+  final lines = translation.split(RegExp(r'[\n\r]+'));
 
-  final lines = translation.split('\n');
   final result = StringBuffer();
   for (var i = 0; i < lines.length; i++) {
     final trimmedLine = lines[i].trim();
     if (trimmedLine.isEmpty) continue;
 
     if (result.isNotEmpty) {
-      final lastLineIndex = i - 1;
-      if (lastLineIndex >= 0) {
-        final prevLine = lines[lastLineIndex].trim();
-        if (prevLine.isNotEmpty) {
-          final lastChar = prevLine[prevLine.length - 1];
-          if (!punctuation.hasMatch(lastChar)) {
-            result.write(', ');
-          } else {
-            result.write(' ');
-          }
-        }
-      }
+      result.write(', ');
     }
 
     result.write(trimmedLine);

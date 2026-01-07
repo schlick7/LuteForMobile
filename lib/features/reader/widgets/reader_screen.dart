@@ -714,16 +714,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             );
 
             if (currentTextSettings.swipeMarksRead) {
-              try {
-                await ref
-                    .read(readerProvider.notifier)
-                    .markPageRead(pageData!.bookId, pageData!.currentPage);
-              } catch (e) {
-                print('Error marking page as read: $e');
-              }
+              ref
+                  .read(readerProvider.notifier)
+                  .markPageRead(pageData!.bookId, pageData!.currentPage);
             }
 
-            await Future.delayed(const Duration(milliseconds: 400));
             _loadPageWithoutMarkingRead(pageData!.currentPage + 1);
           }
         }

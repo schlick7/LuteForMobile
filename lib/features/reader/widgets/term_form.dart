@@ -386,15 +386,12 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   onLongPress: () => _showEditTermDialog(context),
-                  child: Tooltip(
-                    message: 'Long press to edit capitalization',
-                    child: Text(
-                      widget.termForm.term,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                  child: Text(
+                    widget.termForm.term,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
                     ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
