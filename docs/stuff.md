@@ -15,7 +15,6 @@ fixed? Some users are reporting that tooltips aren't showing. They work perfectl
 
 ### TTS options: On device, local-OpenAI endpoint, OpenAI, None
   - Future: add a selector in language settings to apply TTS voices based on languages. 
-  - add test server button
   
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
