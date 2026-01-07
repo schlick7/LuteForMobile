@@ -12,7 +12,7 @@ class AISettingsSection extends ConsumerStatefulWidget {
 }
 
 class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
-  bool _isExpanded = true;
+  bool _isExpanded = false;
 
   @override
   Widget build(BuildContext context) {

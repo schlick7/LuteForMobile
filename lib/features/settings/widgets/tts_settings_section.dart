@@ -14,7 +14,7 @@ class TTSSettingsSection extends ConsumerStatefulWidget {
 }
 
 class _TTSSettingsSectionState extends ConsumerState<TTSSettingsSection> {
-  bool _isExpanded = true;
+  bool _isExpanded = false;
 
   @override
   Widget build(BuildContext context) {
