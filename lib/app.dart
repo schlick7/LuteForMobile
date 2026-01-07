@@ -8,6 +8,7 @@ import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
 import 'package:lute_for_mobile/features/settings/widgets/help_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_drawer_settings.dart';
+import 'package:lute_for_mobile/features/terms/widgets/terms_screen.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 import 'package:lute_for_mobile/shared/theme/theme_definitions.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
@@ -213,6 +214,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     final routeNames = [
       'reader',
       'books',
+      'terms',
       'help',
       'settings',
       'sentence-reader',
@@ -276,6 +278,11 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       case 4:
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
+            .updateSettings(null);
+        break;
+      case 5:
+        ref
+            .read(currentViewDrawerSettingsProvider.notifier)
             .updateSettings(ReaderDrawerSettings(currentIndex: _currentIndex));
         break;
       default:
@@ -304,10 +311,10 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           }
         },
       ),
-      body: _currentIndex == 2
+      body: _currentIndex == 3
           ? HelpScreen(scaffoldKey: _scaffoldKey)
           : IndexedStack(
-              index: _currentIndex > 2 ? _currentIndex - 1 : _currentIndex,
+              index: _currentIndex > 3 ? _currentIndex - 1 : _currentIndex,
               children: [
                 RepaintBoundary(
                   child: ReaderScreen(
@@ -316,6 +323,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
                   ),
                 ),
                 RepaintBoundary(child: BooksScreen(scaffoldKey: _scaffoldKey)),
+                RepaintBoundary(child: TermsScreen(scaffoldKey: _scaffoldKey)),
                 RepaintBoundary(
                   child: SettingsScreen(scaffoldKey: _scaffoldKey),
                 ),
