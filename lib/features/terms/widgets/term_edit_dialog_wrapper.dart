@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term.dart';
-import '../../../shared/providers/language_data_provider.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../reader/models/term_form.dart';
 import '../../reader/widgets/term_form.dart' show TermFormWidget;
@@ -63,9 +62,7 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
           decoration: BoxDecoration(
             color: Theme.of(context).appBarTheme.backgroundColor,
             border: Border(
-              bottom: BorderSide(
-                color: Theme.of(context).dividerColor,
-              ),
+              bottom: BorderSide(color: Theme.of(context).dividerColor),
             ),
           ),
           child: Row(
@@ -106,8 +103,8 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
                   );
                 },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         Flexible(
           child: SingleChildScrollView(
@@ -124,7 +121,9 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
                   if (mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Term updated successfully')),
+                      const SnackBar(
+                        content: Text('Term updated successfully'),
+                      ),
                     );
                   }
                 } catch (e) {

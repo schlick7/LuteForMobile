@@ -396,6 +396,7 @@ class ApiService {
     String? search,
     int? langId,
     int? status,
+    Set<String>? selectedStatuses,
   }) async {
     final data = {
       'draw': draw,
@@ -429,16 +430,39 @@ class ApiService {
       'excluded_parentags': '',
     };
 
-    if (status == null) {
-      data['filtStatusNew'] = 'on';
-      data['filtStatus1'] = 'on';
-      data['filtStatus2'] = 'on';
-      data['filtStatus3'] = 'on';
-      data['filtStatus4'] = 'on';
-      data['filtStatus5'] = 'on';
-      data['filtStatusIgnored'] = 'on';
-      data['filtStatusWellKnown'] = 'on';
-    } else {
+    if (selectedStatuses != null) {
+      for (final statusStr in selectedStatuses) {
+        final statusInt = int.tryParse(statusStr);
+        if (statusInt == null) continue;
+
+        switch (statusInt) {
+          case 0:
+            data['filtStatusNew'] = 'on';
+            break;
+          case 1:
+            data['filtStatus1'] = 'on';
+            break;
+          case 2:
+            data['filtStatus2'] = 'on';
+            break;
+          case 3:
+            data['filtStatus3'] = 'on';
+            break;
+          case 4:
+            data['filtStatus4'] = 'on';
+            break;
+          case 5:
+            data['filtStatus5'] = 'on';
+            break;
+          case 98:
+            data['filtStatusIgnored'] = 'on';
+            break;
+          case 99:
+            data['filtStatusWellKnown'] = 'on';
+            break;
+        }
+      }
+    } else if (status != null) {
       switch (status) {
         case 0:
           data['filtStatusNew'] = 'on';

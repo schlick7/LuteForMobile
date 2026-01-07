@@ -36,24 +36,24 @@ class TermFilterPanel extends ConsumerWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (state.selectedLangId != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        selectedLanguageName,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      selectedLanguageName,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
+                  ),
                   DropdownButtonFormField<int?>(
                     value: state.selectedLangId,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      contentPadding: EdgeInsets.symmetric(
+                    decoration: InputDecoration(
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(
                         horizontal: 12,
                         vertical: 16,
                       ),
+                      hintText: 'All Languages',
                     ),
                     items: [
                       const DropdownMenuItem<int?>(

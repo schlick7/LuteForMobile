@@ -14,6 +14,7 @@ class TermsRepository {
     required int page,
     required int pageSize,
     String? status,
+    Set<String>? selectedStatuses,
   }) async {
     try {
       final terms = await contentService.getTermsDatatables(
@@ -22,6 +23,7 @@ class TermsRepository {
         page: page,
         pageSize: pageSize,
         status: status,
+        selectedStatuses: selectedStatuses,
       );
       return terms;
     } catch (e) {

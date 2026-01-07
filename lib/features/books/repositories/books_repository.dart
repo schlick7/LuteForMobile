@@ -1,15 +1,19 @@
 import '../../../core/network/content_service.dart';
 import '../models/book.dart';
+import '../../../shared/models/language.dart';
 
 class BooksRepository {
   final ContentService contentService;
+  Map<String, int>? _languageNameToIdMap;
 
   BooksRepository({required this.contentService});
 
   Future<List<Book>> getActiveBooks() async {
     try {
+      await _loadLanguageMapping();
       final books = await contentService.getAllActiveBooks();
-      return await _enrichBooksWithAudio(books);
+      final enrichedBooks = _enrichBooksWithLanguageIds(books);
+      return await _enrichBooksWithAudio(enrichedBooks);
     } catch (e) {
       throw Exception('Failed to load active books: $e');
     }
@@ -17,11 +21,40 @@ class BooksRepository {
 
   Future<List<Book>> getArchivedBooks() async {
     try {
+      await _loadLanguageMapping();
       final books = await contentService.getAllArchivedBooks();
-      return await _enrichBooksWithAudio(books);
+      final enrichedBooks = _enrichBooksWithLanguageIds(books);
+      return await _enrichBooksWithAudio(enrichedBooks);
     } catch (e) {
       throw Exception('Failed to load archived books: $e');
     }
+  }
+
+  Future<void> _loadLanguageMapping() async {
+    if (_languageNameToIdMap != null) return;
+
+    try {
+      final languages = await contentService.getLanguagesWithIds();
+      _languageNameToIdMap = {for (var lang in languages) lang.name: lang.id};
+      print(
+        'DEBUG: Loaded ${languages.length} languages: $_languageNameToIdMap',
+      );
+    } catch (e) {
+      print('Failed to load language mapping: $e');
+      _languageNameToIdMap = {};
+    }
+  }
+
+  List<Book> _enrichBooksWithLanguageIds(List<Book> books) {
+    if (_languageNameToIdMap == null) return books;
+
+    return books.map((book) {
+      final langId = _languageNameToIdMap![book.language];
+      print(
+        'DEBUG: Enriching book "${book.title}" (language: ${book.language}) with langId: $langId',
+      );
+      return book.copyWith(langId: langId ?? 0);
+    }).toList();
   }
 
   Future<List<Book>> _enrichBooksWithAudio(List<Book> books) async {

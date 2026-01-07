@@ -24,6 +24,7 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyLanguageFilter = 'language_filter';
   static const String _keyShowAudioPlayer = 'show_audio_player';
   static const String _keyCurrentBookId = 'current_book_id';
+  static const String _keyCurrentBookLangId = 'current_book_lang_id';
   static const String _keyCurrentBookPage = 'current_book_page';
   static const String _keyCurrentBookSentenceIndex =
       'current_book_sentence_index';
@@ -53,6 +54,7 @@ class SettingsNotifier extends Notifier<Settings> {
     final languageFilter = prefs.getString(_keyLanguageFilter);
     final showAudioPlayer = prefs.getBool(_keyShowAudioPlayer) ?? true;
     final currentBookId = prefs.getInt(_keyCurrentBookId);
+    final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
     final currentBookPage = prefs.getInt(_keyCurrentBookPage);
     final currentBookSentenceIndex = prefs.getInt(_keyCurrentBookSentenceIndex);
     final combineShortSentences = prefs.getInt(_keyCombineShortSentences) ?? 3;
@@ -68,6 +70,7 @@ class SettingsNotifier extends Notifier<Settings> {
       languageFilter: languageFilter,
       showAudioPlayer: showAudioPlayer,
       currentBookId: currentBookId,
+      currentBookLangId: currentBookLangId,
       currentBookPage: currentBookPage,
       currentBookSentenceIndex: currentBookSentenceIndex,
       combineShortSentences: combineShortSentences,
@@ -142,15 +145,21 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyShowKnownTermsInSentenceReader, show);
   }
 
-  Future<void> updateCurrentBook(int bookId, [int? page]) async {
+  Future<void> updateCurrentBook(int bookId, [int? page, int? langId]) async {
     state = state.copyWith(
       currentBookId: bookId,
+      currentBookLangId: langId,
       currentBookPage: page,
       currentBookSentenceIndex: null,
     );
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyCurrentBookId, bookId);
+    if (langId != null) {
+      await prefs.setInt(_keyCurrentBookLangId, langId!);
+    } else {
+      await prefs.remove(_keyCurrentBookLangId);
+    }
     if (page != null) {
       await prefs.setInt(_keyCurrentBookPage, page);
     } else {
@@ -162,12 +171,14 @@ class SettingsNotifier extends Notifier<Settings> {
   Future<void> clearCurrentBook() async {
     state = state.copyWith(
       currentBookId: null,
+      currentBookLangId: null,
       currentBookPage: null,
       currentBookSentenceIndex: null,
     );
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyCurrentBookId);
+    await prefs.remove(_keyCurrentBookLangId);
     await prefs.remove(_keyCurrentBookPage);
     await prefs.remove(_keyCurrentBookSentenceIndex);
   }

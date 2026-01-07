@@ -14,6 +14,7 @@ import 'package:lute_for_mobile/shared/theme/theme_definitions.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
 import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
+import 'package:lute_for_mobile/features/books/models/book.dart';
 
 class RestartWidget extends StatefulWidget {
   final Widget child;
@@ -193,7 +194,28 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     );
     print('DEBUG: _readerKey.currentState=${_readerKey.currentState}');
 
-    ref.read(settingsProvider.notifier).updateCurrentBook(bookId, pageNum);
+    final booksState = ref.read(booksProvider);
+    final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
+    final book = allBooks.firstWhere(
+      (b) => b.id == bookId,
+      orElse: () => Book(
+        id: bookId,
+        title: '',
+        language: '',
+        langId: 0,
+        totalPages: 0,
+        currentPage: 0,
+        percent: 0,
+        wordCount: 0,
+        distinctTerms: null,
+        unknownPct: null,
+        statusDistribution: null,
+      ),
+    );
+
+    ref
+        .read(settingsProvider.notifier)
+        .updateCurrentBook(bookId, pageNum, book.langId);
 
     if (_readerKey.currentState != null) {
       _readerKey.currentState!.loadBook(bookId, pageNum);
@@ -239,7 +261,9 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           'DEBUG: Loaded book from server: bookId=${book.id}, currentPage=${book.currentPage}',
         );
 
-        ref.read(settingsProvider.notifier).updateCurrentBook(book.id);
+        ref
+            .read(settingsProvider.notifier)
+            .updateCurrentBook(book.id, null, book.langId);
 
         if (_readerKey.currentState != null) {
           _readerKey.currentState!.loadBook(book.id);
@@ -311,10 +335,12 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           }
         },
       ),
-      body: _currentIndex == 3
+      body: _currentIndex == 2
+          ? TermsScreen(scaffoldKey: _scaffoldKey)
+          : _currentIndex == 3
           ? HelpScreen(scaffoldKey: _scaffoldKey)
           : IndexedStack(
-              index: _currentIndex > 3 ? _currentIndex - 1 : _currentIndex,
+              index: _currentIndex > 3 ? _currentIndex - 2 : _currentIndex,
               children: [
                 RepaintBoundary(
                   child: ReaderScreen(
@@ -323,7 +349,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
                   ),
                 ),
                 RepaintBoundary(child: BooksScreen(scaffoldKey: _scaffoldKey)),
-                RepaintBoundary(child: TermsScreen(scaffoldKey: _scaffoldKey)),
                 RepaintBoundary(
                   child: SettingsScreen(scaffoldKey: _scaffoldKey),
                 ),

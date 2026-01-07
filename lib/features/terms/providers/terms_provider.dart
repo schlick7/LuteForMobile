@@ -3,8 +3,6 @@ import 'package:meta/meta.dart';
 import '../models/term.dart';
 import '../repositories/terms_repository.dart';
 import '../../settings/providers/settings_provider.dart';
-import '../../books/providers/books_provider.dart';
-import '../../books/models/book.dart';
 
 @immutable
 class TermsState {
@@ -82,20 +80,21 @@ class TermsNotifier extends Notifier<TermsState> {
     }
 
     try {
-      await _setLanguageFilter();
+      if (state.selectedLangId == null) {
+        final currentBookLangId = ref.read(settingsProvider).currentBookLangId;
+        state = state.copyWith(selectedLangId: currentBookLangId);
+      }
 
-      final status = state.selectedStatuses.isEmpty
-          ? null
-          : state.selectedStatuses.length == 1
-          ? state.selectedStatuses.first
-          : null;
+      final filteredStatuses = state.selectedStatuses
+          .whereType<String>()
+          .toSet();
 
       final newTerms = await _repository.getTermsPaginated(
         langId: state.selectedLangId,
         search: state.searchQuery.isNotEmpty ? state.searchQuery : null,
         page: state.currentPage,
         pageSize: _pageSize,
-        status: status,
+        selectedStatuses: filteredStatuses.isEmpty ? null : filteredStatuses,
       );
 
       state = state.copyWith(
@@ -115,37 +114,6 @@ class TermsNotifier extends Notifier<TermsState> {
     _isLoadingMore = true;
     await loadTerms(reset: false);
     _isLoadingMore = false;
-  }
-
-  Future<void> _setLanguageFilter() async {
-    final currentBookId = ref.read(settingsProvider).currentBookId;
-
-    if (currentBookId == null) {
-      state = state.copyWith(selectedLangId: null);
-      return;
-    }
-
-    final booksState = ref.read(booksProvider);
-    final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
-    final book = allBooks.firstWhere(
-      (b) => b.id == currentBookId,
-      orElse: () => allBooks.isNotEmpty
-          ? allBooks.first
-          : Book(
-              id: 0,
-              title: '',
-              language: '',
-              langId: 0,
-              totalPages: 0,
-              currentPage: 0,
-              percent: 0,
-              wordCount: 0,
-              distinctTerms: null,
-              unknownPct: null,
-              statusDistribution: null,
-            ),
-    );
-    state = state.copyWith(selectedLangId: book.langId);
   }
 
   void setSearchQuery(String query) {

@@ -15,6 +15,7 @@ class Settings {
   final String? languageFilter;
   final bool showAudioPlayer;
   final int? currentBookId;
+  final int? currentBookLangId;
   final int? currentBookPage;
   final int? currentBookSentenceIndex;
   final int? combineShortSentences;
@@ -35,6 +36,7 @@ class Settings {
     this.languageFilter,
     this.showAudioPlayer = true,
     this.currentBookId,
+    this.currentBookLangId,
     this.currentBookPage,
     this.currentBookSentenceIndex,
     this.combineShortSentences,
@@ -57,6 +59,7 @@ class Settings {
     bool clearLanguageFilter = false,
     bool? showAudioPlayer,
     int? currentBookId,
+    int? currentBookLangId,
     int? currentBookPage,
     bool clearCurrentBook = false,
     int? currentBookSentenceIndex,
@@ -82,6 +85,9 @@ class Settings {
       currentBookId: clearCurrentBook
           ? null
           : (currentBookId ?? this.currentBookId),
+      currentBookLangId: clearCurrentBook
+          ? null
+          : (currentBookLangId ?? this.currentBookLangId),
       currentBookPage: clearCurrentBook
           ? null
           : (currentBookPage ?? this.currentBookPage),
@@ -110,6 +116,7 @@ class Settings {
       languageFilter: null,
       showAudioPlayer: true,
       currentBookId: null,
+      currentBookLangId: null,
       currentBookPage: null,
       currentBookSentenceIndex: null,
       combineShortSentences: 3,
@@ -135,6 +142,7 @@ class Settings {
         other.languageFilter == languageFilter &&
         other.showAudioPlayer == showAudioPlayer &&
         other.currentBookId == currentBookId &&
+        other.currentBookLangId == currentBookLangId &&
         other.currentBookPage == currentBookPage &&
         other.currentBookSentenceIndex == currentBookSentenceIndex &&
         other.combineShortSentences == combineShortSentences &&
@@ -158,6 +166,7 @@ class Settings {
     languageFilter,
     showAudioPlayer,
     currentBookId,
+    currentBookLangId,
     currentBookPage,
     currentBookSentenceIndex,
     combineShortSentences,

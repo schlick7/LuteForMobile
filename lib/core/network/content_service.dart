@@ -360,6 +360,7 @@ class ContentService {
     required int page,
     required int pageSize,
     String? status,
+    Set<String>? selectedStatuses,
   }) async {
     final response = await _apiService.getTermsDatatables(
       draw: page + 1,
@@ -368,6 +369,7 @@ class ContentService {
       search: search,
       langId: langId,
       status: status != null ? int.tryParse(status) : null,
+      selectedStatuses: selectedStatuses,
     );
     return parser.parseTermsFromDatatables(response.data ?? '');
   }

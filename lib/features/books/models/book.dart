@@ -113,7 +113,7 @@ class Book {
       id: json['BkID'] as int,
       title: json['BkTitle'] as String,
       language: json['LgName'] as String,
-      langId: 0,
+      langId: json['LgID'] as int? ?? 0,
       totalPages: pageCount,
       currentPage: pageNum,
       percent: percent,
