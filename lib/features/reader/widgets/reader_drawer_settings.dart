@@ -265,7 +265,7 @@ class ReaderDrawerSettings extends ConsumerWidget {
                 children: [
                   ElevatedButton.icon(
                     onPressed: () async {
-                      if (currentIndex == 4) {
+                      if (currentIndex == 5) {
                         await ref
                             .read(sentenceReaderProvider.notifier)
                             .triggerFlushAndRebuild();
@@ -281,13 +281,13 @@ class ReaderDrawerSettings extends ConsumerWidget {
                         ref.read(navigationProvider).navigateToScreen(0);
                         Future.microtask(
                           () =>
-                              ref.read(navigationProvider).navigateToScreen(4),
+                              ref.read(navigationProvider).navigateToScreen(5),
                         );
                         Navigator.of(context).pop();
                       }
                     },
                     icon: const Icon(Icons.view_headline),
-                    label: currentIndex == 4
+                    label: currentIndex == 5
                         ? const Text('Flush Cache & Rebuild')
                         : const Text('Open Sentence Reader'),
                     style: ElevatedButton.styleFrom(
@@ -295,7 +295,7 @@ class ReaderDrawerSettings extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (currentIndex == 4)
+                  if (currentIndex == 5)
                     Row(
                       children: [
                         const Text(
