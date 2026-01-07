@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../providers/sentence_tts_provider.dart';
@@ -105,6 +104,65 @@ class _SentenceAITranslationWidgetState
   }
 
   Widget _buildHeader(BuildContext context) {
+    final ttsState = ref.watch(sentenceTTSProvider);
+    final errorColor = Theme.of(context).colorScheme.error;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ttsState.hasError && ttsState.errorMessage != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ttsState.errorMessage!),
+            backgroundColor: errorColor,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () {
+                ref.read(sentenceTTSProvider.notifier).clearError();
+                ref
+                    .read(sentenceTTSProvider.notifier)
+                    .speakSentence(widget.sentence, widget.sentenceId ?? 0);
+              },
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    });
+
+    IconData ttsIcon;
+    Color ttsColor;
+    VoidCallback? ttsOnPressed;
+
+    switch (ttsState.status) {
+      case SentenceTTSStatus.playing:
+        ttsIcon = Icons.stop;
+        ttsColor = errorColor;
+        ttsOnPressed = () => ref.read(sentenceTTSProvider.notifier).stop();
+        break;
+      case SentenceTTSStatus.paused:
+        ttsIcon = Icons.play_arrow;
+        ttsColor = Theme.of(context).colorScheme.primary;
+        ttsOnPressed = () => ref.read(sentenceTTSProvider.notifier).resume();
+        break;
+      case SentenceTTSStatus.error:
+        ttsIcon = Icons.refresh;
+        ttsColor = errorColor;
+        ttsOnPressed = () {
+          ref.read(sentenceTTSProvider.notifier).clearError();
+          ref
+              .read(sentenceTTSProvider.notifier)
+              .speakSentence(widget.sentence, widget.sentenceId ?? 0);
+        };
+        break;
+      case SentenceTTSStatus.idle:
+        ttsIcon = Icons.volume_up;
+        ttsColor = Theme.of(context).colorScheme.primary;
+        ttsOnPressed = () => ref
+            .read(sentenceTTSProvider.notifier)
+            .speakSentence(widget.sentence, widget.sentenceId ?? 0);
+        break;
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -112,7 +170,12 @@ class _SentenceAITranslationWidgetState
           'AI Translation',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close)),
+        IconButton(
+          icon: Icon(ttsIcon),
+          color: ttsColor,
+          onPressed: ttsOnPressed,
+          tooltip: _getTTSTooltip(ttsState.status),
+        ),
       ],
     );
   }
@@ -197,98 +260,13 @@ class _SentenceAITranslationWidgetState
       return const SizedBox.shrink();
     }
 
-    final ttsState = ref.watch(sentenceTTSProvider);
-    final errorColor = Theme.of(context).colorScheme.error;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (ttsState.hasError && ttsState.errorMessage != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(ttsState.errorMessage!),
-            backgroundColor: errorColor,
-            action: SnackBarAction(
-              label: 'Retry',
-              textColor: Colors.white,
-              onPressed: () {
-                ref.read(sentenceTTSProvider.notifier).clearError();
-                ref
-                    .read(sentenceTTSProvider.notifier)
-                    .speakSentence(widget.sentence, widget.sentenceId ?? 0);
-              },
-            ),
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    });
-
-    IconData ttsIcon;
-    Color ttsColor;
-    VoidCallback? ttsOnPressed;
-
-    switch (ttsState.status) {
-      case SentenceTTSStatus.playing:
-        ttsIcon = Icons.stop;
-        ttsColor = errorColor;
-        ttsOnPressed = () => ref.read(sentenceTTSProvider.notifier).stop();
-        break;
-      case SentenceTTSStatus.paused:
-        ttsIcon = Icons.play_arrow;
-        ttsColor = Theme.of(context).colorScheme.primary;
-        ttsOnPressed = () => ref.read(sentenceTTSProvider.notifier).resume();
-        break;
-      case SentenceTTSStatus.error:
-        ttsIcon = Icons.refresh;
-        ttsColor = errorColor;
-        ttsOnPressed = () {
-          ref.read(sentenceTTSProvider.notifier).clearError();
-          ref
-              .read(sentenceTTSProvider.notifier)
-              .speakSentence(widget.sentence, widget.sentenceId ?? 0);
-        };
-        break;
-      case SentenceTTSStatus.idle:
-        ttsIcon = Icons.volume_up;
-        ttsColor = Theme.of(context).colorScheme.primary;
-        ttsOnPressed = () => ref
-            .read(sentenceTTSProvider.notifier)
-            .speakSentence(widget.sentence, widget.sentenceId ?? 0);
-        break;
-    }
-
-    return Row(
-      children: [
-        IconButton(
-          icon: Icon(ttsIcon),
-          color: ttsColor,
-          onPressed: ttsOnPressed,
-          tooltip: _getTTSTooltip(ttsState.status),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: _translation ?? ''));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Translation copied to clipboard'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            icon: const Icon(Icons.copy),
-            label: const Text('Copy'),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: widget.onClose,
-            icon: const Icon(Icons.close),
-            label: const Text('Close'),
-          ),
-        ),
-      ],
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: widget.onClose,
+        icon: const Icon(Icons.close),
+        label: const Text('Close'),
+      ),
     );
   }
 
