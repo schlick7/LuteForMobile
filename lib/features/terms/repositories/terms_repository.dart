@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term.dart';
 import '../../../core/network/content_service.dart';
+import '../../../shared/providers/network_providers.dart';
 
 class TermsRepository {
   final ContentService contentService;

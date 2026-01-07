@@ -4,6 +4,7 @@ import '../models/term.dart';
 import '../repositories/terms_repository.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
+import '../../books/models/book.dart';
 
 @immutable
 class TermsState {
@@ -13,7 +14,7 @@ class TermsState {
   final int currentPage;
   final String searchQuery;
   final int? selectedLangId;
-  final String? selectedStatus;
+  final Set<String?> selectedStatuses;
   final String? errorMessage;
 
   const TermsState({
@@ -23,7 +24,7 @@ class TermsState {
     this.currentPage = 0,
     this.searchQuery = '',
     this.selectedLangId,
-    this.selectedStatus,
+    this.selectedStatuses = const {'1', '2', '3', '4', '5', '99'},
     this.errorMessage,
   });
 
@@ -34,7 +35,7 @@ class TermsState {
     int? currentPage,
     String? searchQuery,
     int? selectedLangId,
-    String? selectedStatus,
+    Set<String?>? selectedStatuses,
     String? errorMessage,
   }) {
     return TermsState(
@@ -44,7 +45,7 @@ class TermsState {
       currentPage: currentPage ?? this.currentPage,
       searchQuery: searchQuery ?? this.searchQuery,
       selectedLangId: selectedLangId ?? this.selectedLangId,
-      selectedStatus: selectedStatus ?? this.selectedStatus,
+      selectedStatuses: selectedStatuses ?? this.selectedStatuses,
       errorMessage: errorMessage,
     );
   }
@@ -83,12 +84,18 @@ class TermsNotifier extends Notifier<TermsState> {
     try {
       await _setLanguageFilter();
 
+      final status = state.selectedStatuses.isEmpty
+          ? null
+          : state.selectedStatuses.length == 1
+          ? state.selectedStatuses.first
+          : null;
+
       final newTerms = await _repository.getTermsPaginated(
         langId: state.selectedLangId,
         search: state.searchQuery.isNotEmpty ? state.searchQuery : null,
         page: state.currentPage,
         pageSize: _pageSize,
-        status: state.selectedStatus,
+        status: status,
       );
 
       state = state.copyWith(
@@ -127,6 +134,7 @@ class TermsNotifier extends Notifier<TermsState> {
           : Book(
               id: 0,
               title: '',
+              language: '',
               langId: 0,
               totalPages: 0,
               currentPage: 0,
@@ -151,7 +159,36 @@ class TermsNotifier extends Notifier<TermsState> {
   }
 
   void setStatusFilter(String? status) {
-    state = state.copyWith(selectedStatus: status);
+    final newStatuses = Set<String?>.from(state.selectedStatuses);
+    if (status == null) {
+      final allDefaultSelected = {
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '99',
+      }.every((s) => newStatuses.contains(s));
+      if (allDefaultSelected) {
+        newStatuses.clear();
+      } else {
+        newStatuses.addAll(['1', '2', '3', '4', '5', '99']);
+      }
+    } else {
+      if (newStatuses.contains(status)) {
+        newStatuses.remove(status);
+      } else {
+        newStatuses.add(status);
+      }
+    }
+    state = state.copyWith(selectedStatuses: newStatuses);
+    loadTerms(reset: true);
+  }
+
+  void clearStatuses() {
+    state = state.copyWith(
+      selectedStatuses: const {'1', '2', '3', '4', '5', '99'},
+    );
     loadTerms(reset: true);
   }
 

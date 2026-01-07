@@ -26,7 +26,7 @@ class Term {
       case '99':
         return 'Well Known';
       case '0':
-        return 'Ignored';
+        return 'New';
       case '1':
         return 'Learning 1';
       case '2':
@@ -36,9 +36,9 @@ class Term {
       case '4':
         return 'Learning 4';
       case '5':
-        return 'Ignored (dotted)';
+        return 'Learning 5';
       case '98':
-        return 'Ignored (dotted)';
+        return 'Ignored';
       default:
         return 'Unknown';
     }

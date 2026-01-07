@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/terms_provider.dart';
 import '../../../shared/providers/language_data_provider.dart';
+import '../../../shared/models/language.dart';
 
 class TermFilterPanel extends ConsumerWidget {
   const TermFilterPanel({super.key});
@@ -22,31 +23,57 @@ class TermFilterPanel extends ConsumerWidget {
           Text('Language', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           languagesAsync.when(
-            data: (languages) => DropdownButtonFormField<int?>(
-              value: state.selectedLangId,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 16,
-                ),
-              ),
-              items: [
-                const DropdownMenuItem<int?>(
-                  value: null,
-                  child: Text('All Languages'),
-                ),
-                ...languages.map((lang) {
-                  return DropdownMenuItem<int?>(
-                    value: lang.id,
-                    child: Text(lang.name),
-                  );
-                }),
-              ],
-              onChanged: (value) {
-                ref.read(termsProvider.notifier).setLanguageFilter(value);
-              },
-            ),
+            data: (languages) {
+              String selectedLanguageName = 'All Languages';
+              if (state.selectedLangId != null) {
+                final selectedLang = languages.firstWhere(
+                  (l) => l.id == state.selectedLangId,
+                  orElse: () => Language(id: 0, name: 'Unknown'),
+                );
+                selectedLanguageName = selectedLang.name;
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (state.selectedLangId != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        selectedLanguageName,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  DropdownButtonFormField<int?>(
+                    value: state.selectedLangId,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 16,
+                      ),
+                    ),
+                    items: [
+                      const DropdownMenuItem<int?>(
+                        value: null,
+                        child: Text('All Languages'),
+                      ),
+                      ...languages.map((lang) {
+                        return DropdownMenuItem<int?>(
+                          value: lang.id,
+                          child: Text(lang.name),
+                        );
+                      }),
+                    ],
+                    onChanged: (value) {
+                      ref.read(termsProvider.notifier).setLanguageFilter(value);
+                    },
+                  ),
+                ],
+              );
+            },
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, stack) => const Text('Error loading languages'),
           ),
@@ -59,13 +86,21 @@ class TermFilterPanel extends ConsumerWidget {
             children: [null, '0', '1', '2', '3', '4', '5', '98', '99'].map((
               status,
             ) {
-              final isSelected = state.selectedStatus == status;
+              final isSelected = status == null
+                  ? const {
+                      '1',
+                      '2',
+                      '3',
+                      '4',
+                      '5',
+                      '99',
+                    }.every((s) => state.selectedStatuses.contains(s))
+                  : state.selectedStatuses.contains(status);
               return FilterChip(
                 label: Text(status == null ? 'All' : _getStatusLabel(status)),
                 selected: isSelected,
                 onSelected: (_) {
-                  final newStatus = isSelected ? null : status;
-                  ref.read(termsProvider.notifier).setStatusFilter(newStatus);
+                  ref.read(termsProvider.notifier).setStatusFilter(status);
                 },
               );
             }).toList(),
@@ -76,7 +111,7 @@ class TermFilterPanel extends ConsumerWidget {
             child: OutlinedButton.icon(
               onPressed: () {
                 ref.read(termsProvider.notifier).setLanguageFilter(null);
-                ref.read(termsProvider.notifier).setStatusFilter(null);
+                ref.read(termsProvider.notifier).clearStatuses();
                 Navigator.pop(context);
               },
               icon: const Icon(Icons.clear),
@@ -93,7 +128,7 @@ class TermFilterPanel extends ConsumerWidget {
       case '99':
         return 'Well Known';
       case '0':
-        return 'Ignored';
+        return 'New';
       case '1':
         return 'Learning 1';
       case '2':
@@ -103,9 +138,9 @@ class TermFilterPanel extends ConsumerWidget {
       case '4':
         return 'Learning 4';
       case '5':
-        return 'Ignored (dotted)';
+        return 'Learning 5';
       case '98':
-        return 'Ignored (dotted)';
+        return 'Ignored';
       default:
         return 'Unknown';
     }

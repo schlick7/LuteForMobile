@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/term.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class TermCard extends StatelessWidget {
   final Term term;
@@ -80,7 +81,7 @@ class TermCard extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(BuildContext context) {
-    final color = context.getStatusColor(term.status);
+    final color = context.getStatusColor(term.status.toString());
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(

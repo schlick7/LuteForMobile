@@ -417,9 +417,64 @@ class ApiService {
       'columns[2][orderable]': 'true',
       'search[value]': search ?? '',
       'search[regex]': 'false',
-      'filters[lang_id]': langId?.toString() ?? '',
-      'filters[status]': status?.toString() ?? '',
+      'filtAgeMin': '0',
+      'filtAgeMax': '',
+      'filtStatusMin': '0',
+      'filtStatusMax': '99',
+      'filtLgID': langId?.toString() ?? '0',
+      'filtText': search ?? '',
+      'filtTermIDs': '',
+      'parentags': '',
+      'included_parentags': '',
+      'excluded_parentags': '',
     };
+
+    if (status == null) {
+      data['filtStatusNew'] = 'on';
+      data['filtStatus1'] = 'on';
+      data['filtStatus2'] = 'on';
+      data['filtStatus3'] = 'on';
+      data['filtStatus4'] = 'on';
+      data['filtStatus5'] = 'on';
+      data['filtStatusIgnored'] = 'on';
+      data['filtStatusWellKnown'] = 'on';
+    } else {
+      switch (status) {
+        case 0:
+          data['filtStatusNew'] = 'on';
+          break;
+        case 1:
+          data['filtStatus1'] = 'on';
+          break;
+        case 2:
+          data['filtStatus2'] = 'on';
+          break;
+        case 3:
+          data['filtStatus3'] = 'on';
+          break;
+        case 4:
+          data['filtStatus4'] = 'on';
+          break;
+        case 5:
+          data['filtStatus5'] = 'on';
+          break;
+        case 98:
+          data['filtStatusIgnored'] = 'on';
+          break;
+        case 99:
+          data['filtStatusWellKnown'] = 'on';
+          break;
+        default:
+          data['filtStatusNew'] = 'on';
+          data['filtStatus1'] = 'on';
+          data['filtStatus2'] = 'on';
+          data['filtStatus3'] = 'on';
+          data['filtStatus4'] = 'on';
+          data['filtStatus5'] = 'on';
+          data['filtStatusIgnored'] = 'on';
+          data['filtStatusWellKnown'] = 'on';
+      }
+    }
 
     return await _dio.post<String>(
       '/term/datatables',
