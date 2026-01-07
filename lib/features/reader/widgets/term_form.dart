@@ -384,6 +384,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             children: [
               Flexible(
                 child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
                   onLongPress: () => _showEditTermDialog(context),
                   child: Tooltip(
                     message: 'Long press to edit capitalization',

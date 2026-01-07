@@ -14,6 +14,8 @@ class ApiService {
               receiveTimeout: const Duration(seconds: 5),
               sendTimeout: const Duration(seconds: 5),
               headers: {'Content-Type': 'text/html'},
+              followRedirects: false,
+              validateStatus: (status) => status != null && status < 400,
             ),
           ) {
     _addRetryInterceptor();

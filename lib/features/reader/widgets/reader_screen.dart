@@ -445,7 +445,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                             : null,
                         tooltip: 'Previous page',
                       ),
-                      Text(pageData!.pageIndicator),
+                      GestureDetector(
+                        onDoubleTap: () => _showPageNavigationSlider(),
+                        onLongPress: () => _showPageNavigationSlider(),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                          child: Text(pageData!.pageIndicator),
+                        ),
+                      ),
                       IconButton(
                         icon: const Icon(Icons.chevron_right),
                         onPressed: pageData!.currentPage < pageData!.pageCount
@@ -494,7 +501,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       : null,
                   tooltip: 'Previous page',
                 ),
-                Text(pageData!.pageIndicator),
+                GestureDetector(
+                  onDoubleTap: () => _showPageNavigationSlider(),
+                  onLongPress: () => _showPageNavigationSlider(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(pageData!.pageIndicator),
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
                   onPressed: pageData!.currentPage < pageData!.pageCount
@@ -1367,5 +1381,60 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         );
       }
     }
+  }
+
+  void _showPageNavigationSlider() {
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData == null) return;
+
+    double tempPage = pageData.currentPage.toDouble();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: const Text('Go to Page'),
+          content: StatefulBuilder(
+            builder: (context, setDialogState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Page ${tempPage.toInt()} of ${pageData.pageCount}',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 24),
+                  Slider(
+                    value: tempPage,
+                    min: 1,
+                    max: pageData.pageCount.toDouble(),
+                    divisions: pageData.pageCount - 1,
+                    label: tempPage.toInt().toString(),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        tempPage = value;
+                      });
+                    },
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                _goToPage(tempPage.toInt());
+              },
+              child: const Text('Go'),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
