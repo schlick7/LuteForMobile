@@ -1055,6 +1055,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     setState(() {
       _isNavigating = false;
     });
+
+    _loadTooltipsForCurrentSentence();
   }
 
   Future<void> _goPrevious() async {
@@ -1079,6 +1081,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     setState(() {
       _isNavigating = false;
     });
+
+    _loadTooltipsForCurrentSentence();
   }
 
   void _saveSentencePosition() {
