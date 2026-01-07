@@ -106,14 +106,12 @@ final languageNamesProvider = FutureProvider<List<String>>((ref) async {
 // New provider with language IDs
 final languageListProvider = FutureProvider<List<Language>>((ref) async {
   final contentService = ref.read(contentServiceProvider);
-  final html = await contentService._apiService.getLanguages();
-  return contentService.parser.parseLanguagesWithIds(html.data ?? '');
+  return await contentService.getLanguagesWithIds();
 });
 ```
 
 **Update:** `lib/core/network/content_service.dart`
-- Make `_apiService` accessible for languageListProvider
-- OR add public `getLanguagesWithIds()` method
+- Add public `getLanguagesWithIds()` method
 
 ### 1.4 Fix Book langId Bug
 **File:** `lib/features/books/models/book.dart` (L116)
@@ -185,6 +183,20 @@ class Term {
       default: return 'Unknown';
     }
   }
+
+  factory Term.fromJson(Map<String, dynamic> json) {
+    return Term(
+      id: json['WoID'] as int,
+      text: json['WoText'] as String,
+      translation: json['WoTranslation'] as String?,
+      status: json['StID'] as int? ?? 99,
+      langId: json['LgID'] as int? ?? 0,
+      language: json['LgName'] as String? ?? '',
+      tags: (json['Tags'] as String?)?.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList(),
+      parentCount: json['ParentCount'] as int?,
+      createdDate: DateTime.tryParse(json['CreatedDate'] as String? ?? ''),
+    );
+  }
 }
 ```
 
@@ -250,23 +262,61 @@ List<Term> parseTermsFromDatatables(String jsonData) {
 
     return data.map((item) {
       final termData = item as Map<String, dynamic>;
-      return Term(
-        id: termData['WoID'] as int,
-        text: termData['WoText'] as String,
-        translation: termData['WoTranslation'] as String?,
-        status: termData['StID'] as int? ?? 99,
-        langId: termData['LgID'] as int? ?? 0,
-        language: termData['LgName'] as String? ?? '',
-        tags: (termData['Tags'] as String?)?.split(',').map((t) => t.trim()).toList(),
-        parentCount: termData['ParentCount'] as int?,
-        createdDate: DateTime.tryParse(termData['CreatedDate'] as String? ?? ''),
-      );
+      return Term.fromJson(termData);
     }).toList();
   } catch (e) {
     print('Error parsing terms from datatables: $e');
     return [];
   }
 }
+```
+
+**Add shared status constants:**
+```dart
+// lib/core/utils/term_status.dart
+class TermStatus {
+  static const int ignored = 0;
+  static const int learning1 = 1;
+  static const int learning2 = 2;
+  static const int learning3 = 3;
+  static const int learning4 = 4;
+  static const int learning5 = 5;
+  static const int ignoredDotted = 98;
+  static const int wellKnown = 99;
+
+  static String getLabel(int status) {
+    switch (status) {
+      case wellKnown: return 'Well Known';
+      case ignored: return 'Ignored';
+      case learning1: return 'Learning 1';
+      case learning2: return 'Learning 2';
+      case learning3: return 'Learning 3';
+      case learning4: return 'Learning 4';
+      case learning5: return 'Learning 5';
+      case ignoredDotted: return 'Ignored (dotted)';
+      default: return 'Unknown';
+    }
+  }
+
+  static Color getColor(int status) {
+    switch (status) {
+      case wellKnown: return Colors.green;
+      case ignored: return Colors.grey;
+      case learning1: return Colors.orange;
+      case learning2: return Colors.amber;
+      case learning3: return Colors.yellow;
+      case learning4: return Colors.lime;
+      case learning5: return Colors.green.shade300;
+      case ignoredDotted: return Colors.grey.shade400;
+      default: return Colors.grey;
+    }
+  }
+}
+```
+
+**Update Term model to use shared constants:**
+```dart
+String get statusLabel => TermStatus.getLabel(status);
 ```
 
 ### 2.4 Create Terms Repository
@@ -322,6 +372,11 @@ final termsRepositoryProvider = Provider<TermsRepository>((ref) {
 
 Add methods:
 ```dart
+Future<List<Language>> getLanguagesWithIds() async {
+  final html = await _apiService.getLanguages();
+  return parser.parseLanguagesWithIds(html.data ?? '');
+}
+
 Future<List<Term>> getTermsDatatables({
   required int? langId,
   required String? search,
@@ -464,25 +519,20 @@ class TermsNotifier extends Notifier<TermsState> {
   }
 
   Future<void> _setLanguageFilter() async {
-    // Only set filter if it hasn't been manually set
-    if (state.selectedLangId != null && state.searchQuery.isEmpty && state.selectedStatus == null) {
-      return; // Keep user's manual filter
-    }
-
     final currentBookId = ref.read(settingsProvider).currentBookId;
 
-    if (currentBookId != null) {
-      final booksState = ref.read(booksProvider);
-      final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
-      final book = allBooks.firstWhere(
-        (b) => b.id == currentBookId,
-        orElse: () => allBooks.isNotEmpty ? allBooks.first :
-          throw Exception('No books available'),
-      );
-      state = state.copyWith(selectedLangId: book.langId);
-    } else {
-      state = state.copyWith(selectedLangId: null); // Show all languages
+    if (currentBookId == null) {
+      state = state.copyWith(selectedLangId: null);
+      return;
     }
+
+    final booksState = ref.read(booksProvider);
+    final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
+    final book = allBooks.firstWhere(
+      (b) => b.id == currentBookId,
+      orElse: () => allBooks.isNotEmpty ? allBooks.first : Book(id: 0, title: '', langId: 0),
+    );
+    state = state.copyWith(selectedLangId: book.langId);
   }
 
   void setSearchQuery(String query) {
@@ -563,6 +613,7 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
   void dispose() {
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -831,20 +882,7 @@ class TermCard extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(int status) {
-    switch (status) {
-      case 99: return Colors.green;
-      case 0: return Colors.grey;
-      case 1: return Colors.orange;
-      case 2: return Colors.amber;
-      case 3: return Colors.yellow;
-      case 4: return Colors.lime;
-      case 5: return Colors.green.shade300;
-      case 98: return Colors.grey.shade400;
-      default: return Colors.grey;
-    }
-  }
-}
+  Color _getStatusColor(int status) => TermStatus.getColor(status);
 ```
 
 ### 4.3 Term Filter Panel
@@ -939,20 +977,7 @@ class TermFilterPanel extends ConsumerWidget {
     );
   }
 
-  String _getStatusLabel(int status) {
-    switch (status) {
-      case 99: return 'Well Known';
-      case 0: return 'Ignored';
-      case 1: return 'Learning 1';
-      case 2: return 'Learning 2';
-      case 3: return 'Learning 3';
-      case 4: return 'Learning 4';
-      case 5: return 'Learning 5';
-      case 98: return 'Ignored (dotted)';
-      default: return 'Unknown';
-    }
-  }
-}
+  String _getStatusLabel(int status) => TermStatus.getLabel(status);
 ```
 
 ### 4.4 Term Edit Dialog Wrapper
@@ -1195,6 +1220,13 @@ Update `_buildNavigationColumn()` to reflect new navigation structure with updat
 
 ```
 lib/
+├── core/
+│   ├── network/
+│   │   ├── api_service.dart                # MODIFY: Add getTermsDatatables, deleteTerm
+│   │   ├── content_service.dart            # MODIFY: Add terms methods, getLanguagesWithIds
+│   │   └── html_parser.dart               # MODIFY: Add parseTermsFromDatatables, parseLanguagesWithIds
+│   └── utils/
+│       └── term_status.dart                # NEW: Status constants and helpers
 ├── shared/
 │   ├── models/
 │   │   └── language.dart                    # NEW: Language model with ID and name
@@ -1203,7 +1235,7 @@ lib/
 ├── features/
 │   ├── terms/
 │   │   ├── models/
-│   │   │   └── term.dart                  # NEW: Term data model
+│   │   │   └── term.dart                  # NEW: Term data model with fromJson
 │   │   ├── providers/
 │   │   │   └── terms_provider.dart         # NEW: State management with pagination
 │   │   ├── repositories/
@@ -1216,11 +1248,6 @@ lib/
 │   └── books/
 │       └── models/
 │           └── book.dart                  # MODIFY: Fix langId parsing bug
-├── core/
-│   └── network/
-│       ├── api_service.dart                # MODIFY: Add getTermsDatatables, deleteTerm
-│       ├── content_service.dart            # MODIFY: Add terms methods
-│       └── html_parser.dart               # MODIFY: Add parseTermsFromDatatables, parseLanguagesWithIds
 └── app.dart                              # MODIFY: Navigation indices and screen integration
 ```
 
@@ -1241,11 +1268,12 @@ lib/
 4. Add TermsScreen to IndexedStack
 
 ### Phase 3: Terms Data Layer
-1. Create Term model with all fields (including status 98)
-2. Extend ApiService with getTermsDatatables and deleteTerm endpoints
-3. Extend HtmlParser for term data parsing
-4. Extend ContentService with term methods
-5. Create TermsRepository
+1. Create Term model with all fields (including status 98) and fromJson factory
+2. Create TermStatus utility class with status constants and helpers
+3. Extend ApiService with getTermsDatatables and deleteTerm endpoints
+4. Extend HtmlParser for term data parsing
+5. Extend ContentService with term methods and getLanguagesWithIds()
+6. Create TermsRepository
 
 ### Phase 4: Terms State Management
 1. Create TermsNotifier with pagination (50 items/page)
