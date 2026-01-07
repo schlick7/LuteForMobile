@@ -4,55 +4,73 @@ import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/ai_settings_provider.dart';
 import 'package:lute_for_mobile/features/settings/widgets/model_selector.dart';
 
-class AISettingsSection extends ConsumerWidget {
+class AISettingsSection extends ConsumerStatefulWidget {
   const AISettingsSection({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AISettingsSection> createState() => _AISettingsSectionState();
+}
+
+class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
+  bool _isExpanded = true;
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(aiSettingsProvider);
     final provider = settings.provider;
     final config = settings.providerConfigs[provider];
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'AI Settings',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<AIProvider>(
-              initialValue: provider,
-              decoration: const InputDecoration(
-                labelText: 'AI Provider',
-                border: OutlineInputBorder(),
-              ),
-              items: AIProvider.values.map((p) {
-                return DropdownMenuItem(
-                  value: p,
-                  child: Text(_providerDisplayName(p)),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  ref.read(aiSettingsProvider.notifier).updateProvider(value);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildProviderSettings(context, ref, provider, config),
-            const Divider(height: 32),
-            const Text(
-              'Prompt Configurations',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            _buildPromptSettings(context, ref, settings),
-          ],
+      child: ExpansionTile(
+        title: const Text(
+          'AI Settings',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
+        initiallyExpanded: _isExpanded,
+        onExpansionChanged: (expanded) {
+          setState(() {
+            _isExpanded = expanded;
+          });
+        },
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<AIProvider>(
+                  initialValue: provider,
+                  decoration: const InputDecoration(
+                    labelText: 'AI Provider',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: AIProvider.values.map((p) {
+                    return DropdownMenuItem(
+                      value: p,
+                      child: Text(_providerDisplayName(p)),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      ref
+                          .read(aiSettingsProvider.notifier)
+                          .updateProvider(value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildProviderSettings(context, ref, provider, config),
+                const Divider(height: 32),
+                const Text(
+                  'Prompt Configurations',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                _buildPromptSettings(context, ref, settings),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

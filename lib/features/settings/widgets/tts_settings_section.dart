@@ -6,48 +6,66 @@ import 'package:lute_for_mobile/features/settings/providers/tts_settings_provide
 import 'package:lute_for_mobile/features/settings/widgets/kokoro_voice_chips.dart';
 import 'package:lute_for_mobile/features/settings/widgets/on_device_voice_selector.dart';
 
-class TTSSettingsSection extends ConsumerWidget {
+class TTSSettingsSection extends ConsumerStatefulWidget {
   const TTSSettingsSection({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TTSSettingsSection> createState() => _TTSSettingsSectionState();
+}
+
+class _TTSSettingsSectionState extends ConsumerState<TTSSettingsSection> {
+  bool _isExpanded = true;
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(ttsSettingsProvider);
     final provider = settings.provider;
     final config = settings.providerConfigs[provider];
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'TTS Settings',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<TTSProvider>(
-              value: provider,
-              decoration: const InputDecoration(
-                labelText: 'TTS Provider',
-                border: OutlineInputBorder(),
-              ),
-              items: TTSProvider.values.map((p) {
-                return DropdownMenuItem(
-                  value: p,
-                  child: Text(_providerDisplayName(p)),
-                );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  ref.read(ttsSettingsProvider.notifier).updateProvider(value);
-                }
-              },
-            ),
-            const SizedBox(height: 16),
-            _buildProviderSettings(context, ref, provider, config),
-          ],
+      child: ExpansionTile(
+        title: const Text(
+          'TTS Settings',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
+        initiallyExpanded: _isExpanded,
+        onExpansionChanged: (expanded) {
+          setState(() {
+            _isExpanded = expanded;
+          });
+        },
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                DropdownButtonFormField<TTSProvider>(
+                  value: provider,
+                  decoration: const InputDecoration(
+                    labelText: 'TTS Provider',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: TTSProvider.values.map((p) {
+                    return DropdownMenuItem(
+                      value: p,
+                      child: Text(_providerDisplayName(p)),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      ref
+                          .read(ttsSettingsProvider.notifier)
+                          .updateProvider(value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                _buildProviderSettings(context, ref, provider, config),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
