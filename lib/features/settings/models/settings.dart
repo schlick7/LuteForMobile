@@ -20,6 +20,7 @@ class Settings {
   final int? combineShortSentences;
   final bool showKnownTermsInSentenceReader;
   final int doubleTapTimeout;
+  final bool pageTurnAnimations;
   final TTSProvider? ttsProvider;
   final AIProvider? aiProvider;
 
@@ -39,6 +40,7 @@ class Settings {
     this.combineShortSentences,
     this.showKnownTermsInSentenceReader = true,
     this.doubleTapTimeout = 300,
+    this.pageTurnAnimations = true,
     this.ttsProvider,
     this.aiProvider,
   });
@@ -61,6 +63,7 @@ class Settings {
     int? combineShortSentences,
     bool? showKnownTermsInSentenceReader,
     int? doubleTapTimeout,
+    bool? pageTurnAnimations,
     TTSProvider? ttsProvider,
     AIProvider? aiProvider,
   }) {
@@ -89,6 +92,7 @@ class Settings {
       showKnownTermsInSentenceReader:
           showKnownTermsInSentenceReader ?? this.showKnownTermsInSentenceReader,
       doubleTapTimeout: doubleTapTimeout ?? this.doubleTapTimeout,
+      pageTurnAnimations: pageTurnAnimations ?? this.pageTurnAnimations,
       ttsProvider: ttsProvider ?? this.ttsProvider,
       aiProvider: aiProvider ?? this.aiProvider,
     );
@@ -111,6 +115,7 @@ class Settings {
       combineShortSentences: 3,
       showKnownTermsInSentenceReader: true,
       doubleTapTimeout: 300,
+      pageTurnAnimations: true,
       ttsProvider: TTSProvider.onDevice,
       aiProvider: AIProvider.none,
     );
@@ -136,6 +141,7 @@ class Settings {
         other.showKnownTermsInSentenceReader ==
             showKnownTermsInSentenceReader &&
         other.doubleTapTimeout == doubleTapTimeout &&
+        other.pageTurnAnimations == pageTurnAnimations &&
         other.ttsProvider == ttsProvider &&
         other.aiProvider == aiProvider;
   }
@@ -157,6 +163,7 @@ class Settings {
     combineShortSentences,
     showKnownTermsInSentenceReader,
     doubleTapTimeout,
+    pageTurnAnimations,
     ttsProvider,
     aiProvider,
   );

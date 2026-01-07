@@ -459,6 +459,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     }
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
+    final settings = ref.watch(settingsProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -484,19 +485,33 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           ),
         ],
       ),
-      body: _PageTransition(
-        isForward: _isNavigatingForward,
-        child: Column(
-          key: ValueKey('column-${currentSentence?.id ?? "null"}'),
-          children: [
-            Expanded(
-              flex: 3,
-              child: _buildTopSection(textSettings, currentSentence),
+      body: settings.pageTurnAnimations
+          ? _PageTransition(
+              isForward: _isNavigatingForward,
+              child: Column(
+                key: ValueKey('column-${currentSentence?.id ?? "null"}'),
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: _buildTopSection(textSettings, currentSentence),
+                  ),
+                  Expanded(
+                    flex: 7,
+                    child: _buildBottomSection(currentSentence),
+                  ),
+                ],
+              ),
+            )
+          : Column(
+              key: ValueKey('column-${currentSentence?.id ?? "null"}'),
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _buildTopSection(textSettings, currentSentence),
+                ),
+                Expanded(flex: 7, child: _buildBottomSection(currentSentence)),
+              ],
             ),
-            Expanded(flex: 7, child: _buildBottomSection(currentSentence)),
-          ],
-        ),
-      ),
       bottomNavigationBar: _buildBottomAppBar(),
     );
   }

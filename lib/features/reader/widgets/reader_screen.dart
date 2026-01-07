@@ -695,6 +695,32 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
+    final settings = ref.watch(settingsProvider);
+
+    final textDisplay = TextDisplay(
+      key: _pageKey,
+      paragraphs: pageData!.paragraphs,
+      scrollController: _scrollController,
+      topPadding: textSettings.fullscreenMode && !_isUiVisible
+          ? MediaQuery.of(context).padding.top
+          : 0.0,
+      bottomControlWidget: _buildPageControls(context, pageData),
+      onTap: (item, position) {
+        _handleTap(item, position);
+      },
+      onDoubleTap: (item) {
+        _handleDoubleTap(item);
+      },
+      onLongPress: (item) {
+        _handleLongPress(item);
+      },
+      textSize: textSettings.textSize,
+      lineSpacing: textSettings.lineSpacing,
+      fontFamily: textSettings.fontFamily,
+      fontWeight: textSettings.fontWeight,
+      isItalic: textSettings.isItalic,
+      highlightedWordId: _highlightedWordId,
+    );
 
     return GestureDetector(
       onTapDown: (_) => TermTooltipClass.close(),
@@ -727,33 +753,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           }
         }
       },
-      child: _PageTransition(
-        isForward: _isNavigatingForward,
-        child: TextDisplay(
-          key: _pageKey,
-          paragraphs: pageData!.paragraphs,
-          scrollController: _scrollController,
-          topPadding: textSettings.fullscreenMode && !_isUiVisible
-              ? MediaQuery.of(context).padding.top
-              : 0.0,
-          bottomControlWidget: _buildPageControls(context, pageData),
-          onTap: (item, position) {
-            _handleTap(item, position);
-          },
-          onDoubleTap: (item) {
-            _handleDoubleTap(item);
-          },
-          onLongPress: (item) {
-            _handleLongPress(item);
-          },
-          textSize: textSettings.textSize,
-          lineSpacing: textSettings.lineSpacing,
-          fontFamily: textSettings.fontFamily,
-          fontWeight: textSettings.fontWeight,
-          isItalic: textSettings.isItalic,
-          highlightedWordId: _highlightedWordId,
-        ),
-      ),
+      child: settings.pageTurnAnimations
+          ? _PageTransition(isForward: _isNavigatingForward, child: textDisplay)
+          : textDisplay,
     );
   }
 
