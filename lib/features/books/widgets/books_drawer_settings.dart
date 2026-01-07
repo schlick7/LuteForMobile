@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/books_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../../shared/providers/network_providers.dart';
+import '../../../shared/providers/language_data_provider.dart';
 
 class _MaxValueFormatter extends TextInputFormatter {
   final int maxValue;
@@ -34,7 +35,7 @@ class BooksDrawerSettings extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
-    final languagesState = ref.watch(languagesProvider);
+    final languagesState = ref.watch(languageNamesProvider);
 
     return Padding(
       padding: const EdgeInsets.all(16),

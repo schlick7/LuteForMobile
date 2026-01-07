@@ -6,6 +6,8 @@ import '../../features/reader/models/paragraph.dart';
 import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
+import '../../shared/models/language.dart';
+import '../../features/terms/models/term.dart';
 import 'dictionary_service.dart';
 
 class HtmlParser {
@@ -479,6 +481,30 @@ class HtmlParser {
         .toList();
   }
 
+  List<Language> parseLanguagesWithIds(String htmlContent) {
+    final document = html_parser.parse(htmlContent);
+    final languageLinks = document.querySelectorAll(
+      'table tbody tr a[href^="/language/edit/"]',
+    );
+
+    return languageLinks
+        .map((link) {
+          final href = link.attributes['href'] ?? '';
+          final idMatch = RegExp(r'/language/edit/(\d+)').firstMatch(href);
+          final id = idMatch != null
+              ? int.tryParse(idMatch.group(1) ?? '')
+              : null;
+          final name = link.text?.trim() ?? '';
+
+          if (id != null && name.isNotEmpty) {
+            return Language(id: id, name: name);
+          }
+          return null;
+        })
+        .whereType<Language>()
+        .toList();
+  }
+
   List<DictionarySource> parseLanguageDictionaries(String htmlContent) {
     final document = html_parser.parse(htmlContent);
     final dictionaries = <DictionarySource>[];
@@ -668,5 +694,20 @@ class HtmlParser {
       }
     }
     return [];
+  }
+
+  List<Term> parseTermsFromDatatables(String jsonData) {
+    try {
+      final decoded = jsonDecode(jsonData) as Map<String, dynamic>;
+      final data = decoded['data'] as List;
+
+      return data.map((item) {
+        final termData = item as Map<String, dynamic>;
+        return Term.fromJson(termData);
+      }).toList();
+    } catch (e) {
+      print('Error parsing terms from datatables: $e');
+      return [];
+    }
   }
 }

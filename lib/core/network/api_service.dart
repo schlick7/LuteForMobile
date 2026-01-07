@@ -388,4 +388,47 @@ class ApiService {
       options: Options(contentType: 'application/json'),
     );
   }
+
+  Future<Response<String>> getTermsDatatables({
+    required int draw,
+    required int start,
+    required int length,
+    String? search,
+    int? langId,
+    int? status,
+  }) async {
+    final data = {
+      'draw': draw,
+      'start': start,
+      'length': length,
+      'columns[0][data]': '0',
+      'columns[0][name]': 'WoText',
+      'columns[0][searchable]': 'true',
+      'columns[0][orderable]': 'true',
+      'columns[0][search][value]': '',
+      'columns[0][search][regex]': 'false',
+      'columns[1][data]': '1',
+      'columns[1][name]': 'WoTranslation',
+      'columns[1][searchable]': 'true',
+      'columns[1][orderable]': 'true',
+      'columns[2][data]': '2',
+      'columns[2][name]': 'StID',
+      'columns[2][searchable]': 'true',
+      'columns[2][orderable]': 'true',
+      'search[value]': search ?? '',
+      'search[regex]': 'false',
+      'filters[lang_id]': langId?.toString() ?? '',
+      'filters[status]': status?.toString() ?? '',
+    };
+
+    return await _dio.post<String>(
+      '/term/datatables',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+  }
+
+  Future<Response<String>> deleteTerm(int termId) async {
+    return await _dio.post<String>('/term/delete/$termId');
+  }
 }

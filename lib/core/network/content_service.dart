@@ -9,6 +9,8 @@ import '../../features/reader/models/language_sentence_settings.dart';
 import '../../features/reader/services/page_cache_service.dart';
 import '../../features/books/models/book.dart';
 import '../../features/books/models/datatables_response.dart';
+import '../../features/terms/models/term.dart';
+import '../../shared/models/language.dart';
 import 'api_service.dart';
 import 'html_parser.dart';
 
@@ -344,6 +346,34 @@ class ContentService {
     final response = await _apiService.getLanguages();
     final htmlContent = response.data ?? '';
     return parser.parseLanguages(htmlContent);
+  }
+
+  Future<List<Language>> getLanguagesWithIds() async {
+    final response = await _apiService.getLanguages();
+    final htmlContent = response.data ?? '';
+    return parser.parseLanguagesWithIds(htmlContent);
+  }
+
+  Future<List<Term>> getTermsDatatables({
+    required int? langId,
+    required String? search,
+    required int page,
+    required int pageSize,
+    String? status,
+  }) async {
+    final response = await _apiService.getTermsDatatables(
+      draw: page + 1,
+      start: page * pageSize,
+      length: pageSize,
+      search: search,
+      langId: langId,
+      status: status != null ? int.tryParse(status) : null,
+    );
+    return parser.parseTermsFromDatatables(response.data ?? '');
+  }
+
+  Future<void> deleteTerm(int termId) async {
+    await _apiService.deleteTerm(termId);
   }
 
   Future<String> getSettingsPageHtml() async {
