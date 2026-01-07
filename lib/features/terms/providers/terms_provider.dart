@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 import '../models/term.dart';
+import '../models/term_stats.dart';
 import '../repositories/terms_repository.dart';
 import '../../settings/providers/settings_provider.dart';
 
@@ -15,6 +16,7 @@ class TermsState {
   final Set<String?> selectedStatuses;
   final String? errorMessage;
   final bool isInitialized;
+  final TermStats stats;
 
   const TermsState({
     this.isLoading = false,
@@ -26,6 +28,7 @@ class TermsState {
     this.selectedStatuses = const {'1', '2', '3', '4', '5', '99'},
     this.errorMessage,
     this.isInitialized = false,
+    this.stats = TermStats.empty,
   });
 
   TermsState copyWith({
@@ -38,6 +41,7 @@ class TermsState {
     Set<String?>? selectedStatuses,
     String? errorMessage,
     bool? isInitialized,
+    TermStats? stats,
   }) {
     return TermsState(
       isLoading: isLoading ?? this.isLoading,
@@ -49,6 +53,7 @@ class TermsState {
       selectedStatuses: selectedStatuses ?? this.selectedStatuses,
       errorMessage: errorMessage,
       isInitialized: isInitialized ?? this.isInitialized,
+      stats: stats ?? this.stats,
     );
   }
 }
@@ -62,6 +67,11 @@ class TermsNotifier extends Notifier<TermsState> {
   TermsState build() {
     _repository = ref.watch(termsRepositoryProvider);
     return const TermsState();
+  }
+
+  void resetForNewNavigation() {
+    print('DEBUG resetForNewNavigation: called');
+    state = state.copyWith(isInitialized: false);
   }
 
   Future<void> loadTerms({bool reset = true}) async {
@@ -120,6 +130,10 @@ class TermsNotifier extends Notifier<TermsState> {
         hasMore: newTerms.length == _pageSize,
         errorMessage: null,
       );
+
+      if (langId != null && reset) {
+        _loadStats(langId);
+      }
     } catch (e) {
       print('DEBUG loadTerms: error $e');
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -142,6 +156,21 @@ class TermsNotifier extends Notifier<TermsState> {
     print('DEBUG setLanguageFilter: $langId');
     state = state.copyWith(selectedLangId: langId);
     loadTerms(reset: true);
+    _loadStats(langId);
+  }
+
+  Future<void> _loadStats(int? langId) async {
+    if (langId == null) {
+      state = state.copyWith(stats: TermStats.empty);
+      return;
+    }
+
+    try {
+      final stats = await _repository.getTermStats(langId);
+      state = state.copyWith(stats: stats);
+    } catch (e) {
+      print('DEBUG _loadStats: error $e');
+    }
   }
 
   void setStatusFilter(String? status) {

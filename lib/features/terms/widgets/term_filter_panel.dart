@@ -33,6 +33,10 @@ class TermFilterPanel extends ConsumerWidget {
                 selectedLanguageName = selectedLang.name;
               }
 
+              print(
+                'DEBUG FilterPanel: selectedLangId=${state.selectedLangId}, selectedLanguageName=$selectedLanguageName',
+              );
+
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -46,6 +50,7 @@ class TermFilterPanel extends ConsumerWidget {
                     ),
                   ),
                   DropdownButtonFormField<int?>(
+                    key: ValueKey('lang_dropdown_${state.selectedLangId}'),
                     value: state.selectedLangId,
                     decoration: InputDecoration(
                       border: const OutlineInputBorder(),
@@ -68,6 +73,9 @@ class TermFilterPanel extends ConsumerWidget {
                       }),
                     ],
                     onChanged: (value) {
+                      print(
+                        'DEBUG FilterPanel: Language dropdown changed to $value',
+                      );
                       ref.read(termsProvider.notifier).setLanguageFilter(value);
                     },
                   ),

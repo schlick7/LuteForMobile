@@ -7,6 +7,7 @@ import '../models/term.dart';
 import 'term_card.dart';
 import 'term_filter_panel.dart';
 import 'term_edit_dialog_wrapper.dart';
+import 'term_stats_card.dart';
 
 class TermsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -26,6 +27,7 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
     super.initState();
     _scrollController.addListener(_scrollListener);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(termsProvider.notifier).resetForNewNavigation();
       ref.read(termsProvider.notifier).loadTerms(reset: true);
     });
   }
@@ -142,26 +144,33 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
       );
     }
 
+    final slivers = <Widget>[
+      if (state.selectedLangId != null)
+        SliverToBoxAdapter(child: TermStatsCard(stats: state.stats)),
+      SliverPadding(
+        padding: const EdgeInsets.only(bottom: 16),
+        sliver: SliverList(
+          delegate: SliverChildBuilderDelegate((context, index) {
+            if (index < state.terms.length) {
+              return TermCard(
+                term: state.terms[index],
+                onTap: () => _showTermEditDialog(state.terms[index]),
+              );
+            } else if (state.hasMore) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            return null;
+          }, childCount: state.terms.length + (state.hasMore ? 1 : 0)),
+        ),
+      ),
+    ];
+
     return RefreshIndicator(
       onRefresh: () => ref.read(termsProvider.notifier).refreshTerms(),
-      child: ListView.builder(
-        controller: _scrollController,
-        itemCount: state.terms.length + (state.hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index < state.terms.length) {
-            return TermCard(
-              term: state.terms[index],
-              onTap: () => _showTermEditDialog(state.terms[index]),
-            );
-          } else if (state.hasMore) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-          return null;
-        },
-      ),
+      child: CustomScrollView(controller: _scrollController, slivers: slivers),
     );
   }
 
@@ -179,6 +188,9 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
       isScrollControlled: true,
       builder: (context) => TermEditDialogWrapper(
         term: term,
+        onSave: () {
+          ref.read(termsProvider.notifier).refreshTerms();
+        },
         onDelete: () async {
           await ref.read(termsProvider.notifier).deleteTerm(term.id);
           if (mounted) Navigator.pop(context);

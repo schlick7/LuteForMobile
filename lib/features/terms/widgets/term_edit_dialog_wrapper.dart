@@ -8,11 +8,13 @@ import '../../reader/widgets/term_form.dart' show TermFormWidget;
 class TermEditDialogWrapper extends ConsumerStatefulWidget {
   final Term term;
   final VoidCallback onDelete;
+  final VoidCallback? onSave;
 
   const TermEditDialogWrapper({
     super.key,
     required this.term,
     required this.onDelete,
+    this.onSave,
   });
 
   @override
@@ -108,7 +110,7 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
         ),
         Flexible(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(8),
             child: TermFormWidget(
               termForm: _termForm!,
               onSave: (updatedForm) async {
@@ -119,6 +121,7 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
                     updatedForm.toFormData(),
                   );
                   if (mounted) {
+                    widget.onSave?.call();
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
