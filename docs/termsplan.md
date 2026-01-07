@@ -1,22 +1,25 @@
 # Terms Screen Implementation Plan
 
 ## Overview
-Create a dedicated Terms management screen accessible via app drawer, allowing users to browse, search, filter, edit, and manage their vocabulary terms with status updates and bulk operations. Uses lazy loading with pagination.
+Create a dedicated Terms management screen accessible via app drawer, allowing users to browse, search, filter, edit, and manage their vocabulary terms with status updates and pagination. Uses server-side lazy loading with pagination (50 items per page).
 
 ## Navigation Structure
 
 ```
 Index 0: ReaderScreen
-Index 1: BooksScreen
-Index 2: TermsScreen (NEW)
-Index 3: SettingsScreen (moved from 2)
-Index 4: SentenceReaderScreen (stays at 3 in code, moved from 3 to 4)
+Index 1: SentenceReaderScreen (moved from 4)
+Index 2: BooksScreen (moved from 1)
+Index 3: TermsScreen (NEW)
+Index 4: HelpScreen (moved from 2)
+Index 5: SettingsScreen (moved from 3)
 ```
 
 ### App Drawer Icons
 - 📖 Reader
+- 💬 Sentence Reader
 - 📚 Books
 - 🔤 Terms (NEW - `Icons.translate`)
+- ❓ Help
 - ⚙️ Settings
 
 **Note:** Statistics screen hidden completely for future use (not shown in drawer or navigation).
@@ -29,14 +32,121 @@ Index 4: SentenceReaderScreen (stays at 3 in code, moved from 3 to 4)
 | **No Book Loaded** | Show ALL languages |
 | **Auto-refresh** | Only when navigating to Terms screen |
 | **Filter Override** | Always reset to book language on navigation |
-| **Loading** | Lazy loading with pagination |
+| **Loading** | Server-side pagination (50 items/page), lazy load on scroll |
 | **Priority** | Very low |
-| **Sort Order** | Alphabetical by term text |
+| **Sort Order** | Alphabetical by term text (server-side) |
+| **Bulk Operations** | Removed - not needed |
+| **Term Form** | Reuse existing TermForm from reader |
+| **Status 98** | Supported (Ignored - dotted) |
 
-## Phase 1: Data Layer
+## Phase 1: Foundation Changes
 
-### 1.1 Create Term Model
-**File:** `lib/features/terms/models/term.dart`
+### 1.1 Create Language Model
+**File:** `lib/shared/models/language.dart` (NEW)
+
+```dart
+class Language {
+  final int id;
+  final String name;
+
+  Language({required this.id, required this.name});
+
+  factory Language.fromJson(Map<String, dynamic> json) {
+    return Language(
+      id: json['id'] as int,
+      name: json['name'] as String,
+    );
+  }
+}
+```
+
+### 1.2 Extend HtmlParser
+**File:** `lib/core/network/html_parser.dart`
+
+Add new method to extract language IDs from hrefs:
+
+```dart
+List<Language> parseLanguagesWithIds(String htmlContent) {
+  final document = html_parser.parse(htmlContent);
+  final languageLinks = document.querySelectorAll(
+    'table tbody tr a[href^="/language/edit/"]',
+  );
+
+  return languageLinks
+      .map((link) {
+        final href = link.attributes['href'] ?? '';
+        final idMatch = RegExp(r'/language/edit/(\d+)').firstMatch(href);
+        final id = idMatch != null ? int.tryParse(idMatch.group(1) ?? '') : null;
+        final name = link.text?.trim() ?? '';
+
+        if (id != null && name.isNotEmpty) {
+          return Language(id: id, name: name);
+        }
+        return null;
+      })
+      .whereType<Language>()
+      .toList();
+}
+```
+
+### 1.3 Create Language Data Provider
+**File:** `lib/shared/providers/language_data_provider.dart` (NEW)
+
+```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/language.dart';
+import '../../core/providers/network_providers.dart';
+
+// Existing provider - moved here for better organization
+final languageNamesProvider = FutureProvider<List<String>>((ref) async {
+  final contentService = ref.read(contentServiceProvider);
+  return await contentService.getAllLanguages();
+});
+
+// New provider with language IDs
+final languageListProvider = FutureProvider<List<Language>>((ref) async {
+  final contentService = ref.read(contentServiceProvider);
+  final html = await contentService._apiService.getLanguages();
+  return contentService.parser.parseLanguagesWithIds(html.data ?? '');
+});
+```
+
+**Update:** `lib/core/network/content_service.dart`
+- Make `_apiService` accessible for languageListProvider
+- OR add public `getLanguagesWithIds()` method
+
+### 1.4 Fix Book langId Bug
+**File:** `lib/features/books/models/book.dart` (L116)
+
+Current code has hardcoded `langId: 0`. Change to:
+```dart
+langId: json['LgID'] as int? ?? 0,
+```
+
+This fixes a bug where Book.langId wasn't being parsed from the API response.
+
+### 1.5 Update Imports in Books Drawer Settings
+**File:** `lib/features/books/widgets/books_drawer_settings.dart` (L4)
+
+Change:
+```dart
+import '../providers/books_provider.dart';
+```
+To:
+```dart
+import '../providers/books_provider.dart';
+import '../../../shared/providers/language_data_provider.dart';
+```
+
+Update L37:
+```dart
+final languagesState = ref.watch(languageNamesProvider);
+```
+
+## Phase 2: Data Layer
+
+### 2.1 Create Term Model
+**File:** `lib/features/terms/models/term.dart` (NEW)
 
 ```dart
 class Term {
@@ -50,6 +160,18 @@ class Term {
   final int? parentCount;
   final DateTime? createdDate;
 
+  Term({
+    required this.id,
+    required this.text,
+    this.translation,
+    required this.status,
+    required this.langId,
+    required this.language,
+    this.tags,
+    this.parentCount,
+    this.createdDate,
+  });
+
   String get statusLabel {
     switch (status) {
       case 99: return 'Well Known';
@@ -58,17 +180,19 @@ class Term {
       case 2: return 'Learning 2';
       case 3: return 'Learning 3';
       case 4: return 'Learning 4';
-      case 5: return 'Ignored (dotted)';
+      case 5: return 'Learning 5';
+      case 98: return 'Ignored (dotted)';
       default: return 'Unknown';
     }
   }
 }
 ```
 
-### 1.2 Extend ApiService
+### 2.2 Extend ApiService
 **File:** `lib/core/network/api_service.dart`
 
 Add new methods:
+
 ```dart
 Future<Response<String>> getTermsDatatables({
   required int draw,
@@ -82,14 +206,20 @@ Future<Response<String>> getTermsDatatables({
     'draw': draw,
     'start': start,
     'length': length,
-    // DataTables columns configuration
     'columns[0][data]': '0',
     'columns[0][name]': 'WoText',
     'columns[0][searchable]': 'true',
     'columns[0][orderable]': 'true',
     'columns[0][search][value]': '',
     'columns[0][search][regex]': 'false',
-    // ... more columns
+    'columns[1][data]': '1',
+    'columns[1][name]': 'WoTranslation',
+    'columns[1][searchable]': 'true',
+    'columns[1][orderable]': 'true',
+    'columns[2][data]': '2',
+    'columns[2][name]': 'StID',
+    'columns[2][searchable]': 'true',
+    'columns[2][orderable]': 'true',
     'search[value]': search ?? '',
     'search[regex]': 'false',
     'filters[lang_id]': langId?.toString() ?? '',
@@ -103,39 +233,12 @@ Future<Response<String>> getTermsDatatables({
   );
 }
 
-Future<Response<String>> editTerm(int termId, dynamic data) async {
-  return await _dio.post<String>(
-    '/term/edit/$termId',
-    data: data,
-    options: Options(contentType: Headers.formUrlEncodedContentType),
-  );
-}
-
 Future<Response<String>> deleteTerm(int termId) async {
   return await _dio.post<String>('/term/delete/$termId');
 }
-
-Future<Response<String>> bulkUpdateStatus(List<int> termIds, int status) async {
-  return await _dio.post<String>(
-    '/term/bulk_update_status',
-    data: {
-      'word_ids': termIds.join(','),
-      'status': status,
-    },
-    options: Options(contentType: 'application/json'),
-  );
-}
-
-Future<Response<String>> bulkDelete(List<int> termIds) async {
-  return await _dio.post<String>(
-    '/term/bulk_delete',
-    data: {'word_ids': termIds},
-    options: Options(contentType: 'application/json'),
-  );
-}
 ```
 
-### 1.3 Extend HtmlParser
+### 2.3 Extend HtmlParser
 **File:** `lib/core/network/html_parser.dart`
 
 Add method:
@@ -166,10 +269,13 @@ List<Term> parseTermsFromDatatables(String jsonData) {
 }
 ```
 
-### 1.4 Create Terms Repository
-**File:** `lib/features/terms/repositories/terms_repository.dart`
+### 2.4 Create Terms Repository
+**File:** `lib/features/terms/repositories/terms_repository.dart` (NEW)
 
 ```dart
+import '../models/term.dart';
+import '../../../core/network/content_service.dart';
+
 class TermsRepository {
   final ContentService contentService;
 
@@ -196,22 +302,6 @@ class TermsRepository {
     }
   }
 
-  Future<void> updateTermStatus(int termId, int status) async {
-    try {
-      await contentService.editTerm(termId, {'status': status.toString()});
-    } catch (e) {
-      throw Exception('Failed to update term status: $e');
-    }
-  }
-
-  Future<void> bulkUpdateStatus(List<int> termIds, int status) async {
-    try {
-      await contentService.bulkUpdateStatus(termIds, status);
-    } catch (e) {
-      throw Exception('Failed to bulk update term statuses: $e');
-    }
-  }
-
   Future<void> deleteTerm(int termId) async {
     try {
       await contentService.deleteTerm(termId);
@@ -219,18 +309,15 @@ class TermsRepository {
       throw Exception('Failed to delete term: $e');
     }
   }
-
-  Future<void> bulkDelete(List<int> termIds) async {
-    try {
-      await contentService.bulkDelete(termIds);
-    } catch (e) {
-      throw Exception('Failed to bulk delete terms: $e');
-    }
-  }
 }
+
+final termsRepositoryProvider = Provider<TermsRepository>((ref) {
+  final contentService = ref.watch(contentServiceProvider);
+  return TermsRepository(contentService: contentService);
+});
 ```
 
-### 1.5 Extend ContentService
+### 2.5 Extend ContentService
 **File:** `lib/core/network/content_service.dart`
 
 Add methods:
@@ -253,29 +340,24 @@ Future<List<Term>> getTermsDatatables({
   return parser.parseTermsFromDatatables(response.data ?? '');
 }
 
-Future<void> editTerm(int termId, Map<String, dynamic> data) async {
-  await _apiService.editTerm(termId, data);
-}
-
 Future<void> deleteTerm(int termId) async {
   await _apiService.deleteTerm(termId);
 }
-
-Future<void> bulkUpdateStatus(List<int> termIds, int status) async {
-  await _apiService.bulkUpdateStatus(termIds, status);
-}
-
-Future<void> bulkDelete(List<int> termIds) async {
-  await _apiService.bulkDelete(termIds);
-}
 ```
 
-## Phase 2: State Management
+## Phase 3: State Management
 
-### 2.1 Create Terms Provider
-**File:** `lib/features/terms/providers/terms_provider.dart`
+### 3.1 Create Terms Provider
+**File:** `lib/features/terms/providers/terms_provider.dart` (NEW)
 
 ```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:meta/meta.dart';
+import '../models/term.dart';
+import '../repositories/terms_repository.dart';
+import '../../settings/providers/settings_provider.dart';
+import '../../books/providers/books_provider.dart';
+
 @immutable
 class TermsState {
   final bool isLoading;
@@ -285,7 +367,6 @@ class TermsState {
   final String searchQuery;
   final int? selectedLangId;
   final int? selectedStatus;
-  final Set<int> selectedTermIds;
   final String? errorMessage;
 
   const TermsState({
@@ -296,23 +377,8 @@ class TermsState {
     this.searchQuery = '',
     this.selectedLangId,
     this.selectedStatus,
-    this.selectedTermIds = const {},
     this.errorMessage,
   });
-
-  List<Term> get filteredTerms {
-    var list = terms;
-    if (searchQuery.isNotEmpty) {
-      list = list.where((t) =>
-        t.text.toLowerCase().contains(searchQuery.toLowerCase()) ||
-        (t.translation?.toLowerCase().contains(searchQuery.toLowerCase()) ?? false)
-      ).toList();
-    }
-    if (selectedStatus != null) {
-      list = list.where((t) => t.status == selectedStatus).toList();
-    }
-    return list;
-  }
 
   TermsState copyWith({
     bool? isLoading,
@@ -322,7 +388,6 @@ class TermsState {
     String? searchQuery,
     int? selectedLangId,
     int? selectedStatus,
-    Set<int>? selectedTermIds,
     String? errorMessage,
   }) {
     return TermsState(
@@ -333,7 +398,6 @@ class TermsState {
       searchQuery: searchQuery ?? this.searchQuery,
       selectedLangId: selectedLangId ?? this.selectedLangId,
       selectedStatus: selectedStatus ?? this.selectedStatus,
-      selectedTermIds: selectedTermIds ?? this.selectedTermIds,
       errorMessage: errorMessage,
     );
   }
@@ -374,7 +438,7 @@ class TermsNotifier extends Notifier<TermsState> {
 
       final newTerms = await _repository.getTermsPaginated(
         langId: state.selectedLangId,
-        search: state.searchQuery,
+        search: state.searchQuery.isNotEmpty ? state.searchQuery : null,
         page: state.currentPage,
         pageSize: _pageSize,
         status: state.selectedStatus,
@@ -400,6 +464,11 @@ class TermsNotifier extends Notifier<TermsState> {
   }
 
   Future<void> _setLanguageFilter() async {
+    // Only set filter if it hasn't been manually set
+    if (state.selectedLangId != null && state.searchQuery.isEmpty && state.selectedStatus == null) {
+      return; // Keep user's manual filter
+    }
+
     final currentBookId = ref.read(settingsProvider).currentBookId;
 
     if (currentBookId != null) {
@@ -407,7 +476,8 @@ class TermsNotifier extends Notifier<TermsState> {
       final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
       final book = allBooks.firstWhere(
         (b) => b.id == currentBookId,
-        orElse: () => allBooks.first,
+        orElse: () => allBooks.isNotEmpty ? allBooks.first :
+          throw Exception('No books available'),
       );
       state = state.copyWith(selectedLangId: book.langId);
     } else {
@@ -417,6 +487,7 @@ class TermsNotifier extends Notifier<TermsState> {
 
   void setSearchQuery(String query) {
     state = state.copyWith(searchQuery: query);
+    loadTerms(reset: true);
   }
 
   void setLanguageFilter(int? langId) {
@@ -429,39 +500,12 @@ class TermsNotifier extends Notifier<TermsState> {
     loadTerms(reset: true);
   }
 
-  void toggleTermSelection(int termId) {
-    final selected = Set<int>.from(state.selectedTermIds);
-    if (selected.contains(termId)) {
-      selected.remove(termId);
-    } else {
-      selected.add(termId);
-    }
-    state = state.copyWith(selectedTermIds: selected);
-  }
-
-  void clearSelection() {
-    state = state.copyWith(selectedTermIds: {});
-  }
-
-  Future<void> updateSelectedTermsStatus(int status) async {
-    if (state.selectedTermIds.isEmpty) return;
-
+  Future<void> deleteTerm(int termId) async {
     try {
-      await _repository.bulkUpdateStatus(state.selectedTermIds.toList(), status);
-      clearSelection();
-      await loadTerms(reset: true);
-    } catch (e) {
-      state = state.copyWith(errorMessage: e.toString());
-    }
-  }
-
-  Future<void> deleteSelectedTerms() async {
-    if (state.selectedTermIds.isEmpty) return;
-
-    try {
-      await _repository.bulkDelete(state.selectedTermIds.toList());
-      clearSelection();
-      await loadTerms(reset: true);
+      await _repository.deleteTerm(termId);
+      state = state.copyWith(
+        terms: state.terms.where((t) => t.id != termId).toList(),
+      );
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }
@@ -472,27 +516,15 @@ class TermsNotifier extends Notifier<TermsState> {
   }
 }
 
-final termsRepositoryProvider = Provider<TermsRepository>((ref) {
-  final contentService = ref.watch(contentServiceProvider);
-  return TermsRepository(contentService: contentService);
-});
-
 final termsProvider = NotifierProvider<TermsNotifier, TermsState>(() {
   return TermsNotifier();
 });
-
-final languagesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
-  final contentService = ref.read(contentServiceProvider);
-  final languagesHtml = await contentService.getLanguages();
-  final languages = contentService.parser.parseLanguages(languagesHtml);
-  return languages.map((lang) => {'name': lang}).toList();
-});
 ```
 
-## Phase 3: UI Components
+## Phase 4: UI Components
 
-### 3.1 Terms Screen
-**File:** `lib/features/terms/widgets/terms_screen.dart`
+### 4.1 Terms Screen
+**File:** `lib/features/terms/widgets/terms_screen.dart` (NEW)
 
 ```dart
 import 'package:flutter/material.dart';
@@ -503,6 +535,7 @@ import '../providers/terms_provider.dart';
 import '../models/term.dart';
 import 'term_card.dart';
 import 'term_filter_panel.dart';
+import 'term_edit_dialog_wrapper.dart';
 
 class TermsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -521,6 +554,9 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(termsProvider.notifier).loadTerms(reset: true);
+    });
   }
 
   @override
@@ -558,40 +594,25 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
         ),
         title: const Text('Terms'),
         actions: [
-          if (state.selectedTermIds.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_outline),
-              onPressed: () => _showBulkDeleteDialog(context, ref),
-              tooltip: 'Delete selected',
-            ),
           IconButton(
             icon: const Icon(Icons.filter_list),
-            onPressed: () => _showFilterPanel(context, ref),
+            onPressed: () => _showFilterPanel(context),
             tooltip: 'Filters',
           ),
         ],
       ),
       body: Column(
         children: [
-          _buildSearchBar(context, ref),
+          _buildSearchBar(),
           Expanded(
-            child: _buildTermsList(context, state, ref),
+            child: _buildTermsList(state),
           ),
         ],
       ),
-      floatingActionButton: state.selectedTermIds.isNotEmpty
-          ? FloatingActionButton.extended(
-              onPressed: () => _showBulkStatusDialog(context, ref),
-              icon: const Icon(Icons.edit),
-              label: const Text('Update Status'),
-            )
-          : null,
     );
   }
 
-  Widget _buildSearchBar(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(termsProvider);
-
+  Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: TextField(
@@ -620,7 +641,7 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
     );
   }
 
-  Widget _buildTermsList(BuildContext context, TermsState state, WidgetRef ref) {
+  Widget _buildTermsList(TermsState state) {
     if (state.isLoading && state.terms.isEmpty) {
       return const Center(child: LoadingIndicator());
     }
@@ -662,9 +683,7 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
           if (index < state.terms.length) {
             return TermCard(
               term: state.terms[index],
-              isSelected: state.selectedTermIds.contains(state.terms[index].id),
-              onTap: () => _showTermEditDialog(context, ref, state.terms[index]),
-              onLongPress: () => ref.read(termsProvider.notifier).toggleTermSelection(state.terms[index].id),
+              onTap: () => _showTermEditDialog(state.terms[index]),
             );
           } else if (state.hasMore) {
             return const Padding(
@@ -678,83 +697,32 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
     );
   }
 
-  void _showFilterPanel(BuildContext context, WidgetRef ref) {
+  void _showFilterPanel(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => TermFilterPanel(),
+      builder: (context) => const TermFilterPanel(),
     );
   }
 
-  void _showTermEditDialog(BuildContext context, WidgetRef ref, Term term) {
+  void _showTermEditDialog(Term term) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => TermEditDialog(term: term),
-    );
-  }
-
-  void _showBulkStatusDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Update Status'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [0, 1, 2, 3, 4, 5, 98, 99].map((status) {
-            return ListTile(
-              title: Text(_getStatusLabel(status)),
-              onTap: () {
-                Navigator.pop(context);
-                ref.read(termsProvider.notifier).updateSelectedTermsStatus(status);
-              },
-            );
-          }).toList(),
-        ),
+      builder: (context) => TermEditDialogWrapper(
+        term: term,
+        onDelete: () async {
+          await ref.read(termsProvider.notifier).deleteTerm(term.id);
+          if (mounted) Navigator.pop(context);
+        },
       ),
     );
-  }
-
-  void _showBulkDeleteDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Terms'),
-        content: Text('Delete ${ref.read(termsProvider).selectedTermIds.length} terms?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ref.read(termsProvider.notifier).deleteSelectedTerms();
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getStatusLabel(int status) {
-    switch (status) {
-      case 99: return 'Well Known';
-      case 0: return 'Ignored';
-      case 1: return 'Learning 1';
-      case 2: return 'Learning 2';
-      case 3: return 'Learning 3';
-      case 4: return 'Learning 4';
-      case 5: return 'Ignored (dotted)';
-      default: return 'Unknown';
-    }
   }
 }
 ```
 
-### 3.2 Term Card
-**File:** `lib/features/terms/widgets/term_card.dart`
+### 4.2 Term Card
+**File:** `lib/features/terms/widgets/term_card.dart` (NEW)
 
 ```dart
 import 'package:flutter/material.dart';
@@ -762,16 +730,12 @@ import '../models/term.dart';
 
 class TermCard extends StatelessWidget {
   final Term term;
-  final bool isSelected;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
 
   const TermCard({
     super.key,
     required this.term,
-    this.isSelected = false,
     required this.onTap,
-    required this.onLongPress,
   });
 
   @override
@@ -780,13 +744,9 @@ class TermCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         onTap: onTap,
-        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           decoration: BoxDecoration(
-            border: isSelected
-                ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2)
-                : null,
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.all(16),
@@ -795,11 +755,6 @@ class TermCard extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  if (isSelected)
-                    const Padding(
-                      padding: EdgeInsets.only(right: 8),
-                      child: Icon(Icons.check_circle, color: Colors.blue),
-                    ),
                   Expanded(
                     child: Text(
                       term.text,
@@ -867,7 +822,7 @@ class TermCard extends StatelessWidget {
       ),
       child: Text(
         term.statusLabel,
-        style: TextStyle(
+        style: const TextStyle(
           color: Colors.white,
           fontSize: 12,
           fontWeight: FontWeight.w500,
@@ -884,20 +839,22 @@ class TermCard extends StatelessWidget {
       case 2: return Colors.amber;
       case 3: return Colors.yellow;
       case 4: return Colors.lime;
-      case 5: return Colors.grey;
+      case 5: return Colors.green.shade300;
+      case 98: return Colors.grey.shade400;
       default: return Colors.grey;
     }
   }
 }
 ```
 
-### 3.3 Term Filter Panel
-**File:** `lib/features/terms/widgets/term_filter_panel.dart`
+### 4.3 Term Filter Panel
+**File:** `lib/features/terms/widgets/term_filter_panel.dart` (NEW)
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/terms_provider.dart';
+import '../../../shared/providers/language_data_provider.dart';
 
 class TermFilterPanel extends ConsumerWidget {
   const TermFilterPanel({super.key});
@@ -905,7 +862,7 @@ class TermFilterPanel extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(termsProvider);
-    final languagesAsync = ref.watch(languagesProvider);
+    final languagesAsync = ref.watch(languageListProvider);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -932,10 +889,10 @@ class TermFilterPanel extends ConsumerWidget {
                   value: null,
                   child: Text('All Languages'),
                 ),
-                ...languages.asMap().entries.map((entry) {
+                ...languages.map((lang) {
                   return DropdownMenuItem<int?>(
-                    value: entry.key + 1, // Language IDs start from 1
-                    child: Text(entry.value['name']),
+                    value: lang.id,
+                    child: Text(lang.name),
                   );
                 }),
               ],
@@ -955,7 +912,7 @@ class TermFilterPanel extends ConsumerWidget {
             children: [null, 0, 1, 2, 3, 4, 5, 98, 99].map((status) {
               final isSelected = state.selectedStatus == status;
               return FilterChip(
-                label: Text(status == null ? 'All' : _getStatusLabel(status!)),
+                label: Text(status == null ? 'All' : _getStatusLabel(status)),
                 selected: isSelected,
                 onSelected: (_) {
                   final newStatus = isSelected ? null : status;
@@ -990,253 +947,201 @@ class TermFilterPanel extends ConsumerWidget {
       case 2: return 'Learning 2';
       case 3: return 'Learning 3';
       case 4: return 'Learning 4';
-      case 5: return 'Ignored (dotted)';
+      case 5: return 'Learning 5';
+      case 98: return 'Ignored (dotted)';
       default: return 'Unknown';
     }
   }
 }
 ```
 
-### 3.4 Term Edit Dialog
-**File:** `lib/features/terms/widgets/term_edit_dialog.dart`
+### 4.4 Term Edit Dialog Wrapper
+**File:** `lib/features/terms/widgets/term_edit_dialog_wrapper.dart` (NEW)
+
+This wraps the existing TermForm from the reader to add delete functionality when editing from the Terms screen.
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/terms_provider.dart';
 import '../models/term.dart';
+import '../../../shared/providers/language_data_provider.dart';
+import '../../../shared/providers/network_providers.dart';
+import '../../reader/widgets/term_form.dart';
 
-class TermEditDialog extends ConsumerStatefulWidget {
+class TermEditDialogWrapper extends ConsumerStatefulWidget {
   final Term term;
+  final VoidCallback onDelete;
 
-  const TermEditDialog({super.key, required this.term});
+  const TermEditDialogWrapper({
+    super.key,
+    required this.term,
+    required this.onDelete,
+  });
 
   @override
-  ConsumerState<TermEditDialog> createState() => _TermEditDialogState();
+  ConsumerState<TermEditDialogWrapper> createState() => _TermEditDialogWrapperState();
 }
 
-class _TermEditDialogState extends ConsumerState<TermEditDialog> {
-  late TextEditingController _translationController;
-  late TextEditingController _tagsController;
-  int? _status;
-  bool _isSaving = false;
+class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
+  TermForm? _termForm;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _translationController = TextEditingController(text: widget.term.translation ?? '');
-    _tagsController = TextEditingController(text: widget.term.tags?.join(', ') ?? '');
-    _status = widget.term.status;
+    _loadTermForm();
   }
 
-  @override
-  void dispose() {
-    _translationController.dispose();
-    _tagsController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _saveTerm() async {
-    setState(() => _isSaving = true);
-
+  Future<void> _loadTermForm() async {
     try {
-      await ref.read(termsProvider.notifier).updateTermStatus(
-            widget.term.id,
-            _status ?? widget.term.status,
-          );
-
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Term updated successfully')),
-        );
-      }
+      final contentService = ref.read(contentServiceProvider);
+      _termForm = await contentService.getTermFormById(widget.term.id);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update term: $e')),
+          SnackBar(content: Text('Failed to load term: $e')),
         );
+        Navigator.pop(context);
       }
     } finally {
-      setState(() => _isSaving = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: MediaQuery.of(context).viewInsets,
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        minChildSize: 0.5,
-        maxChildSize: 0.9,
-        expand: false,
-        builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Text(
-                'Edit Term',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: TextEditingController(text: widget.term.text),
-                decoration: const InputDecoration(
-                  labelText: 'Term',
-                  border: OutlineInputBorder(),
-                ),
-                enabled: false,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _translationController,
-                decoration: const InputDecoration(
-                  labelText: 'Translation',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 3,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _tagsController,
-                decoration: const InputDecoration(
-                  labelText: 'Tags (comma separated)',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text('Status', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              ...[99, 0, 1, 2, 3, 4, 5, 98].map((status) {
-                return RadioListTile<int>(
-                  title: Text(_getStatusLabel(status)),
-                  value: status,
-                  groupValue: _status,
-                  onChanged: (value) => setState(() => _status = value),
-                );
-              }),
-              const Spacer(),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
+    if (_isLoading || _termForm == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Edit Term'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('Delete Term'),
+                  content: const Text('Are you sure you want to delete this term?'),
+                  actions: [
+                    TextButton(
                       onPressed: () => Navigator.pop(context),
                       child: const Text('Cancel'),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _isSaving ? null : _saveTerm,
-                      child: _isSaving
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Save'),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        widget.onDelete();
+                      },
+                      child: const Text('Delete', style: TextStyle(color: Colors.red)),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                  ],
+                ),
+              );
+            },
           ),
+        ],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: TermFormWidget(
+          termForm: _termForm!,
+          onSave: (updatedForm) async {
+            try {
+              final contentService = ref.read(contentServiceProvider);
+              await contentService.editTerm(
+                updatedForm.termId!,
+                updatedForm.toFormData(),
+              );
+              if (mounted) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Term updated successfully')),
+                );
+              }
+            } catch (e) {
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Failed to update term: $e')),
+                );
+              }
+            }
+          },
         ),
       ),
     );
   }
-
-  String _getStatusLabel(int status) {
-    switch (status) {
-      case 99: return 'Well Known';
-      case 0: return 'Ignored';
-      case 1: return 'Learning 1';
-      case 2: return 'Learning 2';
-      case 3: return 'Learning 3';
-      case 4: return 'Learning 4';
-      case 5: return 'Ignored (dotted)';
-      default: return 'Unknown';
-    }
-  }
 }
 ```
 
-## Phase 4: Navigation Integration
+## Phase 5: Navigation Integration
 
-### 4.1 Update App Drawer
-**File:** `lib/shared/widgets/app_drawer.dart`
-
-```dart
-Widget _buildNavigationColumn(BuildContext context) {
-  return Container(
-    width: 80,
-    decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-    ),
-    child: Column(
-      children: [
-        const SizedBox(height: 16),
-        _buildNavItem(context, Icons.book, 0, 'Reader'),
-        _buildNavItem(context, Icons.collections_bookmark, 1, 'Books'),
-        _buildNavItem(context, Icons.spellcheck, 2, 'Terms'),
-        _buildNavItem(context, Icons.settings, 3, 'Settings'),
-        const Spacer(),
-        // Version info...
-      ],
-    ),
-  );
-}
-```
-
-### 4.2 Update Main Navigation
+### 5.1 Update Main Navigation
 **File:** `lib/app.dart`
 
+**Update imports** (add after L9):
+```dart
+import 'package:lute_for_mobile/features/terms/widgets/terms_screen.dart';
+import 'package:lute_for_mobile/features/terms/providers/terms_provider.dart';
+```
+
+**Update L208-224** - `_handleNavigateToScreen()`:
 ```dart
 void _handleNavigateToScreen(int index) {
   setState(() {
     _currentIndex = index;
   });
 
-  final routeNames = ['reader', 'books', 'terms', 'settings', 'sentence-reader'];
+  final routeNames = [
+    'reader',          // 0
+    'sentence-reader',  // 1
+    'books',           // 2
+    'terms',           // 3 (NEW)
+    'help',            // 4
+    'settings',        // 5
+  ];
   final currentRoute = routeNames[index];
   ref.read(currentScreenRouteProvider.notifier).setRoute(currentRoute);
-
   _updateDrawerSettings();
-
-  // Trigger refresh when entering Terms screen
-  if (index == 2) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(termsProvider.notifier).loadTerms(reset: true);
-    });
-  }
 }
+```
 
+**Update L254-286** - `_updateDrawerSettings()`:
+```dart
 void _updateDrawerSettings() {
   switch (_currentIndex) {
-    case 0:
+    case 0: // Reader
       ref.read(currentViewDrawerSettingsProvider.notifier)
           .updateSettings(ReaderDrawerSettings(currentIndex: _currentIndex));
       break;
-    case 1:
+    case 1: // SentenceReader
+      ref.read(currentViewDrawerSettingsProvider.notifier)
+          .updateSettings(ReaderDrawerSettings(currentIndex: _currentIndex));
+      break;
+    case 2: // Books
       ref.read(currentViewDrawerSettingsProvider.notifier)
           .updateSettings(const BooksDrawerSettings());
       break;
-    case 2:
+    case 3: // Terms - no drawer settings
+    case 4: // Help - no drawer settings
+    case 5: // Settings - no drawer settings
       ref.read(currentViewDrawerSettingsProvider.notifier).updateSettings(null);
-      break;
-    case 3:
-      ref.read(currentViewDrawerSettingsProvider.notifier).updateSettings(null);
-      break;
-    case 4:
-      ref.read(currentViewDrawerSettingsProvider.notifier)
-          .updateSettings(ReaderDrawerSettings(currentIndex: _currentIndex));
       break;
     default:
       ref.read(currentViewDrawerSettingsProvider.notifier).updateSettings(null);
   }
 }
+```
 
+**Update L289-332** - `build()`:
+```dart
 @override
 Widget build(BuildContext context) {
   return Scaffold(
@@ -1251,10 +1156,10 @@ Widget build(BuildContext context) {
         if (index == 0 && _readerKey.currentState != null) {
           _readerKey.currentState!.reloadPage();
         }
-        if (index == 1) {
+        if (index == 2) {
           await ref.read(booksProvider.notifier).loadBooks();
         }
-        if (index == 2) {
+        if (index == 3) {
           await ref.read(termsProvider.notifier).loadTerms(reset: true);
         }
       },
@@ -1265,79 +1170,125 @@ Widget build(BuildContext context) {
         RepaintBoundary(
           child: ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
         ),
-        RepaintBoundary(child: BooksScreen(scaffoldKey: _scaffoldKey)),
-        RepaintBoundary(child: TermsScreen(scaffoldKey: _scaffoldKey)),
-        RepaintBoundary(child: SettingsScreen(scaffoldKey: _scaffoldKey)),
         RepaintBoundary(
           child: SentenceReaderScreen(
             key: _sentenceReaderKey,
             scaffoldKey: _scaffoldKey,
           ),
         ),
+        RepaintBoundary(child: BooksScreen(scaffoldKey: _scaffoldKey)),
+        RepaintBoundary(child: TermsScreen(scaffoldKey: _scaffoldKey)),
+        RepaintBoundary(child: HelpScreen(scaffoldKey: _scaffoldKey)),
+        RepaintBoundary(child: SettingsScreen(scaffoldKey: _scaffoldKey)),
       ],
     ),
   );
 }
 ```
 
+### 5.2 Update App Drawer
+**File:** `lib/shared/widgets/app_drawer.dart`
+
+Update `_buildNavigationColumn()` to reflect new navigation structure with updated icons for each index.
+
 ## File Structure
 
 ```
-lib/features/terms/
-├── models/
-│   └── term.dart                    # NEW: Term data model
-├── providers/
-│   └── terms_provider.dart           # NEW: State management with pagination
-├── repositories/
-│   └── terms_repository.dart         # NEW: Data access layer
-└── widgets/
-    ├── terms_screen.dart             # NEW: Main screen with lazy loading
-    ├── term_card.dart                # NEW: Term list item
-    ├── term_edit_dialog.dart         # NEW: Edit term dialog
-    └── term_filter_panel.dart        # NEW: Filter panel
+lib/
+├── shared/
+│   ├── models/
+│   │   └── language.dart                    # NEW: Language model with ID and name
+│   └── providers/
+│       └── language_data_provider.dart        # NEW: languageNamesProvider and languageListProvider
+├── features/
+│   ├── terms/
+│   │   ├── models/
+│   │   │   └── term.dart                  # NEW: Term data model
+│   │   ├── providers/
+│   │   │   └── terms_provider.dart         # NEW: State management with pagination
+│   │   ├── repositories/
+│   │   │   └── terms_repository.dart       # NEW: Data access layer
+│   │   └── widgets/
+│   │       ├── terms_screen.dart            # NEW: Main screen with lazy loading
+│   │       ├── term_card.dart              # NEW: Term list item
+│   │       ├── term_filter_panel.dart       # NEW: Filter panel
+│   │       └── term_edit_dialog_wrapper.dart # NEW: Wrapper for TermForm with delete
+│   └── books/
+│       └── models/
+│           └── book.dart                  # MODIFY: Fix langId parsing bug
+├── core/
+│   └── network/
+│       ├── api_service.dart                # MODIFY: Add getTermsDatatables, deleteTerm
+│       ├── content_service.dart            # MODIFY: Add terms methods
+│       └── html_parser.dart               # MODIFY: Add parseTermsFromDatatables, parseLanguagesWithIds
+└── app.dart                              # MODIFY: Navigation indices and screen integration
 ```
 
 ## Implementation Phases
 
-### Phase 1: Core Structure (Foundation)
-1. Create Term model
-2. Extend ApiService with term endpoints
+### Phase 1: Foundation Changes
+1. Create Language model
+2. Extend HtmlParser with parseLanguagesWithIds()
+3. Create language_data_provider.dart
+4. Move languagesProvider to new location
+5. Fix Book.langId bug (parse LgID from API)
+6. Update imports in books_drawer_settings.dart
+
+### Phase 2: Navigation Updates
+1. Update MainNavigation indices (0=Reader, 1=SentenceReader, 2=Books, 3=Terms, 4=Help, 5=Settings)
+2. Update AppDrawer icons to match new structure
+3. Update all route references
+4. Add TermsScreen to IndexedStack
+
+### Phase 3: Terms Data Layer
+1. Create Term model with all fields (including status 98)
+2. Extend ApiService with getTermsDatatables and deleteTerm endpoints
 3. Extend HtmlParser for term data parsing
 4. Extend ContentService with term methods
 5. Create TermsRepository
-6. Create basic TermsProvider with lazy loading
 
-### Phase 2: Basic UI (MVP)
-1. Create TermsScreen with lazy loading ListView
+### Phase 4: Terms State Management
+1. Create TermsNotifier with pagination (50 items/page)
+2. Implement server-side language filter (uses current book's langId)
+3. Implement server-side search and status filters
+4. No client-side filtering - all filters go through API
+
+### Phase 5: Terms UI Components
+1. Create TermsScreen with pagination
 2. Create TermCard widget
-3. Update app drawer navigation
-4. Update MainNavigation with new indices
-5. Integrate navigation to load terms on entry
+3. Create TermFilterPanel with language dropdown and status chips
+4. Create TermEditDialogWrapper that reuses existing TermForm
+5. Add delete button only in Terms screen wrapper
 
-### Phase 3: Filtering & Language Logic
-1. Add language filter dropdown
-2. Implement "show all languages" when no book
-3. Implement search functionality
-4. Add refresh indicator
-5. Auto-reset to book language on navigation
-
-### Phase 4: Editing & Selection
-1. Add TermEditDialog
-2. Implement term update
-3. Add selection mode with checkboxes
-4. Implement bulk status update
-
-### Phase 5: Bulk Operations (Low Priority)
-1. Add bulk delete
-2. Add bulk actions FAB
+### Phase 6: Integration
+1. Update App imports
+2. Integrate TermsScreen with navigation
+3. Test all navigation paths
+4. Verify filter behavior
 
 ## Notes
 
-- Low priority feature
-- Uses lazy loading with pagination (50 items per page)
-- Alphabetical sorting by term text
-- Filters by current book's language by default
+- **Low priority feature**
+- Uses server-side pagination (50 items per page)
+- Lazy loads more data when scrolling near bottom
+- Filters by current book's language by default (using fixed Book.langId)
 - Shows all languages if no book is loaded
-- Always resets to book language when navigating to Terms screen
+- Resets to book language when navigating to Terms screen
 - Only refreshes when navigating to Terms screen
+- **Status 98 is supported** in model and UI for completeness
+- **No bulk operations** - removed per requirements
+- **Reuses existing TermForm** from reader via wrapper pattern
+- **Delete button only shown in Terms screen** via TermEditDialogWrapper
+- All filters are server-side for efficiency
 - Statistics screen hidden completely for future use
+
+## Key Changes from Original Plan
+
+1. **Fixed status mapping**: Status 5 is now "Learning 5", status 98 is "Ignored (dotted)"
+2. **Removed bulk operations**: No bulkUpdateStatus or bulkDelete
+3. **Shared language provider**: Created language_data_provider.dart with both name and ID providers
+4. **Server-side filtering**: All search/filter operations go through API, not client-side
+5. **Reuse TermForm**: Created wrapper instead of new edit dialog
+6. **Fixed Book.langId bug**: Now properly parses LgID from API response
+7. **Updated navigation indices**: Reordered to 0=Reader, 1=SentenceReader, 2=Books, 3=Terms, 4=Help, 5=Settings
+8. **Delete in wrapper**: Delete button only appears when editing from Terms screen
