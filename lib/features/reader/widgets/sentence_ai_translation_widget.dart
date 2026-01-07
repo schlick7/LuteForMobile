@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/ai_provider.dart';
+import '../providers/sentence_tts_provider.dart';
 
 class SentenceAITranslationWidget extends ConsumerStatefulWidget {
   final String sentence;
   final int languageId;
   final String language;
   final VoidCallback onClose;
+  final int? sentenceId;
 
   const SentenceAITranslationWidget({
     super.key,
@@ -16,6 +18,7 @@ class SentenceAITranslationWidget extends ConsumerStatefulWidget {
     required this.languageId,
     required this.language,
     required this.onClose,
+    this.sentenceId,
   });
 
   @override
@@ -80,7 +83,7 @@ class _SentenceAITranslationWidgetState
     return Container(
       constraints: BoxConstraints(
         minHeight: 200,
-        maxHeight: MediaQuery.of(context).size.height * 0.8,
+        maxHeight: MediaQuery.of(context).size.height * 0.5,
       ),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -194,8 +197,74 @@ class _SentenceAITranslationWidgetState
       return const SizedBox.shrink();
     }
 
+    final ttsState = ref.watch(sentenceTTSProvider);
+    final errorColor = Theme.of(context).colorScheme.error;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ttsState.hasError && ttsState.errorMessage != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(ttsState.errorMessage!),
+            backgroundColor: errorColor,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () {
+                ref.read(sentenceTTSProvider.notifier).clearError();
+                ref
+                    .read(sentenceTTSProvider.notifier)
+                    .speakSentence(widget.sentence, widget.sentenceId ?? 0);
+              },
+            ),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    });
+
+    IconData ttsIcon;
+    Color ttsColor;
+    VoidCallback? ttsOnPressed;
+
+    switch (ttsState.status) {
+      case SentenceTTSStatus.playing:
+        ttsIcon = Icons.stop;
+        ttsColor = errorColor;
+        ttsOnPressed = () => ref.read(sentenceTTSProvider.notifier).stop();
+        break;
+      case SentenceTTSStatus.paused:
+        ttsIcon = Icons.play_arrow;
+        ttsColor = Theme.of(context).colorScheme.primary;
+        ttsOnPressed = () => ref.read(sentenceTTSProvider.notifier).resume();
+        break;
+      case SentenceTTSStatus.error:
+        ttsIcon = Icons.refresh;
+        ttsColor = errorColor;
+        ttsOnPressed = () {
+          ref.read(sentenceTTSProvider.notifier).clearError();
+          ref
+              .read(sentenceTTSProvider.notifier)
+              .speakSentence(widget.sentence, widget.sentenceId ?? 0);
+        };
+        break;
+      case SentenceTTSStatus.idle:
+        ttsIcon = Icons.volume_up;
+        ttsColor = Theme.of(context).colorScheme.primary;
+        ttsOnPressed = () => ref
+            .read(sentenceTTSProvider.notifier)
+            .speakSentence(widget.sentence, widget.sentenceId ?? 0);
+        break;
+    }
+
     return Row(
       children: [
+        IconButton(
+          icon: Icon(ttsIcon),
+          color: ttsColor,
+          onPressed: ttsOnPressed,
+          tooltip: _getTTSTooltip(ttsState.status),
+        ),
+        const SizedBox(width: 8),
         Expanded(
           child: OutlinedButton.icon(
             onPressed: () {
@@ -221,5 +290,18 @@ class _SentenceAITranslationWidgetState
         ),
       ],
     );
+  }
+
+  String _getTTSTooltip(SentenceTTSStatus status) {
+    switch (status) {
+      case SentenceTTSStatus.playing:
+        return 'Stop';
+      case SentenceTTSStatus.paused:
+        return 'Resume';
+      case SentenceTTSStatus.error:
+        return 'Retry';
+      case SentenceTTSStatus.idle:
+        return 'Play';
+    }
   }
 }

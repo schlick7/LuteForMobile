@@ -1469,6 +1469,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final language =
         aiSettings.promptConfigs[AIPromptType.sentenceTranslation]?.language ??
         'English';
+    final sentenceReader = ref.read(sentenceReaderProvider);
+    final currentSentence = sentenceReader.currentSentence;
 
     showModalBottomSheet(
       context: context,
@@ -1480,6 +1482,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           languageId: languageId,
           language: language,
           onClose: () => Navigator.of(context).pop(),
+          sentenceId: currentSentence?.id,
         );
       },
     );
