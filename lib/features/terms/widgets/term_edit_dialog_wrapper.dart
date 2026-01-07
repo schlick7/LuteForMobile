@@ -35,7 +35,9 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
   Future<void> _loadTermForm() async {
     try {
       final contentService = ref.read(contentServiceProvider);
-      _termForm = await contentService.getTermFormById(widget.term.id);
+      _termForm = await contentService.getTermFormByIdWithParentDetails(
+        widget.term.id,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(
