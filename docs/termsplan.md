@@ -38,6 +38,9 @@ Index 5: SettingsScreen (moved from 3)
 | **Bulk Operations** | Removed - not needed |
 | **Term Form** | Reuse existing TermForm from reader |
 | **Status 98** | Supported (Ignored - dotted) |
+| **Status Type** | String (matching existing codebase) |
+
+---
 
 ## Phase 1: Foundation Changes
 
@@ -113,45 +116,34 @@ final languageListProvider = FutureProvider<List<Language>>((ref) async {
 **Update:** `lib/core/network/content_service.dart`
 - Add public `getLanguagesWithIds()` method
 
-### 1.4 Fix Book langId Bug
-**File:** `lib/features/books/models/book.dart` (L116)
+### 1.4 Update Imports in Books Drawer Settings
+**File:** `lib/features/books/widgets/books_drawer_settings.dart`
 
-Current code has hardcoded `langId: 0`. Change to:
+**Add import:**
 ```dart
-langId: json['LgID'] as int? ?? 0,
-```
-
-This fixes a bug where Book.langId wasn't being parsed from the API response.
-
-### 1.5 Update Imports in Books Drawer Settings
-**File:** `lib/features/books/widgets/books_drawer_settings.dart` (L4)
-
-Change:
-```dart
-import '../providers/books_provider.dart';
-```
-To:
-```dart
-import '../providers/books_provider.dart';
 import '../../../shared/providers/language_data_provider.dart';
 ```
 
-Update L37:
+**Update L37:**
 ```dart
 final languagesState = ref.watch(languageNamesProvider);
 ```
+
+---
 
 ## Phase 2: Data Layer
 
 ### 2.1 Create Term Model
 **File:** `lib/features/terms/models/term.dart` (NEW)
 
+**IMPORTANT:** Uses `String` type for status to match existing codebase (TermForm, TermTooltip).
+
 ```dart
 class Term {
   final int id;
   final String text;
   final String? translation;
-  final int status; // 0=Ignored, 1-5=Learning, 98=Ignored (dotted), 99=Well Known
+  final String status; // String type: '0', '1', '2', '3', '4', '5', '98', '99'
   final int langId;
   final String language;
   final List<String>? tags;
@@ -171,15 +163,16 @@ class Term {
   });
 
   String get statusLabel {
+    // Mappings must match TermTooltip.statusLabel
     switch (status) {
-      case 99: return 'Well Known';
-      case 0: return 'Ignored';
-      case 1: return 'Learning 1';
-      case 2: return 'Learning 2';
-      case 3: return 'Learning 3';
-      case 4: return 'Learning 4';
-      case 5: return 'Learning 5';
-      case 98: return 'Ignored (dotted)';
+      case '99': return 'Well Known';
+      case '0': return 'Ignored';
+      case '1': return 'Learning 1';
+      case '2': return 'Learning 2';
+      case '3': return 'Learning 3';
+      case '4': return 'Learning 4';
+      case '5': return 'Ignored (dotted)';
+      case '98': return 'Ignored (dotted)';
       default: return 'Unknown';
     }
   }
@@ -189,7 +182,7 @@ class Term {
       id: json['WoID'] as int,
       text: json['WoText'] as String,
       translation: json['WoTranslation'] as String?,
-      status: json['StID'] as int? ?? 99,
+      status: (json['StID'] as int?).toString() ?? '99',
       langId: json['LgID'] as int? ?? 0,
       language: json['LgName'] as String? ?? '',
       tags: (json['Tags'] as String?)?.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList(),
@@ -271,54 +264,6 @@ List<Term> parseTermsFromDatatables(String jsonData) {
 }
 ```
 
-**Add shared status constants:**
-```dart
-// lib/core/utils/term_status.dart
-class TermStatus {
-  static const int ignored = 0;
-  static const int learning1 = 1;
-  static const int learning2 = 2;
-  static const int learning3 = 3;
-  static const int learning4 = 4;
-  static const int learning5 = 5;
-  static const int ignoredDotted = 98;
-  static const int wellKnown = 99;
-
-  static String getLabel(int status) {
-    switch (status) {
-      case wellKnown: return 'Well Known';
-      case ignored: return 'Ignored';
-      case learning1: return 'Learning 1';
-      case learning2: return 'Learning 2';
-      case learning3: return 'Learning 3';
-      case learning4: return 'Learning 4';
-      case learning5: return 'Learning 5';
-      case ignoredDotted: return 'Ignored (dotted)';
-      default: return 'Unknown';
-    }
-  }
-
-  static Color getColor(int status) {
-    switch (status) {
-      case wellKnown: return Colors.green;
-      case ignored: return Colors.grey;
-      case learning1: return Colors.orange;
-      case learning2: return Colors.amber;
-      case learning3: return Colors.yellow;
-      case learning4: return Colors.lime;
-      case learning5: return Colors.green.shade300;
-      case ignoredDotted: return Colors.grey.shade400;
-      default: return Colors.grey;
-    }
-  }
-}
-```
-
-**Update Term model to use shared constants:**
-```dart
-String get statusLabel => TermStatus.getLabel(status);
-```
-
 ### 2.4 Create Terms Repository
 **File:** `lib/features/terms/repositories/terms_repository.dart` (NEW)
 
@@ -336,7 +281,7 @@ class TermsRepository {
     required String? search,
     required int page,
     required int pageSize,
-    int? status,
+    String? status,
   }) async {
     try {
       final terms = await contentService.getTermsDatatables(
@@ -371,6 +316,7 @@ final termsRepositoryProvider = Provider<TermsRepository>((ref) {
 **File:** `lib/core/network/content_service.dart`
 
 Add methods:
+
 ```dart
 Future<List<Language>> getLanguagesWithIds() async {
   final html = await _apiService.getLanguages();
@@ -382,7 +328,7 @@ Future<List<Term>> getTermsDatatables({
   required String? search,
   required int page,
   required int pageSize,
-  int? status,
+  String? status,
 }) async {
   final response = await _apiService.getTermsDatatables(
     draw: page + 1,
@@ -390,7 +336,7 @@ Future<List<Term>> getTermsDatatables({
     length: pageSize,
     search: search,
     langId: langId,
-    status: status,
+    status: status != null ? int.tryParse(status) : null,
   );
   return parser.parseTermsFromDatatables(response.data ?? '');
 }
@@ -399,6 +345,12 @@ Future<void> deleteTerm(int termId) async {
   await _apiService.deleteTerm(termId);
 }
 ```
+
+**NOTE:** Existing methods will be reused:
+- `getTermFormById(int termId)` - already exists (line 145)
+- `editTerm(int termId, Map<String, dynamic> data)` - already exists (line 159)
+
+---
 
 ## Phase 3: State Management
 
@@ -421,7 +373,7 @@ class TermsState {
   final int currentPage;
   final String searchQuery;
   final int? selectedLangId;
-  final int? selectedStatus;
+  final String? selectedStatus;
   final String? errorMessage;
 
   const TermsState({
@@ -442,7 +394,7 @@ class TermsState {
     int? currentPage,
     String? searchQuery,
     int? selectedLangId,
-    int? selectedStatus,
+    String? selectedStatus,
     String? errorMessage,
   }) {
     return TermsState(
@@ -530,7 +482,7 @@ class TermsNotifier extends Notifier<TermsState> {
     final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
     final book = allBooks.firstWhere(
       (b) => b.id == currentBookId,
-      orElse: () => allBooks.isNotEmpty ? allBooks.first : Book(id: 0, title: '', langId: 0),
+      orElse: () => allBooks.isNotEmpty ? allBooks.first : Book(id: 0, title: '', langId: 0, totalPages: 0, currentPage: 0, percent: 0, wordCount: 0, distinctTerms: null, unknownPct: null, statusDistribution: null),
     );
     state = state.copyWith(selectedLangId: book.langId);
   }
@@ -545,7 +497,7 @@ class TermsNotifier extends Notifier<TermsState> {
     loadTerms(reset: true);
   }
 
-  void setStatusFilter(int? status) {
+  void setStatusFilter(String? status) {
     state = state.copyWith(selectedStatus: status);
     loadTerms(reset: true);
   }
@@ -570,6 +522,8 @@ final termsProvider = NotifierProvider<TermsNotifier, TermsState>(() {
   return TermsNotifier();
 });
 ```
+
+---
 
 ## Phase 4: UI Components
 
@@ -864,7 +818,8 @@ class TermCard extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(BuildContext context) {
-    final color = _getStatusColor(term.status);
+    // Use existing theme extension for status colors
+    final color = context.getStatusColor(term.status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -881,8 +836,7 @@ class TermCard extends StatelessWidget {
       ),
     );
   }
-
-  Color _getStatusColor(int status) => TermStatus.getColor(status);
+}
 ```
 
 ### 4.3 Term Filter Panel
@@ -947,7 +901,9 @@ class TermFilterPanel extends ConsumerWidget {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: [null, 0, 1, 2, 3, 4, 5, 98, 99].map((status) {
+            children: [
+              null, '0', '1', '2', '3', '4', '5', '98', '99'
+            ].map((status) {
               final isSelected = state.selectedStatus == status;
               return FilterChip(
                 label: Text(status == null ? 'All' : _getStatusLabel(status)),
@@ -977,7 +933,21 @@ class TermFilterPanel extends ConsumerWidget {
     );
   }
 
-  String _getStatusLabel(int status) => TermStatus.getLabel(status);
+  String _getStatusLabel(String status) {
+    // Match TermTooltip.statusLabel exactly
+    switch (status) {
+      case '99': return 'Well Known';
+      case '0': return 'Ignored';
+      case '1': return 'Learning 1';
+      case '2': return 'Learning 2';
+      case '3': return 'Learning 3';
+      case '4': return 'Learning 4';
+      case '5': return 'Ignored (dotted)';
+      case '98': return 'Ignored (dotted)';
+      default: return 'Unknown';
+    }
+  }
+}
 ```
 
 ### 4.4 Term Edit Dialog Wrapper
@@ -1081,6 +1051,7 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
           onSave: (updatedForm) async {
             try {
               final contentService = ref.read(contentServiceProvider);
+              // Use existing ContentService.editTerm method
               await contentService.editTerm(
                 updatedForm.termId!,
                 updatedForm.toFormData(),
@@ -1099,12 +1070,18 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
               }
             }
           },
+          onUpdate: (_) {}, // Not used in this context
+          onCancel: () => Navigator.pop(context),
+          contentService: ref.read(contentServiceProvider),
+          dictionaryService: ref.read(dictionaryServiceProvider),
         ),
       ),
     );
   }
 }
 ```
+
+---
 
 ## Phase 5: Navigation Integration
 
@@ -1216,6 +1193,8 @@ Widget build(BuildContext context) {
 
 Update `_buildNavigationColumn()` to reflect new navigation structure with updated icons for each index.
 
+---
+
 ## File Structure
 
 ```
@@ -1225,8 +1204,6 @@ lib/
 │   │   ├── api_service.dart                # MODIFY: Add getTermsDatatables, deleteTerm
 │   │   ├── content_service.dart            # MODIFY: Add terms methods, getLanguagesWithIds
 │   │   └── html_parser.dart               # MODIFY: Add parseTermsFromDatatables, parseLanguagesWithIds
-│   └── utils/
-│       └── term_status.dart                # NEW: Status constants and helpers
 ├── shared/
 │   ├── models/
 │   │   └── language.dart                    # NEW: Language model with ID and name
@@ -1246,10 +1223,12 @@ lib/
 │   │       ├── term_filter_panel.dart       # NEW: Filter panel
 │   │       └── term_edit_dialog_wrapper.dart # NEW: Wrapper for TermForm with delete
 │   └── books/
-│       └── models/
-│           └── book.dart                  # MODIFY: Fix langId parsing bug
+│       └── widgets/
+│           └── books_drawer_settings.dart   # MODIFY: Add import for languageNamesProvider
 └── app.dart                              # MODIFY: Navigation indices and screen integration
 ```
+
+---
 
 ## Implementation Phases
 
@@ -1258,8 +1237,7 @@ lib/
 2. Extend HtmlParser with parseLanguagesWithIds()
 3. Create language_data_provider.dart
 4. Move languagesProvider to new location
-5. Fix Book.langId bug (parse LgID from API)
-6. Update imports in books_drawer_settings.dart
+5. Update imports in books_drawer_settings.dart
 
 ### Phase 2: Navigation Updates
 1. Update MainNavigation indices (0=Reader, 1=SentenceReader, 2=Books, 3=Terms, 4=Help, 5=Settings)
@@ -1268,12 +1246,12 @@ lib/
 4. Add TermsScreen to IndexedStack
 
 ### Phase 3: Terms Data Layer
-1. Create Term model with all fields (including status 98) and fromJson factory
-2. Create TermStatus utility class with status constants and helpers
-3. Extend ApiService with getTermsDatatables and deleteTerm endpoints
-4. Extend HtmlParser for term data parsing
-5. Extend ContentService with term methods and getLanguagesWithIds()
-6. Create TermsRepository
+1. Create Term model with String status (matching existing codebase)
+2. Extend ApiService with getTermsDatatables and deleteTerm endpoints
+3. Extend HtmlParser for term data parsing
+4. Extend ContentService with term methods and getLanguagesWithIds()
+5. Create TermsRepository
+6. **IMPORTANT:** Before implementation, test `/term/datatables` endpoint to verify API response field names
 
 ### Phase 4: Terms State Management
 1. Create TermsNotifier with pagination (50 items/page)
@@ -1287,6 +1265,7 @@ lib/
 3. Create TermFilterPanel with language dropdown and status chips
 4. Create TermEditDialogWrapper that reuses existing TermForm
 5. Add delete button only in Terms screen wrapper
+6. Use existing theme extensions for status colors
 
 ### Phase 6: Integration
 1. Update App imports
@@ -1294,29 +1273,38 @@ lib/
 3. Test all navigation paths
 4. Verify filter behavior
 
+---
+
 ## Notes
 
 - **Low priority feature**
 - Uses server-side pagination (50 items per page)
 - Lazy loads more data when scrolling near bottom
-- Filters by current book's language by default (using fixed Book.langId)
+- Filters by current book's language by default (using Book.langId which may be 0)
 - Shows all languages if no book is loaded
 - Resets to book language when navigating to Terms screen
 - Only refreshes when navigating to Terms screen
-- **Status 98 is supported** in model and UI for completeness
+- **Status 5 is "Ignored (dotted)"** (not "Learning 5" - matches TermTooltip)
 - **No bulk operations** - removed per requirements
 - **Reuses existing TermForm** from reader via wrapper pattern
 - **Delete button only shown in Terms screen** via TermEditDialogWrapper
 - All filters are server-side for efficiency
 - Statistics screen hidden completely for future use
+- **Status uses String type** throughout to maintain compatibility with existing code
+- **Uses existing theme extensions** for status colors (context.getStatusColor)
+- **ContentService.getTermFormById and editTerm already exist** - will be reused
+
+---
 
 ## Key Changes from Original Plan
 
-1. **Fixed status mapping**: Status 5 is now "Learning 5", status 98 is "Ignored (dotted)"
-2. **Removed bulk operations**: No bulkUpdateStatus or bulkDelete
-3. **Shared language provider**: Created language_data_provider.dart with both name and ID providers
-4. **Server-side filtering**: All search/filter operations go through API, not client-side
-5. **Reuse TermForm**: Created wrapper instead of new edit dialog
-6. **Fixed Book.langId bug**: Now properly parses LgID from API response
-7. **Updated navigation indices**: Reordered to 0=Reader, 1=SentenceReader, 2=Books, 3=Terms, 4=Help, 5=Settings
-8. **Delete in wrapper**: Delete button only appears when editing from Terms screen
+1. **Status type changed to String**: Uses `String` for status instead of `int` to match existing codebase (TermForm, TermTooltip)
+2. **Fixed status mappings**: Status 5 is now "Ignored (dotted)" to match TermTooltip.statusLabel
+3. **Removed term_status.dart**: Uses existing theme extensions for status colors instead
+4. **Skipped Book.langId fix**: Left hardcoded as 0 per user request
+5. **Added API testing note**: Test `/term/datatables` endpoint before implementation to verify field names
+6. **Documented existing methods**: Noted that getTermFormById and editTerm already exist in ContentService
+7. **Updated imports**: Added import for languageNamesProvider in books_drawer_settings.dart
+8. **Language provider refactoring**: Moved languagesProvider to language_data_provider.dart for better organization
+9. **Status label consistency**: All status labels match TermTooltip.statusLabel exactly
+10. **No term_status.dart utility**: Reuses existing theme extension getColor methods
