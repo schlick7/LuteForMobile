@@ -14,6 +14,7 @@ class TermsState {
   final int? selectedLangId;
   final Set<String?> selectedStatuses;
   final String? errorMessage;
+  final bool isInitialized;
 
   const TermsState({
     this.isLoading = false,
@@ -24,6 +25,7 @@ class TermsState {
     this.selectedLangId,
     this.selectedStatuses = const {'1', '2', '3', '4', '5', '99'},
     this.errorMessage,
+    this.isInitialized = false,
   });
 
   TermsState copyWith({
@@ -35,6 +37,7 @@ class TermsState {
     int? selectedLangId,
     Set<String?>? selectedStatuses,
     String? errorMessage,
+    bool? isInitialized,
   }) {
     return TermsState(
       isLoading: isLoading ?? this.isLoading,
@@ -45,6 +48,7 @@ class TermsState {
       selectedLangId: selectedLangId ?? this.selectedLangId,
       selectedStatuses: selectedStatuses ?? this.selectedStatuses,
       errorMessage: errorMessage,
+      isInitialized: isInitialized ?? this.isInitialized,
     );
   }
 }
@@ -80,22 +84,34 @@ class TermsNotifier extends Notifier<TermsState> {
     }
 
     try {
-      if (state.selectedLangId == null) {
+      int? langId = state.selectedLangId;
+
+      if (!state.isInitialized) {
         final currentBookLangId = ref.read(settingsProvider).currentBookLangId;
-        state = state.copyWith(selectedLangId: currentBookLangId);
+        state = state.copyWith(
+          selectedLangId: currentBookLangId,
+          isInitialized: true,
+        );
+        langId = currentBookLangId;
       }
 
       final filteredStatuses = state.selectedStatuses
           .whereType<String>()
           .toSet();
 
+      print(
+        'DEBUG loadTerms: langId=$langId, search="${state.searchQuery}", statuses=$filteredStatuses',
+      );
+
       final newTerms = await _repository.getTermsPaginated(
-        langId: state.selectedLangId,
+        langId: langId,
         search: state.searchQuery.isNotEmpty ? state.searchQuery : null,
         page: state.currentPage,
         pageSize: _pageSize,
         selectedStatuses: filteredStatuses.isEmpty ? null : filteredStatuses,
       );
+
+      print('DEBUG loadTerms: loaded ${newTerms.length} terms');
 
       state = state.copyWith(
         isLoading: false,
@@ -105,6 +121,7 @@ class TermsNotifier extends Notifier<TermsState> {
         errorMessage: null,
       );
     } catch (e) {
+      print('DEBUG loadTerms: error $e');
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
@@ -122,11 +139,15 @@ class TermsNotifier extends Notifier<TermsState> {
   }
 
   void setLanguageFilter(int? langId) {
+    print('DEBUG setLanguageFilter: $langId');
     state = state.copyWith(selectedLangId: langId);
     loadTerms(reset: true);
   }
 
   void setStatusFilter(String? status) {
+    print(
+      'DEBUG setStatusFilter: $status, current selectedStatuses: ${state.selectedStatuses}',
+    );
     final newStatuses = Set<String?>.from(state.selectedStatuses);
     if (status == null) {
       final allDefaultSelected = {

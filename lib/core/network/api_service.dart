@@ -157,7 +157,7 @@ class ApiService {
   ) async {
     final encodedText = Uri.encodeComponent(text);
     return await _dio.post<String>(
-      '/read/termform/$langId/$encodedText',
+      '/term/datatables',
       data: data,
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );
@@ -422,7 +422,7 @@ class ApiService {
       'filtAgeMax': '',
       'filtStatusMin': '0',
       'filtStatusMax': '99',
-      'filtLgID': langId?.toString() ?? '0',
+      'filtLanguage': langId?.toString() ?? '0',
       'filtText': search ?? '',
       'filtTermIDs': '',
       'parentags': '',
@@ -430,75 +430,33 @@ class ApiService {
       'excluded_parentags': '',
     };
 
-    if (selectedStatuses != null) {
-      for (final statusStr in selectedStatuses) {
-        final statusInt = int.tryParse(statusStr);
-        if (statusInt == null) continue;
+    if (selectedStatuses != null && selectedStatuses.isNotEmpty) {
+      final statusInts = selectedStatuses
+          .where((s) => s != null)
+          .map((s) => int.tryParse(s!))
+          .whereType<int>()
+          .toList();
 
-        switch (statusInt) {
-          case 0:
-            data['filtStatusNew'] = 'on';
-            break;
-          case 1:
-            data['filtStatus1'] = 'on';
-            break;
-          case 2:
-            data['filtStatus2'] = 'on';
-            break;
-          case 3:
-            data['filtStatus3'] = 'on';
-            break;
-          case 4:
-            data['filtStatus4'] = 'on';
-            break;
-          case 5:
-            data['filtStatus5'] = 'on';
-            break;
-          case 98:
-            data['filtStatusIgnored'] = 'on';
-            break;
-          case 99:
-            data['filtStatusWellKnown'] = 'on';
-            break;
-        }
+      if (statusInts.isNotEmpty) {
+        data['filtStatusMin'] = statusInts
+            .reduce((a, b) => a < b ? a : b)
+            .toString();
+        data['filtStatusMax'] = statusInts
+            .reduce((a, b) => a > b ? a : b)
+            .toString();
       }
-    } else if (status != null) {
-      switch (status) {
-        case 0:
-          data['filtStatusNew'] = 'on';
-          break;
-        case 1:
-          data['filtStatus1'] = 'on';
-          break;
-        case 2:
-          data['filtStatus2'] = 'on';
-          break;
-        case 3:
-          data['filtStatus3'] = 'on';
-          break;
-        case 4:
-          data['filtStatus4'] = 'on';
-          break;
-        case 5:
-          data['filtStatus5'] = 'on';
-          break;
-        case 98:
-          data['filtStatusIgnored'] = 'on';
-          break;
-        case 99:
-          data['filtStatusWellKnown'] = 'on';
-          break;
-        default:
-          data['filtStatusNew'] = 'on';
-          data['filtStatus1'] = 'on';
-          data['filtStatus2'] = 'on';
-          data['filtStatus3'] = 'on';
-          data['filtStatus4'] = 'on';
-          data['filtStatus5'] = 'on';
-          data['filtStatusIgnored'] = 'on';
-          data['filtStatusWellKnown'] = 'on';
+
+      if (statusInts.contains(98)) {
+        data['filtIncludeIgnored'] = 'true';
       }
     }
+
+    print(
+      'DEBUG getTermsDatatables SENDING: filtLanguage=${data['filtLanguage']}, filtText=${data['filtText']}',
+    );
+    print(
+      'DEBUG getTermsDatatables SENDING: filtStatusNew=${data['filtStatusNew']}, filtStatus1=${data['filtStatus1']}, filtStatus2=${data['filtStatus2']}',
+    );
 
     return await _dio.post<String>(
       '/term/datatables',

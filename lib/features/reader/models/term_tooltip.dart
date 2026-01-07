@@ -32,7 +32,7 @@ class TermTooltip {
       case '99':
         return 'Well Known';
       case '0':
-        return 'New';
+        return 'Unknown';
       case '1':
         return 'Learning 1';
       case '2':

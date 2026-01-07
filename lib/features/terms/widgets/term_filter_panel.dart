@@ -96,10 +96,16 @@ class TermFilterPanel extends ConsumerWidget {
                       '99',
                     }.every((s) => state.selectedStatuses.contains(s))
                   : state.selectedStatuses.contains(status);
+              print(
+                'DEBUG FilterPanel: status=$status, isSelected=$isSelected, selectedStatuses=${state.selectedStatuses}',
+              );
               return FilterChip(
                 label: Text(status == null ? 'All' : _getStatusLabel(status)),
                 selected: isSelected,
                 onSelected: (_) {
+                  print(
+                    'DEBUG FilterPanel: calling setStatusFilter with $status',
+                  );
                   ref.read(termsProvider.notifier).setStatusFilter(status);
                 },
               );
@@ -128,7 +134,7 @@ class TermFilterPanel extends ConsumerWidget {
       case '99':
         return 'Well Known';
       case '0':
-        return 'New';
+        return 'Unknown';
       case '1':
         return 'Learning 1';
       case '2':

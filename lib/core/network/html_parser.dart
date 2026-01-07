@@ -701,6 +701,17 @@ class HtmlParser {
       final decoded = jsonDecode(jsonData) as Map<String, dynamic>;
       final data = decoded['data'] as List;
 
+      print('DEBUG parseTermsFromDatatables: received ${data.length} terms');
+
+      if (data.isNotEmpty) {
+        final firstTermLang = data[0]['LgName'];
+        final uniqueLangs = data.map((t) => t['LgName']).toSet();
+        print('DEBUG parseTermsFromDatatables: unique languages: $uniqueLangs');
+        print(
+          'DEBUG parseTermsFromDatatables: first term language: $firstTermLang',
+        );
+      }
+
       return data.map((item) {
         final termData = item as Map<String, dynamic>;
         return Term.fromJson(termData);
