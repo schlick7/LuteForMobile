@@ -11,20 +11,11 @@
 fixed? Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
 - how hard to add elsewhere?
 
- 
-- Add toggle For page turn animations
-
 
 ### TTS options: On device, local-OpenAI endpoint, OpenAI, None
   - Future: add a selector in language settings to apply TTS voices based on languages. 
   - add test server button
   
-### AI options: local-OpenAI endpoint, OpenAI, None, others in the future.
-  - support auto model fetching
-  - unique settings for each option
-  - "Using the sentence '[sentence]' Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations"
-  - "Translate the following sentence from [language] to English: [sentence]"
-  - longpress Dictionary has AI tab(like all the web dictionaries) that - ONLY! - when opened fetches translation
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
