@@ -9,12 +9,15 @@
 
 
 fixed? Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
-  - how hard to add elsewhere?
-
-
-Double taping and longpressing on the top bar page numbers should popup a slider for quick book navigation. So then the User can quick skip ahead in the book instead of slowly loading each page at a time
+- how hard to add elsewhere?
 
 Add a temporary highlight(or some way to call attention to it) when the termform closes to the term that was just opened. So that the users can find back there place in the text. Right now it can be hard to figure out where the tap word was after closing the form
+
+Add toggle For page turn animations
+Add toggle for word glow after closing termform
+Make term glow color set by theme
+
+Longpressing term in the termform on android vibrates and shows hint text but I never see the edit term box appear
 
 ### TTS options: On device, local-OpenAI endpoint, OpenAI, None
   - Future: add a selector in language settings to apply TTS voices based on languages. 
