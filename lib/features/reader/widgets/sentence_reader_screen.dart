@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
@@ -1193,15 +1194,17 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           child: PopScope(
             canPop: !_isDictionaryOpen,
             onPopInvoked: (didPop) async {
-              if (didPop && settings.autoSave && _shouldAutoSaveOnClose) {
-                final updatedForm = _currentTermForm ?? termForm;
-                final success = await ref
-                    .read(readerProvider.notifier)
-                    .saveTerm(updatedForm);
-                if (!success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Failed to save term')),
-                  );
+              if (didPop) {
+                if (settings.autoSave && _shouldAutoSaveOnClose) {
+                  final updatedForm = _currentTermForm ?? termForm;
+                  final success = await ref
+                      .read(readerProvider.notifier)
+                      .saveTerm(updatedForm);
+                  if (!success && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Failed to save term')),
+                    );
+                  }
                 }
               }
             },
