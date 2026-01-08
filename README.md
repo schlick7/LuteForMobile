@@ -16,8 +16,8 @@ A Flutter mobile frontend for Lute v3 language learning server. Read books and l
 ## Supported Server Features
 - ✅ Reader View
 - ✅ Books View
+- ✅ Terms View
 - X  Adding Books
-- X  Terms View
 - X  Language Settings
 - X  Statistics View
 
