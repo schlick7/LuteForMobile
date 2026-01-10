@@ -733,6 +733,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         if (pageData!.pageCount <= 1) return;
 
         final velocity = details.primaryVelocity ?? 0;
+        const minSwipeVelocity = 300.0;
+
+        if (velocity.abs() < minSwipeVelocity) return;
+
         if (velocity > 0) {
           if (pageData!.currentPage > 1) {
             _loadPageWithoutMarkingRead(pageData!.currentPage - 1);

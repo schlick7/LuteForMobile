@@ -530,6 +530,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       onTapDown: (_) => TermTooltipClass.close(),
       onHorizontalDragEnd: (details) async {
         final velocity = details.primaryVelocity ?? 0;
+        const minSwipeVelocity = 300.0;
+
+        if (velocity.abs() < minSwipeVelocity) return;
+
         final sentenceReaderNotifier = ref.read(
           sentenceReaderProvider.notifier,
         );
@@ -583,6 +587,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     return GestureDetector(
       onHorizontalDragEnd: (details) async {
         final velocity = details.primaryVelocity ?? 0;
+        const minSwipeVelocity = 300.0;
+
+        if (velocity.abs() < minSwipeVelocity) return;
+
         final sentenceReaderNotifier = ref.read(
           sentenceReaderProvider.notifier,
         );
