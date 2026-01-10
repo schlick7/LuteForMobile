@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/providers/language_data_provider.dart';
+import '../../../shared/models/language.dart';
 import '../providers/terms_provider.dart';
 import '../models/term.dart';
 import 'term_card.dart';
@@ -146,7 +148,22 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
 
     final slivers = <Widget>[
       if (state.selectedLangId != null)
-        SliverToBoxAdapter(child: TermStatsCard(stats: state.stats)),
+        SliverToBoxAdapter(
+          child: Consumer(
+            builder: (context, ref, child) {
+              final languageListAsync = ref.watch(languageListProvider);
+              final languageList = languageListAsync.value ?? [];
+              final language = languageList.cast<Language?>().firstWhere(
+                (l) => l?.id == state.selectedLangId,
+                orElse: () => null,
+              );
+              return TermStatsCard(
+                stats: state.stats,
+                languageName: language?.name,
+              );
+            },
+          ),
+        ),
       SliverPadding(
         padding: const EdgeInsets.only(bottom: 16),
         sliver: SliverList(
