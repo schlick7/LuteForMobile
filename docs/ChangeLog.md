@@ -6,3 +6,4 @@
 
 
 # Other Changes
+- Add status colors to termsscreen stats
