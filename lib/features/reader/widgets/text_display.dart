@@ -17,6 +17,7 @@ class TextDisplay extends StatefulWidget {
   final bool isItalic;
   final ScrollController? scrollController;
   final double topPadding;
+  final double bottomPadding;
   final Widget? bottomControlWidget;
   final int? highlightedWordId;
 
@@ -33,6 +34,7 @@ class TextDisplay extends StatefulWidget {
     this.isItalic = false,
     this.scrollController,
     this.topPadding = 0.0,
+    this.bottomPadding = 0.0,
     this.bottomControlWidget,
     this.highlightedWordId,
   });
@@ -182,7 +184,7 @@ class _TextDisplayState extends State<TextDisplay> {
           top: 16 + widget.topPadding,
           left: 16,
           right: 16,
-          bottom: 16,
+          bottom: 16 + widget.bottomPadding,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

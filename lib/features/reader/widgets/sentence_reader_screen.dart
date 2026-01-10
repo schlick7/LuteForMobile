@@ -562,7 +562,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       },
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: 24 + MediaQuery.of(context).systemGestureInsets.bottom,
+          ),
           child: SentenceReaderDisplay(
             sentence: currentSentence,
             onTap: (item, position) => _handleTap(item, position),
