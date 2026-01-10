@@ -157,6 +157,17 @@ class BooksNotifier extends Notifier<BooksState> {
     }
   }
 
+  Future<Book> getBookWithStatsAfterDelay(int bookId) async {
+    try {
+      final active = await _repository.getActiveBooks();
+      final archived = await _repository.getArchivedBooks();
+      final books = active + archived;
+      return books.firstWhere((b) => b.id == bookId);
+    } catch (e) {
+      throw Exception('Failed to get book with stats: $e');
+    }
+  }
+
   Future<Book> getUpdatedBook(int bookId) async {
     await _repository.refreshBookStats(bookId);
     final active = await _repository.getActiveBooks();

@@ -35,10 +35,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
 
   Future<void> _refreshStatsIfNeeded() async {
     if (currentBook != null) {
-      setState(() {
-        isRefreshing = true;
-      });
-
+      isRefreshing = true;
       int? originalSampleSize;
       bool capturedOriginalSize = false;
 
@@ -58,14 +55,21 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
             .setUserSetting('stats_calc_sample_size', sampleSizeToUse);
 
         await ref
-            .read(booksProvider.notifier)
+            .read(contentServiceProvider)
             .refreshBookStats(
               currentBook!.id,
               timeout: const Duration(seconds: 15),
             );
+
+        if (!mounted) return;
+
+        await Future.delayed(const Duration(seconds: 2));
+
+        if (!mounted) return;
+
         final updatedBook = await ref
             .read(booksProvider.notifier)
-            .getBookWithStats(currentBook!.id);
+            .getBookWithStatsAfterDelay(currentBook!.id);
 
         if (!mounted) return;
 
@@ -96,11 +100,9 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
             print('Failed to restore sample size: $e');
           }
         }
-
         if (mounted) {
-          setState(() {
-            isRefreshing = false;
-          });
+          isRefreshing = false;
+          setState(() {});
         }
       }
     }
