@@ -25,6 +25,7 @@ class TermEditDialogWrapper extends ConsumerStatefulWidget {
 class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
   TermForm? _termForm;
   bool _isLoading = true;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -77,6 +78,15 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
+              if (_isSaving)
+                const Padding(
+                  padding: EdgeInsets.only(right: 12),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
               IconButton(
                 icon: const Icon(Icons.delete),
                 onPressed: () {
@@ -139,7 +149,41 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
                   }
                 }
               },
-              onUpdate: (_) {},
+              onUpdate: (updatedForm) async {
+                setState(() {
+                  _termForm = updatedForm;
+                });
+                try {
+                  setState(() {
+                    _isSaving = true;
+                  });
+                  final contentService = ref.read(contentServiceProvider);
+                  await contentService.editTerm(
+                    updatedForm.termId!,
+                    updatedForm.toFormData(),
+                  );
+                  if (mounted) {
+                    widget.onSave?.call();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Term updated successfully'),
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to update term: $e')),
+                    );
+                  }
+                } finally {
+                  if (mounted) {
+                    setState(() {
+                      _isSaving = false;
+                    });
+                  }
+                }
+              },
               onCancel: () => Navigator.pop(context),
               contentService: ref.read(contentServiceProvider),
               dictionaryService: ref.read(dictionaryServiceProvider),
