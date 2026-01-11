@@ -10,7 +10,6 @@ import '../models/page_data.dart';
 import '../providers/reader_provider.dart';
 import '../providers/audio_player_provider.dart';
 import '../widgets/term_tooltip.dart';
-import '../models/sentence_translation.dart';
 import 'text_display.dart';
 import 'term_form.dart';
 import 'sentence_translation.dart';
