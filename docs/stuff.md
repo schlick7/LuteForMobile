@@ -11,10 +11,18 @@
 # Terms Screen
 
 
+
+Why isn't the buildrunner working for hive?
+add number of cached tooltips in () by clear cache button
+
 # Reader
 
+# Tooltp issues
 fixed? Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
 - right now we wait to show the tooltip ontap until the doubletap timeout ends. Can we also add a flag to wait until the data is actually fetched? with a 2 second timeout
+
+- Add caching with Hive-ce on page load? 
+
 
 # TTS
 - Future: add a selector in language settings to apply TTS voices based on languages. 
