@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
+import 'package:lute_for_mobile/core/cache/providers/tooltip_cache_provider.dart';
+import 'package:lute_for_mobile/core/cache/providers/cache_stats_provider.dart';
 import '../providers/sentence_reader_provider.dart';
 import '../providers/reader_provider.dart';
 import '../../../../app.dart';
@@ -132,6 +134,95 @@ class ReaderDrawerSettings extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 24),
+          // Show tooltip cache management when enabled
+          Consumer(
+            builder: (context, ref, _) {
+              final settings = ref.watch(settingsProvider);
+              if (settings.enableTooltipCaching) {
+                // Refresh cache stats when this section is built
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  ref.invalidate(cacheStatsProvider);
+                });
+
+                return Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final cacheStats = ref.watch(cacheStatsProvider);
+
+                        return cacheStats.when(
+                          data: (stats) {
+                            int cacheCount = stats['validEntries'] ?? 0;
+
+                            return OutlinedButton.icon(
+                              onPressed: () async {
+                                // Get the tooltip cache service
+                                final tooltipCacheService = ref.read(
+                                  tooltipCacheServiceProvider,
+                                );
+
+                                // Clear the cache
+                                final success = await tooltipCacheService
+                                    .clearAllCache();
+
+                                if (success && context.mounted) {
+                                  // Refresh the cache stats after clearing
+                                  ref.invalidate(cacheStatsProvider);
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Tooltip cache cleared successfully',
+                                      ),
+                                    ),
+                                  );
+                                } else if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Failed to clear tooltip cache',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                              icon: const Icon(Icons.refresh),
+                              label: Text(
+                                'Refresh Tooltip Cache ($cacheCount)',
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                minimumSize: const Size(double.infinity, 40),
+                              ),
+                            );
+                          },
+                          loading: () => OutlinedButton.icon(
+                            onPressed: null,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text(
+                              'Refresh Tooltip Cache (Loading...)',
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 40),
+                            ),
+                          ),
+                          error: (error, stack) => OutlinedButton.icon(
+                            onPressed: null,
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Refresh Tooltip Cache (Error)'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(double.infinity, 40),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           const SizedBox(height: 24),
           Consumer(
             builder: (context, ref, _) {

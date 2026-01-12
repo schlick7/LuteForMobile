@@ -3,7 +3,10 @@ import 'package:meta/meta.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../utils/sentence_parser.dart';
 import '../services/sentence_cache_service.dart';
+import '../models/term_tooltip.dart';
 import 'reader_provider.dart';
+import '../../../core/cache/providers/tooltip_cache_provider.dart';
+import '../../../shared/providers/network_providers.dart';
 
 @immutable
 class SentenceReaderState {
@@ -594,6 +597,18 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     print('DEBUG: triggerFlushAndRebuild: Clearing cache for bookId=$bookId');
     await _cacheService.clearBookCache(bookId);
 
+    // Also clear tooltip cache for this book if needed
+    final settings = ref.read(settingsProvider);
+    if (settings.enableTooltipCaching) {
+      try {
+        final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
+        // We don't have a direct way to clear tooltips by book, so we'll just log this
+        print('DEBUG: triggerFlushAndRebuild: Consider clearing tooltip cache');
+      } catch (e) {
+        print('Error clearing tooltip cache: $e');
+      }
+    }
+
     print(
       'DEBUG: triggerFlushAndRebuild: Reloading page bookId=$bookId, pageNum=$pageNum',
     );
@@ -614,6 +629,42 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       );
       await parseSentencesForPage(langId, initialIndex: 0);
       await loadSavedPosition();
+    }
+  }
+
+  /// Fetch term tooltip using cache if enabled
+  Future<TermTooltip?> fetchTermTooltip(int termId) async {
+    final settings = ref.read(settingsProvider);
+
+    // If tooltip caching is enabled, check the cache first
+    if (settings.enableTooltipCaching) {
+      try {
+        final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
+
+        // Try to get from cache
+        final cachedEntry = await tooltipCacheService.getFromCache(termId);
+        if (cachedEntry != null) {
+          // Parse the cached HTML to create a TermTooltip object using the same parser as the server
+          final contentService = ref.read(contentServiceProvider);
+          final tooltip = contentService.parser.parseTermTooltip(
+            cachedEntry.tooltipHtml,
+          );
+          return tooltip;
+        }
+      } catch (e) {
+        print('Error getting tooltip from cache in SentenceReader: $e');
+        // Continue to fetch from network if cache fails
+      }
+    }
+
+    // Fetch from network via the reader provider
+    try {
+      final result = await ref
+          .read(readerProvider.notifier)
+          .fetchTermTooltip(termId);
+      return result;
+    } catch (e) {
+      return null;
     }
   }
 }
