@@ -9,6 +9,7 @@ import 'package:lute_for_mobile/features/settings/widgets/help_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_screen.dart';
 import 'package:lute_for_mobile/features/books/widgets/books_drawer_settings.dart';
 import 'package:lute_for_mobile/features/terms/widgets/terms_screen.dart';
+import 'package:lute_for_mobile/features/stats/widgets/stats_screen.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 import 'package:lute_for_mobile/shared/theme/theme_definitions.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
@@ -237,6 +238,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       'reader',
       'books',
       'terms',
+      'stats',
       'help',
       'settings',
       'sentence-reader',
@@ -307,6 +309,11 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       case 5:
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
+            .updateSettings(null);
+        break;
+      case 6:
+        ref
+            .read(currentViewDrawerSettingsProvider.notifier)
             .updateSettings(ReaderDrawerSettings(currentIndex: _currentIndex));
         break;
       default:
@@ -337,10 +344,12 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       ),
       body: _currentIndex == 2
           ? TermsScreen(scaffoldKey: _scaffoldKey)
-          : _currentIndex == 3
+          : _currentIndex == 4
           ? HelpScreen(scaffoldKey: _scaffoldKey)
+          : _currentIndex == 3
+          ? StatsScreen(scaffoldKey: _scaffoldKey)
           : IndexedStack(
-              index: _currentIndex > 3 ? _currentIndex - 2 : _currentIndex,
+              index: _currentIndex > 4 ? _currentIndex - 2 : _currentIndex,
               children: [
                 RepaintBoundary(
                   child: ReaderScreen(
