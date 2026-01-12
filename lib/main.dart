@@ -12,8 +12,7 @@ void main() async {
   final serverUrl = prefs.getString('server_url') ?? '';
 
   // Initialize tooltip cache
-  final tooltipCacheService = TooltipCacheService();
-  await tooltipCacheService.initialize();
+  await TooltipCacheService.getInstance().initialize();
 
   runApp(
     ProviderScope(

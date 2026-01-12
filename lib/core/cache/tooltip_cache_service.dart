@@ -14,23 +14,46 @@ class TooltipCacheService {
   Box<TooltipCacheEntry>? _box;
   bool _isInitialized = false;
 
+  // Singleton instance
+  static TooltipCacheService? _instance;
+
+  static TooltipCacheService getInstance() {
+    _instance ??= TooltipCacheService._internal();
+    return _instance!;
+  }
+
+  TooltipCacheService._internal();
+
+  factory TooltipCacheService() {
+    return getInstance();
+  }
+
   /// Initialize the Hive box for tooltip caching
   Future<void> initialize() async {
     try {
-      // Register the adapter
-      Hive.registerAdapter(TooltipCacheEntryAdapter());
+      if (!_isInitialized) {
+        // Register the adapter only once
+        try {
+          Hive.registerAdapter(TooltipCacheEntryAdapter());
+        } catch (e) {
+          // Adapter might already be registered, continue anyway
+          print('Adapter registration failed (might be duplicate): $e');
+        }
 
-      // Initialize Hive with Flutter
-      await Hive.initFlutter();
+        // Initialize Hive with Flutter
+        await Hive.initFlutter();
 
-      // Open the box
-      _box = await Hive.openBox<TooltipCacheEntry>(_boxName);
+        // Open the box
+        _box = await Hive.openBox<TooltipCacheEntry>(_boxName);
 
-      // Clean up expired entries on initialization
-      await _cleanupExpiredEntries();
+        // Clean up expired entries on initialization
+        await _cleanupExpiredEntries();
 
-      _isInitialized = true; // Set initialization flag
-      print('Tooltip cache initialized successfully');
+        _isInitialized = true; // Set initialization flag
+        print('Tooltip cache initialized successfully');
+      } else {
+        print('Tooltip cache already initialized');
+      }
     } catch (e) {
       print('Error initializing tooltip cache: $e');
       rethrow;
@@ -179,6 +202,7 @@ class TooltipCacheService {
       }
 
       await _box!.clear();
+      print('Tooltip cache cleared successfully');
       return true;
     } catch (e) {
       print('Error clearing tooltip cache: $e');
