@@ -218,14 +218,15 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         .read(settingsProvider.notifier)
         .updateCurrentBook(bookId, pageNum, book.langId);
 
+    setState(() {
+      _currentIndex = 0;
+    });
+
     if (_readerKey.currentState != null) {
       _readerKey.currentState!.loadBook(bookId, pageNum);
     } else {
       print('ERROR: _readerKey.currentState is null!');
     }
-    setState(() {
-      _currentIndex = 0;
-    });
     _updateDrawerSettings();
   }
 
