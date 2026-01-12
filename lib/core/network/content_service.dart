@@ -502,6 +502,17 @@ class ContentService {
     } catch (e) {
       print('Error getting current page for book $bookId: $e');
       return 1; // Default to page 1 on error
+    } catch (e) {
+      print('Error getting current page for book $bookId: $e');
+      return 1; // Default to page 1 on error
     }
   }
+
+  Future<Map<String, dynamic>> getStatsData() async {
+    final response = await _apiService.getStatsData();
+    final jsonString = response.data ?? '{}';
+    final json = jsonDecode(jsonString) as Map<String, dynamic>;
+    return json;
+  }
+}
 }

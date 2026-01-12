@@ -475,4 +475,8 @@ class ApiService {
   Future<Response<String>> deleteTerm(int termId) async {
     return await _dio.post<String>('/term/delete/$termId');
   }
+
+  Future<Response<String>> getStatsData() async {
+    return await _dio.get('/stats/data');
+  }
 }
