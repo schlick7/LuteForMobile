@@ -515,4 +515,3 @@ class ContentService {
     return json;
   }
 }
-}

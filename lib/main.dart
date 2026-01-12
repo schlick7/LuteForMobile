@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lute_for_mobile/app.dart';
 import 'package:lute_for_mobile/core/providers/initial_providers.dart';
 import 'package:lute_for_mobile/core/cache/tooltip_cache_service.dart';
+import 'package:lute_for_mobile/features/stats/repositories/stats_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,6 +14,8 @@ void main() async {
 
   // Initialize tooltip cache
   await TooltipCacheService.getInstance().initialize();
+  // Initialize stats cache
+  await StatsRepository.initialize();
 
   runApp(
     ProviderScope(
