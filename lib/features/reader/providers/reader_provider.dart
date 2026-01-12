@@ -288,7 +288,8 @@ class ReaderNotifier extends Notifier<ReaderState> {
           try {
             final tooltip = await _repository.getTermTooltip(termId);
             if (tooltip != null) {
-              final rawHtml = await _repository.contentService.getRawTermTooltipHtml(termId);
+              final rawHtml = await _repository.contentService
+                  .getRawTermTooltipHtml(termId);
               if (rawHtml != null) {
                 await tooltipCacheService.saveToCache(termId, rawHtml);
               }
@@ -343,7 +344,8 @@ class ReaderNotifier extends Notifier<ReaderState> {
           try {
             final tooltip = await _repository.getTermTooltip(termId);
             if (tooltip != null) {
-              final rawHtml = await _repository.contentService.getRawTermTooltipHtml(termId);
+              final rawHtml = await _repository.contentService
+                  .getRawTermTooltipHtml(termId);
               if (rawHtml != null) {
                 await tooltipCacheService.saveToCache(termId, rawHtml);
               }
@@ -535,7 +537,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
     try {
       if (termForm.termId != null) {
         await _repository.editTerm(termForm.termId!, termForm.toFormData());
-        updateTermStatus(termForm.termId!, termForm.status);
+        await updateTermStatus(termForm.termId!, termForm.status);
 
         // Invalidate tooltip cache for this term if caching is enabled
         final settings = ref.read(settingsProvider);
@@ -544,15 +546,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
             final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
             await tooltipCacheService.removeFromCache(termForm.termId!);
 
-            // Also invalidate cache for parent and child terms
+            // Also invalidate cache for parent terms
             for (final parent in termForm.parents) {
               if (parent.id != null) {
                 await tooltipCacheService.removeFromCache(parent.id!);
               }
-            }
-            for (final child in termForm.children) {
-              // Child objects don't have IDs, so we can't directly invalidate them
-              // We'll need to search for them by term if needed
             }
           } catch (e) {
             print('Error invalidating tooltip cache after saveTerm: $e');
@@ -571,7 +569,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
     }
   }
 
-  void updateTermStatus(int termId, String status) {
+  Future<void> updateTermStatus(int termId, String status) async {
     final currentPageData = state.pageData;
     if (currentPageData == null) {
       return;

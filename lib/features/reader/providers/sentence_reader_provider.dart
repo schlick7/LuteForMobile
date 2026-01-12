@@ -3,6 +3,7 @@ import 'package:meta/meta.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../utils/sentence_parser.dart';
 import '../services/sentence_cache_service.dart';
+import '../models/term_tooltip.dart';
 import 'reader_provider.dart';
 import '../../../core/cache/providers/tooltip_cache_provider.dart';
 import '../../../shared/providers/network_providers.dart';

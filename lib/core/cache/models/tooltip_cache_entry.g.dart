@@ -1,5 +1,10 @@
-import 'package:hive_ce/hive.dart';
-import 'tooltip_cache_entry.dart';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'tooltip_cache_entry.dart';
+
+// ***************************************************************************
+// Hive Type Adapter Generator
+// ***************************************************************************
 
 class TooltipCacheEntryAdapter extends TypeAdapter<TooltipCacheEntry> {
   @override
