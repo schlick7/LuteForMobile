@@ -358,7 +358,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         currentSentence != null &&
         currentSentence.id != _currentSentenceId) {
       print(
-        'DEBUG: Build method detected sentence change: ${_currentSentenceId} -> ${currentSentence.id}',
+        'DEBUG: Build method detected sentence change: $_currentSentenceId -> ${currentSentence.id}',
       );
       _currentSentenceId = currentSentence.id;
       _loadTooltipsForCurrentSentence();
