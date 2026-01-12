@@ -142,7 +142,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Timer? _hideUiTimer;
   Timer? _glowTimer;
   int? _highlightedWordId;
+  int? _highlightedParagraphId;
+  int? _highlightedOrder;
   int? _originalWordId;
+  TextItem? _originalTextItem;
   ScrollController _scrollController = ScrollController();
   double _lastScrollPosition = 0.0;
   DateTime? _lastMarkPageTime;
@@ -721,6 +724,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       fontWeight: textSettings.fontWeight,
       isItalic: textSettings.isItalic,
       highlightedWordId: _highlightedWordId,
+      highlightedParagraphId: _highlightedParagraphId,
+      highlightedOrder: _highlightedOrder,
     );
 
     return Stack(
@@ -814,9 +819,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     if (item.wordId == null) return;
     if (item.langId == null) return;
 
-    // Store original word ID before opening term form
+    // Store original identifiers before opening term form
     _originalWordId = item.wordId;
+    _originalTextItem = item;
     _highlightedWordId = null;
+    _highlightedParagraphId = null;
+    _highlightedOrder = null;
 
     print(
       '_handleDoubleTap: text="${item.text}", wordId=${item.wordId}, langId=${item.langId}',
@@ -841,22 +849,26 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   void _triggerWordGlow() {
     final settings = ref.read(termFormSettingsProvider);
 
-    // Only trigger if enabled and we have an original word ID
-    if (!settings.wordGlowEnabled || _originalWordId == null) return;
+    // Only trigger if enabled and we have an original text item
+    if (!settings.wordGlowEnabled || _originalTextItem == null) return;
 
     // Cancel any existing timer
     _glowTimer?.cancel();
 
-    // Set highlight
+    // Set highlight for this specific instance
     setState(() {
-      _highlightedWordId = _originalWordId;
+      _highlightedWordId = _originalTextItem!.wordId;
+      _highlightedParagraphId = _originalTextItem!.paragraphId;
+      _highlightedOrder = _originalTextItem!.order;
     });
 
-    // Auto-dismiss after 100ms
+    // Auto-dismiss after 150ms
     _glowTimer = Timer(const Duration(milliseconds: 150), () {
       if (mounted) {
         setState(() {
           _highlightedWordId = null;
+          _highlightedParagraphId = null;
+          _highlightedOrder = null;
         });
       }
     });
