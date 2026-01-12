@@ -19,7 +19,7 @@ class LanguageFilterWidget extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: DropdownButtonFormField<LanguageReadingStats?>(
-        initialValue: selectedLanguage,
+        value: selectedLanguage,
         decoration: const InputDecoration(
           labelText: 'Language',
           prefixIcon: Icon(Icons.translate),
@@ -40,7 +40,11 @@ class LanguageFilterWidget extends ConsumerWidget {
           }),
         ],
         onChanged: (value) {
-          ref.read(statsProvider.notifier).setLanguage(value);
+          if (value == null) {
+            ref.read(statsProvider.notifier).clearLanguage();
+          } else {
+            ref.read(statsProvider.notifier).setLanguage(value);
+          }
         },
       ),
     );

@@ -58,6 +58,23 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
     }
   }
 
+  void clearLanguage() {
+    final current = state.value;
+    if (current != null) {
+      state = AsyncData(
+        StatsState(
+          isLoading: current.isLoading,
+          error: current.error,
+          cacheEntry: current.cacheEntry,
+          languages: current.languages,
+          selectedLanguage: null,
+          selectedPeriod: current.selectedPeriod,
+          selectedFilter: current.selectedFilter,
+        ),
+      );
+    }
+  }
+
   void setFilter(StatsFilter filter) {
     final current = state.value;
     if (current != null) {
