@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
+import 'package:lute_for_mobile/core/cache/providers/tooltip_cache_provider.dart';
 import '../providers/sentence_reader_provider.dart';
 import '../providers/reader_provider.dart';
 import '../../../../app.dart';
@@ -132,6 +133,49 @@ class ReaderDrawerSettings extends ConsumerWidget {
             },
           ),
           const SizedBox(height: 24),
+          // Show tooltip cache management when enabled
+          Consumer(
+            builder: (context, ref, _) {
+              final settings = ref.watch(settingsProvider);
+              if (settings.enableTooltipCaching) {
+                return Column(
+                  children: [
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        // Get the tooltip cache service
+                        final tooltipCacheService = ref.read(
+                          tooltipCacheServiceProvider,
+                        );
+
+                        // Clear the cache
+                        final success = await tooltipCacheService
+                            .clearAllCache();
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? 'Tooltip cache cleared successfully'
+                                    : 'Failed to clear tooltip cache',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Refresh Tooltip Cache'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 40),
+                      ),
+                    ),
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           const SizedBox(height: 24),
           Consumer(
             builder: (context, ref, _) {

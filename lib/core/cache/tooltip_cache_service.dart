@@ -12,6 +12,7 @@ class TooltipCacheService {
       10000; // Maximum number of entries to prevent unlimited growth
 
   Box<TooltipCacheEntry>? _box;
+  bool _isInitialized = false;
 
   /// Initialize the Hive box for tooltip caching
   Future<void> initialize() async {
@@ -28,6 +29,7 @@ class TooltipCacheService {
       // Clean up expired entries on initialization
       await _cleanupExpiredEntries();
 
+      _isInitialized = true; // Set initialization flag
       print('Tooltip cache initialized successfully');
     } catch (e) {
       print('Error initializing tooltip cache: $e');
@@ -38,6 +40,10 @@ class TooltipCacheService {
   /// Get a tooltip from cache if it exists and hasn't expired
   Future<TooltipCacheEntry?> getFromCache(int wordId) async {
     try {
+      if (!_isInitialized) {
+        await initialize();
+      }
+
       if (_box == null) {
         print('Warning: Tooltip cache not initialized');
         return null;
@@ -70,6 +76,10 @@ class TooltipCacheService {
   /// Save a tooltip to cache
   Future<bool> saveToCache(int wordId, String tooltipHtml) async {
     try {
+      if (!_isInitialized) {
+        await initialize();
+      }
+
       if (_box == null) {
         print('Warning: Tooltip cache not initialized');
         return false;
@@ -102,6 +112,10 @@ class TooltipCacheService {
   /// Bulk save multiple tooltips to cache
   Future<bool> bulkSaveToCache(Map<int, String> tooltips) async {
     try {
+      if (!_isInitialized) {
+        await initialize();
+      }
+
       if (_box == null) {
         print('Warning: Tooltip cache not initialized');
         return false;
@@ -135,6 +149,10 @@ class TooltipCacheService {
   /// Remove a specific tooltip from cache
   Future<bool> removeFromCache(int wordId) async {
     try {
+      if (!_isInitialized) {
+        await initialize();
+      }
+
       if (_box == null) {
         print('Warning: Tooltip cache not initialized');
         return false;
@@ -151,6 +169,10 @@ class TooltipCacheService {
   /// Clear all entries from the cache
   Future<bool> clearAllCache() async {
     try {
+      if (!_isInitialized) {
+        await initialize();
+      }
+
       if (_box == null) {
         print('Warning: Tooltip cache not initialized');
         return false;
@@ -167,6 +189,10 @@ class TooltipCacheService {
   /// Get statistics about the cache
   Future<Map<String, dynamic>> getCacheStats() async {
     try {
+      if (!_isInitialized) {
+        await initialize();
+      }
+
       if (_box == null) {
         return {'error': 'Cache not initialized'};
       }
@@ -282,6 +308,7 @@ class TooltipCacheService {
       if (_box != null && _box!.isOpen) {
         await _box!.close();
       }
+      _isInitialized = false; // Reset initialization state
     } catch (e) {
       print('Error closing tooltip cache: $e');
     }
