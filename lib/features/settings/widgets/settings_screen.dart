@@ -465,6 +465,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
+                        const Text('Enable swipe navigation'),
+                        const Spacer(),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: textSettings.swipeNavigationEnabled,
+                            onChanged: (value) {
+                              ref
+                                  .read(textFormattingSettingsProvider.notifier)
+                                  .updateSwipeNavigationEnabled(value);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
                         const Text('Mark pages as read when swiping'),
                         const Spacer(),
                         Transform.scale(

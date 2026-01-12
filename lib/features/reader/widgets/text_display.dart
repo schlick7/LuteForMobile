@@ -17,8 +17,11 @@ class TextDisplay extends StatefulWidget {
   final bool isItalic;
   final ScrollController? scrollController;
   final double topPadding;
+  final double bottomPadding;
   final Widget? bottomControlWidget;
   final int? highlightedWordId;
+  final int? highlightedParagraphId;
+  final int? highlightedOrder;
 
   const TextDisplay({
     super.key,
@@ -33,8 +36,11 @@ class TextDisplay extends StatefulWidget {
     this.isItalic = false,
     this.scrollController,
     this.topPadding = 0.0,
+    this.bottomPadding = 0.0,
     this.bottomControlWidget,
     this.highlightedWordId,
+    this.highlightedParagraphId,
+    this.highlightedOrder,
   });
 
   static Widget buildInteractiveWord(
@@ -49,6 +55,8 @@ class TextDisplay extends StatefulWidget {
     void Function(TextItem)? onDoubleTap,
     void Function(TextItem)? onLongPress,
     int? highlightedWordId,
+    int? highlightedParagraphId,
+    int? highlightedOrder,
   }) {
     if (item.isSpace) {
       return Text(
@@ -77,7 +85,10 @@ class TextDisplay extends StatefulWidget {
     }
 
     final isHighlighted =
-        highlightedWordId != null && highlightedWordId == item.wordId;
+        highlightedWordId != null &&
+        highlightedWordId == item.wordId &&
+        highlightedParagraphId == item.paragraphId &&
+        highlightedOrder == item.order;
 
     final glowEffect = isHighlighted
         ? BoxShadow(
@@ -182,7 +193,7 @@ class _TextDisplayState extends State<TextDisplay> {
           top: 16 + widget.topPadding,
           left: 16,
           right: 16,
-          bottom: 16,
+          bottom: 16 + widget.bottomPadding,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,6 +238,8 @@ class _TextDisplayState extends State<TextDisplay> {
       onDoubleTap: (item) => widget.onDoubleTap?.call(item),
       onLongPress: (item) => widget.onLongPress?.call(item),
       highlightedWordId: widget.highlightedWordId,
+      highlightedParagraphId: widget.highlightedParagraphId,
+      highlightedOrder: widget.highlightedOrder,
     );
   }
 }

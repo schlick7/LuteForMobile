@@ -5,16 +5,16 @@
   
 # Statistics Screen  
 
+- When multiple languages are selected it should show a line for each language in the line graphs and a bar for each language in the bar graph. 
+- Use Hive-ce on the backend. 
+
 # Terms Screen
 
-Add the Status highlights to the status labels in the term statistics card and add the language name to the right of the term statitics label. 
 
 # Reader
 
 fixed? Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
-- how hard to add elsewhere?
-
-- Glow highlights make all terms with that termid glow, make it so only the clicked one glows. 
+- right now we wait to show the tooltip ontap until the doubletap timeout ends. Can we also add a flag to wait until the data is actually fetched? with a 2 second timeout
 
 # TTS
 - Future: add a selector in language settings to apply TTS voices based on languages. 

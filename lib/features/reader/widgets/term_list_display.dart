@@ -82,7 +82,12 @@ class TermListDisplay extends StatelessWidget {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.only(
+        left: 12,
+        right: 12,
+        top: 8,
+        bottom: 8 + MediaQuery.of(context).systemGestureInsets.bottom,
+      ),
       itemCount: uniqueTerms.length,
       itemBuilder: (context, index) {
         final term = uniqueTerms[index];

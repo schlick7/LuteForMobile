@@ -397,6 +397,7 @@ class TextFormattingSettings {
   final FontWeight fontWeight;
   final bool isItalic;
   final bool fullscreenMode;
+  final bool swipeNavigationEnabled;
   final bool swipeMarksRead;
 
   const TextFormattingSettings({
@@ -406,6 +407,7 @@ class TextFormattingSettings {
     this.fontWeight = FontWeight.w500,
     this.isItalic = false,
     this.fullscreenMode = false,
+    this.swipeNavigationEnabled = true,
     this.swipeMarksRead = true,
   });
 
@@ -416,6 +418,7 @@ class TextFormattingSettings {
     FontWeight? fontWeight,
     bool? isItalic,
     bool? fullscreenMode,
+    bool? swipeNavigationEnabled,
     bool? swipeMarksRead,
   }) {
     return TextFormattingSettings(
@@ -425,6 +428,8 @@ class TextFormattingSettings {
       fontWeight: fontWeight ?? this.fontWeight,
       isItalic: isItalic ?? this.isItalic,
       fullscreenMode: fullscreenMode ?? this.fullscreenMode,
+      swipeNavigationEnabled:
+          swipeNavigationEnabled ?? this.swipeNavigationEnabled,
       swipeMarksRead: swipeMarksRead ?? this.swipeMarksRead,
     );
   }
@@ -439,6 +444,7 @@ class TextFormattingSettings {
         other.fontWeight == fontWeight &&
         other.isItalic == isItalic &&
         other.fullscreenMode == fullscreenMode &&
+        other.swipeNavigationEnabled == swipeNavigationEnabled &&
         other.swipeMarksRead == swipeMarksRead;
   }
 
@@ -450,6 +456,7 @@ class TextFormattingSettings {
     fontWeight,
     isItalic,
     fullscreenMode,
+    swipeNavigationEnabled,
     swipeMarksRead,
   );
 
@@ -464,6 +471,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
   static const String _keyFontWeight = 'font_weight';
   static const String _keyIsItalic = 'is_italic';
   static const String _keyFullscreenMode = 'fullscreen_mode';
+  static const String _keySwipeNavigationEnabled = 'swipe_navigation_enabled';
   static const String _keySwipeMarksRead = 'swipe_marks_read';
   bool _isInitialized = false;
 
@@ -484,6 +492,8 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
     final fontWeightIndex = prefs.getInt(_keyFontWeight) ?? 3;
     final isItalic = prefs.getBool(_keyIsItalic) ?? false;
     final fullscreenMode = prefs.getBool(_keyFullscreenMode) ?? false;
+    final swipeNavigationEnabled =
+        prefs.getBool(_keySwipeNavigationEnabled) ?? true;
     final swipeMarksRead = prefs.getBool(_keySwipeMarksRead) ?? true;
 
     final fontWeightMap = [
@@ -504,6 +514,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
           fontWeightMap[fontWeightIndex.clamp(0, fontWeightMap.length - 1)],
       isItalic: isItalic,
       fullscreenMode: fullscreenMode,
+      swipeNavigationEnabled: swipeNavigationEnabled,
       swipeMarksRead: swipeMarksRead,
     );
     if (state != loadedSettings) {
@@ -569,6 +580,12 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
     state = state.copyWith(swipeMarksRead: value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keySwipeMarksRead, value);
+  }
+
+  Future<void> updateSwipeNavigationEnabled(bool value) async {
+    state = state.copyWith(swipeNavigationEnabled: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keySwipeNavigationEnabled, value);
   }
 }
 

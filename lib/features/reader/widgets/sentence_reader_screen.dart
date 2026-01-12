@@ -529,7 +529,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     return GestureDetector(
       onTapDown: (_) => TermTooltipClass.close(),
       onHorizontalDragEnd: (details) async {
+        final textSettings = ref.read(textFormattingSettingsProvider);
+        if (!textSettings.swipeNavigationEnabled) return;
+
         final velocity = details.primaryVelocity ?? 0;
+        const minSwipeVelocity = 300.0;
+
+        if (velocity.abs() < minSwipeVelocity) return;
+
         final sentenceReaderNotifier = ref.read(
           sentenceReaderProvider.notifier,
         );
@@ -558,7 +565,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       },
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: 24 + MediaQuery.of(context).systemGestureInsets.bottom,
+          ),
           child: SentenceReaderDisplay(
             sentence: currentSentence,
             onTap: (item, position) => _handleTap(item, position),
@@ -582,7 +594,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
     return GestureDetector(
       onHorizontalDragEnd: (details) async {
+        final textSettings = ref.read(textFormattingSettingsProvider);
+        if (!textSettings.swipeNavigationEnabled) return;
+
         final velocity = details.primaryVelocity ?? 0;
+        const minSwipeVelocity = 300.0;
+
+        if (velocity.abs() < minSwipeVelocity) return;
+
         final sentenceReaderNotifier = ref.read(
           sentenceReaderProvider.notifier,
         );

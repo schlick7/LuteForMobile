@@ -10,7 +10,6 @@ import '../models/page_data.dart';
 import '../providers/reader_provider.dart';
 import '../providers/audio_player_provider.dart';
 import '../widgets/term_tooltip.dart';
-import '../models/sentence_translation.dart';
 import 'text_display.dart';
 import 'term_form.dart';
 import 'sentence_translation.dart';
@@ -143,7 +142,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Timer? _hideUiTimer;
   Timer? _glowTimer;
   int? _highlightedWordId;
+  int? _highlightedParagraphId;
+  int? _highlightedOrder;
   int? _originalWordId;
+  TextItem? _originalTextItem;
   ScrollController _scrollController = ScrollController();
   double _lastScrollPosition = 0.0;
   DateTime? _lastMarkPageTime;
@@ -697,6 +699,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final textSettings = ref.watch(textFormattingSettingsProvider);
     final settings = ref.watch(settingsProvider);
 
+    final hasGestureNav = MediaQuery.of(context).systemGestureInsets.bottom > 0;
     final textDisplay = TextDisplay(
       key: _pageKey,
       paragraphs: pageData!.paragraphs,
@@ -704,6 +707,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       topPadding: textSettings.fullscreenMode && !_isUiVisible
           ? MediaQuery.of(context).padding.top
           : 0.0,
+      bottomPadding: hasGestureNav ? 128 : 0,
       bottomControlWidget: _buildPageControls(context, pageData),
       onTap: (item, position) {
         _handleTap(item, position);
@@ -720,42 +724,80 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       fontWeight: textSettings.fontWeight,
       isItalic: textSettings.isItalic,
       highlightedWordId: _highlightedWordId,
+      highlightedParagraphId: _highlightedParagraphId,
+      highlightedOrder: _highlightedOrder,
     );
 
-    return GestureDetector(
-      onTapDown: (_) => TermTooltipClass.close(),
-      onTap: () {
-        if (textSettings.fullscreenMode && !_isUiVisible) {
-          _showUi();
-        }
-      },
-      onHorizontalDragEnd: (details) async {
-        if (pageData!.pageCount <= 1) return;
+    return Stack(
+      children: [
+        GestureDetector(
+          onTapDown: (_) => TermTooltipClass.close(),
+          onTap: () {
+            if (textSettings.fullscreenMode && !_isUiVisible) {
+              _showUi();
+            }
+          },
+          onHorizontalDragEnd: (details) async {
+            if (pageData!.pageCount <= 1) return;
 
-        final velocity = details.primaryVelocity ?? 0;
-        if (velocity > 0) {
-          if (pageData!.currentPage > 1) {
-            _loadPageWithoutMarkingRead(pageData!.currentPage - 1);
-          }
-        } else if (velocity < 0) {
-          if (pageData!.currentPage < pageData!.pageCount) {
             final currentTextSettings = ref.read(
               textFormattingSettingsProvider,
             );
 
-            if (currentTextSettings.swipeMarksRead) {
-              ref
-                  .read(readerProvider.notifier)
-                  .markPageRead(pageData!.bookId, pageData!.currentPage);
-            }
+            if (!currentTextSettings.swipeNavigationEnabled) return;
 
-            _loadPageWithoutMarkingRead(pageData!.currentPage + 1);
-          }
-        }
-      },
-      child: settings.pageTurnAnimations
-          ? _PageTransition(isForward: _isNavigatingForward, child: textDisplay)
-          : textDisplay,
+            final velocity = details.primaryVelocity ?? 0;
+            const minSwipeVelocity = 300.0;
+
+            if (velocity.abs() < minSwipeVelocity) return;
+
+            if (velocity > 0) {
+              if (pageData!.currentPage > 1) {
+                _loadPageWithoutMarkingRead(pageData!.currentPage - 1);
+              }
+            } else if (velocity < 0) {
+              if (pageData!.currentPage < pageData!.pageCount) {
+                final currentTextSettings = ref.read(
+                  textFormattingSettingsProvider,
+                );
+
+                if (currentTextSettings.swipeMarksRead) {
+                  ref
+                      .read(readerProvider.notifier)
+                      .markPageRead(pageData!.bookId, pageData!.currentPage);
+                }
+
+                _loadPageWithoutMarkingRead(pageData!.currentPage + 1);
+              }
+            }
+          },
+          child: settings.pageTurnAnimations
+              ? _PageTransition(
+                  isForward: _isNavigatingForward,
+                  child: textDisplay,
+                )
+              : textDisplay,
+        ),
+        if (hasGestureNav)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: 48,
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onVerticalDragStart: (_) {},
+              onVerticalDragUpdate: (_) {},
+              onVerticalDragEnd: (_) {},
+              onTap: () {
+                if (textSettings.fullscreenMode && !_isUiVisible) {
+                  _showUi();
+                }
+              },
+              child: const SizedBox.shrink(),
+            ),
+          ),
+      ],
     );
   }
 
@@ -783,9 +825,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     if (item.wordId == null) return;
     if (item.langId == null) return;
 
-    // Store original word ID before opening term form
+    // Store original identifiers before opening term form
     _originalWordId = item.wordId;
+    _originalTextItem = item;
     _highlightedWordId = null;
+    _highlightedParagraphId = null;
+    _highlightedOrder = null;
 
     print(
       '_handleDoubleTap: text="${item.text}", wordId=${item.wordId}, langId=${item.langId}',
@@ -810,22 +855,26 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   void _triggerWordGlow() {
     final settings = ref.read(termFormSettingsProvider);
 
-    // Only trigger if enabled and we have an original word ID
-    if (!settings.wordGlowEnabled || _originalWordId == null) return;
+    // Only trigger if enabled and we have an original text item
+    if (!settings.wordGlowEnabled || _originalTextItem == null) return;
 
     // Cancel any existing timer
     _glowTimer?.cancel();
 
-    // Set highlight
+    // Set highlight for this specific instance
     setState(() {
-      _highlightedWordId = _originalWordId;
+      _highlightedWordId = _originalTextItem!.wordId;
+      _highlightedParagraphId = _originalTextItem!.paragraphId;
+      _highlightedOrder = _originalTextItem!.order;
     });
 
-    // Auto-dismiss after 100ms
+    // Auto-dismiss after 150ms
     _glowTimer = Timer(const Duration(milliseconds: 150), () {
       if (mounted) {
         setState(() {
           _highlightedWordId = null;
+          _highlightedParagraphId = null;
+          _highlightedOrder = null;
         });
       }
     });
