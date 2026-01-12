@@ -7,7 +7,7 @@ lib/features/stats/
 ├── models/
 │   ├── stats_data.dart           # DailyReadingStats model
 │   ├── language_stats.dart       # LanguageReadingStats with gap-filling
-│   └── cached_stats.dart         # CachedStats for SharedPreferences
+│   └── stats_cache_entry.dart    # Hive model for cached stats
 ├── repositories/
 │   └── stats_repository.dart     # Data fetching & caching logic
 ├── providers/
@@ -72,20 +72,89 @@ Future<Map<String, dynamic>> getStatsData() async {
 }
 ```
 
+## Hive Caching (Option B - Separate Box)
+
+**Box Structure:**
+```
+Hive
+├── Box: "tooltip_cache"  (existing)
+│   └── ...
+└── Box: "stats"          (NEW - separate for clean isolation)
+    └── key: "all" → StatsCacheEntry
+```
+
+**Why separate box?**
+- Clean isolation between features
+- Stats won't interfere with tooltip caching
+- Easier to debug/clear stats independently
+- Single entry stores entire processed dataset
+
 ## Files to Create
 
 | File | Purpose |
 |------|---------|
 | `lib/features/stats/models/stats_data.dart` | DailyReadingStats model |
 | `lib/features/stats/models/language_stats.dart` | LanguageReadingStats with gap-filling |
-| `lib/features/stats/models/cached_stats.dart` | CachedStats + StatsCacheService |
+| `lib/features/stats/models/stats_cache_entry.dart` | Hive model + adapter registration |
 | `lib/features/stats/repositories/stats_repository.dart` | Data layer with caching |
 | `lib/features/stats/providers/stats_provider.dart` | State management |
 | `lib/features/stats/widgets/stats_screen.dart` | Basic screen scaffold |
 
+## Changes Required
+
+### 1. Update `lib/hive_registrar.g.dart`
+
+Add the stats adapter registration:
+```dart
+import 'package:lute_for_mobile/features/stats/models/stats_cache_entry.dart';
+
+extension HiveRegistrar on HiveInterface {
+  void registerAdapters() {
+    registerAdapter(TooltipCacheEntryAdapter());
+    registerAdapter(StatsCacheEntryAdapter());  // ADD THIS
+  }
+}
+```
+
+### 2. Update `lib/main.dart`
+
+Initialize stats cache:
+```dart
+import 'package:lute_for_mobile/core/cache/tooltip_cache_service.dart';
+import 'package:lute_for_mobile/features/stats/repositories/stats_repository.dart';
+
+// In main():
+await TooltipCacheService.getInstance().initialize();
+await StatsRepository.initialize();  // ADD THIS
+```
+
+### 3. Create `lib/features/stats/models/stats_cache_entry.dart`
+
+```dart
+import 'package:hive_ce/hive.dart';
+import 'language_stats.dart';
+
+part 'stats_cache_entry.g.dart';
+
+@HiveType(typeId: 99)  // Use unique typeId
+class StatsCacheEntry extends HiveObject {
+  @HiveField(0)
+  final Map<String, LanguageReadingStats> stats;
+
+  @HiveField(1)
+  final int timestamp;
+
+  StatsCacheEntry({
+    required this.stats,
+    required this.timestamp,
+  });
+}
+```
+
 ## Dependencies
 
 Already in `pubspec.yaml`:
-- `shared_preferences: ^2.2.3` - Caching
+- `hive_ce: ^2.15.1` - Storage
+- `hive_ce_flutter: ^2.3.2` - Flutter integration
 - `flutter_riverpod: ^3.0.3` - State management
 - `dio: ^5.9.0` - HTTP client
