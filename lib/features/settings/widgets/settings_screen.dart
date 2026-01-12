@@ -7,6 +7,7 @@ import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/theme/app_theme.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../app.dart';
+import '../../../core/cache/providers/tooltip_cache_provider.dart';
 import 'theme_selector_screen.dart';
 import 'tts_settings_section.dart';
 import 'ai_settings_section.dart';
@@ -518,6 +519,43 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 24),
+                    const Text('Tooltip Caching'),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Enable tooltip caching',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                'Cache tooltips for faster loading (48 hour expiry)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: settings.enableTooltipCaching,
+                            onChanged: (value) {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .updateEnableTooltipCaching(value);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -678,6 +716,87 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           foregroundColor: Theme.of(context).colorScheme.error,
                         ),
                       ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cache Management',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    Consumer(
+                      builder: (context, ref, _) {
+                        final settings = ref.watch(settingsProvider);
+                        if (settings.enableTooltipCaching) {
+                          return Column(
+                            children: [
+                              Text(
+                                'Tooltip caching is enabled. Use this button to refresh the entire tooltip cache.',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.6),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: () async {
+                                    // Get the tooltip cache service
+                                    final tooltipCacheService = ref.read(
+                                      tooltipCacheServiceProvider,
+                                    );
+
+                                    // Clear the cache
+                                    final success = await tooltipCacheService
+                                        .clearAllCache();
+
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            success
+                                                ? 'Tooltip cache cleared successfully'
+                                                : 'Failed to clear tooltip cache',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Refresh Tooltip Cache'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return Text(
+                            'Enable tooltip caching to access cache management options.',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            ),
+                          );
+                        }
+                      },
                     ),
                   ],
                 ),

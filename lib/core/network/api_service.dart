@@ -141,6 +141,13 @@ class ApiService {
     return await _dio.get<String>(url);
   }
 
+  Future<String> getRawTermTooltipHtml(int termId) async {
+    final url = '/read/termpopup/$termId';
+    print('DEBUG ApiService.getRawTermTooltipHtml: Calling GET $url');
+    final response = await _dio.get<String>(url);
+    return response.data ?? '';
+  }
+
   Future<Response<String>> getTermForm(int langId, String text) async {
     final encodedText = Uri.encodeComponent(text);
     return await _dio.get<String>('/read/termform/$langId/$encodedText');

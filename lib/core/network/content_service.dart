@@ -138,6 +138,16 @@ class ContentService {
     return parser.parseTermTooltip(htmlContent);
   }
 
+  Future<String?> getRawTermTooltipHtml(int termId) async {
+    try {
+      final htmlContent = await _apiService.getRawTermTooltipHtml(termId);
+      return htmlContent;
+    } catch (e) {
+      print('Error getting raw term tooltip HTML: $e');
+      return null;
+    }
+  }
+
   Future<TermForm> getTermForm(int langId, String text) async {
     final response = await _apiService.getTermForm(langId, text);
     final htmlContent = response.data ?? '';

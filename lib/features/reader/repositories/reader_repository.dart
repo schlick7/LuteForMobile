@@ -3,6 +3,8 @@ import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
 import '../models/language_sentence_settings.dart';
+import '../../../core/cache/tooltip_cache_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ReaderRepository {
   final ContentService contentService;
