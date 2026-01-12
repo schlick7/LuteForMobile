@@ -349,7 +349,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           : _currentIndex == 3
           ? StatsScreen(scaffoldKey: _scaffoldKey)
           : IndexedStack(
-              index: _currentIndex > 4 ? _currentIndex - 2 : _currentIndex,
+              index: _currentIndex > 4 ? _currentIndex - 3 : _currentIndex,
               children: [
                 RepaintBoundary(
                   child: ReaderScreen(
