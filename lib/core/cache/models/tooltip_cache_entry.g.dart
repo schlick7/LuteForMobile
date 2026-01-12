@@ -2,30 +2,40 @@
 
 part of 'tooltip_cache_entry.dart';
 
-// ***************************************************************************
-// Hive Type Adapter Generator
-// ***************************************************************************
+// **************************************************************************
+// TypeAdapterGenerator
+// **************************************************************************
 
 class TooltipCacheEntryAdapter extends TypeAdapter<TooltipCacheEntry> {
   @override
-  final int typeId = 0;
+  final typeId = 0;
 
   @override
   TooltipCacheEntry read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
     return TooltipCacheEntry(
-      wordId: reader.readInt(),
-      tooltipHtml: reader.readString(),
-      timestamp: reader.readInt(),
-      sizeInBytes: reader.readInt(),
+      wordId: (fields[0] as num).toInt(),
+      tooltipHtml: fields[1] as String,
+      timestamp: (fields[2] as num).toInt(),
+      sizeInBytes: (fields[3] as num).toInt(),
     );
   }
 
   @override
   void write(BinaryWriter writer, TooltipCacheEntry obj) {
-    writer.writeInt(obj.wordId);
-    writer.writeString(obj.tooltipHtml);
-    writer.writeInt(obj.timestamp);
-    writer.writeInt(obj.sizeInBytes);
+    writer
+      ..writeByte(4)
+      ..writeByte(0)
+      ..write(obj.wordId)
+      ..writeByte(1)
+      ..write(obj.tooltipHtml)
+      ..writeByte(2)
+      ..write(obj.timestamp)
+      ..writeByte(3)
+      ..write(obj.sizeInBytes);
   }
 
   @override
