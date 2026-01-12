@@ -529,6 +529,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     return GestureDetector(
       onTapDown: (_) => TermTooltipClass.close(),
       onHorizontalDragEnd: (details) async {
+        final textSettings = ref.read(textFormattingSettingsProvider);
+        if (!textSettings.swipeNavigationEnabled) return;
+
         final velocity = details.primaryVelocity ?? 0;
         const minSwipeVelocity = 300.0;
 
@@ -591,6 +594,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
     return GestureDetector(
       onHorizontalDragEnd: (details) async {
+        final textSettings = ref.read(textFormattingSettingsProvider);
+        if (!textSettings.swipeNavigationEnabled) return;
+
         final velocity = details.primaryVelocity ?? 0;
         const minSwipeVelocity = 300.0;
 

@@ -740,6 +740,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           onHorizontalDragEnd: (details) async {
             if (pageData!.pageCount <= 1) return;
 
+            final currentTextSettings = ref.read(
+              textFormattingSettingsProvider,
+            );
+
+            if (!currentTextSettings.swipeNavigationEnabled) return;
+
             final velocity = details.primaryVelocity ?? 0;
             const minSwipeVelocity = 300.0;
 
