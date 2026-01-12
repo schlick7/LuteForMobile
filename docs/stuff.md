@@ -5,11 +5,6 @@
   
 # Statistics Screen  
 
-- When multiple languages are selected it should show a line for each language in the line graphs and a bar for each language in the bar graph. 
-- Test fetching the data. Find out what information that we receive and how we receive it. Use 192.168.1.100:5001/stats to start. 
-- Add Hive-ce as the cache/storage. 
-- Compute 'missing' data and add to the cache/storage
-
 # Terms Screen
 
 # Reader
