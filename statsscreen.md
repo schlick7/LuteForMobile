@@ -47,6 +47,43 @@ lib/features/stats/
 
 **State Management:** Use Riverpod Notifier pattern following `TermsProvider` in `lib/features/terms/providers/terms_provider.dart`.
 
+### Data Gap Filling
+
+The server only sends days with reading activity. Days with 0 words are omitted entirely.
+
+**Example English data from server:**
+| Date | wordcount | runningTotal |
+|------|-----------|--------------|
+| 9/12 | 283       | 69263        |
+| 9/15 | 324       | 69587        |  <- gap of 2 days
+| 9/20 | 1903      | 71490        |  <- gap of 4 days
+| ...  | gap       | ...          |  <- gap of 2+ months!
+| 1/4  | 18095     | 89585        |
+| 1/5  | 504       | 90089        |
+| 1/6  | 305       | 90394        |
+
+**After filling gaps:**
+| Date | wordcount | runningTotal | Note |
+|------|-----------|--------------|------|
+| 9/12 | 283       | 69263        | server data |
+| 9/13 | 0         | 69263        | filled - carry over |
+| 9/14 | 0         | 69263        | filled - carry over |
+| 9/15 | 324       | 69587        | server data |
+| 9/16 | 0         | 69587        | filled |
+| ...  | 0         | 69587        | filled through |
+| 9/20 | 1903      | 71490        | server data |
+
+**Algorithm:**
+1. Fetch all server data
+2. Sort by date ascending
+3. Find first date with data and last date (today)
+4. Iterate each day from first to today
+5. If date exists in server data → use it (ALWAYS trust server)
+6. If date missing → wordcount=0, runningTotal=previousKnown.runningTotal
+7. No calculations needed - just carry over values
+
+**This must happen BEFORE any caching or aggregation calculations.**
+
 ### Files to Create (Phase 1)
 
 | File | Purpose |
