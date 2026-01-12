@@ -5,9 +5,11 @@
   
 # Statistics Screen  
 
+- When multiple languages are selected it should show a line for each language in the line graphs and a bar for each language in the bar graph. 
+- Use Hive-ce on the backend. 
+
 # Terms Screen
 
-Add the Status highlights to the status labels in the term statistics card and add the language name to the right of the term statitics label. 
 
 # Reader
 
