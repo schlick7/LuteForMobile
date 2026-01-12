@@ -6,14 +6,11 @@
 # Statistics Screen  
 
 - When multiple languages are selected it should show a line for each language in the line graphs and a bar for each language in the bar graph. 
-- Use Hive-ce on the backend. 
+- Test fetching the data. Find out what information that we receive and how we receive it. Use 192.168.1.100:5001/stats to start. 
+- Add Hive-ce as the cache/storage. 
+- Compute 'missing' data and add to the cache/storage
 
 # Terms Screen
-
-
-
-Why isn't the buildrunner working for hive?
-add number of cached tooltips in () by clear cache button
 
 # Reader
 
@@ -21,7 +18,6 @@ add number of cached tooltips in () by clear cache button
 fixed? Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
 - right now we wait to show the tooltip ontap until the doubletap timeout ends. Can we also add a flag to wait until the data is actually fetched? with a 2 second timeout
 
-- Add caching with Hive-ce on page load? 
 
 
 # TTS
