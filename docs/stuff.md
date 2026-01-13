@@ -4,16 +4,23 @@
   - python3 -m lute.main
   
 # Statistics Screen  
+For the Wordcount lets create a Current Day streak and a Biggest Day streak stat. any day with a wordcount over 1 should count. 
 
 # Terms Screen
 
 # Reader
+
+Book is resetting to page 1 on app load
+
+I don't want a bottom bar on the ReadScreen. There is a nav bar that appears at the bottom of the page of text that currently has an all known button and nav controls. That is where I want to add a second line and have the todays words read and words known display. This is what the settings toggle should turn on/off as well as the bar in the SentenceReader
 
 # TTS
 - Future: add a selector in language settings to apply TTS voices based on languages. 
   
 
 # Sentence Reader
+
+- If the book page hasn't changed then open to the last setence read intead of starting at 1
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
