@@ -24,6 +24,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
   final DictionaryService dictionaryService;
   final VoidCallback? onDismiss;
   final void Function(bool)? onDictionaryToggle;
+  final void Function(int langId)? onStatus99Changed;
 
   const TermFormWidget({
     super.key,
@@ -36,6 +37,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
     this.onParentDoubleTap,
     this.onDismiss,
     this.onDictionaryToggle,
+    this.onStatus99Changed,
   });
 
   @override
@@ -131,9 +133,12 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   void _handleSave() {
+    final newStatus = _selectedStatus;
+    final oldStatus = widget.termForm.status;
+
     final updatedForm = widget.termForm.copyWith(
       translation: _translationController.text.trim(),
-      status: _selectedStatus,
+      status: newStatus,
       tags: _tagsController.text
           .trim()
           .split(',')
@@ -143,6 +148,11 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       romanization: _romanizationController.text.trim(),
       parents: widget.termForm.parents,
     );
+
+    if (oldStatus != '99' && newStatus == '99') {
+      widget.onStatus99Changed?.call(widget.termForm.languageId);
+    }
+
     widget.onSave(updatedForm);
   }
 

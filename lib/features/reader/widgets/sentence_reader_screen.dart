@@ -22,6 +22,10 @@ import '../../../features/settings/providers/ai_settings_provider.dart';
 import '../../../features/settings/models/ai_settings.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/utils/language_flag_mapper.dart';
+import '../../../features/stats/providers/stats_provider.dart';
+import '../../../features/stats/models/stats_data.dart';
+import '../../../features/terms/providers/terms_provider.dart';
 import '../../../app.dart';
 
 class _PageTransition extends StatefulWidget {
@@ -512,7 +516,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                 Expanded(flex: 7, child: _buildBottomSection(currentSentence)),
               ],
             ),
-      bottomNavigationBar: _buildBottomAppBar(),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [_buildStatsRow(), _buildNavigationBar()],
+      ),
     );
   }
 
@@ -675,7 +682,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     );
   }
 
-  Widget _buildBottomAppBar() {
+  Widget _buildNavigationBar() {
     final pageData = ref.watch(readerProvider).pageData;
     final sentenceReaderState = ref.watch(sentenceReaderProvider);
     final sentenceReaderNotifier = ref.read(sentenceReaderProvider.notifier);
@@ -729,6 +736,68 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatsRow() {
+    final statsState = ref.watch(statsProvider);
+    final termsState = ref.watch(termsProvider);
+    final readerState = ref.watch(readerProvider);
+    final sentenceReaderState = ref.watch(sentenceReaderProvider);
+    final currentSentence = sentenceReaderState.currentSentence;
+
+    final languageName = currentSentence?.textItems.first.language ?? '';
+    final languageFlag = getFlagForLanguage(languageName) ?? '';
+
+    int todayWordcount = 0;
+    int status99Count = 0;
+
+    if (statsState.value != null) {
+      final today = DateTime.now();
+      final todayDateStr =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      for (final langStats in statsState.value!.languages) {
+        if (langStats.language == languageName) {
+          final todayStats = langStats.dailyStats.firstWhere(
+            (s) =>
+                s.date.year == today.year &&
+                s.date.month == today.month &&
+                s.date.day == today.day,
+            orElse: () => const DailyReadingStats(
+              date: DateTime.now(),
+              wordcount: 0,
+              runningTotal: 0,
+            ),
+          );
+          todayWordcount = todayStats.wordcount;
+          break;
+        }
+      }
+    }
+
+    if (termsState.value != null) {
+      status99Count = termsState.value!.stats.status99;
+    }
+
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          if (languageFlag.isNotEmpty) ...[
+            Text(languageFlag, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            "Today's Words: $todayWordcount",
+            style: theme.textTheme.bodySmall,
+          ),
+          const Spacer(),
+          Text("Known: $status99Count", style: theme.textTheme.bodySmall),
+        ],
       ),
     );
   }
@@ -1312,6 +1381,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         }
                       }
                     },
+                    onStatus99Changed: (langId) {
+                      ref.read(termsProvider.notifier).loadStats(langId);
+                    },
                   ),
                 );
               },
@@ -1464,6 +1536,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                           _showParentTermForm(parentTermForm);
                         }
                       }
+                    },
+                    onStatus99Changed: (langId) {
+                      ref.read(termsProvider.notifier).loadStats(langId);
                     },
                   ),
                 );

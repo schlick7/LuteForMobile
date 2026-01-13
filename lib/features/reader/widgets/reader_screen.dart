@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/utils/language_flag_mapper.dart';
 import '../../../features/settings/providers/settings_provider.dart';
+import '../../../features/terms/providers/terms_provider.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../models/page_data.dart';
@@ -1015,6 +1017,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         }
                       }
                     },
+                    onStatus99Changed: (langId) {
+                      ref.read(termsProvider.notifier).loadStats(langId);
+                    },
                   ),
                 );
               },
@@ -1126,6 +1131,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                           _showParentTermForm(parentTermForm);
                         }
                       }
+                    },
+                    onStatus99Changed: (langId) {
+                      ref.read(termsProvider.notifier).loadStats(langId);
                     },
                   ),
                 );
