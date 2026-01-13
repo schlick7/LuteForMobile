@@ -143,6 +143,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   AppLifecycleState? _lastLifecycleState;
   bool _hasInitialized = false;
   bool _isUiVisible = true;
+  bool _lastFullscreenMode = false;
   Timer? _hideUiTimer;
   Timer? _glowTimer;
   int? _highlightedWordId;
@@ -419,17 +420,21 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final textSettings = ref.watch(textFormattingSettingsProvider);
     final settings = ref.watch(settingsProvider);
 
+    if (textSettings.fullscreenMode && !_lastFullscreenMode) {
+      _lastFullscreenMode = true;
+      _startHideTimer();
+    } else if (!textSettings.fullscreenMode && _lastFullscreenMode) {
+      _lastFullscreenMode = false;
+      _cancelHideTimer();
+      _isUiVisible = true;
+    }
+
     final statsState = ref.watch(statsProvider);
     if (statsState.value == null) {
       ref.read(statsProvider.notifier).loadStats();
     }
 
     _buildCount++;
-    if (_buildCount > 1) {
-      print(
-        'DEBUG: ReaderScreen rebuild #$_buildCount (isLoading=$isLoading, error=${errorMessage != null}, hasPageData=${pageData != null})',
-      );
-    }
 
     return Scaffold(
       appBar: _buildAppBar(context, pageData, textSettings.fullscreenMode),
@@ -850,8 +855,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         GestureDetector(
           onTapDown: (_) => TermTooltipClass.close(),
           onTap: () {
-            if (textSettings.fullscreenMode && !_isUiVisible) {
-              _showUi();
+            if (textSettings.fullscreenMode) {
+              if (!_isUiVisible) {
+                _showUi();
+              } else {
+                _resetHideTimer();
+              }
             }
           },
           onHorizontalDragEnd: (details) async {
