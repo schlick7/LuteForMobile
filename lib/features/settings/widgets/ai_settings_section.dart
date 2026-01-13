@@ -246,45 +246,6 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
               .updatePromptConfig(type, config!.copyWith(enabled: value));
         },
       ),
-      trailing: isCustom
-          ? IconButton(
-              icon: const Icon(Icons.restore, size: 20),
-              tooltip: 'Reset to Default',
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (dialogContext) => AlertDialog(
-                    title: const Text('Reset to Default'),
-                    content: const Text(
-                      'Are you sure you want to reset this prompt to the default template?',
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          ref
-                              .read(aiSettingsProvider.notifier)
-                              .updatePromptConfig(
-                                type,
-                                AIPromptConfig(
-                                  customPrompt: null,
-                                  enabled: config!.enabled,
-                                  language: config.language,
-                                ),
-                              );
-                          Navigator.of(dialogContext).pop();
-                        },
-                        child: const Text('Reset'),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            )
-          : null,
       children: [
         if (config?.enabled ?? true) ...[
           Padding(
@@ -301,6 +262,51 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
               },
             ),
           ),
+          const SizedBox(height: 8),
+          if (isCustom)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('Reset to Default'),
+                        content: const Text(
+                          'Are you sure you want to reset this prompt to the default template?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(dialogContext).pop(),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              ref
+                                  .read(aiSettingsProvider.notifier)
+                                  .updatePromptConfig(
+                                    type,
+                                    AIPromptConfig(
+                                      customPrompt: null,
+                                      enabled: config!.enabled,
+                                      language: config.language,
+                                    ),
+                                  );
+                              Navigator.of(dialogContext).pop();
+                            },
+                            child: const Text('Reset'),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.restore, size: 18),
+                  label: const Text('Reset to Default'),
+                ),
+              ),
+            ),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),

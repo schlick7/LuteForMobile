@@ -13,6 +13,7 @@ import '../../../core/providers/tts_provider.dart';
 import '../../../core/providers/ai_provider.dart';
 import 'parent_search.dart';
 import 'dictionary_view.dart';
+import '../providers/current_book_provider.dart';
 
 class TermFormWidget extends ConsumerStatefulWidget {
   final TermForm termForm;
@@ -543,9 +544,11 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     try {
       final aiService = ref.read(aiServiceProvider);
       final aiSettings = ref.read(aiSettingsProvider);
+      final languageOverride =
+          aiSettings.promptConfigs[AIPromptType.termTranslation]?.language;
+      final currentBookState = ref.read(currentBookProvider);
       final language =
-          aiSettings.promptConfigs[AIPromptType.termTranslation]?.language ??
-          'Unknown';
+          languageOverride ?? currentBookState.languageName ?? 'Unknown';
 
       final translation = await aiService.translateTerm(
         widget.termForm.term,

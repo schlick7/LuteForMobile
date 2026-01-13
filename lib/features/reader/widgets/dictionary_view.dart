@@ -8,6 +8,7 @@ import '../../../core/network/dictionary_service.dart';
 import '../../settings/models/ai_settings.dart';
 import '../../settings/providers/ai_settings_provider.dart';
 import '../../../core/providers/ai_provider.dart';
+import '../providers/current_book_provider.dart';
 
 enum DictionaryTabType { dictionary, ai }
 
@@ -122,9 +123,11 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
     try {
       final aiService = ref.read(aiServiceProvider);
       final aiSettings = ref.read(aiSettingsProvider);
+      final languageOverride =
+          aiSettings.promptConfigs[AIPromptType.termTranslation]?.language;
+      final currentBookState = ref.read(currentBookProvider);
       final language =
-          aiSettings.promptConfigs[AIPromptType.termTranslation]?.language ??
-          'Unknown';
+          languageOverride ?? currentBookState.languageName ?? 'Unknown';
 
       final translation = await aiService.translateTerm(widget.term, language);
 
@@ -158,9 +161,11 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
     try {
       final aiService = ref.read(aiServiceProvider);
       final aiSettings = ref.read(aiSettingsProvider);
+      final languageOverride =
+          aiSettings.promptConfigs[AIPromptType.termExplanation]?.language;
+      final currentBookState = ref.read(currentBookProvider);
       final language =
-          aiSettings.promptConfigs[AIPromptType.termExplanation]?.language ??
-          'Unknown';
+          languageOverride ?? currentBookState.languageName ?? 'Unknown';
 
       final content = await aiService.getTermExplanation(
         widget.term,

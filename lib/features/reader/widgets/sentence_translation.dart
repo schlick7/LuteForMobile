@@ -11,6 +11,7 @@ import '../../../shared/theme/theme_extensions.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../../../core/network/tts_service.dart';
 import '../../../core/providers/tts_provider.dart';
+import '../providers/current_book_provider.dart';
 
 class SentenceTranslationWidget extends ConsumerStatefulWidget {
   final String sentence;
@@ -148,11 +149,11 @@ class _SentenceTranslationWidgetState
     try {
       final aiService = ref.read(aiServiceProvider);
       final aiSettings = ref.read(aiSettingsProvider);
+      final languageOverride =
+          aiSettings.promptConfigs[AIPromptType.sentenceTranslation]?.language;
+      final currentBookState = ref.read(currentBookProvider);
       final language =
-          aiSettings
-              .promptConfigs[AIPromptType.sentenceTranslation]
-              ?.language ??
-          'Unknown';
+          languageOverride ?? currentBookState.languageName ?? 'Unknown';
 
       final translation = await aiService.translateSentence(
         widget.sentence,
@@ -189,9 +190,11 @@ class _SentenceTranslationWidgetState
     try {
       final aiService = ref.read(aiServiceProvider);
       final aiSettings = ref.read(aiSettingsProvider);
+      final languageOverride =
+          aiSettings.promptConfigs[AIPromptType.virtualDictionary]?.language;
+      final currentBookState = ref.read(currentBookProvider);
       final language =
-          aiSettings.promptConfigs[AIPromptType.virtualDictionary]?.language ??
-          'Unknown';
+          languageOverride ?? currentBookState.languageName ?? 'Unknown';
 
       final content = await aiService.getVirtualDictionaryEntry(
         widget.sentence,

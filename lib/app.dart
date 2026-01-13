@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.dart';
 import 'package:lute_for_mobile/features/reader/widgets/sentence_reader_screen.dart';
+import 'package:lute_for_mobile/features/reader/providers/current_book_provider.dart';
 
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
 import 'package:lute_for_mobile/features/settings/widgets/help_screen.dart';
@@ -217,6 +218,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     ref
         .read(settingsProvider.notifier)
         .updateCurrentBook(bookId, pageNum, book.langId);
+
+    ref.read(currentBookProvider.notifier).setBook(book);
 
     setState(() {
       _currentIndex = 0;

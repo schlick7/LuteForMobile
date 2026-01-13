@@ -7,6 +7,7 @@ import '../models/term_tooltip.dart';
 import '../providers/reader_provider.dart';
 import '../providers/sentence_reader_provider.dart';
 import '../providers/sentence_tts_provider.dart';
+import '../providers/current_book_provider.dart';
 import '../widgets/term_tooltip.dart';
 import '../widgets/term_form.dart';
 import '../widgets/sentence_translation.dart';
@@ -1625,9 +1626,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   void _showAITranslation(String sentence, int languageId) {
     final aiSettings = ref.read(aiSettingsProvider);
+    final languageOverride =
+        aiSettings.promptConfigs[AIPromptType.sentenceTranslation]?.language;
+    final currentBookState = ref.read(currentBookProvider);
     final language =
-        aiSettings.promptConfigs[AIPromptType.sentenceTranslation]?.language ??
-        'English';
+        languageOverride ??
+        currentBookState.languageName ??
+        (_languageIdToName[languageId] ?? 'English');
     final sentenceReader = ref.read(sentenceReaderProvider);
     final currentSentence = sentenceReader.currentSentence;
 
