@@ -19,6 +19,9 @@ lets also make the orignal sentence in the AI translation modal be collapsible
 - Future: add a selector in language settings to apply TTS voices based on languages. 
 - Make the audio stopable. Don't need pause. Just play and stop. 
 
+# AI
+- Add 'virtual' sentence dictionary to SentenceDictionary popup. 
+
 # Sentence Reader
 
 - If the book page hasn't changed then open to the last setence read intead of starting at 1
