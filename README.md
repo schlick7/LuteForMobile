@@ -17,9 +17,9 @@ A Flutter mobile frontend for Lute v3 language learning server. Read books and l
 - ✅ Reader View
 - ✅ Books View
 - ✅ Terms View
+- ✅ Statistics View
 - X  Adding Books
 - X  Language Settings
-- X  Statistics View
 
 ## Platforms
 Native:
@@ -32,7 +32,7 @@ PWA: (they should work, but are only lightly tested)
 
 ## Prerequisites
 
-- Lute v3 server running on your network
+- [Lute v3](https://github.com/LuteOrg/lute-v3) server running on your network
 
 ## Installation
 
