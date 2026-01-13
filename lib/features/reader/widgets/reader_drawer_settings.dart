@@ -8,9 +8,9 @@ import '../providers/reader_provider.dart';
 import '../../../../app.dart';
 
 class ReaderDrawerSettings extends ConsumerWidget {
-  final int currentIndex;
+  final String currentRoute;
 
-  const ReaderDrawerSettings({super.key, required this.currentIndex});
+  const ReaderDrawerSettings({super.key, required this.currentRoute});
 
   static const Map<String, List<FontWeight>> _fontWeights = {
     'Roboto': [
@@ -356,7 +356,7 @@ class ReaderDrawerSettings extends ConsumerWidget {
                 children: [
                   ElevatedButton.icon(
                     onPressed: () async {
-                      if (currentIndex == 6) {
+                      if (currentRoute == 'sentence-reader') {
                         await ref
                             .read(sentenceReaderProvider.notifier)
                             .triggerFlushAndRebuild();
@@ -369,16 +369,17 @@ class ReaderDrawerSettings extends ConsumerWidget {
                           );
                         }
                       } else {
-                        ref.read(navigationProvider).navigateToScreen(0);
+                        ref.read(navigationProvider).navigateToScreen('reader');
                         Future.microtask(
-                          () =>
-                              ref.read(navigationProvider).navigateToScreen(6),
+                          () => ref
+                              .read(navigationProvider)
+                              .navigateToScreen('sentence-reader'),
                         );
                         Navigator.of(context).pop();
                       }
                     },
                     icon: const Icon(Icons.view_headline),
-                    label: currentIndex == 6
+                    label: currentRoute == 'sentence-reader'
                         ? const Text('Flush Cache & Rebuild')
                         : const Text('Open Sentence Reader'),
                     style: ElevatedButton.styleFrom(
@@ -386,7 +387,7 @@ class ReaderDrawerSettings extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  if (currentIndex == 6)
+                  if (currentRoute == 'sentence-reader')
                     Row(
                       children: [
                         const Text(

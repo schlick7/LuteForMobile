@@ -67,7 +67,7 @@ final currentScreenRouteProvider =
 
 class NavigationController {
   final List<Function(int, int?)> _readerListeners = [];
-  final List<Function(int)> _screenListeners = [];
+  final List<Function(String)> _screenListeners = [];
 
   void addReaderListener(Function(int, int?) listener) {
     _readerListeners.add(listener);
@@ -77,11 +77,11 @@ class NavigationController {
     _readerListeners.remove(listener);
   }
 
-  void addScreenListener(Function(int) listener) {
+  void addScreenListener(Function(String) listener) {
     _screenListeners.add(listener);
   }
 
-  void removeScreenListener(Function(int) listener) {
+  void removeScreenListener(Function(String) listener) {
     _screenListeners.remove(listener);
   }
 
@@ -99,13 +99,13 @@ class NavigationController {
     }
   }
 
-  void navigateToScreen(int index) {
+  void navigateToScreen(String route) {
     print(
-      'DEBUG: NavigationController.navigateToScreen called with index=$index',
+      'DEBUG: NavigationController.navigateToScreen called with route=$route',
     );
     try {
       for (final listener in _screenListeners) {
-        listener(index);
+        listener(route);
       }
     } catch (e, stackTrace) {
       print('ERROR: navigateToScreen failed: $e');
@@ -230,23 +230,23 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     _updateDrawerSettings();
   }
 
-  void _handleNavigateToScreen(int index) {
+  void _handleNavigateToScreen(String route) {
+    final routeToIndex = {
+      'reader': 0,
+      'books': 1,
+      'terms': 2,
+      'stats': 3,
+      'help': 4,
+      'settings': 5,
+      'sentence-reader': 6,
+    };
+
+    final index = routeToIndex[route] ?? 0;
     setState(() {
       _currentIndex = index;
     });
 
-    final routeNames = [
-      'reader',
-      'books',
-      'terms',
-      'stats',
-      'help',
-      'settings',
-      'sentence-reader',
-    ];
-    final currentRoute = routeNames[index];
-    ref.read(currentScreenRouteProvider.notifier).setRoute(currentRoute);
-
+    ref.read(currentScreenRouteProvider.notifier).setRoute(route);
     _updateDrawerSettings();
   }
 
@@ -269,7 +269,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
             .updateCurrentBook(book.id, null, book.langId);
 
         if (_readerKey.currentState != null) {
-          _readerKey.currentState!.loadBook(book.id);
+          _readerKey.currentState!.loadBook(book.id, book.currentPage);
         }
       } catch (e) {
         print('DEBUG: Failed to load book from server: $e');
@@ -281,41 +281,26 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   }
 
   void _updateDrawerSettings() {
-    switch (_currentIndex) {
-      case 0:
+    final currentRoute = ref.read(currentScreenRouteProvider);
+    switch (currentRoute) {
+      case 'reader':
+      case 'settings':
+      case 'sentence-reader':
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
-            .updateSettings(ReaderDrawerSettings(currentIndex: _currentIndex));
+            .updateSettings(ReaderDrawerSettings(currentRoute: currentRoute));
         break;
-      case 1:
+      case 'books':
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
             .updateSettings(const BooksDrawerSettings());
         break;
-      case 2:
+      case 'terms':
+      case 'stats':
+      case 'help':
         ref
             .read(currentViewDrawerSettingsProvider.notifier)
             .updateSettings(null);
-        break;
-      case 3:
-        ref
-            .read(currentViewDrawerSettingsProvider.notifier)
-            .updateSettings(null);
-        break;
-      case 4:
-        ref
-            .read(currentViewDrawerSettingsProvider.notifier)
-            .updateSettings(null);
-        break;
-      case 5:
-        ref
-            .read(currentViewDrawerSettingsProvider.notifier)
-            .updateSettings(null);
-        break;
-      case 6:
-        ref
-            .read(currentViewDrawerSettingsProvider.notifier)
-            .updateSettings(ReaderDrawerSettings(currentIndex: _currentIndex));
         break;
       default:
         ref
@@ -329,16 +314,13 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: AppDrawer(
-        currentIndex: _currentIndex,
-        onNavigate: (index) async {
-          setState(() {
-            _currentIndex = index;
-          });
-          _updateDrawerSettings();
-          if (index == 0 && _readerKey.currentState != null) {
+        currentRoute: ref.watch(currentScreenRouteProvider),
+        onNavigate: (route) async {
+          _handleNavigateToScreen(route);
+          if (route == 'reader' && _readerKey.currentState != null) {
             _readerKey.currentState!.reloadPage();
           }
-          if (index == 1) {
+          if (route == 'books') {
             await ref.read(booksProvider.notifier).loadBooks();
           }
         },
@@ -347,10 +329,15 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           ? TermsScreen(scaffoldKey: _scaffoldKey)
           : _currentIndex == 4
           ? HelpScreen(scaffoldKey: _scaffoldKey)
-          : _currentIndex == 3
-          ? StatsScreen(scaffoldKey: _scaffoldKey)
           : IndexedStack(
-              index: _currentIndex > 4 ? _currentIndex - 3 : _currentIndex,
+              index: switch (_currentIndex) {
+                0 => 0,
+                1 => 1,
+                3 => 2,
+                5 => 3,
+                6 => 4,
+                _ => 0,
+              },
               children: [
                 RepaintBoundary(
                   child: ReaderScreen(
@@ -359,6 +346,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
                   ),
                 ),
                 RepaintBoundary(child: BooksScreen(scaffoldKey: _scaffoldKey)),
+                RepaintBoundary(child: StatsScreen(scaffoldKey: _scaffoldKey)),
                 RepaintBoundary(
                   child: SettingsScreen(scaffoldKey: _scaffoldKey),
                 ),

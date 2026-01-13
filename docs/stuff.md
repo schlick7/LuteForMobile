@@ -3,23 +3,25 @@
 - source myenv/bin/activate
   - python3 -m lute.main
   
+  
+Update HelpScreen  
+  
 # Statistics Screen  
+For the Wordcount lets create a Current Day streak and a Longest Day streak stat. any day with a wordcount of 1 or more should count. 
 
 # Terms Screen
 
 # Reader
 
-# Tooltp issues
-fixed? Some users are reporting that tooltips aren't showing. They work perfectly in my testing. Lets look into how to solve this. Maybe with retry logic of sometype? I think this is an issue with a slow server. All of our testing servers are really fast but some users may have slow servers 
-- right now we wait to show the tooltip ontap until the doubletap timeout ends. Can we also add a flag to wait until the data is actually fetched? with a 2 second timeout
-
-
+lets also make the orignal sentence in the AI translation modal be collapsible
 
 # TTS
 - Future: add a selector in language settings to apply TTS voices based on languages. 
-  
+- Make the audio stopable. Don't need pause. Just play and stop. 
 
 # Sentence Reader
+
+- If the book page hasn't changed then open to the last setence read intead of starting at 1
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 

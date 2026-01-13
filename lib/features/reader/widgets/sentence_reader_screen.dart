@@ -22,6 +22,10 @@ import '../../../features/settings/providers/ai_settings_provider.dart';
 import '../../../features/settings/models/ai_settings.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/utils/language_flag_mapper.dart';
+import '../../../features/stats/providers/stats_provider.dart';
+import '../../../features/stats/models/stats_data.dart';
+import '../../../features/terms/providers/terms_provider.dart';
 import '../../../app.dart';
 
 class _PageTransition extends StatefulWidget {
@@ -159,6 +163,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _isNavigatingForward = true;
   Key? _sentenceKey;
   bool _isNavigating = false;
+  Map<int, String> _languageIdToName = {};
+  String _currentLanguageName = '';
+  int? _lastStatsLangId;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -208,6 +215,45 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     super.dispose();
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguageMapping();
+  }
+
+  Future<void> _loadLanguageMapping() async {
+    final repository = ref.read(readerRepositoryProvider);
+    try {
+      final languages = await repository.contentService.getLanguagesWithIds();
+      setState(() {
+        _languageIdToName = {for (var lang in languages) lang.id: lang.name};
+      });
+    } catch (e) {
+      print('DEBUG: Failed to load language mapping: $e');
+    }
+  }
+
+  void _updateLanguageStats() {
+    final sentenceReader = ref.read(sentenceReaderProvider);
+    final currentSentence = sentenceReader.currentSentence;
+    if (currentSentence == null) return;
+
+    final langId = currentSentence.textItems.first.langId;
+    if (langId == null || langId == 0) return;
+
+    final languageName = _languageIdToName[langId] ?? '';
+    if (languageName != _currentLanguageName) {
+      setState(() {
+        _currentLanguageName = languageName;
+      });
+    }
+
+    if (langId != _lastStatsLangId) {
+      _lastStatsLangId = langId;
+      ref.read(termsProvider.notifier).loadStats(langId);
+    }
+  }
+
   void _setupAppLifecycleListener() {
     WidgetsBinding.instance.addObserver(this);
   }
@@ -235,6 +281,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     print(
       'DEBUG: SentenceReaderScreen build #$_mainBuildCount, isVisible=$isVisible, _hasInitialized=$_hasInitialized',
     );
+
+    final statsState = ref.watch(statsProvider);
+    if (statsState.value == null) {
+      ref.read(statsProvider.notifier).loadStats();
+    }
 
     final pageTitle = ref.watch(
       readerProvider.select((state) => state.pageData?.title),
@@ -383,7 +434,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           actions: [
             IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () => ref.read(navigationProvider).navigateToScreen(0),
+              onPressed: () =>
+                  ref.read(navigationProvider).navigateToScreen('reader'),
               tooltip: 'Close',
             ),
           ],
@@ -399,7 +451,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           actions: [
             IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () => ref.read(navigationProvider).navigateToScreen(0),
+              onPressed: () =>
+                  ref.read(navigationProvider).navigateToScreen('reader'),
               tooltip: 'Close',
             ),
           ],
@@ -429,7 +482,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           actions: [
             IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () => ref.read(navigationProvider).navigateToScreen(0),
+              onPressed: () =>
+                  ref.read(navigationProvider).navigateToScreen('reader'),
               tooltip: 'Close',
             ),
           ],
@@ -448,7 +502,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () =>
-                    ref.read(navigationProvider).navigateToScreen(1),
+                    ref.read(navigationProvider).navigateToScreen('books'),
                 icon: const Icon(Icons.collections_bookmark),
                 label: const Text('Browse Books'),
               ),
@@ -480,7 +534,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
-            onPressed: () => ref.read(navigationProvider).navigateToScreen(0),
+            onPressed: () =>
+                ref.read(navigationProvider).navigateToScreen('reader'),
             tooltip: 'Close',
           ),
         ],
@@ -512,7 +567,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                 Expanded(flex: 7, child: _buildBottomSection(currentSentence)),
               ],
             ),
-      bottomNavigationBar: _buildBottomAppBar(),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (ref.read(settingsProvider).showStatsBar) _buildStatsRow(),
+          _buildNavigationBar(),
+        ],
+      ),
     );
   }
 
@@ -675,7 +736,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     );
   }
 
-  Widget _buildBottomAppBar() {
+  Widget _buildNavigationBar() {
     final pageData = ref.watch(readerProvider).pageData;
     final sentenceReaderState = ref.watch(sentenceReaderProvider);
     final sentenceReaderNotifier = ref.read(sentenceReaderProvider.notifier);
@@ -729,6 +790,61 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatsRow() {
+    final statsState = ref.watch(statsProvider);
+    final termsState = ref.watch(termsProvider);
+    final sentenceReaderState = ref.watch(sentenceReaderProvider);
+    final currentSentence = sentenceReaderState.currentSentence;
+
+    if (currentSentence != null) {
+      _updateLanguageStats();
+    }
+
+    final languageFlag = getFlagForLanguage(_currentLanguageName) ?? '';
+
+    int todayWordcount = 0;
+    int status99Count = termsState.stats.status99;
+
+    if (statsState.value != null) {
+      final today = DateTime.now();
+
+      for (final langStats in statsState.value!.languages) {
+        if (langStats.language == _currentLanguageName) {
+          final todayStats = langStats.dailyStats.firstWhere(
+            (s) =>
+                s.date.year == today.year &&
+                s.date.month == today.month &&
+                s.date.day == today.day,
+            orElse: () =>
+                DailyReadingStats(date: today, wordcount: 0, runningTotal: 0),
+          );
+          todayWordcount = todayStats.wordcount;
+          break;
+        }
+      }
+    }
+
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          if (languageFlag.isNotEmpty) ...[
+            Text(languageFlag, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            "Today's Words: $todayWordcount",
+            style: theme.textTheme.bodySmall,
+          ),
+          const Spacer(),
+          Text("Known: $status99Count", style: theme.textTheme.bodySmall),
+        ],
       ),
     );
   }
@@ -1081,6 +1197,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     });
 
     _loadTooltipsForCurrentSentence();
+    ref.read(statsProvider.notifier).loadStats();
   }
 
   Future<void> _goPrevious() async {
@@ -1107,6 +1224,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     });
 
     _loadTooltipsForCurrentSentence();
+    ref.read(statsProvider.notifier).loadStats();
   }
 
   void _saveSentencePosition() {
@@ -1136,6 +1254,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           ),
         );
       }
+      ref.read(statsProvider.notifier).loadStats();
     } catch (e) {
       print('Error marking page as done: $e');
       if (mounted) {
@@ -1312,6 +1431,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         }
                       }
                     },
+                    onStatus99Changed: (langId) {
+                      ref.read(termsProvider.notifier).loadStats(langId);
+                    },
                   ),
                 );
               },
@@ -1464,6 +1586,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                           _showParentTermForm(parentTermForm);
                         }
                       }
+                    },
+                    onStatus99Changed: (langId) {
+                      ref.read(termsProvider.notifier).loadStats(langId);
                     },
                   ),
                 );

@@ -32,6 +32,7 @@ class _SentenceAITranslationWidgetState
   AITranslationStatus _status = AITranslationStatus.idle;
   String? _translation;
   String? _errorMessage;
+  bool _originalExpanded = true;
 
   @override
   void initState() {
@@ -191,16 +192,30 @@ class _SentenceAITranslationWidgetState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Original:',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.outline,
+              ExpansionTile(
+                initiallyExpanded: _originalExpanded,
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    _originalExpanded = expanded;
+                  });
+                },
+                title: Text(
+                  'Original Sentence',
+                  style: Theme.of(context).textTheme.titleSmall,
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                widget.sentence,
-                style: Theme.of(context).textTheme.bodyLarge,
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(
+                  top: 8,
+                  left: 12,
+                  right: 12,
+                  bottom: 8,
+                ),
+                children: [
+                  Text(
+                    widget.sentence,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               Text(

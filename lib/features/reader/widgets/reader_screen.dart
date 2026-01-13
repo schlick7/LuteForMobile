@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/utils/language_flag_mapper.dart';
 import '../../../features/settings/providers/settings_provider.dart';
+import '../../../features/terms/providers/terms_provider.dart';
+import '../../../features/stats/providers/stats_provider.dart';
+import '../../../features/stats/models/stats_data.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../models/page_data.dart';
@@ -154,6 +158,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   int? _lastAttemptedPageNum;
   bool _isNavigatingForward = true;
   Key _pageKey = const ValueKey('page');
+  Map<int, String> _languageIdToName = {};
+  String _currentLanguageName = '';
+  int? _lastStatsLangId;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -190,12 +197,55 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     return _weightLabels[idx];
   }
 
+  Future<void> _loadLanguageMapping() async {
+    final repository = ref.read(readerRepositoryProvider);
+    try {
+      final languages = await repository.contentService.getLanguagesWithIds();
+      setState(() {
+        _languageIdToName = {for (var lang in languages) lang.id: lang.name};
+      });
+    } catch (e) {
+      print('DEBUG: Failed to load language mapping: $e');
+    }
+  }
+
+  void _updateLanguageStats() {
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData == null) return;
+
+    int? langId;
+    for (final paragraph in pageData.paragraphs) {
+      for (final textItem in paragraph.textItems) {
+        if (textItem.langId != null && textItem.langId != 0) {
+          langId = textItem.langId;
+          break;
+        }
+      }
+      if (langId != null) break;
+    }
+
+    if (langId == null || langId == 0) return;
+
+    final languageName = _languageIdToName[langId] ?? '';
+    if (languageName != _currentLanguageName) {
+      setState(() {
+        _currentLanguageName = languageName;
+      });
+    }
+
+    if (langId != _lastStatsLangId) {
+      _lastStatsLangId = langId;
+      ref.read(termsProvider.notifier).loadStats(langId);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _hasInitialized = true;
     _scrollController.addListener(_handleScrollPosition);
+    _loadLanguageMapping();
   }
 
   @override
@@ -368,6 +418,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.watch(readerProvider.select((s) => s.pageData));
     final textSettings = ref.watch(textFormattingSettingsProvider);
     final settings = ref.watch(settingsProvider);
+
+    final statsState = ref.watch(statsProvider);
+    if (statsState.value == null) {
+      ref.read(statsProvider.notifier).loadStats();
+    }
+
     _buildCount++;
     if (_buildCount > 1) {
       print(
@@ -531,9 +587,64 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
+  Widget _buildStatsRow() {
+    final statsState = ref.watch(statsProvider);
+    final termsState = ref.watch(termsProvider);
+    final pageData = ref.read(readerProvider).pageData;
+
+    if (pageData != null) {
+      _updateLanguageStats();
+    }
+
+    final languageFlag = getFlagForLanguage(_currentLanguageName) ?? '';
+
+    int todayWordcount = 0;
+    int status99Count = termsState.stats.status99;
+
+    if (statsState.value != null) {
+      final today = DateTime.now();
+
+      for (final langStats in statsState.value!.languages) {
+        if (langStats.language == _currentLanguageName) {
+          final todayStats = langStats.dailyStats.firstWhere(
+            (s) =>
+                s.date.year == today.year &&
+                s.date.month == today.month &&
+                s.date.day == today.day,
+            orElse: () =>
+                DailyReadingStats(date: today, wordcount: 0, runningTotal: 0),
+          );
+          todayWordcount = todayStats.wordcount;
+          break;
+        }
+      }
+    }
+
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          if (languageFlag.isNotEmpty) ...[
+            Text(languageFlag, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 8),
+          ],
+          Text(
+            "Today's Words: $todayWordcount",
+            style: theme.textTheme.bodySmall,
+          ),
+          const Spacer(),
+          Text("Known: $status99Count", style: theme.textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPageControls(BuildContext context, PageData pageData) {
     final isLastPage = pageData.currentPage == pageData.pageCount;
     final theme = Theme.of(context);
+    final showStatsBar = ref.read(settingsProvider).showStatsBar;
 
     return Align(
       alignment: Alignment.centerRight,
@@ -542,53 +653,59 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                icon: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.check_circle_outline, size: 20),
-                    SizedBox(width: 4),
-                    Text('All Known'),
-                  ],
-                ),
-                onPressed: () => _markPageKnown(),
-                tooltip: 'All Known',
-              ),
-              const SizedBox(width: 24),
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                onPressed: pageData.currentPage > 1
-                    ? () => _goToPage(pageData.currentPage - 1)
-                    : null,
-                tooltip: 'Previous page',
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  pageData.pageIndicator,
-                  style: theme.textTheme.titleMedium,
-                ),
-              ),
-              if (isLastPage)
-                IconButton(
-                  icon: Icon(
-                    Icons.check,
-                    color: _isLastPageMarkedDone
-                        ? theme.colorScheme.primary
-                        : null,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle_outline, size: 20),
+                        SizedBox(width: 4),
+                        Text('All Known'),
+                      ],
+                    ),
+                    onPressed: () => _markPageKnown(),
+                    tooltip: 'All Known',
                   ),
-                  onPressed: () => _markLastPageDone(pageData),
-                  tooltip: 'Mark as done',
-                )
-              else
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: () => _goToPage(pageData.currentPage + 1),
-                  tooltip: 'Next page',
-                ),
+                  const SizedBox(width: 24),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: pageData.currentPage > 1
+                        ? () => _goToPage(pageData.currentPage - 1)
+                        : null,
+                    tooltip: 'Previous page',
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      pageData.pageIndicator,
+                      style: theme.textTheme.titleMedium,
+                    ),
+                  ),
+                  if (isLastPage)
+                    IconButton(
+                      icon: Icon(
+                        Icons.check,
+                        color: _isLastPageMarkedDone
+                            ? theme.colorScheme.primary
+                            : null,
+                      ),
+                      onPressed: () => _markLastPageDone(pageData),
+                      tooltip: 'Mark as done',
+                    )
+                  else
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right),
+                      onPressed: () => _goToPage(pageData.currentPage + 1),
+                      tooltip: 'Next page',
+                    ),
+                ],
+              ),
+              if (showStatsBar) _buildStatsRow(),
             ],
           ),
         ),
@@ -649,7 +766,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 const SizedBox(height: 24),
                 ElevatedButton.icon(
                   onPressed: () =>
-                      ref.read(navigationProvider).navigateToScreen(5),
+                      ref.read(navigationProvider).navigateToScreen('settings'),
                   icon: const Icon(Icons.settings),
                   label: const Text('Open Settings'),
                 ),
@@ -686,7 +803,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () =>
-                    ref.read(navigationProvider).navigateToScreen(1),
+                    ref.read(navigationProvider).navigateToScreen('books'),
                 icon: const Icon(Icons.collections_bookmark),
                 label: const Text('Browse Books'),
               ),
@@ -1015,6 +1132,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         }
                       }
                     },
+                    onStatus99Changed: (langId) {
+                      ref.read(termsProvider.notifier).loadStats(langId);
+                    },
                   ),
                 );
               },
@@ -1127,6 +1247,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         }
                       }
                     },
+                    onStatus99Changed: (langId) {
+                      ref.read(termsProvider.notifier).loadStats(langId);
+                    },
                   ),
                 );
               },
@@ -1192,7 +1315,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       }
     }
 
-    ref
+    await ref
         .read(readerProvider.notifier)
         .loadPage(
           bookId: pageData.bookId,
@@ -1200,6 +1323,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           showFullPageError: false,
           useCache: true,
         );
+
+    ref.read(statsProvider.notifier).loadStats();
   }
 
   Future<void> _loadPageWithoutMarkingRead(int pageNum) async {
@@ -1216,7 +1341,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       _originalWordId = null;
     });
 
-    ref
+    await ref
         .read(readerProvider.notifier)
         .loadPage(
           bookId: pageData.bookId,
@@ -1224,6 +1349,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           showFullPageError: false,
           useCache: true,
         );
+
+    ref.read(statsProvider.notifier).loadStats();
   }
 
   void _showTextFormattingOptions() {
@@ -1461,6 +1588,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           ),
         );
       }
+      ref.read(statsProvider.notifier).loadStats();
     } catch (e) {
       print('Error marking page as done: $e');
       if (mounted) {
@@ -1519,7 +1647,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                _goToPage(tempPage.toInt());
+                _loadPageWithoutMarkingRead(tempPage.toInt());
               },
               child: const Text('Go'),
             ),

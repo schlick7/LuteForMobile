@@ -6,12 +6,12 @@ import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
 
 class AppDrawer extends ConsumerWidget {
-  final int currentIndex;
-  final Function(int) onNavigate;
+  final String currentRoute;
+  final Function(String) onNavigate;
 
   const AppDrawer({
     super.key,
-    required this.currentIndex,
+    required this.currentRoute,
     required this.onNavigate,
   });
 
@@ -45,12 +45,12 @@ class AppDrawer extends ConsumerWidget {
       child: Column(
         children: [
           const SizedBox(height: 16),
-          _buildNavItem(context, Icons.book, 0, 'Reader'),
-          _buildNavItem(context, Icons.collections_bookmark, 1, 'Books'),
-          _buildNavItem(context, Icons.translate, 2, 'Terms'),
-          _buildNavItem(context, Icons.bar_chart, 3, 'Stats'),
-          _buildNavItem(context, Icons.help_outline, 4, 'Help'),
-          _buildNavItem(context, Icons.settings, 5, 'Settings'),
+          _buildNavItem(context, Icons.book, 'reader', 'Reader'),
+          _buildNavItem(context, Icons.collections_bookmark, 'books', 'Books'),
+          _buildNavItem(context, Icons.translate, 'terms', 'Terms'),
+          _buildNavItem(context, Icons.bar_chart, 'stats', 'Stats'),
+          _buildNavItem(context, Icons.help_outline, 'help', 'Help'),
+          _buildNavItem(context, Icons.settings, 'settings', 'Settings'),
           const Spacer(),
           FutureBuilder<PackageInfo>(
             future: PackageInfo.fromPlatform(),
@@ -80,10 +80,10 @@ class AppDrawer extends ConsumerWidget {
   Widget _buildNavItem(
     BuildContext context,
     IconData icon,
-    int index,
+    String route,
     String label,
   ) {
-    final isSelected = currentIndex == index;
+    final isSelected = currentRoute == route;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
@@ -94,7 +94,7 @@ class AppDrawer extends ConsumerWidget {
                 ? Theme.of(context).colorScheme.primary
                 : Theme.of(context).colorScheme.onSurface,
             onPressed: () {
-              onNavigate(index);
+              onNavigate(route);
               Navigator.of(context).pop();
             },
             tooltip: label,

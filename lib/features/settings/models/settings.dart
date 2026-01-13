@@ -23,6 +23,7 @@ class Settings {
   final int doubleTapTimeout;
   final bool pageTurnAnimations;
   final bool enableTooltipCaching;
+  final bool showStatsBar;
   final TTSProvider? ttsProvider;
   final AIProvider? aiProvider;
 
@@ -45,6 +46,7 @@ class Settings {
     this.doubleTapTimeout = 300,
     this.pageTurnAnimations = true,
     this.enableTooltipCaching = false,
+    this.showStatsBar = true,
     this.ttsProvider,
     this.aiProvider,
   });
@@ -70,6 +72,7 @@ class Settings {
     int? doubleTapTimeout,
     bool? pageTurnAnimations,
     bool? enableTooltipCaching,
+    bool? showStatsBar,
     TTSProvider? ttsProvider,
     AIProvider? aiProvider,
   }) {
@@ -103,6 +106,7 @@ class Settings {
       doubleTapTimeout: doubleTapTimeout ?? this.doubleTapTimeout,
       pageTurnAnimations: pageTurnAnimations ?? this.pageTurnAnimations,
       enableTooltipCaching: enableTooltipCaching ?? this.enableTooltipCaching,
+      showStatsBar: showStatsBar ?? this.showStatsBar,
       ttsProvider: ttsProvider ?? this.ttsProvider,
       aiProvider: aiProvider ?? this.aiProvider,
     );
@@ -128,6 +132,7 @@ class Settings {
       doubleTapTimeout: 300,
       pageTurnAnimations: true,
       enableTooltipCaching: false,
+      showStatsBar: true,
       ttsProvider: TTSProvider.onDevice,
       aiProvider: AIProvider.none,
     );
@@ -156,12 +161,13 @@ class Settings {
         other.doubleTapTimeout == doubleTapTimeout &&
         other.pageTurnAnimations == pageTurnAnimations &&
         other.enableTooltipCaching == enableTooltipCaching &&
+        other.showStatsBar == showStatsBar &&
         other.ttsProvider == ttsProvider &&
         other.aiProvider == aiProvider;
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     serverUrl,
     aiServerUrl,
     ttsServerUrl,
@@ -180,9 +186,10 @@ class Settings {
     doubleTapTimeout,
     pageTurnAnimations,
     enableTooltipCaching,
+    showStatsBar,
     ttsProvider,
     aiProvider,
-  );
+  ]);
 
   bool isValidServerUrl(String url) {
     try {

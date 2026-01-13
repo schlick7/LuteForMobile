@@ -132,7 +132,7 @@ class TermsNotifier extends Notifier<TermsState> {
       );
 
       if (langId != null && reset) {
-        _loadStats(langId);
+        loadStats(langId);
       }
     } catch (e) {
       print('DEBUG loadTerms: error $e');
@@ -156,20 +156,17 @@ class TermsNotifier extends Notifier<TermsState> {
     print('DEBUG setLanguageFilter: $langId');
     state = state.copyWith(selectedLangId: langId);
     loadTerms(reset: true);
-    _loadStats(langId);
+    if (langId != null) {
+      loadStats(langId);
+    }
   }
 
-  Future<void> _loadStats(int? langId) async {
-    if (langId == null) {
-      state = state.copyWith(stats: TermStats.empty);
-      return;
-    }
-
+  Future<void> loadStats(int langId) async {
     try {
       final stats = await _repository.getTermStats(langId);
       state = state.copyWith(stats: stats);
     } catch (e) {
-      print('DEBUG _loadStats: error $e');
+      print('DEBUG loadStats: error $e');
     }
   }
 
