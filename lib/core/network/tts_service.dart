@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:typed_data';
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -75,11 +78,14 @@ abstract class TTSService {
   Future<void> setSettings(TTSSettingsConfig config);
   Future<List<TTSVoice>> getAvailableVoices();
   void dispose();
+  Stream<PlayerState> get playerStateStream;
+  Future<Uint8List> getAudioBytes(String text);
 }
 
 class OnDeviceTTSService implements TTSService {
   final FlutterTts _flutterTts = FlutterTts();
   AudioPlayer? _audioPlayer;
+  final _playerStateController = StreamController<PlayerState>.broadcast();
 
   @override
   Future<void> speak(String text) async {
@@ -94,7 +100,10 @@ class OnDeviceTTSService implements TTSService {
   Future<void> stop() async {
     try {
       await _flutterTts.stop();
-      await _audioPlayer?.stop();
+      if (_audioPlayer != null) {
+        await _audioPlayer!.stop();
+        await _audioPlayer!.release();
+      }
     } catch (e) {
       throw TTSException('Failed to stop on-device TTS: $e');
     }
@@ -158,6 +167,15 @@ class OnDeviceTTSService implements TTSService {
   @override
   void dispose() {
     _audioPlayer?.dispose();
+    _playerStateController.close();
+  }
+
+  @override
+  Stream<PlayerState> get playerStateStream => _playerStateController.stream;
+
+  @override
+  Future<Uint8List> getAudioBytes(String text) async {
+    throw TTSException('On-device TTS does not support byte output');
   }
 }
 
@@ -168,7 +186,8 @@ class KokoroTTSService implements TTSService {
   final double speed;
 
   final Dio _dio = Dio();
-  AudioPlayer? _audioPlayer;
+  late final AudioPlayer _audioPlayer;
+  final _playerStateController = StreamController<PlayerState>.broadcast();
 
   KokoroTTSService({
     required this.endpointUrl,
@@ -176,7 +195,11 @@ class KokoroTTSService implements TTSService {
     this.audioFormat = 'mp3',
     this.speed = 1.0,
   }) {
-    _audioPlayer = AudioPlayer();
+    _audioPlayer = AudioPlayer()
+      ..setReleaseMode(ReleaseMode.stop)
+      ..onPlayerStateChanged.listen((state) {
+        _playerStateController.add(state);
+      });
   }
 
   String _generateVoiceString() {
@@ -208,7 +231,7 @@ class KokoroTTSService implements TTSService {
       );
 
       final audioBytes = response.data as List<int>;
-      await _audioPlayer!.play(BytesSource(Uint8List.fromList(audioBytes)));
+      await _audioPlayer.play(BytesSource(Uint8List.fromList(audioBytes)));
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError) {
         throw TTSException(
@@ -224,7 +247,8 @@ class KokoroTTSService implements TTSService {
   @override
   Future<void> stop() async {
     try {
-      await _audioPlayer?.stop();
+      await _audioPlayer.stop();
+      await _audioPlayer.release();
     } catch (e) {
       throw TTSException('Failed to stop Kokoro TTS: $e');
     }
@@ -261,7 +285,34 @@ class KokoroTTSService implements TTSService {
 
   @override
   void dispose() {
-    _audioPlayer?.dispose();
+    _audioPlayer.dispose();
+    _playerStateController.close();
+  }
+
+  @override
+  Stream<PlayerState> get playerStateStream => _playerStateController.stream;
+
+  @override
+  Future<Uint8List> getAudioBytes(String text) async {
+    final voiceString = _generateVoiceString();
+    if (voiceString.isEmpty) {
+      throw TTSException('No voices selected for Kokoro TTS');
+    }
+
+    final response = await _dio.post(
+      '$endpointUrl/audio/speech',
+      data: {
+        'model': 'kokoro',
+        'input': text,
+        'voice': voiceString,
+        'response_format': audioFormat,
+        'speed': speed,
+      },
+      options: Options(responseType: ResponseType.bytes),
+    );
+
+    final audioBytes = response.data as List<int>;
+    return Uint8List.fromList(audioBytes);
   }
 }
 
@@ -271,9 +322,16 @@ class OpenAITTSService implements TTSService {
   final String? voice;
 
   final Dio _dio = Dio();
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  late final AudioPlayer _audioPlayer;
+  final _playerStateController = StreamController<PlayerState>.broadcast();
 
-  OpenAITTSService({required this.apiKey, this.model, this.voice});
+  OpenAITTSService({required this.apiKey, this.model, this.voice}) {
+    _audioPlayer = AudioPlayer()
+      ..setReleaseMode(ReleaseMode.stop)
+      ..onPlayerStateChanged.listen((state) {
+        _playerStateController.add(state);
+      });
+  }
 
   @override
   Future<void> speak(String text) async {
@@ -314,6 +372,7 @@ class OpenAITTSService implements TTSService {
   Future<void> stop() async {
     try {
       await _audioPlayer.stop();
+      await _audioPlayer.release();
     } catch (e) {
       throw TTSException('Failed to stop OpenAI TTS: $e');
     }
@@ -340,6 +399,33 @@ class OpenAITTSService implements TTSService {
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _playerStateController.close();
+  }
+
+  @override
+  Stream<PlayerState> get playerStateStream => _playerStateController.stream;
+
+  @override
+  Future<Uint8List> getAudioBytes(String text) async {
+    final response = await _dio.post(
+      'https://api.openai.com/v1/audio/speech',
+      data: {
+        'model': model ?? 'tts-1',
+        'input': text,
+        'voice': voice ?? 'alloy',
+        'response_format': 'mp3',
+      },
+      options: Options(
+        responseType: ResponseType.bytes,
+        headers: {
+          'Authorization': 'Bearer $apiKey',
+          'Content-Type': 'application/json',
+        },
+      ),
+    );
+
+    final audioBytes = response.data as List<int>;
+    return Uint8List.fromList(audioBytes);
   }
 }
 
@@ -350,14 +436,21 @@ class LocalOpenAITTSService implements TTSService {
   final String? apiKey;
 
   final Dio _dio = Dio();
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  late final AudioPlayer _audioPlayer;
+  final _playerStateController = StreamController<PlayerState>.broadcast();
 
   LocalOpenAITTSService({
     required this.endpointUrl,
     this.model,
     this.voice,
     this.apiKey,
-  });
+  }) {
+    _audioPlayer = AudioPlayer()
+      ..setReleaseMode(ReleaseMode.stop)
+      ..onPlayerStateChanged.listen((state) {
+        _playerStateController.add(state);
+      });
+  }
 
   @override
   Future<void> speak(String text) async {
@@ -400,6 +493,7 @@ class LocalOpenAITTSService implements TTSService {
   Future<void> stop() async {
     try {
       await _audioPlayer.stop();
+      await _audioPlayer.release();
     } catch (e) {
       throw TTSException('Failed to stop local OpenAI TTS: $e');
     }
@@ -426,6 +520,33 @@ class LocalOpenAITTSService implements TTSService {
   @override
   void dispose() {
     _audioPlayer.dispose();
+    _playerStateController.close();
+  }
+
+  @override
+  Stream<PlayerState> get playerStateStream => _playerStateController.stream;
+
+  @override
+  Future<Uint8List> getAudioBytes(String text) async {
+    final headers = <String, String>{'Content-Type': 'application/json'};
+
+    if (apiKey != null && apiKey!.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $apiKey';
+    }
+
+    final response = await _dio.post(
+      '$endpointUrl/audio/speech',
+      data: {
+        'model': model ?? 'tts-1',
+        'input': text,
+        'voice': voice ?? 'alloy',
+        'response_format': 'mp3',
+      },
+      options: Options(responseType: ResponseType.bytes, headers: headers),
+    );
+
+    final audioBytes = response.data as List<int>;
+    return Uint8List.fromList(audioBytes);
   }
 }
 
@@ -452,12 +573,20 @@ class NoTTSService implements TTSService {
 
   @override
   Future<List<TTSVoice>> getAvailableVoices() async {
-    debugPrint('TTS is disabled');
     return [];
   }
 
   @override
   void dispose() {}
+
+  @override
+  Stream<PlayerState> get playerStateStream =>
+      Stream.value(PlayerState.completed);
+
+  @override
+  Future<Uint8List> getAudioBytes(String text) async {
+    throw TTSException('TTS is disabled');
+  }
 }
 
 class TTSException implements Exception {

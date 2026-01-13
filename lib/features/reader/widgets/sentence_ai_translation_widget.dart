@@ -140,11 +140,6 @@ class _SentenceAITranslationWidgetState
         ttsColor = errorColor;
         ttsOnPressed = () => ref.read(sentenceTTSProvider.notifier).stop();
         break;
-      case SentenceTTSStatus.paused:
-        ttsIcon = Icons.play_arrow;
-        ttsColor = Theme.of(context).colorScheme.primary;
-        ttsOnPressed = () => ref.read(sentenceTTSProvider.notifier).resume();
-        break;
       case SentenceTTSStatus.error:
         ttsIcon = Icons.refresh;
         ttsColor = errorColor;
@@ -154,6 +149,11 @@ class _SentenceAITranslationWidgetState
               .read(sentenceTTSProvider.notifier)
               .speakSentence(widget.sentence, widget.sentenceId ?? 0);
         };
+        break;
+      case SentenceTTSStatus.loading:
+        ttsIcon = Icons.hourglass_empty;
+        ttsColor = Theme.of(context).colorScheme.primary;
+        ttsOnPressed = null;
         break;
       case SentenceTTSStatus.idle:
         ttsIcon = Icons.volume_up;
@@ -289,10 +289,10 @@ class _SentenceAITranslationWidgetState
     switch (status) {
       case SentenceTTSStatus.playing:
         return 'Stop';
-      case SentenceTTSStatus.paused:
-        return 'Resume';
       case SentenceTTSStatus.error:
         return 'Retry';
+      case SentenceTTSStatus.loading:
+        return 'Loading';
       case SentenceTTSStatus.idle:
         return 'Play';
     }
