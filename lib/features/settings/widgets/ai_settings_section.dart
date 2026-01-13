@@ -202,6 +202,14 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
           AIPromptType.virtualDictionary,
           'Virtual Dictionary',
         ),
+        const SizedBox(height: 16),
+        _buildPromptConfigSection(
+          context,
+          ref,
+          settings,
+          AIPromptType.termExplanation,
+          'Term Explanation',
+        ),
       ],
     );
   }
@@ -338,6 +346,24 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
           const PlaceholderInfo(
             placeholder: '[sentence]',
             description: 'The sentence to analyze',
+            example: 'El perro corre rápido.',
+          ),
+          const PlaceholderInfo(
+            placeholder: '[language]',
+            description: 'The source language',
+            example: 'Spanish',
+          ),
+        ];
+      case AIPromptType.termExplanation:
+        return [
+          const PlaceholderInfo(
+            placeholder: '[term]',
+            description: 'The term to explain',
+            example: 'perro',
+          ),
+          const PlaceholderInfo(
+            placeholder: '[sentence]',
+            description: 'The context sentence (optional)',
             example: 'El perro corre rápido.',
           ),
           const PlaceholderInfo(

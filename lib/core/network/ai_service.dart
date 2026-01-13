@@ -18,6 +18,11 @@ abstract class AIService {
     String? language,
   });
   Future<String> getVirtualDictionaryEntry(String sentence, String language);
+  Future<String> getTermExplanation(
+    String term,
+    String language, {
+    String? sentence,
+  });
 }
 
 class OpenAIService implements AIService {
@@ -173,6 +178,42 @@ class OpenAIService implements AIService {
     } catch (e) {
       developer.log(
         'Error getting virtual dictionary entry: $e',
+        name: 'OpenAIService',
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  Future<String> getTermExplanation(
+    String term,
+    String language, {
+    String? sentence,
+  }) async {
+    try {
+      final prompt = getPromptForType(
+        AIPromptType.termExplanation,
+        sentence: sentence,
+        term: term,
+        language: language,
+      );
+
+      final response = await _client.createChatCompletion(
+        request: CreateChatCompletionRequest(
+          model: ChatCompletionModel.modelId(model ?? 'gpt-4o'),
+          messages: [
+            ChatCompletionMessage.user(
+              content: ChatCompletionUserMessageContent.string(prompt),
+            ),
+          ],
+        ),
+      );
+
+      return response.choices.first.message.content ??
+          'No explanation available';
+    } catch (e) {
+      developer.log(
+        'Error getting term explanation: $e',
         name: 'OpenAIService',
       );
       rethrow;
@@ -347,6 +388,41 @@ class LocalOpenAIService implements AIService {
       rethrow;
     }
   }
+
+  @override
+  Future<String> getTermExplanation(
+    String term,
+    String language, {
+    String? sentence,
+  }) async {
+    try {
+      final prompt = getPromptForType(
+        AIPromptType.termExplanation,
+        sentence: sentence,
+        term: term,
+        language: language,
+      );
+
+      final response = await _dio.post(
+        '/chat/completions',
+        data: {
+          'model': model ?? 'gpt-4o',
+          'messages': [
+            {'role': 'user', 'content': prompt},
+          ],
+        },
+      );
+
+      return response.data['choices'][0]['message']['content'] ??
+          'No explanation available';
+    } catch (e) {
+      developer.log(
+        'Error getting term explanation: $e',
+        name: 'LocalOpenAIService',
+      );
+      rethrow;
+    }
+  }
 }
 
 class NoAIService implements AIService {
@@ -399,5 +475,18 @@ class NoAIService implements AIService {
       name: 'NoAIService',
     );
     return 'AI virtual dictionary is not enabled';
+  }
+
+  @override
+  Future<String> getTermExplanation(
+    String term,
+    String language, {
+    String? sentence,
+  }) async {
+    developer.log(
+      'Term explanation disabled - NoAIService',
+      name: 'NoAIService',
+    );
+    return 'AI term explanation is not enabled';
   }
 }

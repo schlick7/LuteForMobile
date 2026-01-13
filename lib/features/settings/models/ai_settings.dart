@@ -2,7 +2,12 @@ import 'package:flutter/foundation.dart';
 
 enum AIProvider { localOpenAI, openAI, none }
 
-enum AIPromptType { termTranslation, sentenceTranslation, virtualDictionary }
+enum AIPromptType {
+  termTranslation,
+  sentenceTranslation,
+  virtualDictionary,
+  termExplanation,
+}
 
 @immutable
 class AISettings {
@@ -158,6 +163,18 @@ Format example:
 word1 [translation1] /word2 [translation2] /word3 [translation3]
 [grammar notes]
 Translation: [natural translation]''',
+    AIPromptType.termExplanation:
+        '''For the following [language] term: "[term]" (used in context: "[sentence]")
+
+Provide a comprehensive explanation:
+1. Definition(s) in English
+2. Part of speech
+3. Gender (if applicable)
+4. Example sentences in [language] with translations
+5. Related forms or root words
+6. Common collocations or usage patterns
+
+Keep the response concise but informative.''',
   };
 
   static String getDefault(AIPromptType type) {
