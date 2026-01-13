@@ -7,10 +7,8 @@
 App is not properly intializing something with TTS and AI settings. They aren't working correctly until i go to the settings page and reselect the current selection in their selectors. Then they work fine, even though nothing has changed
   
 
-Update all of app to use the language flags like the ReaderStats. Many places use a globe or translate icon that should use the languages flag emoji instead  
-  
 # Statistics Screen  
-- remove the curved setting from the statsscreen line graph
+- 
 
 # Terms Screen
 -
