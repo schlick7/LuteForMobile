@@ -3,20 +3,21 @@
 - source myenv/bin/activate
   - python3 -m lute.main
   
+  
+Update HelpScreen  
+  
 # Statistics Screen  
-For the Wordcount lets create a Current Day streak and a Biggest Day streak stat. any day with a wordcount over 1 should count. 
+For the Wordcount lets create a Current Day streak and a Longest Day streak stat. any day with a wordcount of 1 or more should count. 
 
 # Terms Screen
 
 # Reader
 
-Book is resetting to page 1 on app load
-
-I don't want a bottom bar on the ReadScreen. There is a nav bar that appears at the bottom of the page of text that currently has an all known button and nav controls. That is where I want to add a second line and have the todays words read and words known display. This is what the settings toggle should turn on/off as well as the bar in the SentenceReader
+lets also make the orignal sentence in the AI translation modal be collapsible
 
 # TTS
 - Future: add a selector in language settings to apply TTS voices based on languages. 
-  
+- Make the audio stopable. Don't need pause. Just play and stop. 
 
 # Sentence Reader
 
