@@ -5,3 +5,4 @@
 
 # Other Changes
 - Add stats to bottom of reader
+  - Toggle from Settings Screen
