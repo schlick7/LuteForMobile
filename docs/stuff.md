@@ -20,7 +20,7 @@ Update HelpScreen
 - Make the audio stopable. Don't need pause. Just play and stop. 
 
 # AI
-- Add a 'virtual' sentence dictionary to SentenceDictionary popup. 
+- 
 
 # Sentence Reader
 - If the book page hasn't changed then open to the last setence read intead of starting at 1
