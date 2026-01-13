@@ -5,4 +5,5 @@
 - 
 
 # Other Changes
+- Day Streak
 -
