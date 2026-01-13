@@ -4,7 +4,10 @@
   - python3 -m lute.main
   
   
-Update HelpScreen  
+App is not properly intializing something with TTS and AI settings. They are working correctly until i go to the settings page and reselect the current options in their selectors. Then they work fine, even though nothing has changed
+  
+
+Update all of app to use the language flags like the ReaderStats. Many places use a global or translate icon that should use the languages flag emoji instead  
   
 # Statistics Screen  
 - 
@@ -20,7 +23,8 @@ Update HelpScreen
 - Make the audio stopable. Don't need pause. Just play and stop. 
 
 # AI
-- 
+- Prompts should be collapsible
+- add a 4th prompt for an enhanced Termform virtual dictionary. 
 
 # Sentence Reader
 - If the book page hasn't changed then open to the last setence read intead of starting at 1
