@@ -163,6 +163,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _isNavigatingForward = true;
   Key? _sentenceKey;
   bool _isNavigating = false;
+  Map<int, String> _languageIdToName = {};
+  String _currentLanguageName = '';
+  int? _lastStatsLangId;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -210,6 +213,45 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     WidgetsBinding.instance.removeObserver(this);
     _ttsNotifier?.stop();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLanguageMapping();
+  }
+
+  Future<void> _loadLanguageMapping() async {
+    final repository = ref.read(readerRepositoryProvider);
+    try {
+      final languages = await repository.contentService.getLanguagesWithIds();
+      setState(() {
+        _languageIdToName = {for (var lang in languages) lang.id: lang.name};
+      });
+    } catch (e) {
+      print('DEBUG: Failed to load language mapping: $e');
+    }
+  }
+
+  void _updateLanguageStats() {
+    final sentenceReader = ref.read(sentenceReaderProvider);
+    final currentSentence = sentenceReader.currentSentence;
+    if (currentSentence == null) return;
+
+    final langId = currentSentence.textItems.first.langId;
+    if (langId == null || langId == 0) return;
+
+    final languageName = _languageIdToName[langId] ?? '';
+    if (languageName != _currentLanguageName) {
+      setState(() {
+        _currentLanguageName = languageName;
+      });
+    }
+
+    if (langId != _lastStatsLangId) {
+      _lastStatsLangId = langId;
+      ref.read(termsProvider.notifier).loadStats(langId);
+    }
   }
 
   void _setupAppLifecycleListener() {
@@ -746,11 +788,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final sentenceReaderState = ref.watch(sentenceReaderProvider);
     final currentSentence = sentenceReaderState.currentSentence;
 
-    String languageName = '';
-    if (statsState.value != null && statsState.value!.languages.isNotEmpty) {
-      languageName = statsState.value!.languages.first.language;
+    if (currentSentence != null) {
+      _updateLanguageStats();
     }
-    final languageFlag = getFlagForLanguage(languageName) ?? '';
+
+    final languageFlag = getFlagForLanguage(_currentLanguageName) ?? '';
 
     int todayWordcount = 0;
     int status99Count = termsState.stats.status99;
@@ -759,7 +801,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       final today = DateTime.now();
 
       for (final langStats in statsState.value!.languages) {
-        if (langStats.language == languageName) {
+        if (langStats.language == _currentLanguageName) {
           final todayStats = langStats.dailyStats.firstWhere(
             (s) =>
                 s.date.year == today.year &&
