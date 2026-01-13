@@ -743,20 +743,20 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   Widget _buildStatsRow() {
     final statsState = ref.watch(statsProvider);
     final termsState = ref.watch(termsProvider);
-    final readerState = ref.watch(readerProvider);
     final sentenceReaderState = ref.watch(sentenceReaderProvider);
     final currentSentence = sentenceReaderState.currentSentence;
 
-    final languageName = currentSentence?.textItems.first.language ?? '';
+    String languageName = '';
+    if (statsState.value != null && statsState.value!.languages.isNotEmpty) {
+      languageName = statsState.value!.languages.first.language;
+    }
     final languageFlag = getFlagForLanguage(languageName) ?? '';
 
     int todayWordcount = 0;
-    int status99Count = 0;
+    int status99Count = termsState.stats.status99;
 
     if (statsState.value != null) {
       final today = DateTime.now();
-      final todayDateStr =
-          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
       for (final langStats in statsState.value!.languages) {
         if (langStats.language == languageName) {
@@ -765,20 +765,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                 s.date.year == today.year &&
                 s.date.month == today.month &&
                 s.date.day == today.day,
-            orElse: () => const DailyReadingStats(
-              date: DateTime.now(),
-              wordcount: 0,
-              runningTotal: 0,
-            ),
+            orElse: () =>
+                DailyReadingStats(date: today, wordcount: 0, runningTotal: 0),
           );
           todayWordcount = todayStats.wordcount;
           break;
         }
       }
-    }
-
-    if (termsState.value != null) {
-      status99Count = termsState.value!.stats.status99;
     }
 
     final theme = Theme.of(context);

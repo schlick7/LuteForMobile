@@ -132,7 +132,7 @@ class TermsNotifier extends Notifier<TermsState> {
       );
 
       if (langId != null && reset) {
-        _loadStats(langId);
+        loadStats(langId);
       }
     } catch (e) {
       print('DEBUG loadTerms: error $e');
@@ -156,7 +156,9 @@ class TermsNotifier extends Notifier<TermsState> {
     print('DEBUG setLanguageFilter: $langId');
     state = state.copyWith(selectedLangId: langId);
     loadTerms(reset: true);
-    loadStats(langId);
+    if (langId != null) {
+      loadStats(langId);
+    }
   }
 
   Future<void> loadStats(int langId) async {
