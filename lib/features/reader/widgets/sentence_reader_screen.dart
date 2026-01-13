@@ -282,6 +282,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       'DEBUG: SentenceReaderScreen build #$_mainBuildCount, isVisible=$isVisible, _hasInitialized=$_hasInitialized',
     );
 
+    final statsState = ref.watch(statsProvider);
+    if (statsState.value == null) {
+      ref.read(statsProvider.notifier).loadStats();
+    }
+
     final pageTitle = ref.watch(
       readerProvider.select((state) => state.pageData?.title),
     );
@@ -560,7 +565,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             ),
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [_buildStatsRow(), _buildNavigationBar()],
+        children: [
+          if (ref.read(settingsProvider).showStatsBar) _buildStatsRow(),
+          _buildNavigationBar(),
+        ],
       ),
     );
   }
@@ -1185,6 +1193,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     });
 
     _loadTooltipsForCurrentSentence();
+    ref.read(statsProvider.notifier).loadStats();
   }
 
   Future<void> _goPrevious() async {
@@ -1211,6 +1220,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     });
 
     _loadTooltipsForCurrentSentence();
+    ref.read(statsProvider.notifier).loadStats();
   }
 
   void _saveSentencePosition() {
@@ -1240,6 +1250,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           ),
         );
       }
+      ref.read(statsProvider.notifier).loadStats();
     } catch (e) {
       print('Error marking page as done: $e');
       if (mounted) {

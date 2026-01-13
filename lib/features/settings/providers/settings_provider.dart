@@ -34,6 +34,7 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyDoubleTapTimeout = 'double_tap_timeout';
   static const String _keyPageTurnAnimations = 'page_turn_animations';
   static const String _keyEnableTooltipCaching = 'enable_tooltip_caching';
+  static const String _keyShowStatsBar = 'show_stats_bar';
 
   @override
   Settings build() {
@@ -65,6 +66,7 @@ class SettingsNotifier extends Notifier<Settings> {
     final pageTurnAnimations = prefs.getBool(_keyPageTurnAnimations) ?? true;
     final enableTooltipCaching =
         prefs.getBool(_keyEnableTooltipCaching) ?? false;
+    final showStatsBar = prefs.getBool(_keyShowStatsBar) ?? true;
 
     state = state.copyWith(
       translationProvider: translationProvider,
@@ -81,6 +83,7 @@ class SettingsNotifier extends Notifier<Settings> {
       doubleTapTimeout: doubleTapTimeout,
       pageTurnAnimations: pageTurnAnimations,
       enableTooltipCaching: enableTooltipCaching,
+      showStatsBar: showStatsBar,
     );
   }
 
@@ -231,6 +234,12 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyEnableTooltipCaching, enabled);
   }
 
+  Future<void> updateShowStatsBar(bool show) async {
+    state = state.copyWith(showStatsBar: show);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowStatsBar, show);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -257,6 +266,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyDoubleTapTimeout);
     await prefs.remove(_keyPageTurnAnimations);
     await prefs.remove(_keyEnableTooltipCaching);
+    await prefs.remove(_keyShowStatsBar);
 
     state = Settings.defaultSettings();
   }

@@ -555,6 +555,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        const Text('Show stats bar in reader'),
+                        const Spacer(),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value: settings.showStatsBar,
+                            onChanged: (value) {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .updateShowStatsBar(value);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
