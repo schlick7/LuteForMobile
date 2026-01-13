@@ -78,9 +78,7 @@ class AISettingsNotifier extends Notifier<AISettings> {
       promptConfigs: promptConfigs ?? state.promptConfigs,
     );
 
-    if (state != loadedSettings) {
-      state = loadedSettings;
-    }
+    state = loadedSettings;
   }
 
   Future<AISettingsConfig?> _loadConfig(
