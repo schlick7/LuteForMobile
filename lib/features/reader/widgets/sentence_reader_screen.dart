@@ -434,7 +434,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           actions: [
             IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () => ref.read(navigationProvider).navigateToScreen(0),
+              onPressed: () =>
+                  ref.read(navigationProvider).navigateToScreen('reader'),
               tooltip: 'Close',
             ),
           ],
@@ -450,7 +451,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           actions: [
             IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () => ref.read(navigationProvider).navigateToScreen(0),
+              onPressed: () =>
+                  ref.read(navigationProvider).navigateToScreen('reader'),
               tooltip: 'Close',
             ),
           ],
@@ -480,7 +482,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           actions: [
             IconButton(
               icon: const Icon(Icons.close),
-              onPressed: () => ref.read(navigationProvider).navigateToScreen(0),
+              onPressed: () =>
+                  ref.read(navigationProvider).navigateToScreen('reader'),
               tooltip: 'Close',
             ),
           ],
@@ -499,7 +502,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () =>
-                    ref.read(navigationProvider).navigateToScreen(1),
+                    ref.read(navigationProvider).navigateToScreen('books'),
                 icon: const Icon(Icons.collections_bookmark),
                 label: const Text('Browse Books'),
               ),
@@ -531,7 +534,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
-            onPressed: () => ref.read(navigationProvider).navigateToScreen(0),
+            onPressed: () =>
+                ref.read(navigationProvider).navigateToScreen('reader'),
             tooltip: 'Close',
           ),
         ],

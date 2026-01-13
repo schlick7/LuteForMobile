@@ -55,6 +55,7 @@ class _SentenceTranslationWidgetState
   bool _hasFetchedAI = false;
   final Set<int> _preloadedPages = {};
   bool _isPreloading = false;
+  bool _isOriginalCollapsed = true;
 
   @override
   void initState() {
@@ -353,47 +354,70 @@ class _SentenceTranslationWidgetState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Original',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: context.customColors.accentLabelColor,
-                fontWeight: FontWeight.w600,
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _isOriginalCollapsed = !_isOriginalCollapsed;
+            });
+          },
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Original',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: context.customColors.accentLabelColor,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            ),
-            IconButton(
-              onPressed: () {
-                _ttsService.speak(widget.sentence);
-              },
-              icon: const Icon(Icons.volume_up),
-              tooltip: 'Read sentence',
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              padding: EdgeInsets.zero,
-            ),
-          ],
+              Icon(
+                _isOriginalCollapsed ? Icons.expand_more : Icons.expand_less,
+                color: context.customColors.accentLabelColor,
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
+        if (!_isOriginalCollapsed) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
               color: Theme.of(
                 context,
-              ).colorScheme.outline.withValues(alpha: 0.3),
-              width: 1,
+              ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    widget.sentence,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    _ttsService.speak(widget.sentence);
+                  },
+                  icon: const Icon(Icons.volume_up),
+                  tooltip: 'Read sentence',
+                  constraints: const BoxConstraints(
+                    minWidth: 40,
+                    minHeight: 40,
+                  ),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
             ),
           ),
-          child: Text(
-            widget.sentence,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ),
+        ],
       ],
     );
   }
