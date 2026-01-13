@@ -4,13 +4,13 @@
   - python3 -m lute.main
   
   
-App is not properly intializing something with TTS and AI settings. They are working correctly until i go to the settings page and reselect the current options in their selectors. Then they work fine, even though nothing has changed
+App is not properly intializing something with TTS and AI settings. They aren't working correctly until i go to the settings page and reselect the current selection in their selectors. Then they work fine, even though nothing has changed
   
 
 Update all of app to use the language flags like the ReaderStats. Many places use a global or translate icon that should use the languages flag emoji instead  
   
 # Statistics Screen  
-- 
+- remove the curved setting from the statsscreen line graph
 
 # Terms Screen
 -
@@ -23,11 +23,12 @@ Update all of app to use the language flags like the ReaderStats. Many places us
 - Make the audio stopable. Don't need pause. Just play and stop. 
 
 # AI
-- Prompts should be collapsible
-- add a 4th prompt for an enhanced Termform virtual dictionary. 
+-
 
 # Sentence Reader
 - If the book page hasn't changed then open to the last setence read intead of starting at 1
+- Remove word glow toggle when in sentencereader
+- sentencereader termslist only updates teh trasnlation when the termform save button is pressed, not when swiping to close (autosave)
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
