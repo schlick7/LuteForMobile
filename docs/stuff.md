@@ -7,13 +7,13 @@
 Update HelpScreen  
   
 # Statistics Screen  
-For the Wordcount lets create a Current Day streak and a Longest Day streak stat. any day with a wordcount of 1 or more should count. 
+- For the Wordcount lets create a Current Day streak and a Longest Day streak stat. any day with a wordcount of 1 or more should count. 
 
 # Terms Screen
+-
 
 # Reader
-
-lets also make the orignal sentence in the AI translation modal be collapsible
+-
 
 # TTS
 - Future: add a selector in language settings to apply TTS voices based on languages. 
@@ -23,7 +23,6 @@ lets also make the orignal sentence in the AI translation modal be collapsible
 - Add 'virtual' sentence dictionary to SentenceDictionary popup. 
 
 # Sentence Reader
-
 - If the book page hasn't changed then open to the last setence read intead of starting at 1
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
