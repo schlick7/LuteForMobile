@@ -119,8 +119,10 @@ class ReaderDrawerSettings extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           _buildFullscreenToggle(context, ref, textSettings),
-          const SizedBox(height: 24),
-          _buildWordGlowToggle(context, ref),
+          if (currentRoute != 'sentence-reader') ...[
+            const SizedBox(height: 24),
+            _buildWordGlowToggle(context, ref),
+          ],
           const SizedBox(height: 24),
           Consumer(
             builder: (context, ref, _) {
