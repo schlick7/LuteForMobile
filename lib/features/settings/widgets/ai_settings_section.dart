@@ -13,6 +13,7 @@ class AISettingsSection extends ConsumerStatefulWidget {
 
 class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
   bool _isExpanded = false;
+  final Map<AIPromptType, bool> _promptExpanded = {};
 
   @override
   Widget build(BuildContext context) {
@@ -226,83 +227,86 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
         config?.customPrompt ?? AIPromptTemplates.getDefault(type);
     final isCustom = config?.customPrompt?.isNotEmpty ?? false;
     final placeholders = _getPlaceholders(type);
+    final isExpanded = _promptExpanded[type] ?? false;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: SwitchListTile(
-                title: Text(title),
-                subtitle: Text(
-                  config?.enabled ?? true ? 'Enabled' : 'Disabled',
-                ),
-                value: config?.enabled ?? true,
-                onChanged: (value) {
-                  ref
-                      .read(aiSettingsProvider.notifier)
-                      .updatePromptConfig(
-                        type,
-                        config!.copyWith(enabled: value),
-                      );
-                },
-              ),
-            ),
-            if (isCustom)
-              TextButton.icon(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (dialogContext) => AlertDialog(
-                      title: const Text('Reset to Default'),
-                      content: const Text(
-                        'Are you sure you want to reset this prompt to the default template?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            ref
-                                .read(aiSettingsProvider.notifier)
-                                .updatePromptConfig(
-                                  type,
-                                  AIPromptConfig(
-                                    customPrompt: null,
-                                    enabled: config!.enabled,
-                                    language: config.language,
-                                  ),
-                                );
-                            Navigator.of(dialogContext).pop();
-                          },
-                          child: const Text('Reset'),
-                        ),
-                      ],
+    return ExpansionTile(
+      title: Text(title),
+      subtitle: Text(config?.enabled ?? true ? 'Enabled' : 'Disabled'),
+      initiallyExpanded: isExpanded,
+      onExpansionChanged: (expanded) {
+        setState(() {
+          _promptExpanded[type] = expanded;
+        });
+      },
+      leading: Switch(
+        value: config?.enabled ?? true,
+        onChanged: (value) {
+          ref
+              .read(aiSettingsProvider.notifier)
+              .updatePromptConfig(type, config!.copyWith(enabled: value));
+        },
+      ),
+      trailing: isCustom
+          ? IconButton(
+              icon: const Icon(Icons.restore, size: 20),
+              tooltip: 'Reset to Default',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (dialogContext) => AlertDialog(
+                    title: const Text('Reset to Default'),
+                    content: const Text(
+                      'Are you sure you want to reset this prompt to the default template?',
                     ),
-                  );
-                },
-                icon: const Icon(Icons.restore),
-                label: const Text('Reset'),
-              ),
-          ],
-        ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          ref
+                              .read(aiSettingsProvider.notifier)
+                              .updatePromptConfig(
+                                type,
+                                AIPromptConfig(
+                                  customPrompt: null,
+                                  enabled: config!.enabled,
+                                  language: config.language,
+                                ),
+                              );
+                          Navigator.of(dialogContext).pop();
+                        },
+                        child: const Text('Reset'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            )
+          : null,
+      children: [
         if (config?.enabled ?? true) ...[
-          _PromptEditor(
-            initialText: currentPrompt,
-            onChanged: (value) {
-              ref
-                  .read(aiSettingsProvider.notifier)
-                  .updatePromptConfig(
-                    type,
-                    config!.copyWith(customPrompt: value),
-                  );
-            },
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _PromptEditor(
+              initialText: currentPrompt,
+              onChanged: (value) {
+                ref
+                    .read(aiSettingsProvider.notifier)
+                    .updatePromptConfig(
+                      type,
+                      config!.copyWith(customPrompt: value),
+                    );
+              },
+            ),
           ),
           const SizedBox(height: 8),
-          _buildPlaceholdersHint(context, placeholders),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildPlaceholdersHint(context, placeholders),
+          ),
+          const SizedBox(height: 16),
         ],
       ],
     );
