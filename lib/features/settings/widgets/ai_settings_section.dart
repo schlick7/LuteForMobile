@@ -263,49 +263,48 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
             ),
           ),
           const SizedBox(height: 8),
-          if (isCustom)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (dialogContext) => AlertDialog(
-                        title: const Text('Reset to Default'),
-                        content: const Text(
-                          'Are you sure you want to reset this prompt to the default template?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(dialogContext).pop(),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              ref
-                                  .read(aiSettingsProvider.notifier)
-                                  .updatePromptConfig(
-                                    type,
-                                    AIPromptConfig(
-                                      customPrompt: null,
-                                      enabled: config!.enabled,
-                                    ),
-                                  );
-                              Navigator.of(dialogContext).pop();
-                            },
-                            child: const Text('Reset'),
-                          ),
-                        ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (dialogContext) => AlertDialog(
+                      title: const Text('Reset to Default'),
+                      content: const Text(
+                        'Are you sure you want to reset this prompt to the default template?',
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.restore, size: 18),
-                  label: const Text('Reset to Default'),
-                ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            ref
+                                .read(aiSettingsProvider.notifier)
+                                .updatePromptConfig(
+                                  type,
+                                  AIPromptConfig(
+                                    customPrompt: null,
+                                    enabled: config!.enabled,
+                                  ),
+                                );
+                            Navigator.of(dialogContext).pop();
+                          },
+                          child: const Text('Reset'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.restore, size: 18),
+                label: const Text('Reset to Default'),
               ),
             ),
+          ),
           const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
