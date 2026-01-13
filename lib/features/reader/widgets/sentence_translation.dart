@@ -149,7 +149,10 @@ class _SentenceTranslationWidgetState
     try {
       final aiService = ref.read(aiServiceProvider);
       final currentBookState = ref.read(currentBookProvider);
-      final language = currentBookState.languageName ?? 'Unknown';
+      final language =
+          currentBookState.languageName ??
+          currentBookState.book?.language ??
+          'Unknown';
 
       final translation = await aiService.translateSentence(
         widget.sentence,

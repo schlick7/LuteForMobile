@@ -271,6 +271,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
             .read(settingsProvider.notifier)
             .updateCurrentBook(book.id, null, book.langId);
 
+        ref.read(currentBookProvider.notifier).setBook(book);
+
         if (_readerKey.currentState != null) {
           _readerKey.currentState!.loadBook(book.id, book.currentPage);
         }

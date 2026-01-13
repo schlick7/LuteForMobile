@@ -123,7 +123,10 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
     try {
       final aiService = ref.read(aiServiceProvider);
       final currentBookState = ref.read(currentBookProvider);
-      final language = currentBookState.languageName ?? 'Unknown';
+      final language =
+          currentBookState.languageName ??
+          currentBookState.book?.language ??
+          'Unknown';
 
       final translation = await aiService.translateTerm(widget.term, language);
 
