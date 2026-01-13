@@ -39,7 +39,11 @@ class ContentService {
     String pageTextHtml;
 
     if (useCache && !forceRefresh) {
-      final cached = await _pageCacheService.getFromCache(bookId, pageNum ?? 1);
+      final cached = await _pageCacheService.getFromCache(
+        _apiService.baseUrl,
+        bookId,
+        pageNum ?? 1,
+      );
       if (cached != null) {
         pageMetadataHtml = cached.metadataHtml;
         pageTextHtml = cached.pageTextHtml;
@@ -50,6 +54,7 @@ class ContentService {
             pageNum ?? _extractPageNumFromMetadata(metadataDocument);
         pageTextHtml = await _fetchPageTextHtml(bookId, actualPageNum, mode);
         await _pageCacheService.saveToCache(
+          _apiService.baseUrl,
           bookId,
           actualPageNum,
           pageMetadataHtml,
@@ -65,6 +70,7 @@ class ContentService {
 
       if (useCache) {
         await _pageCacheService.saveToCache(
+          _apiService.baseUrl,
           bookId,
           actualPageNum,
           pageMetadataHtml,

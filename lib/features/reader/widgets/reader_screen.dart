@@ -1647,7 +1647,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                _goToPage(tempPage.toInt());
+                _loadPageWithoutMarkingRead(tempPage.toInt());
               },
               child: const Text('Go'),
             ),

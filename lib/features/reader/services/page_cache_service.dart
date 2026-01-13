@@ -35,10 +35,14 @@ class PageCacheService {
   static const String _cachePrefix = 'page_cache_';
   static const String _lruKey = 'page_cache_lru';
 
-  Future<CachedPageHtml?> getFromCache(int bookId, int pageNum) async {
+  Future<CachedPageHtml?> getFromCache(
+    String serverUrl,
+    int bookId,
+    int pageNum,
+  ) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final cacheKey = _getCacheKey(bookId, pageNum);
+      final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
       final cachedJson = prefs.getString(cacheKey);
 
       if (cachedJson == null) {
@@ -53,7 +57,7 @@ class PageCacheService {
       final maxAge = _cacheExpirationHours * 60 * 60 * 1000;
 
       if (age > maxAge) {
-        await _removeFromCache(bookId, pageNum);
+        await _removeFromCache(serverUrl, bookId, pageNum);
         return null;
       }
 
@@ -65,6 +69,7 @@ class PageCacheService {
   }
 
   Future<void> saveToCache(
+    String serverUrl,
     int bookId,
     int pageNum,
     String metadataHtml,
@@ -75,7 +80,7 @@ class PageCacheService {
 
       await _enforceCacheLimit(prefs);
 
-      final cacheKey = _getCacheKey(bookId, pageNum);
+      final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
       final cachedPage = CachedPageHtml(
         metadataHtml: metadataHtml,
         pageTextHtml: pageTextHtml,
@@ -89,13 +94,14 @@ class PageCacheService {
     }
   }
 
-  Future<void> clearBookCache(int bookId) async {
+  Future<void> clearBookCache(String serverUrl, int bookId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final lruList = prefs.getStringList(_lruKey) ?? [];
+      final serverHash = serverUrl.hashCode;
 
       for (final cacheKey in List.from(lruList)) {
-        if (cacheKey.startsWith('$_cachePrefix${bookId}_')) {
+        if (cacheKey.startsWith('$_cachePrefix${serverHash}_${bookId}_')) {
           await prefs.remove(cacheKey);
           lruList.remove(cacheKey);
         }
@@ -165,8 +171,8 @@ class PageCacheService {
     }
   }
 
-  String _getCacheKey(int bookId, int pageNum) {
-    return '$_cachePrefix${bookId}_$pageNum';
+  String _getCacheKey(String serverUrl, int bookId, int pageNum) {
+    return '$_cachePrefix${serverUrl.hashCode}_${bookId}_$pageNum';
   }
 
   Future<void> _updateLru(SharedPreferences prefs, String cacheKey) async {
@@ -176,9 +182,13 @@ class PageCacheService {
     await prefs.setStringList(_lruKey, lruList);
   }
 
-  Future<void> _removeFromCache(int bookId, int pageNum) async {
+  Future<void> _removeFromCache(
+    String serverUrl,
+    int bookId,
+    int pageNum,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
-    final cacheKey = _getCacheKey(bookId, pageNum);
+    final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
     await prefs.remove(cacheKey);
 
     final lruList = prefs.getStringList(_lruKey) ?? [];

@@ -269,7 +269,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
             .updateCurrentBook(book.id, null, book.langId);
 
         if (_readerKey.currentState != null) {
-          _readerKey.currentState!.loadBook(book.id);
+          _readerKey.currentState!.loadBook(book.id, book.currentPage);
         }
       } catch (e) {
         print('DEBUG: Failed to load book from server: $e');

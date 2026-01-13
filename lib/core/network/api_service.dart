@@ -79,6 +79,8 @@ class ApiService {
 
   bool get isConfigured => _dio.options.baseUrl.isNotEmpty;
 
+  String get baseUrl => _dio.options.baseUrl;
+
   /// Loads a book page for active reading session.
   ///
   /// This method fetches the HTML content for a specific page and starts
