@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/term.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../shared/utils/language_flag_mapper.dart';
 
 class TermCard extends StatelessWidget {
   final Term term;
@@ -47,10 +48,9 @@ class TermCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(
-                    Icons.language,
-                    size: 16,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  Text(
+                    getFlagForLanguage(term.language) ?? '🌐',
+                    style: const TextStyle(fontSize: 16),
                   ),
                   const SizedBox(width: 4),
                   Text(

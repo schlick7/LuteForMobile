@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/language_stats.dart';
+import '../../../shared/utils/language_flag_mapper.dart';
 
 class LanguageBreakdownCard extends StatelessWidget {
   final List<LanguageReadingStats> languages;
@@ -58,10 +59,9 @@ class LanguageBreakdownCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.translate,
-                size: 20,
-                color: Theme.of(context).colorScheme.primary,
+              Text(
+                getFlagForLanguage(lang.language) ?? '',
+                style: const TextStyle(fontSize: 20),
               ),
               const SizedBox(width: 8),
               Expanded(

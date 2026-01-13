@@ -19,10 +19,9 @@ class LanguageFilterWidget extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: DropdownButtonFormField<LanguageReadingStats?>(
-        value: selectedLanguage,
+        initialValue: selectedLanguage,
         decoration: const InputDecoration(
           labelText: 'Language',
-          prefixIcon: Icon(Icons.translate),
           border: OutlineInputBorder(),
         ),
         items: [

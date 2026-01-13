@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../shared/utils/language_flag_mapper.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 import '../providers/books_provider.dart';
@@ -209,11 +210,20 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                 ],
               ),
               const SizedBox(height: 24),
-              _buildDetailRow(
-                context,
-                Icons.language,
-                'Language',
-                book.language,
+              Row(
+                children: [
+                  Text(
+                    getFlagForLanguage(book.language) ?? '🌐',
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    book.language,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               _buildDetailRow(
