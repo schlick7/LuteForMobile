@@ -7,7 +7,7 @@
 Update HelpScreen  
   
 # Statistics Screen  
-- For the Wordcount lets create a Current Day streak and a Longest Day streak stat. any day with a wordcount of 1 or more should count. 
+- 
 
 # Terms Screen
 -
@@ -20,7 +20,7 @@ Update HelpScreen
 - Make the audio stopable. Don't need pause. Just play and stop. 
 
 # AI
-- Add 'virtual' sentence dictionary to SentenceDictionary popup. 
+- Add a 'virtual' sentence dictionary to SentenceDictionary popup. 
 
 # Sentence Reader
 - If the book page hasn't changed then open to the last setence read intead of starting at 1
