@@ -3,15 +3,19 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'html_parser.dart';
 
+enum AIType { translation, virtualDictionary }
+
 class DictionarySource {
   final String name;
   final String urlTemplate;
   final bool isAI;
+  final AIType? aiType;
 
   const DictionarySource({
     required this.name,
     required this.urlTemplate,
     this.isAI = false,
+    this.aiType,
   });
 
   factory DictionarySource.fromJson(Map<String, dynamic> json) {
@@ -19,11 +23,22 @@ class DictionarySource {
       name: json['name'] as String? ?? '',
       urlTemplate: json['urlTemplate'] as String? ?? '',
       isAI: json['isAI'] as bool? ?? false,
+      aiType: json['aiType'] != null
+          ? AIType.values.firstWhere(
+              (e) => e.toString() == json['aiType'],
+              orElse: () => AIType.translation,
+            )
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'name': name, 'urlTemplate': urlTemplate, 'isAI': isAI};
+    return {
+      'name': name,
+      'urlTemplate': urlTemplate,
+      'isAI': isAI,
+      'aiType': aiType?.toString(),
+    };
   }
 }
 

@@ -53,6 +53,10 @@ class _SentenceTranslationWidgetState
   String? _aiTranslation;
   String? _aiErrorMessage;
   bool _hasFetchedAI = false;
+  bool _isLoadingVirtualDict = false;
+  String? _virtualDictionaryContent;
+  String? _virtualDictionaryError;
+  bool _hasFetchedVirtualDict = false;
   final Set<int> _preloadedPages = {};
   bool _isPreloading = false;
   bool _isOriginalCollapsed = true;
@@ -91,12 +95,35 @@ class _SentenceTranslationWidgetState
     final shouldAddAI =
         aiSettings.provider != AIProvider.none && aiConfig?.enabled == true;
 
+    final virtualDictConfig =
+        aiSettings.promptConfigs[AIPromptType.virtualDictionary];
+    final shouldAddVirtualDict =
+        aiSettings.provider != AIProvider.none &&
+        virtualDictConfig?.enabled == true;
+
     final allDictionaries = List<DictionarySource>.from(dictionaries);
     if (shouldAddAI) {
       final modelName =
           aiSettings.providerConfigs[aiSettings.provider]?.model ?? 'gpt-4o';
       allDictionaries.add(
-        DictionarySource(name: 'AI: $modelName', urlTemplate: '', isAI: true),
+        DictionarySource(
+          name: 'AI: $modelName',
+          urlTemplate: '',
+          isAI: true,
+          aiType: AIType.translation,
+        ),
+      );
+    }
+    if (shouldAddVirtualDict) {
+      final modelName =
+          aiSettings.providerConfigs[aiSettings.provider]?.model ?? 'gpt-4o';
+      allDictionaries.add(
+        DictionarySource(
+          name: 'AI Dictionary ($modelName)',
+          urlTemplate: '',
+          isAI: true,
+          aiType: AIType.virtualDictionary,
+        ),
       );
     }
 
@@ -145,6 +172,45 @@ class _SentenceTranslationWidgetState
           _isLoadingAI = false;
           _aiErrorMessage = e.toString();
           _hasFetchedAI = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchVirtualDictionary() async {
+    if (_isLoadingVirtualDict || _hasFetchedVirtualDict) return;
+
+    setState(() {
+      _isLoadingVirtualDict = true;
+      _virtualDictionaryContent = null;
+      _virtualDictionaryError = null;
+    });
+
+    try {
+      final aiService = ref.read(aiServiceProvider);
+      final aiSettings = ref.read(aiSettingsProvider);
+      final language =
+          aiSettings.promptConfigs[AIPromptType.virtualDictionary]?.language ??
+          'Unknown';
+
+      final content = await aiService.getVirtualDictionaryEntry(
+        widget.sentence,
+        language,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isLoadingVirtualDict = false;
+          _virtualDictionaryContent = content;
+          _hasFetchedVirtualDict = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingVirtualDict = false;
+          _virtualDictionaryError = e.toString();
+          _hasFetchedVirtualDict = true;
         });
       }
     }
@@ -433,7 +499,11 @@ class _SentenceTranslationWidgetState
         });
         final currentDict = _dictionaries[index];
         if (currentDict.isAI) {
-          _fetchAITranslation();
+          if (currentDict.aiType == AIType.virtualDictionary) {
+            _fetchVirtualDictionary();
+          } else {
+            _fetchAITranslation();
+          }
         } else {
           await widget.dictionaryService.rememberLastUsedSentenceDictionary(
             widget.languageId,
@@ -454,6 +524,9 @@ class _SentenceTranslationWidgetState
     int index,
   ) {
     if (dictionary.isAI) {
+      if (dictionary.aiType == AIType.virtualDictionary) {
+        return _buildVirtualDictionaryContent(context);
+      }
       return _buildAIContent(context);
     }
 
@@ -483,6 +556,83 @@ class _SentenceTranslationWidgetState
         }
       },
     );
+  }
+
+  Widget _buildVirtualDictionaryContent(BuildContext context) {
+    if (_isLoadingVirtualDict) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_virtualDictionaryError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Virtual Dictionary Failed',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _virtualDictionaryError!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _fetchVirtualDictionary,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_virtualDictionaryContent != null) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Dictionary Entry:',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: TextEditingController(
+                text: _virtualDictionaryContent,
+              ),
+              maxLines: null,
+              readOnly: true,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildAIContent(BuildContext context) {

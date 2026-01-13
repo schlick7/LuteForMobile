@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/language_stats.dart';
 import '../models/stats_data.dart';
@@ -12,6 +13,7 @@ class SummaryCards extends StatelessWidget {
     final todayStats = _getTodayStats();
     final weekStats = _getWeekStats();
     final totalStats = _getTotalStats();
+    final streakStats = _getStreakStats();
 
     return Column(
       children: [
@@ -39,6 +41,16 @@ class SummaryCards extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 12),
+        _buildSummaryCard(
+          context,
+          icon: Icons.local_fire_department,
+          label: 'Streak',
+          value: '${streakStats.currentStreak}',
+          subtitle: 'Longest: ${streakStats.longestStreak} days',
+          iconColor: Colors.orange,
+          isLarge: true,
         ),
         const SizedBox(height: 12),
         _buildSummaryCard(
@@ -79,6 +91,69 @@ class SummaryCards extends StatelessWidget {
     }
 
     return (wordcount: wordcount, days: days);
+  }
+
+  ({int currentStreak, int longestStreak}) _getStreakStats() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    final activeDates = <DateTime>{};
+
+    for (final lang in languages) {
+      for (final stat in lang.dailyStats) {
+        if (stat.wordcount > 0) {
+          final dateOnly = DateTime(
+            stat.date.year,
+            stat.date.month,
+            stat.date.day,
+          );
+          activeDates.add(dateOnly);
+        }
+      }
+    }
+
+    if (activeDates.isEmpty) {
+      return (currentStreak: 0, longestStreak: 0);
+    }
+
+    final sortedDates = activeDates.toList()..sort();
+
+    int currentStreak = 0;
+    var checkDate = today;
+
+    if (activeDates.contains(today)) {
+      currentStreak = 1;
+      checkDate = yesterday;
+    } else if (activeDates.contains(yesterday)) {
+      currentStreak = 1;
+      checkDate = yesterday.subtract(const Duration(days: 1));
+    } else {
+      currentStreak = 0;
+      checkDate = yesterday;
+    }
+
+    while (activeDates.contains(checkDate)) {
+      currentStreak++;
+      checkDate = checkDate.subtract(const Duration(days: 1));
+    }
+
+    int longestStreak = 0;
+    int tempStreak = 1;
+
+    for (int i = 1; i < sortedDates.length; i++) {
+      final prevDate = sortedDates[i - 1];
+      final currDate = sortedDates[i];
+      if (currDate.difference(prevDate).inDays == 1) {
+        tempStreak++;
+      } else {
+        longestStreak = max(longestStreak, tempStreak);
+        tempStreak = 1;
+      }
+    }
+    longestStreak = max(longestStreak, tempStreak);
+
+    return (currentStreak: currentStreak, longestStreak: longestStreak);
   }
 
   ({int wordcount, int days}) _getWeekStats() {

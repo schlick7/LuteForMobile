@@ -41,6 +41,11 @@ class AISettingsNotifier extends Notifier<AISettings> {
           enabled: true,
           language: null,
         ),
+        AIPromptType.virtualDictionary: const AIPromptConfig(
+          customPrompt: null,
+          enabled: true,
+          language: null,
+        ),
       },
     );
   }
@@ -116,6 +121,11 @@ class AISettingsNotifier extends Notifier<AISettings> {
           enabled: json['sentenceTranslation']?['enabled'] as bool? ?? true,
           language: json['sentenceTranslation']?['language'] as String?,
         ),
+        AIPromptType.virtualDictionary: AIPromptConfig(
+          customPrompt: json['virtualDictionary']?['customPrompt'] as String?,
+          enabled: json['virtualDictionary']?['enabled'] as bool? ?? true,
+          language: json['virtualDictionary']?['language'] as String?,
+        ),
       };
     } catch (_) {
       return null;
@@ -178,6 +188,13 @@ class AISettingsNotifier extends Notifier<AISettings> {
             state.promptConfigs[AIPromptType.sentenceTranslation]?.enabled,
         'language':
             state.promptConfigs[AIPromptType.sentenceTranslation]?.language,
+      },
+      'virtualDictionary': {
+        'customPrompt':
+            state.promptConfigs[AIPromptType.virtualDictionary]?.customPrompt,
+        'enabled': state.promptConfigs[AIPromptType.virtualDictionary]?.enabled,
+        'language':
+            state.promptConfigs[AIPromptType.virtualDictionary]?.language,
       },
     };
     await prefs.setString(_promptConfigsKey, jsonEncode(json));

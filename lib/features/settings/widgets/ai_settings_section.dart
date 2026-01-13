@@ -194,6 +194,14 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
           AIPromptType.sentenceTranslation,
           'Sentence Translation',
         ),
+        const SizedBox(height: 16),
+        _buildPromptConfigSection(
+          context,
+          ref,
+          settings,
+          AIPromptType.virtualDictionary,
+          'Virtual Dictionary',
+        ),
       ],
     );
   }
@@ -317,6 +325,19 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
           const PlaceholderInfo(
             placeholder: '[sentence]',
             description: 'The sentence to translate',
+            example: 'El perro corre rápido.',
+          ),
+          const PlaceholderInfo(
+            placeholder: '[language]',
+            description: 'The source language',
+            example: 'Spanish',
+          ),
+        ];
+      case AIPromptType.virtualDictionary:
+        return [
+          const PlaceholderInfo(
+            placeholder: '[sentence]',
+            description: 'The sentence to analyze',
             example: 'El perro corre rápido.',
           ),
           const PlaceholderInfo(

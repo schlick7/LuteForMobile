@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 
 enum AIProvider { localOpenAI, openAI, none }
 
-enum AIPromptType { termTranslation, sentenceTranslation }
+enum AIPromptType { termTranslation, sentenceTranslation, virtualDictionary }
 
 @immutable
 class AISettings {
@@ -146,6 +146,18 @@ class AIPromptTemplates {
         'Using the sentence "[sentence]" Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations. Respond with the translation text only without line breaks and using commas between',
     AIPromptType.sentenceTranslation:
         'Translate the following sentence from [language] to English: [sentence]',
+    AIPromptType.virtualDictionary:
+        '''For the following [language] sentence: "[sentence]"
+Provide a dictionary-style response with:
+1. Word-by-word translation in brackets after each word
+2. Part of speech for key words
+3. Brief grammar notes if applicable
+4. Natural English translation
+
+Format example:
+word1 [translation1] /word2 [translation2] /word3 [translation3]
+[grammar notes]
+Translation: [natural translation]''',
   };
 
   static String getDefault(AIPromptType type) {
