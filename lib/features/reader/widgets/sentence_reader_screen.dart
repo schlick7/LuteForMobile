@@ -1625,12 +1625,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   void _showAITranslation(String sentence, int languageId) {
-    final aiSettings = ref.read(aiSettingsProvider);
-    final languageOverride =
-        aiSettings.promptConfigs[AIPromptType.sentenceTranslation]?.language;
     final currentBookState = ref.read(currentBookProvider);
     final language =
-        languageOverride ??
         currentBookState.languageName ??
         (_languageIdToName[languageId] ?? 'English');
     final sentenceReader = ref.read(sentenceReaderProvider);

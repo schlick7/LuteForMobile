@@ -116,19 +116,13 @@ class AISettingsConfig {
 class AIPromptConfig {
   final String? customPrompt;
   final bool enabled;
-  final String? language;
 
-  const AIPromptConfig({this.customPrompt, this.enabled = true, this.language});
+  const AIPromptConfig({this.customPrompt, this.enabled = true});
 
-  AIPromptConfig copyWith({
-    String? customPrompt,
-    bool? enabled,
-    String? language,
-  }) {
+  AIPromptConfig copyWith({String? customPrompt, bool? enabled}) {
     return AIPromptConfig(
       customPrompt: customPrompt ?? this.customPrompt,
       enabled: enabled ?? this.enabled,
-      language: language ?? this.language,
     );
   }
 
@@ -137,12 +131,11 @@ class AIPromptConfig {
     if (identical(this, other)) return true;
     return other is AIPromptConfig &&
         other.customPrompt == customPrompt &&
-        other.enabled == enabled &&
-        other.language == language;
+        other.enabled == enabled;
   }
 
   @override
-  int get hashCode => Object.hash(customPrompt, enabled, language);
+  int get hashCode => Object.hash(customPrompt, enabled);
 }
 
 class AIPromptTemplates {

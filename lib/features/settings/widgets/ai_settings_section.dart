@@ -291,7 +291,6 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
                                     AIPromptConfig(
                                       customPrompt: null,
                                       enabled: config!.enabled,
-                                      language: config.language,
                                     ),
                                   );
                               Navigator.of(dialogContext).pop();

@@ -148,12 +148,8 @@ class _SentenceTranslationWidgetState
 
     try {
       final aiService = ref.read(aiServiceProvider);
-      final aiSettings = ref.read(aiSettingsProvider);
-      final languageOverride =
-          aiSettings.promptConfigs[AIPromptType.sentenceTranslation]?.language;
       final currentBookState = ref.read(currentBookProvider);
-      final language =
-          languageOverride ?? currentBookState.languageName ?? 'Unknown';
+      final language = currentBookState.languageName ?? 'Unknown';
 
       final translation = await aiService.translateSentence(
         widget.sentence,
@@ -189,12 +185,8 @@ class _SentenceTranslationWidgetState
 
     try {
       final aiService = ref.read(aiServiceProvider);
-      final aiSettings = ref.read(aiSettingsProvider);
-      final languageOverride =
-          aiSettings.promptConfigs[AIPromptType.virtualDictionary]?.language;
       final currentBookState = ref.read(currentBookProvider);
-      final language =
-          languageOverride ?? currentBookState.languageName ?? 'Unknown';
+      final language = currentBookState.languageName ?? 'Unknown';
 
       final content = await aiService.getVirtualDictionaryEntry(
         widget.sentence,

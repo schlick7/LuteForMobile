@@ -122,12 +122,8 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
 
     try {
       final aiService = ref.read(aiServiceProvider);
-      final aiSettings = ref.read(aiSettingsProvider);
-      final languageOverride =
-          aiSettings.promptConfigs[AIPromptType.termTranslation]?.language;
       final currentBookState = ref.read(currentBookProvider);
-      final language =
-          languageOverride ?? currentBookState.languageName ?? 'Unknown';
+      final language = currentBookState.languageName ?? 'Unknown';
 
       final translation = await aiService.translateTerm(widget.term, language);
 
@@ -160,12 +156,8 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
 
     try {
       final aiService = ref.read(aiServiceProvider);
-      final aiSettings = ref.read(aiSettingsProvider);
-      final languageOverride =
-          aiSettings.promptConfigs[AIPromptType.termExplanation]?.language;
       final currentBookState = ref.read(currentBookProvider);
-      final language =
-          languageOverride ?? currentBookState.languageName ?? 'Unknown';
+      final language = currentBookState.languageName ?? 'Unknown';
 
       final content = await aiService.getTermExplanation(
         widget.term,

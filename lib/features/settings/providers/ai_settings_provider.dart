@@ -34,22 +34,18 @@ class AISettingsNotifier extends Notifier<AISettings> {
         AIPromptType.termTranslation: const AIPromptConfig(
           customPrompt: null,
           enabled: true,
-          language: null,
         ),
         AIPromptType.sentenceTranslation: const AIPromptConfig(
           customPrompt: null,
           enabled: true,
-          language: null,
         ),
         AIPromptType.virtualDictionary: const AIPromptConfig(
           customPrompt: null,
           enabled: true,
-          language: null,
         ),
         AIPromptType.termExplanation: const AIPromptConfig(
           customPrompt: null,
           enabled: true,
-          language: null,
         ),
       },
     );
@@ -119,22 +115,18 @@ class AISettingsNotifier extends Notifier<AISettings> {
         AIPromptType.termTranslation: AIPromptConfig(
           customPrompt: json['termTranslation']?['customPrompt'] as String?,
           enabled: json['termTranslation']?['enabled'] as bool? ?? true,
-          language: json['termTranslation']?['language'] as String?,
         ),
         AIPromptType.sentenceTranslation: AIPromptConfig(
           customPrompt: json['sentenceTranslation']?['customPrompt'] as String?,
           enabled: json['sentenceTranslation']?['enabled'] as bool? ?? true,
-          language: json['sentenceTranslation']?['language'] as String?,
         ),
         AIPromptType.virtualDictionary: AIPromptConfig(
           customPrompt: json['virtualDictionary']?['customPrompt'] as String?,
           enabled: json['virtualDictionary']?['enabled'] as bool? ?? true,
-          language: json['virtualDictionary']?['language'] as String?,
         ),
         AIPromptType.termExplanation: AIPromptConfig(
           customPrompt: json['termExplanation']?['customPrompt'] as String?,
           enabled: json['termExplanation']?['enabled'] as bool? ?? true,
-          language: json['termExplanation']?['language'] as String?,
         ),
       };
     } catch (_) {
@@ -189,28 +181,22 @@ class AISettingsNotifier extends Notifier<AISettings> {
         'customPrompt':
             state.promptConfigs[AIPromptType.termTranslation]?.customPrompt,
         'enabled': state.promptConfigs[AIPromptType.termTranslation]?.enabled,
-        'language': state.promptConfigs[AIPromptType.termTranslation]?.language,
       },
       'sentenceTranslation': {
         'customPrompt':
             state.promptConfigs[AIPromptType.sentenceTranslation]?.customPrompt,
         'enabled':
             state.promptConfigs[AIPromptType.sentenceTranslation]?.enabled,
-        'language':
-            state.promptConfigs[AIPromptType.sentenceTranslation]?.language,
       },
       'virtualDictionary': {
         'customPrompt':
             state.promptConfigs[AIPromptType.virtualDictionary]?.customPrompt,
         'enabled': state.promptConfigs[AIPromptType.virtualDictionary]?.enabled,
-        'language':
-            state.promptConfigs[AIPromptType.virtualDictionary]?.language,
       },
       'termExplanation': {
         'customPrompt':
             state.promptConfigs[AIPromptType.termExplanation]?.customPrompt,
         'enabled': state.promptConfigs[AIPromptType.termExplanation]?.enabled,
-        'language': state.promptConfigs[AIPromptType.termExplanation]?.language,
       },
     };
     await prefs.setString(_promptConfigsKey, jsonEncode(json));

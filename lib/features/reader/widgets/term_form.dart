@@ -543,12 +543,8 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
     try {
       final aiService = ref.read(aiServiceProvider);
-      final aiSettings = ref.read(aiSettingsProvider);
-      final languageOverride =
-          aiSettings.promptConfigs[AIPromptType.termTranslation]?.language;
       final currentBookState = ref.read(currentBookProvider);
-      final language =
-          languageOverride ?? currentBookState.languageName ?? 'Unknown';
+      final language = currentBookState.languageName ?? 'Unknown';
 
       final translation = await aiService.translateTerm(
         widget.termForm.term,
