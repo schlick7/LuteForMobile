@@ -343,6 +343,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             ref.read(sentenceReaderProvider.notifier).syncStatusFromPageData();
             _hasInitialized = true;
             _initializationFailed = false;
+            ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
             _loadTooltipsForCurrentSentence();
           } else {
             print(
