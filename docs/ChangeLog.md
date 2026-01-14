@@ -3,6 +3,7 @@
 - Returns to Sentence position again
 - Fixed language placeholder in AI Prompts
 - TTS can be stopped now
+- Fixed parent term saving edge case
 
 # New Feature
 - Day Streak
