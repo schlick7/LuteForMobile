@@ -118,6 +118,12 @@ class HelpScreen extends StatelessWidget {
             'Scroll to top',
             'Show UI',
           ),
+          _buildControlItem(
+            context,
+            Icons.linear_scale,
+            'Long-press page indicator (top right)',
+            'Open page seekbar popup to jump to any page',
+          ),
           const Divider(),
           _buildSubsectionHeader(context, 'Drawer Settings'),
           _buildControlItem(
