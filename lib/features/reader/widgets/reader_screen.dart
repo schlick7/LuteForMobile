@@ -14,10 +14,12 @@ import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../providers/reader_provider.dart';
 import '../providers/audio_player_provider.dart';
+import '../providers/current_book_provider.dart';
 import '../widgets/term_tooltip.dart';
 import 'text_display.dart';
 import 'term_form.dart';
 import 'sentence_translation.dart';
+import 'book_completion_celebration_dialog.dart';
 import '../../../core/network/dictionary_service.dart';
 import 'audio_player.dart';
 import 'package:lute_for_mobile/app.dart';
@@ -1620,6 +1622,24 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             duration: Duration(seconds: 1),
           ),
         );
+
+        final currentBookState = ref.read(currentBookProvider);
+        if (currentBookState.book != null) {
+          final updatedBook = currentBookState.book!.copyWith(
+            isCompleted: true,
+          );
+          ref.read(currentBookProvider.notifier).setBook(updatedBook);
+
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) =>
+                  BookCompletionCelebrationDialog(book: updatedBook),
+            );
+          }
+        }
       }
       ref.read(statsProvider.notifier).loadStats();
     } catch (e) {

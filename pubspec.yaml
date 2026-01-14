@@ -47,6 +47,7 @@ dependencies:
   # UI/UX Packages
   cached_network_image: ^3.3.1
   package_info_plus: ^8.1.2
+  confetti: ^0.7.0
 
   # Reader-Specific Packages
   flutter_tts: ^4.0.2
