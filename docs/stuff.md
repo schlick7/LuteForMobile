@@ -6,7 +6,7 @@
   
 
 # Help Screen
-- Update the Termform AI dictionary part to show help for the translation and explanation tabs
+- 
 
 # Statistics Screen  
 - 
@@ -15,7 +15,7 @@
 -
 
 # Reader
--
+- 
 
 # TTS
 - 
@@ -24,7 +24,7 @@
 - 
 
 # Sentence Reader
-- sentencereader termslist only updates the trasnlation when the termform save button is pressed, not when swiping to close (autosave)
+- 
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
