@@ -1693,11 +1693,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final bookId = reader.pageData!.bookId;
     final pageNum = reader.pageData!.currentPage;
     final langId = _getLangId(reader);
+    final serverUrl = ref.read(settingsProvider).serverUrl;
 
     print(
       'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Clearing cache for bookId=$bookId',
     );
-    await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
+    await ref
+        .read(sentenceCacheServiceProvider)
+        .clearBookCache(serverUrl, bookId);
 
     _termTooltips.clear();
     _lastTooltipsBookId = null;
