@@ -14,6 +14,13 @@
 # Terms Screen
 -
 
+# Books Screen
+- When i load the bookscreen the books all have stats. But Every time i select a book from the bookscreen and then navigate back to the book the status are cleared, why? We aren't supposed to be ever clearing the cache until the new fetch is succesful. Y
+
+- If the user navigates away during a refresh we need to make sure that we finish fetching the currently refreshing book and then properly set the server page stats back to its previous value. Can we insure this happens? 
+
+- make the 'refresh all stats' button use the new 2books at a time full refresh method
+
 # Reader
 - 
 
@@ -49,5 +56,4 @@ Add more custom theme options
 - add a toggle to book details to select between Server parsing or App parsing
   - include hint
   - put this in the edit button and move the confirmation to the edit button popup for editing the term.
-- When the page/book marked as done add a popup to navigate to books to pick out another. Add a great job or something and a animation of some kind to celebrate the completetion of a book. Include number of words in the book and other book and term stats? 
 - add a selector in language settings to apply TTS voices based on languages.
