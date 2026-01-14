@@ -9,8 +9,7 @@ import '../../settings/providers/ai_settings_provider.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../core/network/dictionary_service.dart';
-import '../../../core/network/tts_service.dart';
-import '../../../core/providers/tts_provider.dart';
+import '../providers/sentence_tts_provider.dart';
 import '../providers/current_book_provider.dart';
 
 class SentenceTranslationWidget extends ConsumerStatefulWidget {
@@ -45,7 +44,6 @@ class SentenceTranslationWidget extends ConsumerStatefulWidget {
 class _SentenceTranslationWidgetState
     extends ConsumerState<SentenceTranslationWidget> {
   late PageController _pageController;
-  late TTSService _ttsService;
   List<DictionarySource> _dictionaries = [];
   int _currentPage = 0;
   final Map<int, InAppWebViewController> _webviewControllers = {};
@@ -65,7 +63,6 @@ class _SentenceTranslationWidgetState
   @override
   void initState() {
     super.initState();
-    _ttsService = ref.read(ttsServiceProvider);
     _pageController = PageController(initialPage: 0);
     _loadDictionaries();
   }
@@ -269,7 +266,7 @@ class _SentenceTranslationWidgetState
   @override
   void dispose() {
     _pageController.dispose();
-    _ttsService.stop();
+    ref.read(sentenceTTSProvider.notifier).stop();
     super.dispose();
   }
 
@@ -466,17 +463,47 @@ class _SentenceTranslationWidgetState
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
-                IconButton(
-                  onPressed: () {
-                    _ttsService.speak(widget.sentence);
+                Consumer(
+                  builder: (context, ref, child) {
+                    final ttsState = ref.watch(sentenceTTSProvider);
+                    final isCurrentSentence =
+                        ttsState.currentText == widget.sentence;
+
+                    IconData icon;
+                    Color color;
+                    VoidCallback? onPressed;
+
+                    if (isCurrentSentence && ttsState.isLoading) {
+                      icon = Icons.hourglass_empty;
+                      color = Theme.of(context).colorScheme.primary;
+                      onPressed = null;
+                    } else if (isCurrentSentence && ttsState.isPlaying) {
+                      icon = Icons.stop;
+                      color = Theme.of(context).colorScheme.error;
+                      onPressed = () =>
+                          ref.read(sentenceTTSProvider.notifier).stop();
+                    } else {
+                      icon = Icons.volume_up;
+                      color = Theme.of(context).colorScheme.primary;
+                      onPressed = () => ref
+                          .read(sentenceTTSProvider.notifier)
+                          .speakSentence(widget.sentence, 0);
+                    }
+
+                    return IconButton(
+                      icon: Icon(icon),
+                      color: color,
+                      onPressed: onPressed,
+                      tooltip: isCurrentSentence && ttsState.isPlaying
+                          ? 'Stop TTS'
+                          : 'Read sentence',
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                      padding: EdgeInsets.zero,
+                    );
                   },
-                  icon: const Icon(Icons.volume_up),
-                  tooltip: 'Read sentence',
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    minHeight: 40,
-                  ),
-                  padding: EdgeInsets.zero,
                 ),
               ],
             ),

@@ -9,7 +9,7 @@ import '../../settings/providers/ai_settings_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/dictionary_service.dart';
-import '../../../core/providers/tts_provider.dart';
+import '../providers/sentence_tts_provider.dart';
 import '../../../core/providers/ai_provider.dart';
 import 'parent_search.dart';
 import 'dictionary_view.dart';
@@ -407,15 +407,47 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 ),
               ),
               const SizedBox(width: 8),
-              IconButton(
-                onPressed: () {
-                  final ttsService = ref.read(ttsServiceProvider);
-                  ttsService.speak(widget.termForm.term);
+              Consumer(
+                builder: (context, ref, child) {
+                  final ttsState = ref.watch(sentenceTTSProvider);
+                  final isCurrentTerm =
+                      ttsState.currentText == widget.termForm.term;
+
+                  IconData icon;
+                  Color color;
+                  VoidCallback? onPressed;
+
+                  if (isCurrentTerm && ttsState.isLoading) {
+                    icon = Icons.hourglass_empty;
+                    color = Theme.of(context).colorScheme.primary;
+                    onPressed = null;
+                  } else if (isCurrentTerm && ttsState.isPlaying) {
+                    icon = Icons.stop;
+                    color = Theme.of(context).colorScheme.error;
+                    onPressed = () =>
+                        ref.read(sentenceTTSProvider.notifier).stop();
+                  } else {
+                    icon = Icons.volume_up;
+                    color = Theme.of(context).colorScheme.primary;
+                    onPressed = () => ref
+                        .read(sentenceTTSProvider.notifier)
+                        .speakSentence(widget.termForm.term, 0);
+                  }
+
+                  return IconButton(
+                    icon: Icon(icon),
+                    color: color,
+                    onPressed: onPressed,
+                    tooltip: isCurrentTerm && ttsState.isPlaying
+                        ? 'Stop TTS'
+                        : 'Read term',
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 40,
+                    ),
+                    padding: EdgeInsets.zero,
+                  );
                 },
-                icon: const Icon(Icons.volume_up),
-                tooltip: 'Read term',
-                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                padding: EdgeInsets.zero,
               ),
             ],
           ),
