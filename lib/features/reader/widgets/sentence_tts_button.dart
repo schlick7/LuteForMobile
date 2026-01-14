@@ -55,11 +55,6 @@ class _SentenceTTSButtonState extends ConsumerState<SentenceTTSButton> {
         color = errorColor;
         onPressed = () => ref.read(sentenceTTSProvider.notifier).stop();
         break;
-      case SentenceTTSStatus.paused:
-        icon = Icons.play_arrow;
-        color = iconColor;
-        onPressed = () => ref.read(sentenceTTSProvider.notifier).resume();
-        break;
       case SentenceTTSStatus.error:
         icon = Icons.refresh;
         color = errorColor;
@@ -69,6 +64,11 @@ class _SentenceTTSButtonState extends ConsumerState<SentenceTTSButton> {
               .read(sentenceTTSProvider.notifier)
               .speakSentence(widget.text, widget.sentenceId);
         };
+        break;
+      case SentenceTTSStatus.loading:
+        icon = Icons.hourglass_empty;
+        color = iconColor;
+        onPressed = null;
         break;
       case SentenceTTSStatus.idle:
         icon = Icons.volume_up;
@@ -91,10 +91,10 @@ class _SentenceTTSButtonState extends ConsumerState<SentenceTTSButton> {
     switch (status) {
       case SentenceTTSStatus.playing:
         return 'Stop TTS';
-      case SentenceTTSStatus.paused:
-        return 'Resume TTS';
       case SentenceTTSStatus.error:
         return 'Retry TTS';
+      case SentenceTTSStatus.loading:
+        return 'Loading TTS';
       case SentenceTTSStatus.idle:
         return 'Play TTS';
     }

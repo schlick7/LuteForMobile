@@ -4,26 +4,27 @@
   - python3 -m lute.main
   
   
-Update HelpScreen  
-  
+
+# Help Screen
+- 
+
 # Statistics Screen  
-- For the Wordcount lets create a Current Day streak and a Longest Day streak stat. any day with a wordcount of 1 or more should count. 
+- 
 
 # Terms Screen
 -
 
 # Reader
--
+- 
 
 # TTS
-- Future: add a selector in language settings to apply TTS voices based on languages. 
-- Make the audio stopable. Don't need pause. Just play and stop. 
+- 
 
 # AI
-- Add 'virtual' sentence dictionary to SentenceDictionary popup. 
+- 
 
 # Sentence Reader
-- If the book page hasn't changed then open to the last setence read intead of starting at 1
+- 
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
@@ -48,6 +49,5 @@ Add more custom theme options
 - add a toggle to book details to select between Server parsing or App parsing
   - include hint
   - put this in the edit button and move the confirmation to the edit button popup for editing the term.
-- When page marked as done and a popup to navigate to books to pick out another. Add a great job or something and a animation of some kind to celebrate the completetion of a book. Include number of words in the book? 
-- add a selector in language settings to apply TTS voices based on languages. 
-- add todays read stats to bottom nav bar
+- When the page/book marked as done add a popup to navigate to books to pick out another. Add a great job or something and a animation of some kind to celebrate the completetion of a book. Include number of words in the book and other book and term stats? 
+- add a selector in language settings to apply TTS voices based on languages.

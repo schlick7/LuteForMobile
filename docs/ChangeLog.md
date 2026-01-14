@@ -1,16 +1,14 @@
 # Bug Fixes
-- fixed longpress in termform to edit term name
-- fixed bookdetails refresh
-- Android pill navigation now no longer scrolls to the bottom of the page.
-- term glow only affects the word tapped now
-- fixed longpress on page number navigation triggering pageread
+- Fullscreen fixes
+- Returns to Sentence position again
+- Fixed language placeholder in AI Prompts
+- TTS can be stopped now
+- Fixed parent term saving edge case
 
-# New Feature - StatsScreen
-- Show Stat Graphs
-- Show various stat cards
+# New Feature
+- Day Streak
+- Enhanced AI Sentence Dictionary (on long press)
+- AI term explanation in the AI tab of TermForm dictionary. 
 
 # Other Changes
-- Add status colors to termsscreen stats
-- Swipe navigation toggle
-- Add stats to bottom of reader
-  - Toggle from Settings Screen
+-

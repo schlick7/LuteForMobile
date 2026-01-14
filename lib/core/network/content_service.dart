@@ -370,6 +370,15 @@ class ContentService {
     return parser.parseLanguagesWithIds(htmlContent);
   }
 
+  Future<Language?> getLanguageById(int languageId) async {
+    final languages = await getLanguagesWithIds();
+    try {
+      return languages.firstWhere((lang) => lang.id == languageId);
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<Term>> getTermsDatatables({
     required int? langId,
     required String? search,

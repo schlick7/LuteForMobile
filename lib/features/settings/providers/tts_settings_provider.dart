@@ -82,9 +82,7 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
       },
     );
 
-    if (state != loadedSettings) {
-      state = loadedSettings;
-    }
+    state = loadedSettings;
   }
 
   Future<TTSSettingsConfig?> _loadConfig(

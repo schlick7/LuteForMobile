@@ -9,8 +9,8 @@ import '../../settings/providers/ai_settings_provider.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../core/network/dictionary_service.dart';
-import '../../../core/network/tts_service.dart';
-import '../../../core/providers/tts_provider.dart';
+import '../providers/sentence_tts_provider.dart';
+import '../providers/current_book_provider.dart';
 
 class SentenceTranslationWidget extends ConsumerStatefulWidget {
   final String sentence;
@@ -44,7 +44,6 @@ class SentenceTranslationWidget extends ConsumerStatefulWidget {
 class _SentenceTranslationWidgetState
     extends ConsumerState<SentenceTranslationWidget> {
   late PageController _pageController;
-  late TTSService _ttsService;
   List<DictionarySource> _dictionaries = [];
   int _currentPage = 0;
   final Map<int, InAppWebViewController> _webviewControllers = {};
@@ -53,6 +52,10 @@ class _SentenceTranslationWidgetState
   String? _aiTranslation;
   String? _aiErrorMessage;
   bool _hasFetchedAI = false;
+  bool _isLoadingVirtualDict = false;
+  String? _virtualDictionaryContent;
+  String? _virtualDictionaryError;
+  bool _hasFetchedVirtualDict = false;
   final Set<int> _preloadedPages = {};
   bool _isPreloading = false;
   bool _isOriginalCollapsed = true;
@@ -60,7 +63,6 @@ class _SentenceTranslationWidgetState
   @override
   void initState() {
     super.initState();
-    _ttsService = ref.read(ttsServiceProvider);
     _pageController = PageController(initialPage: 0);
     _loadDictionaries();
   }
@@ -91,12 +93,35 @@ class _SentenceTranslationWidgetState
     final shouldAddAI =
         aiSettings.provider != AIProvider.none && aiConfig?.enabled == true;
 
+    final virtualDictConfig =
+        aiSettings.promptConfigs[AIPromptType.virtualDictionary];
+    final shouldAddVirtualDict =
+        aiSettings.provider != AIProvider.none &&
+        virtualDictConfig?.enabled == true;
+
     final allDictionaries = List<DictionarySource>.from(dictionaries);
     if (shouldAddAI) {
       final modelName =
           aiSettings.providerConfigs[aiSettings.provider]?.model ?? 'gpt-4o';
       allDictionaries.add(
-        DictionarySource(name: 'AI: $modelName', urlTemplate: '', isAI: true),
+        DictionarySource(
+          name: 'AI: $modelName',
+          urlTemplate: '',
+          isAI: true,
+          aiType: AIType.translation,
+        ),
+      );
+    }
+    if (shouldAddVirtualDict) {
+      final modelName =
+          aiSettings.providerConfigs[aiSettings.provider]?.model ?? 'gpt-4o';
+      allDictionaries.add(
+        DictionarySource(
+          name: 'AI Dictionary ($modelName)',
+          urlTemplate: '',
+          isAI: true,
+          aiType: AIType.virtualDictionary,
+        ),
       );
     }
 
@@ -120,11 +145,10 @@ class _SentenceTranslationWidgetState
 
     try {
       final aiService = ref.read(aiServiceProvider);
-      final aiSettings = ref.read(aiSettingsProvider);
+      final currentBookState = ref.read(currentBookProvider);
       final language =
-          aiSettings
-              .promptConfigs[AIPromptType.sentenceTranslation]
-              ?.language ??
+          currentBookState.languageName ??
+          currentBookState.book?.language ??
           'Unknown';
 
       final translation = await aiService.translateSentence(
@@ -145,6 +169,43 @@ class _SentenceTranslationWidgetState
           _isLoadingAI = false;
           _aiErrorMessage = e.toString();
           _hasFetchedAI = true;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchVirtualDictionary() async {
+    if (_isLoadingVirtualDict || _hasFetchedVirtualDict) return;
+
+    setState(() {
+      _isLoadingVirtualDict = true;
+      _virtualDictionaryContent = null;
+      _virtualDictionaryError = null;
+    });
+
+    try {
+      final aiService = ref.read(aiServiceProvider);
+      final currentBookState = ref.read(currentBookProvider);
+      final language = currentBookState.languageName ?? 'Unknown';
+
+      final content = await aiService.getVirtualDictionaryEntry(
+        widget.sentence,
+        language,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isLoadingVirtualDict = false;
+          _virtualDictionaryContent = content;
+          _hasFetchedVirtualDict = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingVirtualDict = false;
+          _virtualDictionaryError = e.toString();
+          _hasFetchedVirtualDict = true;
         });
       }
     }
@@ -205,7 +266,7 @@ class _SentenceTranslationWidgetState
   @override
   void dispose() {
     _pageController.dispose();
-    _ttsService.stop();
+    ref.read(sentenceTTSProvider.notifier).stop();
     super.dispose();
   }
 
@@ -402,17 +463,47 @@ class _SentenceTranslationWidgetState
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ),
-                IconButton(
-                  onPressed: () {
-                    _ttsService.speak(widget.sentence);
+                Consumer(
+                  builder: (context, ref, child) {
+                    final ttsState = ref.watch(sentenceTTSProvider);
+                    final isCurrentSentence =
+                        ttsState.currentText == widget.sentence;
+
+                    IconData icon;
+                    Color color;
+                    VoidCallback? onPressed;
+
+                    if (isCurrentSentence && ttsState.isLoading) {
+                      icon = Icons.hourglass_empty;
+                      color = Theme.of(context).colorScheme.primary;
+                      onPressed = null;
+                    } else if (isCurrentSentence && ttsState.isPlaying) {
+                      icon = Icons.stop;
+                      color = Theme.of(context).colorScheme.error;
+                      onPressed = () =>
+                          ref.read(sentenceTTSProvider.notifier).stop();
+                    } else {
+                      icon = Icons.volume_up;
+                      color = Theme.of(context).colorScheme.primary;
+                      onPressed = () => ref
+                          .read(sentenceTTSProvider.notifier)
+                          .speakSentence(widget.sentence, 0);
+                    }
+
+                    return IconButton(
+                      icon: Icon(icon),
+                      color: color,
+                      onPressed: onPressed,
+                      tooltip: isCurrentSentence && ttsState.isPlaying
+                          ? 'Stop TTS'
+                          : 'Read sentence',
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 40,
+                      ),
+                      padding: EdgeInsets.zero,
+                    );
                   },
-                  icon: const Icon(Icons.volume_up),
-                  tooltip: 'Read sentence',
-                  constraints: const BoxConstraints(
-                    minWidth: 40,
-                    minHeight: 40,
-                  ),
-                  padding: EdgeInsets.zero,
                 ),
               ],
             ),
@@ -433,7 +524,11 @@ class _SentenceTranslationWidgetState
         });
         final currentDict = _dictionaries[index];
         if (currentDict.isAI) {
-          _fetchAITranslation();
+          if (currentDict.aiType == AIType.virtualDictionary) {
+            _fetchVirtualDictionary();
+          } else {
+            _fetchAITranslation();
+          }
         } else {
           await widget.dictionaryService.rememberLastUsedSentenceDictionary(
             widget.languageId,
@@ -454,6 +549,9 @@ class _SentenceTranslationWidgetState
     int index,
   ) {
     if (dictionary.isAI) {
+      if (dictionary.aiType == AIType.virtualDictionary) {
+        return _buildVirtualDictionaryContent(context);
+      }
       return _buildAIContent(context);
     }
 
@@ -483,6 +581,83 @@ class _SentenceTranslationWidgetState
         }
       },
     );
+  }
+
+  Widget _buildVirtualDictionaryContent(BuildContext context) {
+    if (_isLoadingVirtualDict) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_virtualDictionaryError != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 48,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Virtual Dictionary Failed',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _virtualDictionaryError!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: _fetchVirtualDictionary,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_virtualDictionaryContent != null) {
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Dictionary Entry:',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: TextEditingController(
+                text: _virtualDictionaryContent,
+              ),
+              maxLines: null,
+              readOnly: true,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildAIContent(BuildContext context) {

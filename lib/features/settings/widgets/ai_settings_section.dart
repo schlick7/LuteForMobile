@@ -13,6 +13,7 @@ class AISettingsSection extends ConsumerStatefulWidget {
 
 class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
   bool _isExpanded = false;
+  final Map<AIPromptType, bool> _promptExpanded = {};
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +195,22 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
           AIPromptType.sentenceTranslation,
           'Sentence Translation',
         ),
+        const SizedBox(height: 16),
+        _buildPromptConfigSection(
+          context,
+          ref,
+          settings,
+          AIPromptType.virtualDictionary,
+          'Virtual Dictionary',
+        ),
+        const SizedBox(height: 16),
+        _buildPromptConfigSection(
+          context,
+          ref,
+          settings,
+          AIPromptType.termExplanation,
+          'Term Explanation',
+        ),
       ],
     );
   }
@@ -210,31 +227,47 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
         config?.customPrompt ?? AIPromptTemplates.getDefault(type);
     final isCustom = config?.customPrompt?.isNotEmpty ?? false;
     final placeholders = _getPlaceholders(type);
+    final isExpanded = _promptExpanded[type] ?? false;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return ExpansionTile(
+      title: Text(title),
+      subtitle: Text(config?.enabled ?? true ? 'Enabled' : 'Disabled'),
+      initiallyExpanded: isExpanded,
+      onExpansionChanged: (expanded) {
+        setState(() {
+          _promptExpanded[type] = expanded;
+        });
+      },
+      leading: Switch(
+        value: config?.enabled ?? true,
+        onChanged: (value) {
+          ref
+              .read(aiSettingsProvider.notifier)
+              .updatePromptConfig(type, config!.copyWith(enabled: value));
+        },
+      ),
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: SwitchListTile(
-                title: Text(title),
-                subtitle: Text(
-                  config?.enabled ?? true ? 'Enabled' : 'Disabled',
-                ),
-                value: config?.enabled ?? true,
-                onChanged: (value) {
-                  ref
-                      .read(aiSettingsProvider.notifier)
-                      .updatePromptConfig(
-                        type,
-                        config!.copyWith(enabled: value),
-                      );
-                },
-              ),
+        if (config?.enabled ?? true) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _PromptEditor(
+              initialText: currentPrompt,
+              onChanged: (value) {
+                ref
+                    .read(aiSettingsProvider.notifier)
+                    .updatePromptConfig(
+                      type,
+                      config!.copyWith(customPrompt: value),
+                    );
+              },
             ),
-            if (isCustom)
-              TextButton.icon(
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
                 onPressed: () {
                   showDialog(
                     context: context,
@@ -257,7 +290,6 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
                                   AIPromptConfig(
                                     customPrompt: null,
                                     enabled: config!.enabled,
-                                    language: config.language,
                                   ),
                                 );
                             Navigator.of(dialogContext).pop();
@@ -268,25 +300,17 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
                     ),
                   );
                 },
-                icon: const Icon(Icons.restore),
-                label: const Text('Reset'),
+                icon: const Icon(Icons.restore, size: 18),
+                label: const Text('Reset to Default'),
               ),
-          ],
-        ),
-        if (config?.enabled ?? true) ...[
-          _PromptEditor(
-            initialText: currentPrompt,
-            onChanged: (value) {
-              ref
-                  .read(aiSettingsProvider.notifier)
-                  .updatePromptConfig(
-                    type,
-                    config!.copyWith(customPrompt: value),
-                  );
-            },
+            ),
           ),
           const SizedBox(height: 8),
-          _buildPlaceholdersHint(context, placeholders),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildPlaceholdersHint(context, placeholders),
+          ),
+          const SizedBox(height: 16),
         ],
       ],
     );
@@ -317,6 +341,37 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
           const PlaceholderInfo(
             placeholder: '[sentence]',
             description: 'The sentence to translate',
+            example: 'El perro corre rápido.',
+          ),
+          const PlaceholderInfo(
+            placeholder: '[language]',
+            description: 'The source language',
+            example: 'Spanish',
+          ),
+        ];
+      case AIPromptType.virtualDictionary:
+        return [
+          const PlaceholderInfo(
+            placeholder: '[sentence]',
+            description: 'The sentence to analyze',
+            example: 'El perro corre rápido.',
+          ),
+          const PlaceholderInfo(
+            placeholder: '[language]',
+            description: 'The source language',
+            example: 'Spanish',
+          ),
+        ];
+      case AIPromptType.termExplanation:
+        return [
+          const PlaceholderInfo(
+            placeholder: '[term]',
+            description: 'The term to explain',
+            example: 'perro',
+          ),
+          const PlaceholderInfo(
+            placeholder: '[sentence]',
+            description: 'The context sentence (optional)',
             example: 'El perro corre rápido.',
           ),
           const PlaceholderInfo(

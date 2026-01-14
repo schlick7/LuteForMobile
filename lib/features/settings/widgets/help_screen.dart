@@ -231,6 +231,26 @@ class HelpScreen extends StatelessWidget {
             'Add To',
             'Adds to existing translations',
           ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'AI Dictionary Tabs'),
+          _buildControlItem(
+            context,
+            Icons.translate,
+            'Translation tab',
+            'Shows AI-generated term translation',
+          ),
+          _buildControlItem(
+            context,
+            Icons.auto_stories,
+            'Explanation tab',
+            'Shows AI-generated term explanation/definition',
+          ),
+          _buildControlItem(
+            context,
+            Icons.add_circle_outline,
+            'Add to Translation',
+            'Adds AI translation to term form field',
+          ),
         ],
       ),
     );

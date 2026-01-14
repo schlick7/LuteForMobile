@@ -233,6 +233,23 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     });
   }
 
+  Future<void> playTTSAudio(BytesSource source) async {
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.play(source);
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
+  }
+
+  Future<void> stop() async {
+    try {
+      await _audioPlayer.stop();
+    } catch (e) {
+      state = state.copyWith(errorMessage: e.toString());
+    }
+  }
+
   Future<void> _savePosition() async {
     try {
       final positionSeconds = state.position.inMilliseconds / 1000.0;

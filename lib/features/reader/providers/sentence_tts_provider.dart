@@ -1,8 +1,12 @@
+import 'dart:async';
+
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/core/providers/tts_provider.dart';
+import '../providers/audio_player_provider.dart';
 
-enum SentenceTTSStatus { idle, playing, paused, error }
+enum SentenceTTSStatus { idle, loading, playing, error }
 
 @immutable
 class SentenceTTSState {
@@ -12,6 +16,7 @@ class SentenceTTSState {
   final int? currentSentenceId;
   final int retryCount;
   final bool isFallenBackToNone;
+  final BytesSource? ttsAudioSource;
 
   const SentenceTTSState({
     this.status = SentenceTTSStatus.idle,
@@ -20,10 +25,11 @@ class SentenceTTSState {
     this.currentSentenceId,
     this.retryCount = 0,
     this.isFallenBackToNone = false,
+    this.ttsAudioSource,
   });
 
   bool get isPlaying => status == SentenceTTSStatus.playing;
-  bool get isPaused => status == SentenceTTSStatus.paused;
+  bool get isLoading => status == SentenceTTSStatus.loading;
   bool get hasError => status == SentenceTTSStatus.error;
 
   SentenceTTSState copyWith({
@@ -33,6 +39,7 @@ class SentenceTTSState {
     int? currentSentenceId,
     int? retryCount,
     bool? isFallenBackToNone,
+    BytesSource? ttsAudioSource,
   }) {
     return SentenceTTSState(
       status: status ?? this.status,
@@ -41,12 +48,49 @@ class SentenceTTSState {
       currentSentenceId: currentSentenceId ?? this.currentSentenceId,
       retryCount: retryCount ?? this.retryCount,
       isFallenBackToNone: isFallenBackToNone ?? this.isFallenBackToNone,
+      ttsAudioSource: ttsAudioSource ?? this.ttsAudioSource,
     );
   }
 }
 
 class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
   static const int maxRetries = 3;
+
+  @override
+  SentenceTTSState build() {
+    ref.onDispose(() {
+      _playerStateSubscription?.cancel();
+      _completeSubscription?.cancel();
+    });
+    return const SentenceTTSState();
+  }
+
+  StreamSubscription<PlayerState>? _playerStateSubscription;
+  StreamSubscription<void>? _completeSubscription;
+
+  void _setupPlayerStateListener() {
+    final audioPlayer = ref
+        .read(audioPlayerProvider.notifier)
+        .state
+        .audioPlayer;
+    _playerStateSubscription?.cancel();
+    _completeSubscription?.cancel();
+
+    _playerStateSubscription = audioPlayer.onPlayerStateChanged.listen((
+      playerState,
+    ) {
+      debugPrint('TTS Player state changed: $playerState');
+      if (playerState == PlayerState.completed) {
+        debugPrint('TTS audio completed, resetting state');
+        state = const SentenceTTSState();
+      }
+    });
+
+    _completeSubscription = audioPlayer.onPlayerComplete.listen((_) {
+      debugPrint('TTS onPlayerComplete triggered');
+      state = const SentenceTTSState();
+    });
+  }
 
   String _getUserFriendlyErrorMessage(String error) {
     if (error.contains('connection') || error.contains('connect')) {
@@ -66,27 +110,37 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
     return 'TTS failed: $error';
   }
 
-  @override
-  SentenceTTSState build() {
-    return const SentenceTTSState();
-  }
-
   Future<void> speakSentence(String text, int sentenceId) async {
     final ttsService = ref.read(ttsServiceProvider);
+    final audioPlayer = ref.read(audioPlayerProvider.notifier);
 
     try {
       state = state.copyWith(
-        status: SentenceTTSStatus.playing,
+        status: SentenceTTSStatus.loading,
         currentText: text,
         currentSentenceId: sentenceId,
         errorMessage: null,
         retryCount: 0,
         isFallenBackToNone: false,
+        ttsAudioSource: null,
       );
 
-      await ttsService.speak(text);
+      debugPrint('Fetching TTS audio bytes...');
+      final audioBytes = await ttsService.getAudioBytes(text);
+      debugPrint('Got ${audioBytes.length} bytes of audio');
 
-      state = state.copyWith(status: SentenceTTSStatus.idle, currentText: null);
+      final bytesSource = BytesSource(audioBytes);
+
+      state = state.copyWith(
+        status: SentenceTTSStatus.playing,
+        ttsAudioSource: bytesSource,
+      );
+
+      _setupPlayerStateListener();
+
+      debugPrint('Starting TTS playback...');
+      await audioPlayer.playTTSAudio(bytesSource);
+      debugPrint('TTS playback started');
     } catch (e) {
       debugPrint('TTS Error: $e');
       await _handleError(text, sentenceId, e);
@@ -104,13 +158,17 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
 
       try {
         final ttsService = ref.read(ttsServiceProvider);
-        await ttsService.speak(text);
+        final audioPlayer = ref.read(audioPlayerProvider.notifier);
+
+        final audioBytes = await ttsService.getAudioBytes(text);
+        final bytesSource = BytesSource(audioBytes);
 
         state = state.copyWith(
-          status: SentenceTTSStatus.idle,
-          currentText: null,
-          retryCount: 0,
+          status: SentenceTTSStatus.playing,
+          ttsAudioSource: bytesSource,
         );
+
+        await audioPlayer.playTTSAudio(bytesSource);
       } catch (retryError) {
         await _handleError(text, sentenceId, retryError);
       }
@@ -124,28 +182,12 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
     }
   }
 
-  Future<void> pause() async {
-    final ttsService = ref.read(ttsServiceProvider);
-
-    try {
-      await ttsService.stop();
-      state = state.copyWith(status: SentenceTTSStatus.paused);
-    } catch (e) {
-      debugPrint('Failed to pause TTS: $e');
-    }
-  }
-
-  Future<void> resume() async {
-    if (state.currentText != null && state.currentSentenceId != null) {
-      await speakSentence(state.currentText!, state.currentSentenceId!);
-    }
-  }
-
   Future<void> stop() async {
-    final ttsService = ref.read(ttsServiceProvider);
+    final audioPlayer = ref.read(audioPlayerProvider.notifier);
 
     try {
-      await ttsService.stop();
+      debugPrint('Stopping TTS...');
+      await audioPlayer.stop();
       state = const SentenceTTSState();
     } catch (e) {
       debugPrint('Failed to stop TTS: $e');
@@ -154,9 +196,7 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
 
   Future<void> toggle(String text, int sentenceId) async {
     if (state.isPlaying) {
-      await pause();
-    } else if (state.isPaused) {
-      await resume();
+      await stop();
     } else {
       await speakSentence(text, sentenceId);
     }

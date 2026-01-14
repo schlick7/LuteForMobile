@@ -122,7 +122,7 @@ class WordsReadChart extends StatelessWidget {
 
       return LineChartBarData(
         spots: spots,
-        isCurved: true,
+        isCurved: false,
         color: color,
         barWidth: 2.5,
         dotData: FlDotData(show: true),

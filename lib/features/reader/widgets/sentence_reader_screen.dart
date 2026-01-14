@@ -7,6 +7,7 @@ import '../models/term_tooltip.dart';
 import '../providers/reader_provider.dart';
 import '../providers/sentence_reader_provider.dart';
 import '../providers/sentence_tts_provider.dart';
+import '../providers/current_book_provider.dart';
 import '../widgets/term_tooltip.dart';
 import '../widgets/term_form.dart';
 import '../widgets/sentence_translation.dart';
@@ -342,6 +343,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             ref.read(sentenceReaderProvider.notifier).syncStatusFromPageData();
             _hasInitialized = true;
             _initializationFailed = false;
+            ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
             _loadTooltipsForCurrentSentence();
           } else {
             print(
@@ -1347,7 +1349,23 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                   final success = await ref
                       .read(readerProvider.notifier)
                       .saveTerm(updatedForm);
-                  if (!success && mounted) {
+                  if (success && mounted && updatedForm.termId != null) {
+                    _termTooltips.remove(updatedForm.termId!);
+
+                    try {
+                      final freshTooltip = await ref
+                          .read(readerProvider.notifier)
+                          .fetchTermTooltip(updatedForm.termId!);
+                      if (freshTooltip != null && mounted) {
+                        setState(() {
+                          _termTooltips[updatedForm.termId!] = freshTooltip;
+                        });
+
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        await _refreshAffectedTermTooltips(freshTooltip);
+                      }
+                    } catch (e) {}
+                  } else if (!success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Failed to save term')),
                     );
@@ -1427,7 +1445,16 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                             .read(readerProvider.notifier)
                             .fetchTermFormById(parent.id!);
                         if (parentTermForm != null && mounted) {
-                          _showParentTermForm(parentTermForm);
+                          _showParentTermForm(
+                            parentTermForm,
+                            onParentUpdated: (updatedParents) {
+                              setState(() {
+                                _currentTermForm = _currentTermForm?.copyWith(
+                                  parents: updatedParents,
+                                );
+                              });
+                            },
+                          );
                         }
                       }
                     },
@@ -1444,7 +1471,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     );
   }
 
-  void _showParentTermForm(TermForm termForm) {
+  void _showParentTermForm(
+    TermForm termForm, {
+    void Function(List<TermParent>)? onParentUpdated,
+  }) {
     _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
@@ -1464,7 +1494,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             canPop: !_isDictionaryOpen,
             onPopInvoked: (didPop) async {
               if (didPop && settings.autoSave && _shouldAutoSaveOnClose) {
-                final updatedForm = _currentTermForm ?? termForm;
+                final updatedForm = termForm;
                 final success = await ref
                     .read(readerProvider.notifier)
                     .saveTerm(updatedForm);
@@ -1564,11 +1594,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                           } catch (e) {}
                         }
 
+                        onParentUpdated?.call(updatedForm.parents);
                         Navigator.of(context).pop();
                       }
                     },
                     onCancel: () {
                       _shouldAutoSaveOnClose = false;
+                      onParentUpdated?.call(termForm.parents);
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
@@ -1624,10 +1656,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   void _showAITranslation(String sentence, int languageId) {
-    final aiSettings = ref.read(aiSettingsProvider);
+    final currentBookState = ref.read(currentBookProvider);
     final language =
-        aiSettings.promptConfigs[AIPromptType.sentenceTranslation]?.language ??
-        'English';
+        currentBookState.languageName ??
+        (_languageIdToName[languageId] ?? 'English');
     final sentenceReader = ref.read(sentenceReaderProvider);
     final currentSentence = sentenceReader.currentSentence;
 

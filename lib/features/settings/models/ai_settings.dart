@@ -2,7 +2,12 @@ import 'package:flutter/foundation.dart';
 
 enum AIProvider { localOpenAI, openAI, none }
 
-enum AIPromptType { termTranslation, sentenceTranslation }
+enum AIPromptType {
+  termTranslation,
+  sentenceTranslation,
+  virtualDictionary,
+  termExplanation,
+}
 
 @immutable
 class AISettings {
@@ -111,19 +116,13 @@ class AISettingsConfig {
 class AIPromptConfig {
   final String? customPrompt;
   final bool enabled;
-  final String? language;
 
-  const AIPromptConfig({this.customPrompt, this.enabled = true, this.language});
+  const AIPromptConfig({this.customPrompt, this.enabled = true});
 
-  AIPromptConfig copyWith({
-    String? customPrompt,
-    bool? enabled,
-    String? language,
-  }) {
+  AIPromptConfig copyWith({String? customPrompt, bool? enabled}) {
     return AIPromptConfig(
       customPrompt: customPrompt ?? this.customPrompt,
       enabled: enabled ?? this.enabled,
-      language: language ?? this.language,
     );
   }
 
@@ -132,12 +131,11 @@ class AIPromptConfig {
     if (identical(this, other)) return true;
     return other is AIPromptConfig &&
         other.customPrompt == customPrompt &&
-        other.enabled == enabled &&
-        other.language == language;
+        other.enabled == enabled;
   }
 
   @override
-  int get hashCode => Object.hash(customPrompt, enabled, language);
+  int get hashCode => Object.hash(customPrompt, enabled);
 }
 
 class AIPromptTemplates {
@@ -146,6 +144,30 @@ class AIPromptTemplates {
         'Using the sentence "[sentence]" Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations. Respond with the translation text only without line breaks and using commas between',
     AIPromptType.sentenceTranslation:
         'Translate the following sentence from [language] to English: [sentence]',
+    AIPromptType.virtualDictionary:
+        '''For the following [language] sentence: "[sentence]"
+Provide a dictionary-style response with:
+1. Word-by-word translation in brackets after each word
+2. Part of speech for key words
+3. Brief grammar notes if applicable
+4. Natural English translation
+
+Format example:
+word1 [translation1] /word2 [translation2] /word3 [translation3]
+[grammar notes]
+Translation: [natural translation]''',
+    AIPromptType.termExplanation:
+        '''For the following [language] term: "[term]" (used in context: "[sentence]")
+
+Provide a comprehensive explanation:
+1. Definition(s) in English
+2. Part of speech
+3. Gender (if applicable)
+4. Example sentences in [language] with translations
+5. Related forms or root words
+6. Common collocations or usage patterns
+
+Keep the response concise but informative.''',
   };
 
   static String getDefault(AIPromptType type) {
