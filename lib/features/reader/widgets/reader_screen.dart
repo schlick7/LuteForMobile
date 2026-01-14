@@ -91,7 +91,7 @@ class _PageTransitionState extends State<_PageTransition>
       animation: _controller,
       builder: (context, child) {
         if (!_hasAnimated) {
-          return _currentChild ?? SizedBox();
+          return _currentChild ?? const SizedBox();
         }
 
         return Stack(
