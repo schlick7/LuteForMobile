@@ -79,11 +79,15 @@ class BooksNotifier extends Notifier<BooksState> {
 
       if (activeFromCache != null || archivedFromCache != null) {
         state = state.copyWith(
+          isLoading: false,
           activeBooks: activeFromCache ?? state.activeBooks,
           archivedBooks: archivedFromCache ?? state.archivedBooks,
         );
+      } else {
+        state = state.copyWith(isLoading: false);
       }
     } catch (e) {
+      state = state.copyWith(isLoading: false);
       print('Error loading books from cache: $e');
     }
 
