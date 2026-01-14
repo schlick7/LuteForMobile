@@ -1349,7 +1349,23 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                   final success = await ref
                       .read(readerProvider.notifier)
                       .saveTerm(updatedForm);
-                  if (!success && mounted) {
+                  if (success && mounted && updatedForm.termId != null) {
+                    _termTooltips.remove(updatedForm.termId!);
+
+                    try {
+                      final freshTooltip = await ref
+                          .read(readerProvider.notifier)
+                          .fetchTermTooltip(updatedForm.termId!);
+                      if (freshTooltip != null && mounted) {
+                        setState(() {
+                          _termTooltips[updatedForm.termId!] = freshTooltip;
+                        });
+
+                        await Future.delayed(const Duration(milliseconds: 100));
+                        await _refreshAffectedTermTooltips(freshTooltip);
+                      }
+                    } catch (e) {}
+                  } else if (!success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Failed to save term')),
                     );
