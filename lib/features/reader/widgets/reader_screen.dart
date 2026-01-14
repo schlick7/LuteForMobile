@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
@@ -425,9 +426,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     if (textSettings.fullscreenMode && !_lastFullscreenMode) {
       _lastFullscreenMode = true;
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       _startHideTimer();
     } else if (!textSettings.fullscreenMode && _lastFullscreenMode) {
       _lastFullscreenMode = false;
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       _cancelHideTimer();
       _isUiVisible = true;
     }
