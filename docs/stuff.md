@@ -18,13 +18,12 @@
 -
 
 # TTS
-- Future: add a selector in language settings to apply TTS voices based on languages. 
+- 
 
 # AI
-- The [language] placeholder in the prompts isn't working, it just says 'Unknown'
+- 
 
 # Sentence Reader
-- For the sentencereader, If the book page hasn't changed then open to the last setence read intead of starting at 1
 - sentencereader termslist only updates the trasnlation when the termform save button is pressed, not when swiping to close (autosave)
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
