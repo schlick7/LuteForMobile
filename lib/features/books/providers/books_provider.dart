@@ -433,10 +433,22 @@ class BooksNotifier extends Notifier<BooksState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      await _repository.refreshAllBookStats(
-        state.activeBooks + state.archivedBooks,
-      );
-      await loadBooks();
+      final activeBooksToRefresh = state.activeBooks;
+
+      for (int i = 0; i < activeBooksToRefresh.length; i += 2) {
+        final batch = <Future<void>>[];
+        if (i < activeBooksToRefresh.length) {
+          batch.add(_refreshBookWith500SampleSize(activeBooksToRefresh[i].id));
+        }
+        if (i + 1 < activeBooksToRefresh.length) {
+          batch.add(
+            _refreshBookWith500SampleSize(activeBooksToRefresh[i + 1].id),
+          );
+        }
+        await Future.wait(batch);
+      }
+
+      state = state.copyWith(isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
