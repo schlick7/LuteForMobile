@@ -19,8 +19,6 @@
 
 - If the user navigates away during a refresh we need to make sure that we finish fetching the currently refreshing book and then properly set the server page stats back to its previous value. Can we insure this happens? 
 
-- make the 'refresh all stats' button use the new 2books at a time full refresh method
-
 # Reader
 - 
 
