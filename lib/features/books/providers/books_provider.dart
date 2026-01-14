@@ -59,6 +59,9 @@ class BooksState {
 
 class BooksNotifier extends Notifier<BooksState> {
   late BooksRepository _repository;
+  bool _isRefreshingBook = false;
+  int? _originalSampleSize;
+  bool _refreshRequestedAfterNavigate = false;
 
   @override
   BooksState build() {
@@ -140,28 +143,26 @@ class BooksNotifier extends Notifier<BooksState> {
     for (int i = 0; i < expiredBooks.length; i += 2) {
       final batch = <Future<void>>[];
       if (i < expiredBooks.length) {
-        batch.add(
-          _refreshBookWith500SampleSize(expiredBooks[i].id).catchError((e) {
-            print('Failed to refresh stats for book ${expiredBooks[i].id}: $e');
-          }),
-        );
+        batch.add(_refreshBookWith500SampleSize(expiredBooks[i].id));
       }
       if (i + 1 < expiredBooks.length) {
-        batch.add(
-          _refreshBookWith500SampleSize(expiredBooks[i + 1].id).catchError((e) {
-            print(
-              'Failed to refresh stats for book ${expiredBooks[i + 1].id}: $e',
-            );
-          }),
-        );
+        batch.add(_refreshBookWith500SampleSize(expiredBooks[i + 1].id));
       }
       await Future.wait(batch);
     }
   }
 
   Future<void> _refreshBookWith500SampleSize(int bookId) async {
+    if (_isRefreshingBook) {
+      _refreshRequestedAfterNavigate = true;
+      return;
+    }
+
+    _isRefreshingBook = true;
+    _refreshRequestedAfterNavigate = false;
+
     try {
-      final originalSampleSize = await _repository.contentService
+      _originalSampleSize ??= await _repository.contentService
           .getStatsSampleSize();
       await _repository.contentService.setUserSetting(
         'stats_calc_sample_size',
@@ -172,10 +173,6 @@ class BooksNotifier extends Notifier<BooksState> {
         timeout: const Duration(seconds: 15),
       );
       await Future.delayed(const Duration(seconds: 2));
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        originalSampleSize.toString(),
-      );
 
       final active = await _repository.getActiveBooks();
       final archived = state.archivedBooks;
@@ -215,8 +212,26 @@ class BooksNotifier extends Notifier<BooksState> {
         activeBooks: mergedActive,
         archivedBooks: archived,
       );
-    } catch (e) {
-      print('Error refreshing book with 500 sample size: $e');
+    } finally {
+      _isRefreshingBook = false;
+      if (_originalSampleSize != null) {
+        try {
+          await _repository.contentService.setUserSetting(
+            'stats_calc_sample_size',
+            _originalSampleSize!.toString(),
+          );
+        } catch (e) {
+          print('Failed to restore sample size: $e');
+        }
+        _originalSampleSize = null;
+      }
+      if (_refreshRequestedAfterNavigate) {
+        _refreshRequestedAfterNavigate = false;
+        final currentBookId = state.currentBookId;
+        if (currentBookId != null) {
+          await _refreshBookWith500SampleSize(currentBookId);
+        }
+      }
     }
   }
 
