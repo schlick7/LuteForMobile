@@ -5,11 +5,15 @@
 import 'package:hive_ce/hive.dart';
 import 'package:lute_for_mobile/core/cache/models/tooltip_cache_entry.dart';
 import 'package:lute_for_mobile/features/books/models/book_cache_entry.dart';
+import 'package:lute_for_mobile/features/reader/models/page_cache_entry.dart';
+import 'package:lute_for_mobile/features/reader/models/sentence_cache_entry.dart';
 import 'package:lute_for_mobile/features/stats/models/stats_cache_entry.dart';
 
 extension HiveRegistrar on HiveInterface {
   void registerAdapters() {
     registerAdapter(BookCacheEntryAdapter());
+    registerAdapter(PageCacheEntryAdapter());
+    registerAdapter(SentenceCacheEntryAdapter());
     registerAdapter(StatsCacheEntryAdapter());
     registerAdapter(TooltipCacheEntryAdapter());
   }
@@ -18,6 +22,8 @@ extension HiveRegistrar on HiveInterface {
 extension IsolatedHiveRegistrar on IsolatedHiveInterface {
   void registerAdapters() {
     registerAdapter(BookCacheEntryAdapter());
+    registerAdapter(PageCacheEntryAdapter());
+    registerAdapter(SentenceCacheEntryAdapter());
     registerAdapter(StatsCacheEntryAdapter());
     registerAdapter(TooltipCacheEntryAdapter());
   }

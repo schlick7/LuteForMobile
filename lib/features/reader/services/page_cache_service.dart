@@ -1,67 +1,59 @@
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
-
-class CachedPageHtml {
-  final String metadataHtml;
-  final String pageTextHtml;
-  final int timestamp;
-
-  CachedPageHtml({
-    required this.metadataHtml,
-    required this.pageTextHtml,
-    required this.timestamp,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'metadataHtml': metadataHtml,
-      'pageTextHtml': pageTextHtml,
-      'timestamp': timestamp,
-    };
-  }
-
-  factory CachedPageHtml.fromJson(Map<String, dynamic> json) {
-    return CachedPageHtml(
-      metadataHtml: json['metadataHtml'] as String,
-      pageTextHtml: json['pageTextHtml'] as String,
-      timestamp: json['timestamp'] as int,
-    );
-  }
-}
+import 'package:hive_ce/hive.dart';
+import '../models/page_cache_entry.dart';
 
 class PageCacheService {
-  static const int _cacheExpirationHours = 24;
-  static const int _maxCacheSize = 20;
+  static const String _boxName = 'page_cache';
+  static const Duration _ttl = Duration(days: 14);
+  static const int _maxCacheSizeBytes = 100 * 1024 * 1024;
   static const String _cachePrefix = 'page_cache_';
-  static const String _lruKey = 'page_cache_lru';
 
-  Future<CachedPageHtml?> getFromCache(
+  Box<PageCacheEntry>? _box;
+  bool _isInitialized = false;
+
+  Future<void> _initialize() async {
+    if (_isInitialized) return;
+
+    try {
+      Hive.registerAdapter(PageCacheEntryAdapter());
+      await Hive.openBox<PageCacheEntry>(_boxName);
+      _isInitialized = true;
+    } catch (e) {
+      print('Error initializing page cache: $e');
+      _isInitialized = true;
+    }
+  }
+
+  Future<Box<PageCacheEntry>> _getBox() async {
+    await _initialize();
+    return Hive.openBox<PageCacheEntry>(_boxName);
+  }
+
+  String _getCacheKey(String serverUrl, int bookId, int pageNum) {
+    return '$_cachePrefix${serverUrl.hashCode}_${bookId}_$pageNum';
+  }
+
+  Future<PageCacheEntry?> getFromCache(
     String serverUrl,
     int bookId,
     int pageNum,
   ) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final box = await _getBox();
       final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
-      final cachedJson = prefs.getString(cacheKey);
+      final entry = box.get(cacheKey);
 
-      if (cachedJson == null) {
-        return null;
-      }
-
-      final cacheData = json.decode(cachedJson) as Map<String, dynamic>;
-      final timestamp = cacheData['timestamp'] as int;
+      if (entry == null) return null;
 
       final now = DateTime.now().millisecondsSinceEpoch;
-      final age = now - timestamp;
-      final maxAge = _cacheExpirationHours * 60 * 60 * 1000;
+      final age = now - entry.timestamp;
 
-      if (age > maxAge) {
-        await _removeFromCache(serverUrl, bookId, pageNum);
+      if (age > _ttl.inMilliseconds) {
+        await box.delete(cacheKey);
         return null;
       }
 
-      return CachedPageHtml.fromJson(cacheData);
+      return entry;
     } catch (e) {
       print('Error getting from page cache: $e');
       return null;
@@ -76,19 +68,22 @@ class PageCacheService {
     String pageTextHtml,
   ) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-
-      await _enforceCacheLimit(prefs);
-
+      final box = await _getBox();
       final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
-      final cachedPage = CachedPageHtml(
+
+      final metadataBytes = utf8.encode(metadataHtml).length;
+      final pageTextBytes = utf8.encode(pageTextHtml).length;
+      final sizeInBytes = metadataBytes + pageTextBytes;
+
+      final entry = PageCacheEntry(
         metadataHtml: metadataHtml,
         pageTextHtml: pageTextHtml,
         timestamp: DateTime.now().millisecondsSinceEpoch,
+        sizeInBytes: sizeInBytes,
       );
 
-      await prefs.setString(cacheKey, json.encode(cachedPage.toJson()));
-      await _updateLru(prefs, cacheKey);
+      await _enforceSizeLimit(box);
+      await box.put(cacheKey, entry);
     } catch (e) {
       print('Error saving to page cache: $e');
     }
@@ -96,18 +91,18 @@ class PageCacheService {
 
   Future<void> clearBookCache(String serverUrl, int bookId) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final lruList = prefs.getStringList(_lruKey) ?? [];
+      final box = await _getBox();
       final serverHash = serverUrl.hashCode;
+      final keysToDelete = <String>[];
 
-      for (final cacheKey in List.from(lruList)) {
-        if (cacheKey.startsWith('$_cachePrefix${serverHash}_${bookId}_')) {
-          await prefs.remove(cacheKey);
-          lruList.remove(cacheKey);
+      for (final key in box.keys) {
+        final keyStr = key as String;
+        if (keyStr.startsWith('$_cachePrefix${serverHash}_${bookId}_')) {
+          keysToDelete.add(keyStr);
         }
       }
 
-      await prefs.setStringList(_lruKey, lruList);
+      await box.deleteAll(keysToDelete);
     } catch (e) {
       print('Error clearing book page cache: $e');
     }
@@ -115,16 +110,8 @@ class PageCacheService {
 
   Future<void> clearAllCache() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final keys = prefs.getKeys();
-
-      for (final key in keys) {
-        if (key.startsWith(_cachePrefix)) {
-          await prefs.remove(key);
-        }
-      }
-
-      await prefs.remove(_lruKey);
+      final box = await _getBox();
+      await box.clear();
     } catch (e) {
       print('Error clearing all page cache: $e');
     }
@@ -132,78 +119,69 @@ class PageCacheService {
 
   Future<Map<String, dynamic>> getCacheStats() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final lruList = prefs.getStringList(_lruKey) ?? [];
-
+      final box = await _getBox();
+      int totalSize = 0;
       int validEntries = 0;
       int expiredEntries = 0;
       final now = DateTime.now().millisecondsSinceEpoch;
-      final maxAge = _cacheExpirationHours * 60 * 60 * 1000;
 
-      for (final cacheKey in lruList) {
-        final cachedJson = prefs.getString(cacheKey);
-        if (cachedJson != null) {
-          try {
-            final cacheData = json.decode(cachedJson) as Map<String, dynamic>;
-            final timestamp = cacheData['timestamp'] as int;
-            final age = now - timestamp;
-
-            if (age > maxAge) {
-              expiredEntries++;
-            } else {
-              validEntries++;
-            }
-          } catch (e) {
-            expiredEntries++;
-          }
+      for (final entry in box.values) {
+        totalSize += entry.sizeInBytes;
+        final age = now - entry.timestamp;
+        if (age > _ttl.inMilliseconds) {
+          expiredEntries++;
+        } else {
+          validEntries++;
         }
       }
 
       return {
-        'totalEntries': lruList.length,
+        'totalEntries': box.length,
         'validEntries': validEntries,
         'expiredEntries': expiredEntries,
-        'maxSize': _maxCacheSize,
-        'expirationHours': _cacheExpirationHours,
+        'totalSizeBytes': totalSize,
+        'totalSizeMB': totalSize / (1024 * 1024),
+        'maxSizeMB': _maxCacheSizeBytes / (1024 * 1024),
+        'ttlDays': _ttl.inDays,
+        'isOverSizeLimit': totalSize > _maxCacheSizeBytes,
       };
     } catch (e) {
       return {'error': e.toString()};
     }
   }
 
-  String _getCacheKey(String serverUrl, int bookId, int pageNum) {
-    return '$_cachePrefix${serverUrl.hashCode}_${bookId}_$pageNum';
-  }
+  Future<void> _enforceSizeLimit(Box<PageCacheEntry> box) async {
+    try {
+      int currentSize = 0;
+      final entriesWithTimestamps = <String, int>{};
 
-  Future<void> _updateLru(SharedPreferences prefs, String cacheKey) async {
-    final lruList = prefs.getStringList(_lruKey) ?? [];
-    lruList.remove(cacheKey);
-    lruList.add(cacheKey);
-    await prefs.setStringList(_lruKey, lruList);
-  }
+      for (final key in box.keys) {
+        final entry = box.get(key);
+        if (entry != null) {
+          currentSize += entry.sizeInBytes;
+          entriesWithTimestamps[key as String] = entry.timestamp;
+        }
+      }
 
-  Future<void> _removeFromCache(
-    String serverUrl,
-    int bookId,
-    int pageNum,
-  ) async {
-    final prefs = await SharedPreferences.getInstance();
-    final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
-    await prefs.remove(cacheKey);
+      if (entriesWithTimestamps.isEmpty) return;
 
-    final lruList = prefs.getStringList(_lruKey) ?? [];
-    lruList.remove(cacheKey);
-    await prefs.setStringList(_lruKey, lruList);
-  }
+      while (currentSize > _maxCacheSizeBytes &&
+          entriesWithTimestamps.isNotEmpty) {
+        final oldestKey = entriesWithTimestamps.keys.reduce(
+          (a, b) =>
+              entriesWithTimestamps[a]! < entriesWithTimestamps[b]! ? a : b,
+        );
 
-  Future<void> _enforceCacheLimit(SharedPreferences prefs) async {
-    final lruList = prefs.getStringList(_lruKey) ?? [];
+        final oldestEntry = box.get(oldestKey);
+        if (oldestEntry != null) {
+          currentSize -= oldestEntry.sizeInBytes;
+        }
 
-    while (lruList.length >= _maxCacheSize) {
-      final oldestKey = lruList.removeAt(0);
-      await prefs.remove(oldestKey);
+        await box.delete(oldestKey);
+        entriesWithTimestamps.remove(oldestKey);
+      }
+    } catch (e) {
+      print('Error enforcing size limit: $e');
     }
-
-    await prefs.setStringList(_lruKey, lruList);
   }
 }
