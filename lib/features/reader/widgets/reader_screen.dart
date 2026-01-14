@@ -164,7 +164,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isNavigatingForward = true;
   Key _pageKey = const ValueKey('page');
   Map<int, String> _languageIdToName = {};
-  String _currentLanguageName = '';
   int? _lastStatsLangId;
   final List<String> _availableFonts = [
     'Roboto',
@@ -211,36 +210,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       });
     } catch (e) {
       print('DEBUG: Failed to load language mapping: $e');
-    }
-  }
-
-  void _updateLanguageStats() {
-    final pageData = ref.read(readerProvider).pageData;
-    if (pageData == null) return;
-
-    int? langId;
-    for (final paragraph in pageData.paragraphs) {
-      for (final textItem in paragraph.textItems) {
-        if (textItem.langId != null && textItem.langId != 0) {
-          langId = textItem.langId;
-          break;
-        }
-      }
-      if (langId != null) break;
-    }
-
-    if (langId == null || langId == 0) return;
-
-    final languageName = _languageIdToName[langId] ?? '';
-    if (languageName != _currentLanguageName) {
-      setState(() {
-        _currentLanguageName = languageName;
-      });
-    }
-
-    if (langId != _lastStatsLangId) {
-      _lastStatsLangId = langId;
-      ref.read(termsProvider.notifier).loadStats(langId);
     }
   }
 
@@ -603,11 +572,33 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final termsState = ref.watch(termsProvider);
     final pageData = ref.read(readerProvider).pageData;
 
+    int? langId;
     if (pageData != null) {
-      _updateLanguageStats();
+      for (final paragraph in pageData.paragraphs) {
+        for (final textItem in paragraph.textItems) {
+          if (textItem.langId != null && textItem.langId != 0) {
+            langId = textItem.langId;
+            break;
+          }
+        }
+        if (langId != null) break;
+      }
     }
 
-    final languageFlag = getFlagForLanguage(_currentLanguageName) ?? '';
+    final languageName = langId != null && langId != 0
+        ? (_languageIdToName[langId] ?? '')
+        : '';
+
+    if (langId != null && langId != 0 && langId != _lastStatsLangId) {
+      _lastStatsLangId = langId;
+      Future.microtask(() {
+        if (mounted) {
+          ref.read(termsProvider.notifier).loadStats(langId!);
+        }
+      });
+    }
+
+    final languageFlag = getFlagForLanguage(languageName) ?? '';
 
     int todayWordcount = 0;
     int status99Count = termsState.stats.status99;
@@ -616,7 +607,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       final today = DateTime.now();
 
       for (final langStats in statsState.value!.languages) {
-        if (langStats.language == _currentLanguageName) {
+        if (langStats.language == languageName) {
           final todayStats = langStats.dailyStats.firstWhere(
             (s) =>
                 s.date.year == today.year &&
@@ -1156,8 +1147,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         }
                       }
                     },
-                    onStatus99Changed: (langId) {
-                      ref.read(termsProvider.notifier).loadStats(langId);
+                    onStatus99Changed: (langId) async {
+                      await ref.read(termsProvider.notifier).loadStats(langId);
                     },
                   ),
                 );
@@ -1285,8 +1276,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         }
                       }
                     },
-                    onStatus99Changed: (langId) {
-                      ref.read(termsProvider.notifier).loadStats(langId);
+                    onStatus99Changed: (langId) async {
+                      await ref.read(termsProvider.notifier).loadStats(langId);
                     },
                   ),
                 );
