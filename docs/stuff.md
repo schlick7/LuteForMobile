@@ -4,8 +4,9 @@
   - python3 -m lute.main
   
   
-App is not properly intializing something with TTS and AI settings. They aren't working correctly until i go to the settings page and reselect the current selection in their selectors. Then they work fine, even though nothing has changed
-  
+
+# Help Screen
+- Update the Termform AI dictionary part to show help for the translation and explanation tabs
 
 # Statistics Screen  
 - 
@@ -18,10 +19,9 @@ App is not properly intializing something with TTS and AI settings. They aren't 
 
 # TTS
 - Future: add a selector in language settings to apply TTS voices based on languages. 
-- Make the audio stopable. Don't need pause. Just play and stop. 
 
 # AI
--
+- The [language] placeholder in the prompts isn't working, it just says 'Unknown'
 
 # Sentence Reader
 - For the sentencereader, If the book page hasn't changed then open to the last setence read intead of starting at 1
@@ -50,6 +50,5 @@ Add more custom theme options
 - add a toggle to book details to select between Server parsing or App parsing
   - include hint
   - put this in the edit button and move the confirmation to the edit button popup for editing the term.
-- When page marked as done and a popup to navigate to books to pick out another. Add a great job or something and a animation of some kind to celebrate the completetion of a book. Include number of words in the book? 
-- add a selector in language settings to apply TTS voices based on languages. 
-- add todays read stats to bottom nav bar
+- When the page/book marked as done add a popup to navigate to books to pick out another. Add a great job or something and a animation of some kind to celebrate the completetion of a book. Include number of words in the book and other book and term stats? 
+- add a selector in language settings to apply TTS voices based on languages.
