@@ -3,22 +3,14 @@
 - source myenv/bin/activate
   - python3 -m lute.main
   
-  
+Lets do a performance review of this app starting with the ReadScreen 
 
-# Help Screen
-- 
-
-# Statistics Screen  
-- 
-
-# Terms Screen
--
-
-# Books Screen
-- 
 
 # Reader
-- 
+- Known words readstat is still not updating when i mark a term as known in the ReadScreen the statsscreen ALSO doesn't update this value! It seems that the value ONLY updates when i enter the TermsScreen. Does this update depend on something from the TermsScreen?
+
+# Sentence Reader
+-
 
 # TTS
 - 
@@ -26,8 +18,18 @@
 # AI
 - 
 
-# Sentence Reader
+# Books Screen
 - 
+
+# Terms Screen
+-
+
+# Statistics Screen  
+- 
+
+# Help Screen
+- 
+
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
