@@ -5,4 +5,4 @@
 - 
 
 # Other Changes
--
+- Fullscreen now also hides System Status Bar
