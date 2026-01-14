@@ -3,6 +3,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
+import 'package:lute_for_mobile/shared/widgets/status_distribution_bar.dart';
 import 'package:lute_for_mobile/app.dart';
 
 class BookCompletionCelebrationDialog extends ConsumerStatefulWidget {
@@ -173,23 +174,6 @@ class _BookCompletionCelebrationDialogState
   }
 
   Widget _buildStatsContainer(BuildContext context) {
-    final int statusUnknown =
-        widget.book.statusDistribution != null &&
-            widget.book.statusDistribution!.isNotEmpty
-        ? widget.book.statusDistribution![0]
-        : 0;
-    final int statusKnown =
-        widget.book.statusDistribution != null &&
-            widget.book.statusDistribution!.length > 7
-        ? widget.book.statusDistribution![7]
-        : 0;
-    final int statusLearning = widget.book.statusDistribution != null
-        ? widget.book.statusDistribution!
-              .skip(1)
-              .take(5)
-              .fold(0, (sum, item) => sum + item)
-        : 0;
-
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -237,36 +221,7 @@ class _BookCompletionCelebrationDialogState
               ),
             ),
             const SizedBox(height: 8),
-            _buildProgressBar(
-              context,
-              statusUnknown,
-              statusLearning,
-              statusKnown,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildLegendItem(
-                  context,
-                  color: Colors.red,
-                  label: 'Unknown',
-                  count: statusUnknown,
-                ),
-                _buildLegendItem(
-                  context,
-                  color: Colors.orange,
-                  label: 'Learning',
-                  count: statusLearning,
-                ),
-                _buildLegendItem(
-                  context,
-                  color: Colors.green,
-                  label: 'Known',
-                  count: statusKnown,
-                ),
-              ],
-            ),
+            StatusDistributionBar(book: widget.book, showLegend: true),
           ],
         ],
       ),
@@ -291,81 +246,6 @@ class _BookCompletionCelebrationDialogState
         ),
         Text(
           label,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildProgressBar(
-    BuildContext context,
-    int unknown,
-    int learning,
-    int known,
-  ) {
-    final total = unknown + learning + known;
-    if (total == 0) return const SizedBox.shrink();
-
-    final unknownPct = unknown / total;
-    final learningPct = learning / total;
-    final knownPct = known / total;
-
-    return Row(
-      children: [
-        Expanded(
-          flex: unknown > 0 ? (unknownPct * 100).round() : 0,
-          child: Container(
-            height: 12,
-            decoration: BoxDecoration(
-              color: Colors.red,
-              borderRadius: const BorderRadius.horizontal(
-                left: Radius.circular(6),
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          flex: learning > 0 ? (learningPct * 100).round() : 0,
-          child: Container(height: 12, color: Colors.orange),
-        ),
-        Expanded(
-          flex: known > 0 ? (knownPct * 100).round() : 0,
-          child: Container(
-            height: 12,
-            decoration: BoxDecoration(
-              color: Colors.green,
-              borderRadius: const BorderRadius.horizontal(
-                right: Radius.circular(6),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildLegendItem(
-    BuildContext context, {
-    required Color color,
-    required String label,
-    required int count,
-  }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$label: $count',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),

@@ -249,6 +249,10 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       _currentIndex = index;
     });
 
+    if (route == 'books') {
+      ref.read(booksProvider.notifier).loadBooks();
+    }
+
     ref.read(currentScreenRouteProvider.notifier).setRoute(route);
     _updateDrawerSettings();
   }
