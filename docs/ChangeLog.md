@@ -6,4 +6,5 @@
 
 # Other Changes
 - Fullscreen now also hides System Status Bar
-- Convert books chache to hive-ce
+- Convert books cache to hive-ce
+- Convert Page and Sentence cache to hive-ce
