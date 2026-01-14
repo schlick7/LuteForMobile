@@ -94,6 +94,7 @@ class NavigationController {
       for (final listener in _readerListeners) {
         listener(bookId, pageNum);
       }
+      navigateToScreen('reader');
     } catch (e, stackTrace) {
       print('ERROR: navigateToReader failed: $e');
       print('Stack trace: $stackTrace');

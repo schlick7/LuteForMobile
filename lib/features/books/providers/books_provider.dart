@@ -74,12 +74,37 @@ class BooksNotifier extends Notifier<BooksState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
+      final activeFromCache = await _repository.getActiveBooksFromCache();
+      final archivedFromCache = await _repository.getArchivedBooksFromCache();
+
+      if (activeFromCache != null || archivedFromCache != null) {
+        state = state.copyWith(
+          activeBooks: activeFromCache ?? state.activeBooks,
+          archivedBooks: archivedFromCache ?? state.archivedBooks,
+        );
+      }
+    } catch (e) {
+      print('Error loading books from cache: $e');
+    }
+
+    _loadBooksFromNetwork();
+  }
+
+  Future<void> _loadBooksFromNetwork() async {
+    try {
       final active = await _repository.getActiveBooks();
       final archived = await _repository.getArchivedBooks();
+
+      await _repository.saveBooksToCache(
+        activeBooks: active,
+        archivedBooks: archived,
+      );
+
       state = state.copyWith(
         isLoading: false,
         activeBooks: active,
         archivedBooks: archived,
+        errorMessage: null,
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
@@ -97,6 +122,13 @@ class BooksNotifier extends Notifier<BooksState> {
   Future<void> _refreshActive() async {
     try {
       final active = await _repository.getActiveBooks();
+      final archived = state.archivedBooks;
+
+      await _repository.saveBooksToCache(
+        activeBooks: active,
+        archivedBooks: archived,
+      );
+
       state = state.copyWith(activeBooks: active, errorMessage: null);
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
@@ -106,6 +138,13 @@ class BooksNotifier extends Notifier<BooksState> {
   Future<void> _refreshArchived() async {
     try {
       final archived = await _repository.getArchivedBooks();
+      final active = state.activeBooks;
+
+      await _repository.saveBooksToCache(
+        activeBooks: active,
+        archivedBooks: archived,
+      );
+
       state = state.copyWith(archivedBooks: archived, errorMessage: null);
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
@@ -169,14 +208,33 @@ class BooksNotifier extends Notifier<BooksState> {
   }
 
   Future<Book> getUpdatedBook(int bookId) async {
-    await _repository.refreshBookStats(bookId);
-    final active = await _repository.getActiveBooks();
-    final archived = await _repository.getArchivedBooks();
-    final books = active + archived;
-    final updatedBook = books.firstWhere((b) => b.id == bookId);
+    final isArchived = state.archivedBooks.any((b) => b.id == bookId);
 
-    await updateBookInList(updatedBook);
-    return updatedBook;
+    if (isArchived) {
+      await _repository.refreshBookStats(bookId);
+      final archived = await _repository.getArchivedBooks();
+      final active = state.activeBooks;
+
+      await _repository.saveBooksToCache(
+        activeBooks: active,
+        archivedBooks: archived,
+      );
+
+      state = state.copyWith(activeBooks: active, archivedBooks: archived);
+      return archived.firstWhere((b) => b.id == bookId);
+    } else {
+      await _repository.refreshBookStats(bookId);
+      final active = await _repository.getActiveBooks();
+      final archived = state.archivedBooks;
+
+      await _repository.saveBooksToCache(
+        activeBooks: active,
+        archivedBooks: archived,
+      );
+
+      state = state.copyWith(activeBooks: active, archivedBooks: archived);
+      return active.firstWhere((b) => b.id == bookId);
+    }
   }
 
   Future<void> updateBookInList(Book updatedBook) async {
@@ -251,6 +309,12 @@ class BooksNotifier extends Notifier<BooksState> {
       final updatedArchivedBooks = state.archivedBooks
           .where((b) => b.id != bookId)
           .toList();
+
+      await _repository.saveBooksToCache(
+        activeBooks: updatedActiveBooks,
+        archivedBooks: updatedArchivedBooks,
+      );
+
       state = state.copyWith(
         activeBooks: updatedActiveBooks,
         archivedBooks: updatedArchivedBooks,
@@ -263,6 +327,18 @@ class BooksNotifier extends Notifier<BooksState> {
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }
+  }
+
+  Future<void> invalidateCacheForBookLanguage(int bookId) async {
+    final book = state.activeBooks.firstWhere(
+      (b) => b.id == bookId,
+      orElse: () => state.archivedBooks.firstWhere(
+        (b) => b.id == bookId,
+        orElse: () => throw Exception('Book not found'),
+      ),
+    );
+
+    await _repository.invalidateLanguageCache(book.language);
   }
 }
 
