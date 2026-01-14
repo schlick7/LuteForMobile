@@ -11,6 +11,7 @@ import '../../../features/stats/models/stats_data.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../models/page_data.dart';
+import '../models/term_tooltip.dart';
 import '../providers/reader_provider.dart';
 import '../providers/audio_player_provider.dart';
 import '../widgets/term_tooltip.dart';
@@ -1137,7 +1138,16 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                             .read(readerProvider.notifier)
                             .fetchTermFormById(parent.id!);
                         if (parentTermForm != null && mounted) {
-                          _showParentTermForm(parentTermForm);
+                          _showParentTermForm(
+                            parentTermForm,
+                            onParentUpdated: (updatedParents) {
+                              setState(() {
+                                _currentTermForm = _currentTermForm?.copyWith(
+                                  parents: updatedParents,
+                                );
+                              });
+                            },
+                          );
                         }
                       }
                     },
@@ -1158,7 +1168,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     });
   }
 
-  void _showParentTermForm(TermForm termForm) {
+  void _showParentTermForm(
+    TermForm termForm, {
+    void Function(List<TermParent>)? onParentUpdated,
+  }) {
     _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
@@ -1182,7 +1195,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             canPop: true,
             onPopInvoked: (didPop) async {
               if (didPop && settings.autoSave && _shouldAutoSaveOnClose) {
-                final updatedForm = _currentTermForm ?? termForm;
+                final updatedForm = termForm;
                 ref.read(readerProvider.notifier).saveTerm(updatedForm).then((
                   success,
                 ) {
@@ -1225,6 +1238,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                           .read(readerProvider.notifier)
                           .saveTerm(updatedForm);
                       if (success && mounted) {
+                        onParentUpdated?.call(updatedForm.parents);
                         Navigator.of(context).pop();
                       } else {
                         if (mounted) {
@@ -1238,6 +1252,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                     },
                     onCancel: () {
                       _shouldAutoSaveOnClose = false;
+                      onParentUpdated?.call(termForm.parents);
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
@@ -1252,7 +1267,16 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                             .read(readerProvider.notifier)
                             .fetchTermFormById(parent.id!);
                         if (parentTermForm != null && mounted) {
-                          _showParentTermForm(parentTermForm);
+                          _showParentTermForm(
+                            parentTermForm,
+                            onParentUpdated: (updatedParents) {
+                              setState(() {
+                                _currentTermForm = _currentTermForm?.copyWith(
+                                  parents: updatedParents,
+                                );
+                              });
+                            },
+                          );
                         }
                       }
                     },

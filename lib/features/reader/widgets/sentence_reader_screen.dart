@@ -1445,7 +1445,16 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                             .read(readerProvider.notifier)
                             .fetchTermFormById(parent.id!);
                         if (parentTermForm != null && mounted) {
-                          _showParentTermForm(parentTermForm);
+                          _showParentTermForm(
+                            parentTermForm,
+                            onParentUpdated: (updatedParents) {
+                              setState(() {
+                                _currentTermForm = _currentTermForm?.copyWith(
+                                  parents: updatedParents,
+                                );
+                              });
+                            },
+                          );
                         }
                       }
                     },
@@ -1462,7 +1471,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     );
   }
 
-  void _showParentTermForm(TermForm termForm) {
+  void _showParentTermForm(
+    TermForm termForm, {
+    void Function(List<TermParent>)? onParentUpdated,
+  }) {
     _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
@@ -1482,7 +1494,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             canPop: !_isDictionaryOpen,
             onPopInvoked: (didPop) async {
               if (didPop && settings.autoSave && _shouldAutoSaveOnClose) {
-                final updatedForm = _currentTermForm ?? termForm;
+                final updatedForm = termForm;
                 final success = await ref
                     .read(readerProvider.notifier)
                     .saveTerm(updatedForm);
@@ -1582,11 +1594,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                           } catch (e) {}
                         }
 
+                        onParentUpdated?.call(updatedForm.parents);
                         Navigator.of(context).pop();
                       }
                     },
                     onCancel: () {
                       _shouldAutoSaveOnClose = false;
+                      onParentUpdated?.call(termForm.parents);
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
