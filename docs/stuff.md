@@ -15,7 +15,7 @@
 -
 
 # Books Screen
-- When i load the bookscreen the books all have stats. But Every time i select a book from the bookscreen and then navigate back to the book the status are cleared, why? We aren't supposed to be ever clearing the cache until the new fetch is succesful.
+- 
 
 # Reader
 - 
