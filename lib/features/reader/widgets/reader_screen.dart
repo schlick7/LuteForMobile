@@ -833,7 +833,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       paragraphs: pageData!.paragraphs,
       scrollController: _scrollController,
       topPadding: textSettings.fullscreenMode && !_isUiVisible
-          ? MediaQuery.of(context).padding.top
+          ? MediaQuery.of(context).padding.top * 0.5
           : 0.0,
       bottomPadding: hasGestureNav ? 128 : 0,
       bottomControlWidget: _buildPageControls(context, pageData),
