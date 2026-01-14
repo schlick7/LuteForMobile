@@ -95,15 +95,60 @@ class BooksNotifier extends Notifier<BooksState> {
       final active = await _repository.getActiveBooks();
       final archived = await _repository.getArchivedBooks();
 
+      final existingActiveMap = {for (var b in state.activeBooks) b.id: b};
+      final existingArchivedMap = {for (var b in state.archivedBooks) b.id: b};
+
+      final mergedActive = active.map((networkBook) {
+        final existing = existingActiveMap[networkBook.id];
+        if (existing != null) {
+          return existing.copyWith(
+            title: networkBook.title,
+            language: networkBook.language,
+            totalPages: networkBook.totalPages,
+            currentPage: networkBook.currentPage,
+            percent: networkBook.percent,
+            wordCount: networkBook.wordCount,
+            distinctTerms: networkBook.distinctTerms,
+            unknownPct: networkBook.unknownPct,
+            statusDistribution: networkBook.statusDistribution,
+            tags: networkBook.tags,
+            lastRead: networkBook.lastRead,
+            isCompleted: networkBook.isCompleted,
+          );
+        }
+        return networkBook;
+      }).toList();
+
+      final mergedArchived = archived.map((networkBook) {
+        final existing = existingArchivedMap[networkBook.id];
+        if (existing != null) {
+          return existing.copyWith(
+            title: networkBook.title,
+            language: networkBook.language,
+            totalPages: networkBook.totalPages,
+            currentPage: networkBook.currentPage,
+            percent: networkBook.percent,
+            wordCount: networkBook.wordCount,
+            distinctTerms: networkBook.distinctTerms,
+            unknownPct: networkBook.unknownPct,
+            statusDistribution: networkBook.statusDistribution,
+            tags: networkBook.tags,
+            lastRead: networkBook.lastRead,
+            isCompleted: networkBook.isCompleted,
+          );
+        }
+        return networkBook;
+      }).toList();
+
       await _repository.saveBooksToCache(
-        activeBooks: active,
-        archivedBooks: archived,
+        activeBooks: mergedActive,
+        archivedBooks: mergedArchived,
       );
 
       state = state.copyWith(
         isLoading: false,
-        activeBooks: active,
-        archivedBooks: archived,
+        activeBooks: mergedActive,
+        archivedBooks: mergedArchived,
         errorMessage: null,
       );
     } catch (e) {
@@ -124,12 +169,35 @@ class BooksNotifier extends Notifier<BooksState> {
       final active = await _repository.getActiveBooks();
       final archived = state.archivedBooks;
 
+      final existingActiveMap = {for (var b in state.activeBooks) b.id: b};
+
+      final mergedActive = active.map((networkBook) {
+        final existing = existingActiveMap[networkBook.id];
+        if (existing != null) {
+          return existing.copyWith(
+            title: networkBook.title,
+            language: networkBook.language,
+            totalPages: networkBook.totalPages,
+            currentPage: networkBook.currentPage,
+            percent: networkBook.percent,
+            wordCount: networkBook.wordCount,
+            distinctTerms: networkBook.distinctTerms,
+            unknownPct: networkBook.unknownPct,
+            statusDistribution: networkBook.statusDistribution,
+            tags: networkBook.tags,
+            lastRead: networkBook.lastRead,
+            isCompleted: networkBook.isCompleted,
+          );
+        }
+        return networkBook;
+      }).toList();
+
       await _repository.saveBooksToCache(
-        activeBooks: active,
+        activeBooks: mergedActive,
         archivedBooks: archived,
       );
 
-      state = state.copyWith(activeBooks: active, errorMessage: null);
+      state = state.copyWith(activeBooks: mergedActive, errorMessage: null);
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }
@@ -140,12 +208,35 @@ class BooksNotifier extends Notifier<BooksState> {
       final archived = await _repository.getArchivedBooks();
       final active = state.activeBooks;
 
+      final existingArchivedMap = {for (var b in state.archivedBooks) b.id: b};
+
+      final mergedArchived = archived.map((networkBook) {
+        final existing = existingArchivedMap[networkBook.id];
+        if (existing != null) {
+          return existing.copyWith(
+            title: networkBook.title,
+            language: networkBook.language,
+            totalPages: networkBook.totalPages,
+            currentPage: networkBook.currentPage,
+            percent: networkBook.percent,
+            wordCount: networkBook.wordCount,
+            distinctTerms: networkBook.distinctTerms,
+            unknownPct: networkBook.unknownPct,
+            statusDistribution: networkBook.statusDistribution,
+            tags: networkBook.tags,
+            lastRead: networkBook.lastRead,
+            isCompleted: networkBook.isCompleted,
+          );
+        }
+        return networkBook;
+      }).toList();
+
       await _repository.saveBooksToCache(
         activeBooks: active,
-        archivedBooks: archived,
+        archivedBooks: mergedArchived,
       );
 
-      state = state.copyWith(archivedBooks: archived, errorMessage: null);
+      state = state.copyWith(archivedBooks: mergedArchived, errorMessage: null);
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }
@@ -215,25 +306,77 @@ class BooksNotifier extends Notifier<BooksState> {
       final archived = await _repository.getArchivedBooks();
       final active = state.activeBooks;
 
+      final existingArchivedMap = {for (var b in state.archivedBooks) b.id: b};
+
+      final mergedArchived = archived.map((networkBook) {
+        final existing = existingArchivedMap[networkBook.id];
+        if (existing != null) {
+          return existing.copyWith(
+            title: networkBook.title,
+            language: networkBook.language,
+            totalPages: networkBook.totalPages,
+            currentPage: networkBook.currentPage,
+            percent: networkBook.percent,
+            wordCount: networkBook.wordCount,
+            distinctTerms: networkBook.distinctTerms,
+            unknownPct: networkBook.unknownPct,
+            statusDistribution: networkBook.statusDistribution,
+            tags: networkBook.tags,
+            lastRead: networkBook.lastRead,
+            isCompleted: networkBook.isCompleted,
+          );
+        }
+        return networkBook;
+      }).toList();
+
       await _repository.saveBooksToCache(
         activeBooks: active,
-        archivedBooks: archived,
+        archivedBooks: mergedArchived,
       );
 
-      state = state.copyWith(activeBooks: active, archivedBooks: archived);
-      return archived.firstWhere((b) => b.id == bookId);
+      state = state.copyWith(
+        activeBooks: active,
+        archivedBooks: mergedArchived,
+      );
+      return mergedArchived.firstWhere((b) => b.id == bookId);
     } else {
       await _repository.refreshBookStats(bookId);
       final active = await _repository.getActiveBooks();
       final archived = state.archivedBooks;
 
+      final existingActiveMap = {for (var b in state.activeBooks) b.id: b};
+
+      final mergedActive = active.map((networkBook) {
+        final existing = existingActiveMap[networkBook.id];
+        if (existing != null) {
+          return existing.copyWith(
+            title: networkBook.title,
+            language: networkBook.language,
+            totalPages: networkBook.totalPages,
+            currentPage: networkBook.currentPage,
+            percent: networkBook.percent,
+            wordCount: networkBook.wordCount,
+            distinctTerms: networkBook.distinctTerms,
+            unknownPct: networkBook.unknownPct,
+            statusDistribution: networkBook.statusDistribution,
+            tags: networkBook.tags,
+            lastRead: networkBook.lastRead,
+            isCompleted: networkBook.isCompleted,
+          );
+        }
+        return networkBook;
+      }).toList();
+
       await _repository.saveBooksToCache(
-        activeBooks: active,
+        activeBooks: mergedActive,
         archivedBooks: archived,
       );
 
-      state = state.copyWith(activeBooks: active, archivedBooks: archived);
-      return active.firstWhere((b) => b.id == bookId);
+      state = state.copyWith(
+        activeBooks: mergedActive,
+        archivedBooks: archived,
+      );
+      return mergedActive.firstWhere((b) => b.id == bookId);
     }
   }
 
