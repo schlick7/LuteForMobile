@@ -13,6 +13,7 @@ class BooksState {
   final bool showArchived;
   final String? errorMessage;
   final String searchQuery;
+  final int? currentBookId;
 
   const BooksState({
     this.isLoading = false,
@@ -21,6 +22,7 @@ class BooksState {
     this.showArchived = false,
     this.errorMessage,
     this.searchQuery = '',
+    this.currentBookId,
   });
 
   List<Book> get filteredBooks {
@@ -41,6 +43,7 @@ class BooksState {
     bool? showArchived,
     String? errorMessage,
     String? searchQuery,
+    int? currentBookId,
   }) {
     return BooksState(
       isLoading: isLoading ?? this.isLoading,
@@ -49,6 +52,7 @@ class BooksState {
       showArchived: showArchived ?? this.showArchived,
       errorMessage: errorMessage,
       searchQuery: searchQuery ?? this.searchQuery,
+      currentBookId: currentBookId ?? this.currentBookId,
     );
   }
 }
@@ -92,15 +96,91 @@ class BooksNotifier extends Notifier<BooksState> {
     }
 
     _loadBooksFromNetwork();
+    _backgroundRefreshExpiredBooks();
   }
 
-  Future<void> _loadBooksFromNetwork() async {
+  void setCurrentBook(int? bookId) {
+    if (bookId != null && bookId != state.currentBookId) {
+      state = state.copyWith(currentBookId: bookId);
+      _refreshCurrentBook();
+    }
+  }
+
+  Future<void> _refreshCurrentBook() async {
+    final currentBookId = state.currentBookId;
+    if (currentBookId == null) return;
+
+    final book = state.activeBooks.firstWhere(
+      (b) => b.id == currentBookId,
+      orElse: () => state.archivedBooks.firstWhere(
+        (b) => b.id == currentBookId,
+        orElse: () => throw Exception('Book not found'),
+      ),
+    );
+
+    if (state.archivedBooks.any((b) => b.id == currentBookId)) {
+      return;
+    }
+
+    await _refreshBookWith500SampleSize(book.id);
+  }
+
+  Future<void> _backgroundRefreshExpiredBooks() async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final ttl = Duration(hours: 48);
+
+    final expiredBooks = state.activeBooks.where((book) {
+      if (book.lastStatsRefresh == null) return true;
+      final age = now - book.lastStatsRefresh!;
+      return age > ttl.inMilliseconds;
+    }).toList();
+
+    if (expiredBooks.isEmpty) return;
+
+    for (int i = 0; i < expiredBooks.length; i += 2) {
+      final batch = <Future<void>>[];
+      if (i < expiredBooks.length) {
+        batch.add(
+          _refreshBookWith500SampleSize(expiredBooks[i].id).catchError((e) {
+            print('Failed to refresh stats for book ${expiredBooks[i].id}: $e');
+          }),
+        );
+      }
+      if (i + 1 < expiredBooks.length) {
+        batch.add(
+          _refreshBookWith500SampleSize(expiredBooks[i + 1].id).catchError((e) {
+            print(
+              'Failed to refresh stats for book ${expiredBooks[i + 1].id}: $e',
+            );
+          }),
+        );
+      }
+      await Future.wait(batch);
+    }
+  }
+
+  Future<void> _refreshBookWith500SampleSize(int bookId) async {
     try {
+      final originalSampleSize = await _repository.contentService
+          .getStatsSampleSize();
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        '500',
+      );
+      await _repository.refreshBookStats(
+        bookId,
+        timeout: const Duration(seconds: 15),
+      );
+      await Future.delayed(const Duration(seconds: 2));
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        originalSampleSize.toString(),
+      );
+
       final active = await _repository.getActiveBooks();
-      final archived = await _repository.getArchivedBooks();
+      final archived = state.archivedBooks;
 
       final existingActiveMap = {for (var b in state.activeBooks) b.id: b};
-      final existingArchivedMap = {for (var b in state.archivedBooks) b.id: b};
 
       final mergedActive = active.map((networkBook) {
         final existing = existingActiveMap[networkBook.id];
@@ -118,6 +198,60 @@ class BooksNotifier extends Notifier<BooksState> {
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
+            lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
+          );
+        }
+        return networkBook.copyWith(
+          lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
+        );
+      }).toList();
+
+      await _repository.saveBooksToCache(
+        activeBooks: mergedActive,
+        archivedBooks: archived,
+      );
+
+      state = state.copyWith(
+        activeBooks: mergedActive,
+        archivedBooks: archived,
+      );
+    } catch (e) {
+      print('Error refreshing book with 500 sample size: $e');
+    }
+  }
+
+  Future<void> _loadBooksFromNetwork() async {
+    try {
+      final active = await _repository.getActiveBooks();
+      final archived = await _repository.getArchivedBooks();
+
+      final existingActiveMap = {for (var b in state.activeBooks) b.id: b};
+      final existingArchivedMap = {for (var b in state.archivedBooks) b.id: b};
+
+      final mergedActive = active.map((networkBook) {
+        final existing = existingActiveMap[networkBook.id];
+        if (existing != null) {
+          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
+          return existing.copyWith(
+            title: networkBook.title,
+            language: networkBook.language,
+            totalPages: networkBook.totalPages,
+            currentPage: networkBook.currentPage,
+            percent: networkBook.percent,
+            wordCount: networkBook.wordCount,
+            distinctTerms: shouldUpdateStats
+                ? networkBook.distinctTerms
+                : existing.distinctTerms,
+            unknownPct: shouldUpdateStats
+                ? networkBook.unknownPct
+                : existing.unknownPct,
+            statusDistribution: shouldUpdateStats
+                ? networkBook.statusDistribution
+                : existing.statusDistribution,
+            tags: networkBook.tags,
+            lastRead: networkBook.lastRead,
+            isCompleted: networkBook.isCompleted,
+            lastStatsRefresh: existing.lastStatsRefresh,
           );
         }
         return networkBook;
@@ -126,6 +260,7 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedArchived = archived.map((networkBook) {
         final existing = existingArchivedMap[networkBook.id];
         if (existing != null) {
+          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -133,12 +268,19 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: networkBook.distinctTerms,
-            unknownPct: networkBook.unknownPct,
-            statusDistribution: networkBook.statusDistribution,
+            distinctTerms: shouldUpdateStats
+                ? networkBook.distinctTerms
+                : existing.distinctTerms,
+            unknownPct: shouldUpdateStats
+                ? networkBook.unknownPct
+                : existing.unknownPct,
+            statusDistribution: shouldUpdateStats
+                ? networkBook.statusDistribution
+                : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
+            lastStatsRefresh: existing.lastStatsRefresh,
           );
         }
         return networkBook;
@@ -178,6 +320,7 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedActive = active.map((networkBook) {
         final existing = existingActiveMap[networkBook.id];
         if (existing != null) {
+          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -185,9 +328,15 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: networkBook.distinctTerms,
-            unknownPct: networkBook.unknownPct,
-            statusDistribution: networkBook.statusDistribution,
+            distinctTerms: shouldUpdateStats
+                ? networkBook.distinctTerms
+                : existing.distinctTerms,
+            unknownPct: shouldUpdateStats
+                ? networkBook.unknownPct
+                : existing.unknownPct,
+            statusDistribution: shouldUpdateStats
+                ? networkBook.statusDistribution
+                : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
@@ -217,6 +366,7 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedArchived = archived.map((networkBook) {
         final existing = existingArchivedMap[networkBook.id];
         if (existing != null) {
+          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -224,9 +374,15 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: networkBook.distinctTerms,
-            unknownPct: networkBook.unknownPct,
-            statusDistribution: networkBook.statusDistribution,
+            distinctTerms: shouldUpdateStats
+                ? networkBook.distinctTerms
+                : existing.distinctTerms,
+            unknownPct: shouldUpdateStats
+                ? networkBook.unknownPct
+                : existing.unknownPct,
+            statusDistribution: shouldUpdateStats
+                ? networkBook.statusDistribution
+                : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
@@ -315,6 +471,7 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedArchived = archived.map((networkBook) {
         final existing = existingArchivedMap[networkBook.id];
         if (existing != null) {
+          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -322,9 +479,15 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: networkBook.distinctTerms,
-            unknownPct: networkBook.unknownPct,
-            statusDistribution: networkBook.statusDistribution,
+            distinctTerms: shouldUpdateStats
+                ? networkBook.distinctTerms
+                : existing.distinctTerms,
+            unknownPct: shouldUpdateStats
+                ? networkBook.unknownPct
+                : existing.unknownPct,
+            statusDistribution: shouldUpdateStats
+                ? networkBook.statusDistribution
+                : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
@@ -353,6 +516,7 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedActive = active.map((networkBook) {
         final existing = existingActiveMap[networkBook.id];
         if (existing != null) {
+          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -360,9 +524,15 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: networkBook.distinctTerms,
-            unknownPct: networkBook.unknownPct,
-            statusDistribution: networkBook.statusDistribution,
+            distinctTerms: shouldUpdateStats
+                ? networkBook.distinctTerms
+                : existing.distinctTerms,
+            unknownPct: shouldUpdateStats
+                ? networkBook.unknownPct
+                : existing.unknownPct,
+            statusDistribution: shouldUpdateStats
+                ? networkBook.statusDistribution
+                : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,

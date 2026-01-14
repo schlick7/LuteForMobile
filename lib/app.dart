@@ -213,6 +213,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         distinctTerms: null,
         unknownPct: null,
         statusDistribution: null,
+        lastStatsRefresh: null,
       ),
     );
 
@@ -221,6 +222,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         .updateCurrentBook(bookId, pageNum, book.langId);
 
     ref.read(currentBookProvider.notifier).setBook(book);
+    ref.read(booksProvider.notifier).setCurrentBook(bookId);
 
     setState(() {
       _currentIndex = 0;
