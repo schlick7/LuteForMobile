@@ -8,6 +8,7 @@ Lets do a performance review of this app starting with the ReadScreen
 
 # Reader
 - Known words readstat is still not updating when i mark a term as known in the ReadScreen the statsscreen ALSO doesn't update this value! It seems that the value ONLY updates when i enter the TermsScreen. Does this update depend on something from the TermsScreen?
+- Add timeout overide to settings. its currently 5 seconds for 'all known' button
 
 # Sentence Reader
 -
