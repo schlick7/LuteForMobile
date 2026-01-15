@@ -568,8 +568,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Widget _buildStatsRow() {
-    final statsState = ref.watch(statsProvider);
-    final termsState = ref.watch(termsProvider);
     final pageData = ref.read(readerProvider).pageData;
 
     int? langId;
@@ -598,48 +596,58 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       });
     }
 
-    final languageFlag = getFlagForLanguage(languageName) ?? '';
+    return Consumer(
+      builder: (context, ref, _) {
+        final termsState = ref.watch(termsProvider);
+        final statsState = ref.watch(statsProvider);
 
-    int todayWordcount = 0;
-    int status99Count = termsState.stats.status99;
+        final languageFlag = getFlagForLanguage(languageName) ?? '';
 
-    if (statsState.value != null) {
-      final today = DateTime.now();
+        int todayWordcount = 0;
+        int status99Count = termsState.stats.status99;
 
-      for (final langStats in statsState.value!.languages) {
-        if (langStats.language == languageName) {
-          final todayStats = langStats.dailyStats.firstWhere(
-            (s) =>
-                s.date.year == today.year &&
-                s.date.month == today.month &&
-                s.date.day == today.day,
-            orElse: () =>
-                DailyReadingStats(date: today, wordcount: 0, runningTotal: 0),
-          );
-          todayWordcount = todayStats.wordcount;
-          break;
+        if (statsState.value != null) {
+          final today = DateTime.now();
+
+          for (final langStats in statsState.value!.languages) {
+            if (langStats.language == languageName) {
+              final todayStats = langStats.dailyStats.firstWhere(
+                (s) =>
+                    s.date.year == today.year &&
+                    s.date.month == today.month &&
+                    s.date.day == today.day,
+                orElse: () => DailyReadingStats(
+                  date: today,
+                  wordcount: 0,
+                  runningTotal: 0,
+                ),
+              );
+              todayWordcount = todayStats.wordcount;
+              break;
+            }
+          }
         }
-      }
-    }
 
-    final theme = Theme.of(context);
+        final theme = Theme.of(context);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          if (languageFlag.isNotEmpty) ...[
-            Text(languageFlag, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 8),
-          ],
-          Text(
-            "Today's Words: $todayWordcount",
-            style: theme.textTheme.bodySmall,
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              if (languageFlag.isNotEmpty) ...[
+                Text(languageFlag, style: const TextStyle(fontSize: 20)),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                "Today's Words: $todayWordcount",
+                style: theme.textTheme.bodySmall,
+              ),
+              const Spacer(),
+              Text("Known: $status99Count", style: theme.textTheme.bodySmall),
+            ],
           ),
-          const Spacer(),
-          Text("Known: $status99Count", style: theme.textTheme.bodySmall),
-        ],
-      ),
+        );
+      },
     );
   }
 
