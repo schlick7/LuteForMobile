@@ -447,6 +447,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     PageData? pageData,
     bool fullscreenMode,
   ) {
+    final settings = ref.read(settingsProvider);
+
     if (fullscreenMode) {
       final topPadding = MediaQuery.of(context).padding.top;
       return PreferredSize(
@@ -487,14 +489,17 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                             : null,
                         tooltip: 'Previous page',
                       ),
-                      GestureDetector(
-                        onDoubleTap: () => _showPageNavigationSlider(),
-                        onLongPress: () => _showPageNavigationSlider(),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(pageData!.pageIndicator),
+                      if (settings.showPageNumbers)
+                        GestureDetector(
+                          onDoubleTap: () => _showPageNavigationSlider(),
+                          onLongPress: () => _showPageNavigationSlider(),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                            ),
+                            child: Text(pageData!.pageIndicator),
+                          ),
                         ),
-                      ),
                       IconButton(
                         icon: const Icon(Icons.chevron_right),
                         onPressed: pageData!.currentPage < pageData!.pageCount
@@ -654,7 +659,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildPageControls(BuildContext context, PageData pageData) {
     final isLastPage = pageData.currentPage == pageData.pageCount;
     final theme = Theme.of(context);
-    final showStatsBar = ref.read(settingsProvider).showStatsBar;
+    final settings = ref.read(settingsProvider);
+    final showStatsBar = settings.showStatsBar;
 
     return Align(
       alignment: Alignment.centerRight,
@@ -689,13 +695,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         : null,
                     tooltip: 'Previous page',
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      pageData.pageIndicator,
-                      style: theme.textTheme.titleMedium,
+                  if (settings.showPageNumbers)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        pageData.pageIndicator,
+                        style: theme.textTheme.titleMedium,
+                      ),
                     ),
-                  ),
                   if (isLastPage)
                     IconButton(
                       icon: Icon(

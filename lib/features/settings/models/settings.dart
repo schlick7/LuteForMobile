@@ -24,6 +24,7 @@ class Settings {
   final bool pageTurnAnimations;
   final bool enableTooltipCaching;
   final bool showStatsBar;
+  final bool showPageNumbers;
   final TTSProvider? ttsProvider;
   final AIProvider? aiProvider;
 
@@ -47,6 +48,7 @@ class Settings {
     this.pageTurnAnimations = true,
     this.enableTooltipCaching = false,
     this.showStatsBar = true,
+    this.showPageNumbers = true,
     this.ttsProvider,
     this.aiProvider,
   });
@@ -73,6 +75,7 @@ class Settings {
     bool? pageTurnAnimations,
     bool? enableTooltipCaching,
     bool? showStatsBar,
+    bool? showPageNumbers,
     TTSProvider? ttsProvider,
     AIProvider? aiProvider,
   }) {
@@ -107,6 +110,7 @@ class Settings {
       pageTurnAnimations: pageTurnAnimations ?? this.pageTurnAnimations,
       enableTooltipCaching: enableTooltipCaching ?? this.enableTooltipCaching,
       showStatsBar: showStatsBar ?? this.showStatsBar,
+      showPageNumbers: showPageNumbers ?? this.showPageNumbers,
       ttsProvider: ttsProvider ?? this.ttsProvider,
       aiProvider: aiProvider ?? this.aiProvider,
     );
@@ -133,6 +137,7 @@ class Settings {
       pageTurnAnimations: true,
       enableTooltipCaching: false,
       showStatsBar: true,
+      showPageNumbers: true,
       ttsProvider: TTSProvider.onDevice,
       aiProvider: AIProvider.none,
     );
@@ -162,6 +167,7 @@ class Settings {
         other.pageTurnAnimations == pageTurnAnimations &&
         other.enableTooltipCaching == enableTooltipCaching &&
         other.showStatsBar == showStatsBar &&
+        other.showPageNumbers == showPageNumbers &&
         other.ttsProvider == ttsProvider &&
         other.aiProvider == aiProvider;
   }
@@ -187,6 +193,7 @@ class Settings {
     pageTurnAnimations,
     enableTooltipCaching,
     showStatsBar,
+    showPageNumbers,
     ttsProvider,
     aiProvider,
   ]);

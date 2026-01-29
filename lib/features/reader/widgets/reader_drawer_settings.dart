@@ -124,6 +124,8 @@ class ReaderDrawerSettings extends ConsumerWidget {
             _buildWordGlowToggle(context, ref),
           ],
           const SizedBox(height: 24),
+          _buildPageNumbersToggle(context, ref, settings),
+          const SizedBox(height: 24),
           Consumer(
             builder: (context, ref, _) {
               final reader = ref.watch(readerProvider);
@@ -629,6 +631,31 @@ class ReaderDrawerSettings extends ConsumerWidget {
               ref
                   .read(termFormSettingsProvider.notifier)
                   .updateWordGlowEnabled(value);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPageNumbersToggle(
+    BuildContext context,
+    WidgetRef ref,
+    dynamic settings,
+  ) {
+    return Row(
+      children: [
+        const Text(
+          'Show Page Numbers',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const Spacer(),
+        Transform.scale(
+          scale: 0.8,
+          child: Switch(
+            value: settings.showPageNumbers,
+            onChanged: (value) {
+              ref.read(settingsProvider.notifier).updateShowPageNumbers(value);
             },
           ),
         ),

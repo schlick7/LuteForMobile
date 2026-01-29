@@ -35,6 +35,7 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyPageTurnAnimations = 'page_turn_animations';
   static const String _keyEnableTooltipCaching = 'enable_tooltip_caching';
   static const String _keyShowStatsBar = 'show_stats_bar';
+  static const String _keyShowPageNumbers = 'show_page_numbers';
 
   @override
   Settings build() {
@@ -67,6 +68,7 @@ class SettingsNotifier extends Notifier<Settings> {
     final enableTooltipCaching =
         prefs.getBool(_keyEnableTooltipCaching) ?? false;
     final showStatsBar = prefs.getBool(_keyShowStatsBar) ?? true;
+    final showPageNumbers = prefs.getBool(_keyShowPageNumbers) ?? true;
 
     state = state.copyWith(
       translationProvider: translationProvider,
@@ -84,6 +86,7 @@ class SettingsNotifier extends Notifier<Settings> {
       pageTurnAnimations: pageTurnAnimations,
       enableTooltipCaching: enableTooltipCaching,
       showStatsBar: showStatsBar,
+      showPageNumbers: showPageNumbers,
     );
   }
 
@@ -240,6 +243,12 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyShowStatsBar, show);
   }
 
+  Future<void> updateShowPageNumbers(bool show) async {
+    state = state.copyWith(showPageNumbers: show);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowPageNumbers, show);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -267,6 +276,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyPageTurnAnimations);
     await prefs.remove(_keyEnableTooltipCaching);
     await prefs.remove(_keyShowStatsBar);
+    await prefs.remove(_keyShowPageNumbers);
 
     state = Settings.defaultSettings();
   }
