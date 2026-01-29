@@ -8,3 +8,4 @@
 - Fullscreen now also hides System Status Bar
 - Convert books cache to hive-ce
 - Convert Page and Sentence cache to hive-ce
+- Toggle to hide page numbers
