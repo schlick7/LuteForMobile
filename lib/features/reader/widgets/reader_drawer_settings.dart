@@ -124,7 +124,8 @@ class ReaderDrawerSettings extends ConsumerWidget {
             _buildWordGlowToggle(context, ref),
           ],
           const SizedBox(height: 24),
-          _buildPageNumbersToggle(context, ref, settings),
+          if (currentRoute != 'sentence-reader')
+            _buildPageNumbersToggle(context, ref, settings),
           const SizedBox(height: 24),
           Consumer(
             builder: (context, ref, _) {
