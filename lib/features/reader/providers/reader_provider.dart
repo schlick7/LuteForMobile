@@ -181,7 +181,12 @@ class ReaderNotifier extends Notifier<ReaderState> {
             useCache: false,
             forceRefresh: true,
           )
-          .then((freshPage) {
+          .then((freshPage) async {
+            await _repository.savePageToCache(
+              state.pageData!.bookId,
+              state.pageData!.currentPage,
+              freshPage,
+            );
             final mergedData = _mergePageStatuses(state.pageData!, freshPage);
             state = state.copyWith(
               isBackgroundRefreshing: false,
@@ -374,6 +379,12 @@ class ReaderNotifier extends Notifier<ReaderState> {
         forceRefresh: true,
       );
 
+      await _repository.savePageToCache(
+        currentPageData.bookId,
+        currentPageData.currentPage,
+        freshPage,
+      );
+
       final mergedData = _mergePageStatuses(currentPageData, freshPage);
       state = state.copyWith(
         isBackgroundRefreshing: false,
@@ -538,6 +549,15 @@ class ReaderNotifier extends Notifier<ReaderState> {
       if (termForm.termId != null) {
         await _repository.editTerm(termForm.termId!, termForm.toFormData());
         await updateTermStatus(termForm.termId!, termForm.status);
+
+        final currentPageData = state.pageData;
+        if (currentPageData != null) {
+          await _repository.savePageToCache(
+            currentPageData.bookId,
+            currentPageData.currentPage,
+            currentPageData,
+          );
+        }
 
         // Invalidate tooltip cache for this term if caching is enabled
         final settings = ref.read(settingsProvider);

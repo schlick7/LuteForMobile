@@ -604,4 +604,28 @@ class ContentService {
   Future<Map<String, dynamic>> getTermCacheStats() async {
     return await _termCacheService.getCacheStats();
   }
+
+  Future<void> savePageToCache(
+    int bookId,
+    int pageNum,
+    PageData pageData,
+  ) async {
+    try {
+      final metadataHtml = await _apiService.getBookPageStructure(bookId);
+      final pageTextHtml = await _apiService.loadBookPageForReading(
+        bookId,
+        pageNum,
+      );
+
+      await _pageCacheService.saveToCache(
+        _apiService.baseUrl,
+        bookId,
+        pageNum,
+        metadataHtml.data ?? '',
+        pageTextHtml.data ?? '',
+      );
+    } catch (e) {
+      print('Error saving page to cache: $e');
+    }
+  }
 }
