@@ -15,17 +15,23 @@ Based on Termux's RUN_COMMAND Intent API (available since v0.95), we can integra
 
 ## Implementation Phases
 
-### Phase 1: Prerequisites & Setup
+### Phase 1: Prerequisites & Setup - ✅ IMPLEMENTED
 
-**AndroidManifest.xml requirements:**
-```xml
-<uses-permission android:name="com.termux.permission.RUN_COMMAND" />
+**Status:** Complete
 
-<!-- For Android 11+ package visibility -->
-<queries>
-    <package android:name="com.termux" />
-</queries>
-```
+**Summary:**
+- Added `com.termux.permission.RUN_COMMAND` permission to AndroidManifest.xml
+- Added Termux package query for Android 11+ visibility
+- Created `TermuxConstants.kt` with all configuration constants:
+  - Termux paths, service info, and action strings
+  - Lute3 configuration (port 5001, data paths)
+  - Status tracking file paths (heartbeat, installation status, version files)
+  - Command completion tracking constants
+  - Timeout configurations (60-900 seconds for various operations)
+
+**Files modified:**
+- `android/app/src/main/AndroidManifest.xml`
+- `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxConstants.kt` (new)
 
 **User Setup Requirements (one-time):**
 1. Install Termux app from F-Droid
@@ -38,105 +44,31 @@ Based on Termux's RUN_COMMAND Intent API (available since v0.95), we can integra
 
 ---
 
-### Phase 2: Detect Installed Termux & Server Status
+### Phase 2: Detect Installed Termux & Server Status - ✅ IMPLEMENTED
 
-```kotlin
-fun isTermuxInstalled(context: Context): Boolean {
-    return try {
-        context.packageManager.getApplicationInfo("com.termux", 0)
-        true
-    } catch (e: PackageManager.NameNotFoundException) {
-        false
-    }
-}
+**Status:** Complete
 
-fun isTermuxPermissionGranted(context: Context): Boolean {
-    return ContextCompat.checkSelfPermission(
-        context, 
-        "com.termux.permission.RUN_COMMAND"
-    ) == PackageManager.PERMISSION_GRANTED
-}
+**Summary:**
+- Created `TermuxStatus.kt` with status detection functions:
+  - `CommandResult` sealed class (Success, Failed, Timeout)
+  - `InstallationStatus` enum (INSTALLED, NOT_INSTALLED, UNKNOWN, ERROR)
+  - `executeCommandWithCompletion()` - Execute commands with status file tracking and polling
+  - `isTermuxInstalled()` - Check if Termux app is installed via PackageManager
+  - `isTermuxPermissionGranted()` - Check RUN_COMMAND permission status
+  - `isLute3ServerRunning()` - Check via Android running processes
+  - `isLute3ServerRunningHttp()` - Check via HTTP request to localhost:5001
+  - `isLute3Installed()` - Check if Lute3 is installed via pip
 
-// Method 1: Check Termux process via Android (Preferred)
-fun isLute3ServerRunning(context: Context): Boolean {
-    return try {
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val runningProcesses = activityManager.runningAppProcesses
-        
-        runningProcesses?.any { process ->
-            process.processName.contains("com.termux") && 
-            process.processName.contains("python")  // lute3 is Python
-        } ?: false
-    } catch (e: Exception) {
-        false
-    }
-}
+**Key Implementation Details:**
+- Commands execute with status file tracking (writes SUCCESS/FAILED to status files)
+- App polls for completion every 2 seconds up to configured timeout
+- Uses OkHttp for HTTP requests to check server status
+- Uses ActivityManager for process detection
+- All blocking operations designed for IO dispatcher
 
-// Method 2: Fallback - HTTP request to localhost
-suspend fun isLute3ServerRunningHttp(port: Int = 5001): Boolean {
-    return try {
-        val client = OkHttpClient()
-        val request = Request.Builder()
-            .url("http://localhost:$port")
-            .head()
-            .build()
-        val response = client.newCall(request).execute()
-        response.isSuccessful
-    } catch (e: Exception) {
-        false
-    }
-}
-
-// Method 3: Check if Lute3 is installed (without starting server)
-suspend fun isLute3Installed(context: Context): InstallationStatus {
-    val checkFile = "/data/data/com.termux/files/home/.lute3/installation_status.txt"
-    
-    return try {
-        val script = """
-            if pip show lute3 > /dev/null 2>&1; then
-                echo "INSTALLED" > $checkFile
-                pip show lute3 >> $checkFile
-            else
-                echo "NOT_INSTALLED" > $checkFile
-            fi
-        """.trimIndent()
-        
-        val intent = Intent().apply {
-            setClassName("com.termux", "com.termux.app.RunCommandService")
-            action = "com.termux.RUN_COMMAND"
-            putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-        }
-        context.startService(intent)
-        
-        delay(3000)
-        
-        val file = File(checkFile)
-        if (!file.exists()) {
-            return InstallationStatus.UNKNOWN
-        }
-        
-        val content = file.readText()
-        when {
-            content.contains("INSTALLED") -> InstallationStatus.INSTALLED
-            content.contains("NOT_INSTALLED") -> InstallationStatus.NOT_INSTALLED
-            else -> InstallationStatus.UNKNOWN
-        }
-    } catch (e: Exception) {
-        InstallationStatus.ERROR
-    }
-}
-
-enum class InstallationStatus {
-    INSTALLED,
-    NOT_INSTALLED,
-    UNKNOWN,
-    ERROR
-}
-```
-
-**Note**: RUN_COMMAND intent does NOT provide output or return codes. The shared file approach is the most reliable way to get installation status.
+**Files modified:**
+- `android/app/build.gradle.kts` - Added OkHttp and coroutines dependencies
+- `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxStatus.kt` (new)
 
 ---
 

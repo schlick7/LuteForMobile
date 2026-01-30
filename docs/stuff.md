@@ -5,6 +5,8 @@
   
 Lets do a performance review of this app starting with the ReadScreen 
 
+inplement phase 3 in [@termux.md](file:///home/cody/LuteForMobile/docs/termux.md) . don't start on phase 4
+
 # Termux
 - We want the settings to check if termux is installed and if lute3 is installed when switching the connection to termux.
   - if termux is install but lute3 isn't we should show an install button
