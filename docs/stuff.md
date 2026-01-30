@@ -5,15 +5,16 @@
   
 Lets do a performance review of this app starting with the ReadScreen 
 
+preferably we want this to load from cache and not a fetch if possible. 
+
+
 - Some way to trigger backups. 
+- When the app is opened we should somehow make sure that the backup system is triggered. Not a manual backup. The way the current Lute Webpage works is that when you open it for the first time that day it somehow triggers a backup to run. Our app never triggers that. Look into the @lute-v3 code and find out what is triggering this. 
 
 # Requests 
  
 # Reader
 - Known words readstat is still not updating when i mark a term as known in the ReadScreen the statsscreen ALSO doesn't update this value! It seems that the value ONLY updates when i enter the TermsScreen. Does this update depend on something from the TermsScreen?
-- Add timeout overide to settings. its currently 5 seconds for 'all known' button
-
-- Why does the updated term status highlighting not get saved to the cache? When flipping pages back and forth it loads the cached and then loads the updated one every single time i repeatedly flip back and forth. Whenever we load in new data we need to save it to the cache so we aren't wasting fetches like that. 
 
 # Sentence Reader
 -
