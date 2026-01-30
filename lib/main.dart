@@ -7,6 +7,7 @@ import 'package:lute_for_mobile/core/cache/tooltip_cache_service.dart';
 import 'package:lute_for_mobile/core/cache/term_cache_service.dart';
 import 'package:lute_for_mobile/core/cache/books_cache_service.dart';
 import 'package:lute_for_mobile/features/stats/repositories/stats_repository.dart';
+import 'package:lute_for_mobile/core/network/api_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +19,11 @@ void main() async {
   await BooksCacheService.getInstance().initialize();
   await StatsRepository.initialize();
   await TermCacheService.getInstance().initialize();
+
+  if (serverUrl.isNotEmpty) {
+    final apiService = ApiService(baseUrl: serverUrl);
+    apiService.triggerAutoBackup();
+  }
 
   runApp(
     ProviderScope(
