@@ -9,8 +9,10 @@ Lets do a performance review of this app starting with the ReadScreen
 - We want the settings to check if termux is installed and if lute3 is installed when switching the connection to termux.
   - if termux is install but lute3 isn't we should show an install button
   - if termux and lute3 are both detected as installed we should show other settings like buttons for start, stop, update and data like lute3 version (if available), termux version (if available)
+
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
-  - We for sure need to be able to trigger db backups and then be able to download/save the db and to upload/restore/overwrite the db file
+  - We for sure need to be able to trigger db backups and then be able to download/save the db to a local folder (like downloads) and to upload/restore/overwrite the db file to the termux install location. We can possibly just use the lute3 backup/restore functionality for this. 
+  - Does the db file contain EVERYTHING that we need?
 
 
 - Some way to trigger backups. 
@@ -19,7 +21,7 @@ Lets do a performance review of this app starting with the ReadScreen
 # Requests 
  
 # Reader
-- Known words readstat is still not updating when i mark a term as known in the ReadScreen the statsscreen ALSO doesn't update this value! It seems that the value ONLY updates when i enter the TermsScreen. Does this update depend on something from the TermsScreen?
+-
 
 # Sentence Reader
 -
