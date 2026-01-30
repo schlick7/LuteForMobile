@@ -550,4 +550,16 @@ class ApiService {
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );
   }
+
+  Future<void> triggerAutoBackup() async {
+    try {
+      await _dio.post(
+        '/backup/do_backup',
+        data: {'type': 'automatic'},
+        options: Options(contentType: Headers.formUrlEncodedContentType),
+      );
+    } catch (e) {
+      // Silently fail on backup errors - don't block app launch
+    }
+  }
 }
