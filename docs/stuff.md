@@ -5,7 +5,9 @@
   
 Lets do a performance review of this app starting with the ReadScreen 
 
-inplement phase 5 in [@termux.md](file:///home/cody/LuteForMobile/docs/termux.md) . don't start on phase 6
+inplement phase 6 in [@termux.md](file:///home/cody/LuteForMobile/docs/termux.md) . don't start on phase 7
+
+Can we use the PWA that we have to handle back and restore on our local (not on device) server?
 
 # Termux
 - We want the settings to check if termux is installed and if lute3 is installed when switching the connection to termux.

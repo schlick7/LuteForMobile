@@ -161,41 +161,28 @@ Based on Termux's RUN_COMMAND Intent API (available since v0.95), we can integra
 
 ---
 
-### Phase 6: Close Server
+### Phase 6: Close Server - ✅ IMPLEMENTED
 
-**Immediate stop:**
-```kotlin
-fun stopLute3Server(context: Context) {
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/pkill")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-f", "python -m lute.main"))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-}
-```
+**Status:** Complete
 
-**Also clean up heartbeat file:**
-```kotlin
-fun cleanupHeartbeat(context: Context) {
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/rm")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf(
-            "-f", "/data/data/com.termux/files/home/.lute3/heartbeat"
-        ))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-}
-```
+**Summary:**
+- Created `stopLute3Server()` function in `TermuxServer.kt:185-203`
+- Uses `pkill -f "python -m lute.main"` to immediately stop the Lute3 server process
+- `|| true` handles case where process is already stopped
+- Cleans up heartbeat file via `rm -f ${HEARTBEAT_FILE}`
+- Both commands execute via Termux RUN_COMMAND service with background execution
+
+**How it works:**
+1. `pkill` sends SIGTERM to all processes matching "python -m lute.main"
+2. Heartbeat file removed to clean up monitoring state
+3. Both operations run asynchronously in background
+
+**Files modified:**
+- `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxServer.kt`
 
 ---
 
-## Error Handling Strategies
+### Phase 7: Database Backup, Restore & File Sync
 
 ### 1. Termux Not Installed
 **Detection:** `isTermuxInstalled()` returns `false`
@@ -435,62 +422,40 @@ The Lute3 server stopped responding.
 - **Auto-shutdown:** After 30 minutes of no API calls = user not using app
 
 ---
+---
+
+### Phase 7: Database Backup, Restore & File Sync - ✅ IMPLEMENTED
+
+**Status:** Complete
+
+**Summary:**
+- Added backup/restore data classes and sealed classes for result handling
+- Implemented `triggerLute3Backup()` - Creates backups via Lute3 HTTP API
+- Implemented `listBackups()` - Fetches and parses backup list from Lute3 server
+- Implemented `downloadBackup()` - Downloads backup files to Android Downloads folder
+- Implemented `selectBackupFile()` - Finds backup files in Downloads
+- Implemented `restoreDatabaseFromDownloads()` - Full restore with server stop, file copy, decompression, and restart
+- Implemented `syncWithRemoteServer()` - Creates backup, downloads, and uploads to remote server
+- Created `TermuxBackupSettingsScreen()` Composable with:
+  - Backup creation button with loading state
+  - List of available backups with download/restore actions
+  - Remote server sync with URL and API key fields
+  - Status messages for all operations
+- Created `BackupItem()` Composable for displaying backup information
+
+**Files modified:**
+- `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxServer.kt`
+- `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxSettings.kt`
+
+**Key Implementation Details:**
+- Backup parsing uses regex to extract filename, timestamp, and size from HTML response
+- Restore process stops server, copies backup, handles gzip decompression, and restarts server
+- All network operations use OkHttp and run on IO dispatcher
+- UI provides feedback for all operations with error/success messages
 
 ---
 
-## Phase 7: Database Backup, Restore & File Sync
-
-### Lute3 Backup API Overview
-
-Lute3 provides a built-in backup system accessible via HTTP API:
-- **Backup endpoint:** `POST /backup/do_backup`
-- **Backup list:** `GET /backup/index`
-- **Download backup:** `GET /backup/download/<filename>`
-- **Backup format:** Gzipped SQLite database (`lute_backup_YYYY-MM-DD_HHMMSS.db.gz`) + image folder (`userimages_backup/`)
-
----
-
-### Backup Database to Termux
-
-**Trigger Lute3 backup via HTTP API:**
-```kotlin
-suspend fun triggerLute3Backup(
-    context: Context,
-    port: Int = 5001,
-    backupType: BackupType = BackupType.MANUAL
-): BackupResult {
-    return try {
-        val client = OkHttpClient()
-        val formBody = FormBody.Builder()
-            .add("type", backupType.value)
-            .build()
-        
-        val request = Request.Builder()
-            .url("http://localhost:$port/backup/do_backup")
-            .post(formBody)
-            .build()
-        
-        val response = client.newCall(request).execute()
-        
-        if (response.isSuccessful) {
-            val responseBody = response.body?.string()
-            BackupResult.Success(responseBody ?: "Backup created successfully")
-        } else {
-            BackupResult.Error("Backup failed: ${response.code}")
-        }
-    } catch (e: Exception) {
-        BackupResult.Error(e.message ?: "Unknown backup error")
-    }
-}
-
-enum class BackupType(val value: String) {
-    MANUAL("manual"),
-    AUTOMATIC("automatic")
-}
-
-sealed class BackupResult {
-    data class Success(val message: String) : BackupResult()
-    data class Error(val message: String) : BackupResult()
+## References
 }
 ```
 

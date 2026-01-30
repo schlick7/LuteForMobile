@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -12,9 +14,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class TermuxConnectionStatus(
     val termuxInstalled: Boolean,
@@ -384,71 +390,6 @@ fun Lute3NotInstalledContent(
         }
     }
 }
-    } else {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            if (installResult == InstallationStep.FAILED) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
-                    ) {
-                        Text(
-                            text = "Installation Failed",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "The Lute3 server could not be installed. Please try again or install manually in Termux.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            Text(
-                text = "Lute3 is not installed",
-                style = MaterialTheme.typography.headlineSmall
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Install Lute3 server to use local database connections.",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Spacer(modifier = Modifier.height(24.dp))
-            Button(
-                onClick = { isInstalling = true },
-                enabled = !isInstalling
-            ) {
-                if (isInstalling) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
-                Text("Install Lute3")
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Installation may take 1-3 minutes",
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -718,5 +659,233 @@ fun InstallationProgressScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TermuxBackupSettingsScreen() {
+    var backups by remember { mutableStateOf<List<LuteBackup>?>(null) }
+    var isBackingUp by remember { mutableStateOf(false) }
+    var backupMessage by remember { mutableStateOf<String?>(null) }
+    var remoteUrl by remember { mutableStateOf("") }
+    var apiKey by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        backups = listBackups(context)
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Database Backup & Sync") }
+            )
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Create Backup",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    isBackingUp = true
+                    coroutineScope.launch {
+                        val result = triggerLute3Backup(context, BackupType.MANUAL)
+                        isBackingUp = false
+                        backupMessage = when (result) {
+                            is BackupResult.Success -> result.message
+                            is BackupResult.Error -> "Error: ${result.message}"
+                        }
+                        backups = listBackups(context)
+                    }
+                },
+                enabled = !isBackingUp,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isBackingUp) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text("Create Backup")
+            }
+
+            if (backupMessage != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = backupMessage!!,
+                    color = if (backupMessage!!.contains("Error")) Color.Red else Color.Green,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            if (backups != null) {
+                Text(
+                    text = "Available Backups",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                backups?.forEach { backup ->
+                    BackupItem(
+                        backup = backup,
+                        onDownload = {
+                            coroutineScope.launch {
+                                val result = downloadBackup(context, backup.filename)
+                                backupMessage = when (result) {
+                                    is DownloadResult.Success -> "Downloaded: ${result.filePath}"
+                                    is DownloadResult.Error -> "Error: ${result.message}"
+                                }
+                            }
+                        },
+                        onRestore = {
+                            coroutineScope.launch {
+                                val file = selectBackupFile(context)
+                                if (file != null) {
+                                    val result = restoreDatabaseFromDownloads(context, file)
+                                    backupMessage = when (result) {
+                                        is RestoreResult.Success -> result.message
+                                        is RestoreResult.Error -> "Error: ${result.message}"
+                                    }
+                                } else {
+                                    backupMessage = "No backup file found in Downloads"
+                                }
+                            }
+                        }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Sync with Remote Server",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = remoteUrl,
+                onValueChange = { remoteUrl = it },
+                label = { Text("Remote Server URL") },
+                placeholder = { Text("https://your-lute-server.com") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = apiKey,
+                onValueChange = { apiKey = it },
+                label = { Text("API Key (optional)") },
+                placeholder = { Text("Your API key") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        val result = syncWithRemoteServer(context, remoteUrl, apiKey.takeIf { it.isNotBlank() })
+                        backupMessage = when (result) {
+                            is SyncResult.Success -> result.message
+                            is SyncResult.Error -> "Error: ${result.message}"
+                        }
+                    }
+                },
+                enabled = remoteUrl.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Upload Backup to Remote")
+            }
+        }
+    }
+}
+
+@Composable
+fun BackupItem(
+    backup: LuteBackup,
+    onDownload: () -> Unit,
+    onRestore: () -> Unit
+) {
+    val dateFormat = java.text.SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault())
+
+    Card(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = backup.filename,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = dateFormat.format(Date(backup.lastModified)),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Text(
+                    text = backup.size,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+
+            if (backup.isManual) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                    shape = MaterialTheme.shapes.small
+                ) {
+                    Text(
+                        text = " Manual ",
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = onDownload,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Download")
+                }
+                Button(
+                    onClick = onRestore,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("Restore")
+                }
+            }
+        }
     }
 }
