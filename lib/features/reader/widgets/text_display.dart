@@ -10,6 +10,7 @@ class TextDisplay extends StatefulWidget {
   final void Function(TextItem, Offset)? onTap;
   final void Function(TextItem)? onDoubleTap;
   final void Function(TextItem)? onLongPress;
+  final void Function(TextItem)? onTripleTap;
   final double textSize;
   final double lineSpacing;
   final String fontFamily;
@@ -29,6 +30,7 @@ class TextDisplay extends StatefulWidget {
     this.onTap,
     this.onDoubleTap,
     this.onLongPress,
+    this.onTripleTap,
     this.textSize = 18.0,
     this.lineSpacing = 1.5,
     this.fontFamily = 'Roboto',
@@ -54,6 +56,7 @@ class TextDisplay extends StatefulWidget {
     void Function(TextItem, Offset)? onTap,
     void Function(TextItem)? onDoubleTap,
     void Function(TextItem)? onLongPress,
+    void Function(TextItem)? onTripleTap,
     int? highlightedWordId,
     int? highlightedParagraphId,
     int? highlightedOrder,
@@ -142,24 +145,38 @@ class TextDisplay extends StatefulWidget {
 
 class _TextDisplayState extends State<TextDisplay> {
   Timer? _doubleTapTimer;
+  Timer? _tripleTapTimer;
   TextItem? _lastTappedItem;
   int _buildCount = 0;
 
   @override
   void initState() {
     super.initState();
-    print('DEBUG: TextDisplay initialized');
   }
 
   void _handleTap(TextItem item, Offset tapPosition) {
     if (_lastTappedItem == item &&
         _doubleTapTimer != null &&
         _doubleTapTimer!.isActive) {
+      // Second tap detected
       _doubleTapTimer?.cancel();
-      widget.onDoubleTap?.call(item);
-      _doubleTapTimer = null;
-      _lastTappedItem = null;
-      TermTooltipClass.close();
+
+      // Check if this is actually a third tap (triple tap)
+      if (_tripleTapTimer != null && _tripleTapTimer!.isActive) {
+        _tripleTapTimer?.cancel();
+        widget.onTripleTap?.call(item);
+        _tripleTapTimer = null;
+        _lastTappedItem = null;
+        TermTooltipClass.close();
+      } else {
+        // Wait to see if third tap comes
+        _tripleTapTimer = Timer(const Duration(milliseconds: 300), () {
+          // No third tap - this is a double tap
+          _tripleTapTimer = null;
+          widget.onDoubleTap?.call(item);
+          _lastTappedItem = null;
+        });
+      }
     } else {
       _lastTappedItem = item;
       _doubleTapTimer?.cancel();
@@ -177,6 +194,7 @@ class _TextDisplayState extends State<TextDisplay> {
   @override
   void dispose() {
     _doubleTapTimer?.cancel();
+    _tripleTapTimer?.cancel();
     super.dispose();
   }
 
@@ -237,6 +255,7 @@ class _TextDisplayState extends State<TextDisplay> {
       onTap: (item, position) => _handleTap(item, position),
       onDoubleTap: (item) => widget.onDoubleTap?.call(item),
       onLongPress: (item) => widget.onLongPress?.call(item),
+      onTripleTap: (item) => widget.onTripleTap?.call(item),
       highlightedWordId: widget.highlightedWordId,
       highlightedParagraphId: widget.highlightedParagraphId,
       highlightedOrder: widget.highlightedOrder,

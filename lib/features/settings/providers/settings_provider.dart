@@ -36,6 +36,8 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyEnableTooltipCaching = 'enable_tooltip_caching';
   static const String _keyShowStatsBar = 'show_stats_bar';
   static const String _keyShowPageNumbers = 'show_page_numbers';
+  static const String _keyEnableTripleTapToMarkKnown =
+      'enable_triple_tap_to_mark_known';
 
   @override
   Settings build() {
@@ -69,6 +71,8 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getBool(_keyEnableTooltipCaching) ?? false;
     final showStatsBar = prefs.getBool(_keyShowStatsBar) ?? true;
     final showPageNumbers = prefs.getBool(_keyShowPageNumbers) ?? true;
+    final enableTripleTapToMarkKnown =
+        prefs.getBool(_keyEnableTripleTapToMarkKnown) ?? false;
 
     state = state.copyWith(
       translationProvider: translationProvider,
@@ -87,6 +91,7 @@ class SettingsNotifier extends Notifier<Settings> {
       enableTooltipCaching: enableTooltipCaching,
       showStatsBar: showStatsBar,
       showPageNumbers: showPageNumbers,
+      enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
     );
   }
 
@@ -249,6 +254,12 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyShowPageNumbers, show);
   }
 
+  Future<void> updateEnableTripleTapToMarkKnown(bool enabled) async {
+    state = state.copyWith(enableTripleTapToMarkKnown: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyEnableTripleTapToMarkKnown, enabled);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -277,6 +288,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyEnableTooltipCaching);
     await prefs.remove(_keyShowStatsBar);
     await prefs.remove(_keyShowPageNumbers);
+    await prefs.remove(_keyEnableTripleTapToMarkKnown);
 
     state = Settings.defaultSettings();
   }

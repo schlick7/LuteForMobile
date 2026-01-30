@@ -548,14 +548,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       : null,
                   tooltip: 'Previous page',
                 ),
-                GestureDetector(
-                  onDoubleTap: () => _showPageNavigationSlider(),
-                  onLongPress: () => _showPageNavigationSlider(),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(pageData!.pageIndicator),
+                if (settings.showPageNumbers)
+                  GestureDetector(
+                    onDoubleTap: () => _showPageNavigationSlider(),
+                    onLongPress: () => _showPageNavigationSlider(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text(pageData!.pageIndicator),
+                    ),
                   ),
-                ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
                   onPressed: pageData!.currentPage < pageData!.pageCount
@@ -852,6 +853,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       onLongPress: (item) {
         _handleLongPress(item);
       },
+      onTripleTap: (item) {
+        _handleTripleTap(item);
+      },
       textSize: textSettings.textSize,
       lineSpacing: textSettings.lineSpacing,
       fontFamily: textSettings.fontFamily,
@@ -1026,6 +1030,66 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final sentence = _extractSentence(item);
     if (sentence.isNotEmpty) {
       _showSentenceTranslation(sentence, item.langId!);
+    }
+  }
+
+  void _handleTripleTap(TextItem item) async {
+    // Only handle triple tap for terms from the server (items with wordId)
+    if (item.wordId == null) return;
+    if (item.langId == null) return;
+
+    // Check if triple-tap to mark as known is enabled in settings
+    final settings = ref.read(settingsProvider);
+    if (!settings.enableTripleTapToMarkKnown) return;
+
+    try {
+      // Fetch the current term form to update its status
+      final termForm = await ref
+          .read(readerProvider.notifier)
+          .fetchTermFormById(item.wordId!);
+
+      if (termForm != null) {
+        // Update the term status to '99' (known) and save
+        final updatedForm = termForm.copyWith(status: '99');
+        final success = await ref
+            .read(readerProvider.notifier)
+            .saveTerm(updatedForm);
+
+        if (success) {
+          // Update the local status display
+          await ref
+              .read(readerProvider.notifier)
+              .updateTermStatus(item.wordId!, '99');
+
+          // Trigger the glow effect to provide visual feedback
+          _originalTextItem = item;
+          _triggerWordGlow();
+
+          // Show a snackbar to confirm the action
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('"${item.text}" marked as known'),
+                duration: const Duration(milliseconds: 1000),
+              ),
+            );
+          }
+        } else {
+          throw Exception('Failed to save term status');
+        }
+      } else {
+        throw Exception('Could not fetch term form');
+      }
+    } catch (e) {
+      print('Error marking term as known: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to mark "${item.text}" as known'),
+            duration: const Duration(milliseconds: 1500),
+          ),
+        );
+      }
     }
   }
 
