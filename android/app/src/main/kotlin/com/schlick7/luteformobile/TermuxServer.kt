@@ -171,6 +171,17 @@ fun launchLute3ServerWithAutoShutdown(
     context.startService(intent)
 }
 
+fun touchHeartbeat(context: Context) {
+    val intent = Intent().apply {
+        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+        action = TermuxConstants.TERMUX_ACTION
+        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "touch ${TermuxConstants.HEARTBEAT_FILE}"))
+        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+    }
+    context.startService(intent)
+}
+
 fun stopLute3Server(context: Context) {
     val intent = Intent().apply {
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)

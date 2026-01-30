@@ -129,146 +129,6 @@ Based on Termux's RUN_COMMAND Intent API (available since v0.95), we can integra
 - `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxServer.kt`
 - `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxSettings.kt`
 
-**Installation Script:**
-```kotlin
-// Step 1: Setup storage permissions
-fun termuxSetupStorage(context: Context) {
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "termux-setup-storage"))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-}
-
-// Step 2: Update packages
-fun termuxUpdatePackages(context: Context) {
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "pkg update -y"))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-}
-
-// Step 3: Upgrade packages
-fun termuxUpgradePackages(context: Context) {
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "pkg upgrade -y"))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-}
-
-// Step 4: Install Python3
-fun termuxInstallPython3(context: Context) {
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "pkg install python3 -y"))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-}
-
-// Step 5: Install Lute3
-fun termuxInstallLute3(context: Context) {
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "pip install --upgrade lute3"))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-}
-```
-
-**Installation Flow with Status Updates:**
-```kotlin
-enum class InstallationStep(val status: String, val estimatedTimeSeconds: Int) {
-    SETUP_STORAGE("Setting up storage permissions...", 3),
-    UPDATING_PACKAGES("Updating package lists...", 15),
-    UPGRADING_PACKAGES("Upgrading packages...", 30),
-    INSTALLING_PYTHON("Installing Python3...", 45),
-    INSTALLING_LUTE3("Installing Lute3...", 60),
-    VERIFYING("Verifying installation...", 5),
-    COMPLETE("Installation complete!", 0),
-    FAILED("Installation failed", 0)
-}
-
-suspend fun installLute3ServerWithProgress(
-    context: Context,
-    onStepChange: (InstallationStep) -> Unit
-): InstallationStep {
-    try {
-        onStepChange(InstallationStep.SETUP_STORAGE)
-        termuxSetupStorage(context)
-        delay(3000)
-        
-        onStepChange(InstallationStep.UPDATING_PACKAGES)
-        termuxUpdatePackages(context)
-        delay(15000)
-        
-        onStepChange(InstallationStep.UPGRADING_PACKAGES)
-        termuxUpgradePackages(context)
-        delay(30000)
-        
-        onStepChange(InstallationStep.INSTALLING_PYTHON)
-        termuxInstallPython3(context)
-        delay(45000)
-        
-        onStepChange(InstallationStep.INSTALLING_LUTE3)
-        termuxInstallLute3(context)
-        delay(60000)
-        
-        onStepChange(InstallationStep.VERIFYING)
-        delay(5000)
-        
-        if (isLute3ServerRunningHttp(5001)) {
-            return InstallationStep.COMPLETE
-        } else {
-            return InstallationStep.FAILED
-        }
-    } catch (e: Exception) {
-        return InstallationStep.FAILED
-    }
-}
-```
-
-**UI Integration Example:**
-```kotlin
-@Composable
-fun InstallationProgressScreen() {
-    var currentStep by remember { mutableStateOf(InstallationStep.SETUP_STORAGE) }
-    var progress by remember { mutableFloatStateOf(0f) }
-    
-    val totalEstimatedTime = 158f // seconds (sum of all steps)
-    var elapsedTime by remember { mutableFloatStateOf(0f) }
-    
-    LaunchedEffect(Unit) {
-        currentStep = installLute3ServerWithProgress(context) { step ->
-            currentStep = step
-            progress = elapsedTime / totalEstimatedTime
-        }
-    }
-    
-    Column {
-        Text("Installing Lute3 Server")
-        LinearProgressIndicator(progress = progress)
-        Text(currentStep.status)
-        Text("Estimated time: ${currentStep.estimatedTimeSeconds}s")
-    }
-}
-```
 
 **Note on Installation Progress:**
 - RUN_COMMAND intent does NOT provide real-time progress feedback
@@ -278,111 +138,26 @@ fun InstallationProgressScreen() {
 
 ---
 
-### Phase 5: Launch Server with Auto-Shutdown (Heartbeat Method)
+### Phase 5: Launch Server with Auto-Shutdown (Heartbeat Method) - ✅ IMPLEMENTED
+
+**Status:** Complete
+
+**Summary:**
+- Added `touchHeartbeat()` function to update heartbeat file on each API call
+- `launchLute3ServerWithAutoShutdown()` starts Lute3 server with monitoring script
+- Monitoring script checks heartbeat file every 2 minutes
+- Server auto-shuts down after 30 minutes of inactivity
+- `stopLute3Server()` stops server and cleans up heartbeat file
+
+**Files modified:**
+- `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxServer.kt`
 
 **How it works:**
 1. Bash script starts Lute3 server in background
 2. Script monitors a "heartbeat" file every 2 minutes
-3. Your Flutter app touches heartbeat file on each API call
+3. Flutter app calls `touchHeartbeat()` on each API call
 4. If no heartbeat for 30 minutes, script kills the server
 
-**Flutter side - Touch heartbeat on API calls:**
-```kotlin
-fun touchHeartbeat(context: Context) {
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/touch")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf(
-            "/data/data/com.termux/files/home/.lute3/heartbeat"
-        ))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-}
-```
-
-**Launch server with monitoring script:**
-```kotlin
-fun launchLute3ServerWithAutoShutdown(
-    context: Context, 
-    port: Int = 5001,
-    idleTimeoutMinutes: Int = 30
-) {
-    val script = """
-        #!/data/data/com.termux/files/usr/bin/bash
-        
-        # Setup
-        HEARTBEAT_FILE="/data/data/com.termux/files/home/.lute3/heartbeat"
-        mkdir -p "$(dirname "$HEARTBEAT_FILE")"
-        touch "$HEARTBEAT_FILE"  # Initial heartbeat
-        
-        # Start Lute3 server in background
-        python -m lute.main --port $port &
-        SERVER_PID=$!
-        
-        echo "Lute3 server started with PID $SERVER_PID on port $port"
-        
-        # Monitor loop - check every 2 minutes
-        MAX_IDLE_MINUTES=$idleTimeoutMinutes
-        CHECK_INTERVAL_SECONDS=120
-        MAX_CHECKS=$((MAX_IDLE_MINUTES * 60 / CHECK_INTERVAL_SECONDS))
-        IDLE_CHECKS=0
-        
-        while true; do
-            sleep $CHECK_INTERVAL_SECONDS
-            
-            # Check if server is still running
-            if ! ps -p $SERVER_PID > /dev/null 2>&1; then
-                echo "Server stopped, exiting monitor"
-                exit 0
-            fi
-            
-            # Check heartbeat
-            CURRENT_TIME=$(date +%s)
-            HEARTBEAT_TIME=$(stat -c %Y "$HEARTBEAT_FILE" 2>/dev/null || echo "0")
-            TIME_DIFF=$(( (CURRENT_TIME - HEARTBEAT_TIME) / 60 ))
-            
-            if [ $TIME_DIFF -lt 2 ]; then
-                IDLE_CHECKS=0
-                echo "Heartbeat detected (${TIME_DIFF}m ago), idle counter reset"
-            else
-                IDLE_CHECKS=$((IDLE_CHECKS + 1))
-                IDLE_MINUTES=$((IDLE_CHECKS * 2))
-                echo "No heartbeat for ${IDLE_MINUTES} minutes (check $IDLE_CHECKS/$MAX_CHECKS)"
-                
-                if [ $IDLE_CHECKS -ge $MAX_CHECKS ]; then
-                    echo "Idle timeout reached (${MAX_IDLE_MINUTES} min), stopping server..."
-                    kill $SERVER_PID 2>/dev/null
-                    rm -f "$HEARTBEAT_FILE"
-                    exit 0
-                fi
-            fi
-        done
-    """.trimIndent()
-    
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-        putExtra("com.termux.RUN_COMMAND_WORKDIR", "/data/data/com.termux/files/home")
-    }
-    context.startService(intent)
-}
-```
-
-**Alternative: Check active network connections instead of heartbeat:**
-```bash
-# Instead of heartbeat file, check for active connections:
-ACTIVE_CONNECTIONS=$(netstat -an 2>/dev/null | grep ':5001' | grep 'ESTABLISHED' | wc -l)
-if [ "$ACTIVE_CONNECTIONS" -gt 0 ]; then
-    IDLE_CHECKS=0
-else
-    IDLE_CHECKS=$((IDLE_CHECKS + 1))
-fi
-```
 
 ---
 
