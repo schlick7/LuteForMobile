@@ -5,17 +5,15 @@
   
 Lets do a performance review of this app starting with the ReadScreen 
 
-Requests 
-1)make it an option to hide the page number. I do this on my Kindle so I can focus on reading and not progress. Leave the arrows top and bottom, just remove the page count
-2) can we add a triple click or something? Mark as known(my preference) orMark as unknown 
- - would hold and then swipe up be possible?
- - not sure how to make this work smoothly
-
 - Some way to trigger backups. 
+
+# Requests 
  
 # Reader
 - Known words readstat is still not updating when i mark a term as known in the ReadScreen the statsscreen ALSO doesn't update this value! It seems that the value ONLY updates when i enter the TermsScreen. Does this update depend on something from the TermsScreen?
 - Add timeout overide to settings. its currently 5 seconds for 'all known' button
+
+- Why does the updated term status highlighting not get saved to the cache? When flipping pages back and forth it loads the cached and then loads the updated one every single time i repeatedly flip back and forth. Whenever we load in new data we need to save it to the cache so we aren't wasting fetches like that. 
 
 # Sentence Reader
 -
