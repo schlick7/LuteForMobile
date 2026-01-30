@@ -24,8 +24,10 @@ class Settings {
   final bool pageTurnAnimations;
   final bool enableTooltipCaching;
   final bool showStatsBar;
+  final bool showPageNumbers;
   final TTSProvider? ttsProvider;
   final AIProvider? aiProvider;
+  final bool enableTripleTapToMarkKnown;
 
   const Settings({
     required this.serverUrl,
@@ -47,8 +49,10 @@ class Settings {
     this.pageTurnAnimations = true,
     this.enableTooltipCaching = false,
     this.showStatsBar = true,
+    this.showPageNumbers = true,
     this.ttsProvider,
     this.aiProvider,
+    this.enableTripleTapToMarkKnown = false,
   });
 
   Settings copyWith({
@@ -73,8 +77,10 @@ class Settings {
     bool? pageTurnAnimations,
     bool? enableTooltipCaching,
     bool? showStatsBar,
+    bool? showPageNumbers,
     TTSProvider? ttsProvider,
     AIProvider? aiProvider,
+    bool? enableTripleTapToMarkKnown,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -107,8 +113,11 @@ class Settings {
       pageTurnAnimations: pageTurnAnimations ?? this.pageTurnAnimations,
       enableTooltipCaching: enableTooltipCaching ?? this.enableTooltipCaching,
       showStatsBar: showStatsBar ?? this.showStatsBar,
+      showPageNumbers: showPageNumbers ?? this.showPageNumbers,
       ttsProvider: ttsProvider ?? this.ttsProvider,
       aiProvider: aiProvider ?? this.aiProvider,
+      enableTripleTapToMarkKnown:
+          enableTripleTapToMarkKnown ?? this.enableTripleTapToMarkKnown,
     );
   }
 
@@ -133,8 +142,10 @@ class Settings {
       pageTurnAnimations: true,
       enableTooltipCaching: false,
       showStatsBar: true,
+      showPageNumbers: true,
       ttsProvider: TTSProvider.onDevice,
       aiProvider: AIProvider.none,
+      enableTripleTapToMarkKnown: false,
     );
   }
 
@@ -162,8 +173,10 @@ class Settings {
         other.pageTurnAnimations == pageTurnAnimations &&
         other.enableTooltipCaching == enableTooltipCaching &&
         other.showStatsBar == showStatsBar &&
+        other.showPageNumbers == showPageNumbers &&
         other.ttsProvider == ttsProvider &&
-        other.aiProvider == aiProvider;
+        other.aiProvider == aiProvider &&
+        other.enableTripleTapToMarkKnown == enableTripleTapToMarkKnown;
   }
 
   @override
@@ -187,8 +200,10 @@ class Settings {
     pageTurnAnimations,
     enableTooltipCaching,
     showStatsBar,
+    showPageNumbers,
     ttsProvider,
     aiProvider,
+    enableTripleTapToMarkKnown,
   ]);
 
   bool isValidServerUrl(String url) {

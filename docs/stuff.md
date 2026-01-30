@@ -3,19 +3,21 @@
 - source myenv/bin/activate
   - python3 -m lute.main
   
-  
+Lets do a performance review of this app starting with the ReadScreen 
 
-# Help Screen
-- 
+preferably we want this to load from cache and not a fetch if possible. 
 
-# Statistics Screen  
-- 
 
-# Terms Screen
--
+- Some way to trigger backups. 
+- When the app is opened we should somehow make sure that the backup system is triggered. Not a manual backup. The way the current Lute Webpage works is that when you open it for the first time that day it somehow triggers a backup to run. Our app never triggers that. Look into the @lute-v3 code and find out what is triggering this. 
 
+# Requests 
+ 
 # Reader
-- 
+- Known words readstat is still not updating when i mark a term as known in the ReadScreen the statsscreen ALSO doesn't update this value! It seems that the value ONLY updates when i enter the TermsScreen. Does this update depend on something from the TermsScreen?
+
+# Sentence Reader
+-
 
 # TTS
 - 
@@ -23,8 +25,18 @@
 # AI
 - 
 
-# Sentence Reader
+# Books Screen
 - 
+
+# Terms Screen
+-
+
+# Statistics Screen  
+- 
+
+# Help Screen
+- 
+
 
 edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
 
@@ -49,5 +61,4 @@ Add more custom theme options
 - add a toggle to book details to select between Server parsing or App parsing
   - include hint
   - put this in the edit button and move the confirmation to the edit button popup for editing the term.
-- When the page/book marked as done add a popup to navigate to books to pick out another. Add a great job or something and a animation of some kind to celebrate the completetion of a book. Include number of words in the book and other book and term stats? 
 - add a selector in language settings to apply TTS voices based on languages.

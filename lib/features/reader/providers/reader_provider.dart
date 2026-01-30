@@ -13,6 +13,7 @@ import '../../../features/settings/providers/settings_provider.dart';
 
 import 'sentence_reader_provider.dart';
 import '../../../core/cache/providers/tooltip_cache_provider.dart';
+import '../../../features/terms/providers/terms_provider.dart';
 
 @immutable
 class ReaderState {
@@ -181,7 +182,12 @@ class ReaderNotifier extends Notifier<ReaderState> {
             useCache: false,
             forceRefresh: true,
           )
-          .then((freshPage) {
+          .then((freshPage) async {
+            await _repository.savePageToCache(
+              state.pageData!.bookId,
+              state.pageData!.currentPage,
+              freshPage,
+            );
             final mergedData = _mergePageStatuses(state.pageData!, freshPage);
             state = state.copyWith(
               isBackgroundRefreshing: false,
@@ -374,6 +380,12 @@ class ReaderNotifier extends Notifier<ReaderState> {
         forceRefresh: true,
       );
 
+      await _repository.savePageToCache(
+        currentPageData.bookId,
+        currentPageData.currentPage,
+        freshPage,
+      );
+
       final mergedData = _mergePageStatuses(currentPageData, freshPage);
       state = state.copyWith(
         isBackgroundRefreshing: false,
@@ -538,6 +550,35 @@ class ReaderNotifier extends Notifier<ReaderState> {
       if (termForm.termId != null) {
         await _repository.editTerm(termForm.termId!, termForm.toFormData());
         await updateTermStatus(termForm.termId!, termForm.status);
+
+        final currentPageData = state.pageData;
+        if (currentPageData != null) {
+          await _repository.savePageToCache(
+            currentPageData.bookId,
+            currentPageData.currentPage,
+            currentPageData,
+          );
+        }
+
+        if (termForm.status == '99') {
+          final currentPageData = state.pageData;
+          if (currentPageData != null) {
+            int? langId;
+            for (final paragraph in currentPageData.paragraphs) {
+              for (final item in paragraph.textItems) {
+                if (item.wordId == termForm.termId && item.langId != null) {
+                  langId = item.langId;
+                  break;
+                }
+              }
+              if (langId != null) break;
+            }
+
+            if (langId != null) {
+              ref.read(termsProvider.notifier).loadStats(langId);
+            }
+          }
+        }
 
         // Invalidate tooltip cache for this term if caching is enabled
         final settings = ref.read(settingsProvider);

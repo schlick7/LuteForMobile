@@ -165,7 +165,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   Key? _sentenceKey;
   bool _isNavigating = false;
   Map<int, String> _languageIdToName = {};
-  String _currentLanguageName = '';
   int? _lastStatsLangId;
 
   @override
@@ -231,27 +230,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       });
     } catch (e) {
       print('DEBUG: Failed to load language mapping: $e');
-    }
-  }
-
-  void _updateLanguageStats() {
-    final sentenceReader = ref.read(sentenceReaderProvider);
-    final currentSentence = sentenceReader.currentSentence;
-    if (currentSentence == null) return;
-
-    final langId = currentSentence.textItems.first.langId;
-    if (langId == null || langId == 0) return;
-
-    final languageName = _languageIdToName[langId] ?? '';
-    if (languageName != _currentLanguageName) {
-      setState(() {
-        _currentLanguageName = languageName;
-      });
-    }
-
-    if (langId != _lastStatsLangId) {
-      _lastStatsLangId = langId;
-      ref.read(termsProvider.notifier).loadStats(langId);
     }
   }
 
@@ -797,57 +775,79 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   Widget _buildStatsRow() {
-    final statsState = ref.watch(statsProvider);
-    final termsState = ref.watch(termsProvider);
     final sentenceReaderState = ref.watch(sentenceReaderProvider);
     final currentSentence = sentenceReaderState.currentSentence;
 
-    if (currentSentence != null) {
-      _updateLanguageStats();
+    int? langId;
+    if (currentSentence != null && currentSentence.textItems.isNotEmpty) {
+      langId = currentSentence.textItems.first.langId;
     }
 
-    final languageFlag = getFlagForLanguage(_currentLanguageName) ?? '';
+    final languageName = langId != null && langId != 0
+        ? (_languageIdToName[langId] ?? '')
+        : '';
 
-    int todayWordcount = 0;
-    int status99Count = termsState.stats.status99;
-
-    if (statsState.value != null) {
-      final today = DateTime.now();
-
-      for (final langStats in statsState.value!.languages) {
-        if (langStats.language == _currentLanguageName) {
-          final todayStats = langStats.dailyStats.firstWhere(
-            (s) =>
-                s.date.year == today.year &&
-                s.date.month == today.month &&
-                s.date.day == today.day,
-            orElse: () =>
-                DailyReadingStats(date: today, wordcount: 0, runningTotal: 0),
-          );
-          todayWordcount = todayStats.wordcount;
-          break;
+    if (langId != null && langId != 0 && langId != _lastStatsLangId) {
+      _lastStatsLangId = langId;
+      Future.microtask(() {
+        if (mounted) {
+          ref.read(termsProvider.notifier).loadStats(langId!);
         }
-      }
+      });
     }
 
-    final theme = Theme.of(context);
+    return Consumer(
+      builder: (context, ref, _) {
+        final termsState = ref.watch(termsProvider);
+        final statsState = ref.watch(statsProvider);
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          if (languageFlag.isNotEmpty) ...[
-            Text(languageFlag, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 8),
-          ],
-          Text(
-            "Today's Words: $todayWordcount",
-            style: theme.textTheme.bodySmall,
+        final languageFlag = getFlagForLanguage(languageName) ?? '';
+
+        int todayWordcount = 0;
+        int status99Count = termsState.stats.status99;
+
+        if (statsState.value != null) {
+          final today = DateTime.now();
+
+          for (final langStats in statsState.value!.languages) {
+            if (langStats.language == languageName) {
+              final todayStats = langStats.dailyStats.firstWhere(
+                (s) =>
+                    s.date.year == today.year &&
+                    s.date.month == today.month &&
+                    s.date.day == today.day,
+                orElse: () => DailyReadingStats(
+                  date: today,
+                  wordcount: 0,
+                  runningTotal: 0,
+                ),
+              );
+              todayWordcount = todayStats.wordcount;
+              break;
+            }
+          }
+        }
+
+        final theme = Theme.of(context);
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              if (languageFlag.isNotEmpty) ...[
+                Text(languageFlag, style: const TextStyle(fontSize: 20)),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                "Today's Words: $todayWordcount",
+                style: theme.textTheme.bodySmall,
+              ),
+              const Spacer(),
+              Text("Known: $status99Count", style: theme.textTheme.bodySmall),
+            ],
           ),
-          const Spacer(),
-          Text("Known: $status99Count", style: theme.textTheme.bodySmall),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1458,8 +1458,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         }
                       }
                     },
-                    onStatus99Changed: (langId) {
-                      ref.read(termsProvider.notifier).loadStats(langId);
+                    onStatus99Changed: (langId) async {
+                      await ref.read(termsProvider.notifier).loadStats(langId);
                     },
                   ),
                 );
@@ -1619,8 +1619,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         }
                       }
                     },
-                    onStatus99Changed: (langId) {
-                      ref.read(termsProvider.notifier).loadStats(langId);
+                    onStatus99Changed: (langId) async {
+                      await ref.read(termsProvider.notifier).loadStats(langId);
                     },
                   ),
                 );
@@ -1693,11 +1693,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final bookId = reader.pageData!.bookId;
     final pageNum = reader.pageData!.currentPage;
     final langId = _getLangId(reader);
+    final serverUrl = ref.read(settingsProvider).serverUrl;
 
     print(
       'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Clearing cache for bookId=$bookId',
     );
-    await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
+    await ref
+        .read(sentenceCacheServiceProvider)
+        .clearBookCache(serverUrl, bookId);
 
     _termTooltips.clear();
     _lastTooltipsBookId = null;

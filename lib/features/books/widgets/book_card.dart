@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
+import '../../../shared/widgets/status_distribution_bar.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 
@@ -146,95 +147,11 @@ class BookCard extends ConsumerWidget {
                   ],
                 ),
               const SizedBox(height: 12),
-              _buildStatusDistributionBar(context),
+              StatusDistributionBar(book: book),
             ],
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildStatusDistributionBar(BuildContext context) {
-    if (!book.hasStats || book.statusDistribution == null) {
-      return const SizedBox.shrink();
-    }
-
-    final totalTerms = book.statusDistribution!
-        .asMap()
-        .entries
-        .where((entry) => entry.key != 6)
-        .fold<int>(0, (sum, entry) => sum + entry.value);
-    if (totalTerms == 0) {
-      return const SizedBox.shrink();
-    }
-
-    final screenWidth = MediaQuery.of(context).size.width - 64;
-    final segments = <Widget>[];
-
-    double currentLeft = 0.0;
-    final statusColors = [
-      context.status0,
-      context.status1,
-      context.status2,
-      context.status3,
-      context.status4,
-      context.status5,
-      context.status98,
-      context.status99,
-    ];
-
-    final borderSide = BorderSide(
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-      width: 1,
-    );
-
-    for (int i = 0; i < statusColors.length; i++) {
-      if (i == 6) continue;
-      final count = book.statusDistribution![i];
-      if (count > 0) {
-        final width = (count / totalTerms) * screenWidth;
-        final isLastSegment = i == statusColors.length - 1;
-
-        segments.add(
-          Positioned(
-            left: currentLeft,
-            child: Container(
-              width: width,
-              height: 8,
-              decoration: BoxDecoration(
-                color: statusColors[i],
-                border: Border(
-                  right: isLastSegment ? BorderSide.none : borderSide,
-                ),
-                borderRadius: i == 0
-                    ? const BorderRadius.only(
-                        topLeft: Radius.circular(4),
-                        bottomLeft: Radius.circular(4),
-                      )
-                    : isLastSegment
-                    ? const BorderRadius.only(
-                        topRight: Radius.circular(4),
-                        bottomRight: Radius.circular(4),
-                      )
-                    : null,
-              ),
-            ),
-          ),
-        );
-        currentLeft += width;
-      }
-    }
-
-    return Container(
-      height: 8,
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          width: 1,
-        ),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Stack(children: segments),
     );
   }
 }

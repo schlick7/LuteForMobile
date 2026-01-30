@@ -30,7 +30,7 @@ Switch `PageCacheService` and `SentenceCacheService` from SharedPreferences (JSO
 ```dart
 import 'package:hive_ce/hive.dart';
 
-@HiveType(typeId: 2)
+@HiveType(typeId: 3)
 class PageCacheEntry extends HiveObject {
   @HiveField(0) String metadataHtml;
   @HiveField(1) String pageTextHtml;
@@ -42,9 +42,9 @@ class PageCacheEntry extends HiveObject {
 **`lib/features/reader/models/sentence_cache_entry.dart`** (new)
 ```dart
 import 'package:hive_ce/hive.dart';
-import '../models/paragraph.dart';
+import '../utils/sentence_parser.dart';
 
-@HiveType(typeId: 3)
+@HiveType(typeId: 4)
 class SentenceCacheEntry extends HiveObject {
   @HiveField(0) List<CustomSentence> sentences;
   @HiveField(1) int timestamp;
@@ -76,7 +76,32 @@ Key changes:
 - 14-day TTL
 - Update `getCacheStats()` to return size-based stats
 
-### Step 4: Register Hive Adapters
+### Step 4: Error Handling
+
+Add safe box opening and error recovery to both cache services:
+
+```dart
+Future<Box<E>> _openBoxSafe<E>(String boxName) async {
+  try {
+    return await Hive.openBox<E>(boxName);
+  } on HiveError catch (e) {
+    if (e.message.contains('corrupted') ||
+        e.message.contains('box is already open')) {
+      await Hive.deleteBoxFromDisk(boxName);
+      return await Hive.openBox<E>(boxName);
+    }
+    rethrow;
+  }
+}
+```
+
+Key handling requirements:
+- Catch `HiveError` on open operations
+- On corruption/open errors: delete box, retry open
+- Log errors but don't crash - fall back to no-cache
+- Handle quota exceeded errors gracefully
+
+### Step 5: Register Hive Adapters
 
 **`lib/hive_registrar.g.dart`** (auto-generated, run `flutter pub run build_runner build`)
 
@@ -86,14 +111,14 @@ Hive.registerAdapter(PageCacheEntryAdapter());
 Hive.registerAdapter(SentenceCacheEntryAdapter());
 ```
 
-### Step 5: Update Tooltip Cache TTL
+### Step 6: Update Tooltip Cache TTL
 
 **`lib/core/cache/tooltip_cache_service.dart`**
 ```dart
 static const Duration _ttl = Duration(days: 14); // was 48 hours
 ```
 
-### Step 6: Update Callers
+### Step 7: Update Callers
 
 **`lib/features/reader/providers/reader_provider.dart`**
 ```dart
@@ -106,7 +131,7 @@ Future<void> clearPageCacheForBook(String serverUrl, int bookId) async {
 **`lib/features/reader/providers/sentence_reader_provider.dart`**
 - Add serverUrl parameter to `clearBookCache` calls
 
-### Step 7: Cleanup
+### Step 8: Cleanup
 
 - Remove `CachedPageHtml` class
 - Remove SharedPreferences imports from cache service files
@@ -117,10 +142,10 @@ Future<void> clearPageCacheForBook(String serverUrl, int bookId) async {
 
 | File | Action |
 |------|--------|
-| `lib/features/reader/models/page_cache_entry.dart` | Create |
-| `lib/features/reader/models/sentence_cache_entry.dart` | Create |
-| `lib/features/reader/services/page_cache_service.dart` | Rewrite |
-| `lib/features/reader/services/sentence_cache_service.dart` | Rewrite |
+| `lib/features/reader/models/page_cache_entry.dart` | Create (typeId: 3) |
+| `lib/features/reader/models/sentence_cache_entry.dart` | Create (typeId: 4, import fix) |
+| `lib/features/reader/services/page_cache_service.dart` | Rewrite with error handling |
+| `lib/features/reader/services/sentence_cache_service.dart` | Rewrite with error handling |
 | `lib/core/cache/tooltip_cache_service.dart` | Modify TTL |
 | `lib/hive_registrar.g.dart` | Regenerate |
 | `lib/features/reader/providers/reader_provider.dart` | Update signature |
@@ -157,3 +182,5 @@ Future<void> clearPageCacheForBook(String serverUrl, int bookId) async {
 - [ ] Cache stats show correct size and entry counts
 - [ ] Clearing book cache removes only that book's entries
 - [ ] Clearing all cache removes all entries
+- [ ] Box corruption is handled gracefully (delete + recreate)
+- [ ] Quota exceeded errors don't crash the app

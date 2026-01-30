@@ -154,4 +154,16 @@ class ReaderRepository {
       throw Exception('Failed to mark page as known: $e');
     }
   }
+
+  Future<void> savePageToCache(
+    int bookId,
+    int pageNum,
+    PageData pageData,
+  ) async {
+    try {
+      await contentService.savePageToCache(bookId, pageNum, pageData);
+    } catch (e) {
+      print('Failed to save page to cache: $e');
+    }
+  }
 }

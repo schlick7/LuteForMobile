@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lute_for_mobile/app.dart';
 import 'package:lute_for_mobile/core/providers/initial_providers.dart';
 import 'package:lute_for_mobile/core/cache/tooltip_cache_service.dart';
+import 'package:lute_for_mobile/core/cache/term_cache_service.dart';
+import 'package:lute_for_mobile/core/cache/books_cache_service.dart';
 import 'package:lute_for_mobile/features/stats/repositories/stats_repository.dart';
 
 void main() async {
@@ -12,10 +14,10 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   final serverUrl = prefs.getString('server_url') ?? '';
 
-  // Initialize tooltip cache
   await TooltipCacheService.getInstance().initialize();
-  // Initialize stats cache
+  await BooksCacheService.getInstance().initialize();
   await StatsRepository.initialize();
+  await TermCacheService.getInstance().initialize();
 
   runApp(
     ProviderScope(

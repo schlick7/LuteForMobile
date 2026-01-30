@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
@@ -14,10 +15,12 @@ import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../providers/reader_provider.dart';
 import '../providers/audio_player_provider.dart';
+import '../providers/current_book_provider.dart';
 import '../widgets/term_tooltip.dart';
 import 'text_display.dart';
 import 'term_form.dart';
 import 'sentence_translation.dart';
+import 'book_completion_celebration_dialog.dart';
 import '../../../core/network/dictionary_service.dart';
 import 'audio_player.dart';
 import 'package:lute_for_mobile/app.dart';
@@ -88,7 +91,7 @@ class _PageTransitionState extends State<_PageTransition>
       animation: _controller,
       builder: (context, child) {
         if (!_hasAnimated) {
-          return _currentChild ?? SizedBox();
+          return _currentChild ?? const SizedBox();
         }
 
         return Stack(
@@ -161,7 +164,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isNavigatingForward = true;
   Key _pageKey = const ValueKey('page');
   Map<int, String> _languageIdToName = {};
-  String _currentLanguageName = '';
   int? _lastStatsLangId;
   final List<String> _availableFonts = [
     'Roboto',
@@ -208,36 +210,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       });
     } catch (e) {
       print('DEBUG: Failed to load language mapping: $e');
-    }
-  }
-
-  void _updateLanguageStats() {
-    final pageData = ref.read(readerProvider).pageData;
-    if (pageData == null) return;
-
-    int? langId;
-    for (final paragraph in pageData.paragraphs) {
-      for (final textItem in paragraph.textItems) {
-        if (textItem.langId != null && textItem.langId != 0) {
-          langId = textItem.langId;
-          break;
-        }
-      }
-      if (langId != null) break;
-    }
-
-    if (langId == null || langId == 0) return;
-
-    final languageName = _languageIdToName[langId] ?? '';
-    if (languageName != _currentLanguageName) {
-      setState(() {
-        _currentLanguageName = languageName;
-      });
-    }
-
-    if (langId != _lastStatsLangId) {
-      _lastStatsLangId = langId;
-      ref.read(termsProvider.notifier).loadStats(langId);
     }
   }
 
@@ -383,6 +355,22 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       await ref
           .read(readerProvider.notifier)
           .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
+
+      int? langId;
+      for (final paragraph in pageData.paragraphs) {
+        for (final item in paragraph.textItems) {
+          if (item.langId != null && item.langId != 0) {
+            langId = item.langId;
+            break;
+          }
+        }
+        if (langId != null) break;
+      }
+
+      if (langId != null) {
+        ref.read(termsProvider.notifier).loadStats(langId);
+      }
+
       _loadAudioIfNeeded();
     }
   }
@@ -399,6 +387,25 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       await ref
           .read(readerProvider.notifier)
           .loadPage(bookId: bookId, pageNum: pageNum);
+
+      final pageData = ref.read(readerProvider).pageData;
+      if (pageData != null) {
+        int? langId;
+        for (final paragraph in pageData.paragraphs) {
+          for (final item in paragraph.textItems) {
+            if (item.langId != null && item.langId != 0) {
+              langId = item.langId;
+              break;
+            }
+          }
+          if (langId != null) break;
+        }
+
+        if (langId != null) {
+          ref.read(termsProvider.notifier).loadStats(langId);
+        }
+      }
+
       _loadAudioIfNeeded();
     } catch (e, stackTrace) {
       print('ERROR: loadBook failed: $e');
@@ -423,9 +430,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     if (textSettings.fullscreenMode && !_lastFullscreenMode) {
       _lastFullscreenMode = true;
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       _startHideTimer();
     } else if (!textSettings.fullscreenMode && _lastFullscreenMode) {
       _lastFullscreenMode = false;
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
       _cancelHideTimer();
       _isUiVisible = true;
     }
@@ -473,6 +482,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     PageData? pageData,
     bool fullscreenMode,
   ) {
+    final settings = ref.read(settingsProvider);
+
     if (fullscreenMode) {
       final topPadding = MediaQuery.of(context).padding.top;
       return PreferredSize(
@@ -513,14 +524,17 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                             : null,
                         tooltip: 'Previous page',
                       ),
-                      GestureDetector(
-                        onDoubleTap: () => _showPageNavigationSlider(),
-                        onLongPress: () => _showPageNavigationSlider(),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: Text(pageData!.pageIndicator),
+                      if (settings.showPageNumbers)
+                        GestureDetector(
+                          onDoubleTap: () => _showPageNavigationSlider(),
+                          onLongPress: () => _showPageNavigationSlider(),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                            ),
+                            child: Text(pageData!.pageIndicator),
+                          ),
                         ),
-                      ),
                       IconButton(
                         icon: const Icon(Icons.chevron_right),
                         onPressed: pageData!.currentPage < pageData!.pageCount
@@ -569,14 +583,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       : null,
                   tooltip: 'Previous page',
                 ),
-                GestureDetector(
-                  onDoubleTap: () => _showPageNavigationSlider(),
-                  onLongPress: () => _showPageNavigationSlider(),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(pageData!.pageIndicator),
+                if (settings.showPageNumbers)
+                  GestureDetector(
+                    onDoubleTap: () => _showPageNavigationSlider(),
+                    onLongPress: () => _showPageNavigationSlider(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Text(pageData!.pageIndicator),
+                    ),
                   ),
-                ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
                   onPressed: pageData!.currentPage < pageData!.pageCount
@@ -594,63 +609,90 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Widget _buildStatsRow() {
-    final statsState = ref.watch(statsProvider);
-    final termsState = ref.watch(termsProvider);
     final pageData = ref.read(readerProvider).pageData;
 
+    int? langId;
     if (pageData != null) {
-      _updateLanguageStats();
-    }
-
-    final languageFlag = getFlagForLanguage(_currentLanguageName) ?? '';
-
-    int todayWordcount = 0;
-    int status99Count = termsState.stats.status99;
-
-    if (statsState.value != null) {
-      final today = DateTime.now();
-
-      for (final langStats in statsState.value!.languages) {
-        if (langStats.language == _currentLanguageName) {
-          final todayStats = langStats.dailyStats.firstWhere(
-            (s) =>
-                s.date.year == today.year &&
-                s.date.month == today.month &&
-                s.date.day == today.day,
-            orElse: () =>
-                DailyReadingStats(date: today, wordcount: 0, runningTotal: 0),
-          );
-          todayWordcount = todayStats.wordcount;
-          break;
+      for (final paragraph in pageData.paragraphs) {
+        for (final textItem in paragraph.textItems) {
+          if (textItem.langId != null && textItem.langId != 0) {
+            langId = textItem.langId;
+            break;
+          }
         }
+        if (langId != null) break;
       }
     }
 
-    final theme = Theme.of(context);
+    final languageName = langId != null && langId != 0
+        ? (_languageIdToName[langId] ?? '')
+        : '';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          if (languageFlag.isNotEmpty) ...[
-            Text(languageFlag, style: const TextStyle(fontSize: 20)),
-            const SizedBox(width: 8),
-          ],
-          Text(
-            "Today's Words: $todayWordcount",
-            style: theme.textTheme.bodySmall,
+    if (langId != null && langId != 0 && langId != _lastStatsLangId) {
+      _lastStatsLangId = langId;
+      ref.read(termsProvider.notifier).loadStats(langId);
+    }
+
+    return Consumer(
+      builder: (context, ref, _) {
+        final termsState = ref.watch(termsProvider);
+        final statsState = ref.watch(statsProvider);
+
+        final languageFlag = getFlagForLanguage(languageName) ?? '';
+
+        int todayWordcount = 0;
+        int status99Count = termsState.stats.status99;
+
+        if (statsState.value != null) {
+          final today = DateTime.now();
+
+          for (final langStats in statsState.value!.languages) {
+            if (langStats.language == languageName) {
+              final todayStats = langStats.dailyStats.firstWhere(
+                (s) =>
+                    s.date.year == today.year &&
+                    s.date.month == today.month &&
+                    s.date.day == today.day,
+                orElse: () => DailyReadingStats(
+                  date: today,
+                  wordcount: 0,
+                  runningTotal: 0,
+                ),
+              );
+              todayWordcount = todayStats.wordcount;
+              break;
+            }
+          }
+        }
+
+        final theme = Theme.of(context);
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              if (languageFlag.isNotEmpty) ...[
+                Text(languageFlag, style: const TextStyle(fontSize: 20)),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                "Today's Words: $todayWordcount",
+                style: theme.textTheme.bodySmall,
+              ),
+              const Spacer(),
+              Text("Known: $status99Count", style: theme.textTheme.bodySmall),
+            ],
           ),
-          const Spacer(),
-          Text("Known: $status99Count", style: theme.textTheme.bodySmall),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildPageControls(BuildContext context, PageData pageData) {
     final isLastPage = pageData.currentPage == pageData.pageCount;
     final theme = Theme.of(context);
-    final showStatsBar = ref.read(settingsProvider).showStatsBar;
+    final settings = ref.read(settingsProvider);
+    final showStatsBar = settings.showStatsBar;
 
     return Align(
       alignment: Alignment.centerRight,
@@ -685,13 +727,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         : null,
                     tooltip: 'Previous page',
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      pageData.pageIndicator,
-                      style: theme.textTheme.titleMedium,
+                  if (settings.showPageNumbers)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      child: Text(
+                        pageData.pageIndicator,
+                        style: theme.textTheme.titleMedium,
+                      ),
                     ),
-                  ),
                   if (isLastPage)
                     IconButton(
                       icon: Icon(
@@ -828,7 +871,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       paragraphs: pageData!.paragraphs,
       scrollController: _scrollController,
       topPadding: textSettings.fullscreenMode && !_isUiVisible
-          ? MediaQuery.of(context).padding.top
+          ? MediaQuery.of(context).padding.top * 0.5
           : 0.0,
       bottomPadding: hasGestureNav ? 128 : 0,
       bottomControlWidget: _buildPageControls(context, pageData),
@@ -841,6 +884,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       onLongPress: (item) {
         _handleLongPress(item);
       },
+      onTripleTap: (item) {
+        _handleTripleTap(item);
+      },
+      enableTripleTap: settings.enableTripleTapToMarkKnown,
+      doubleTapTimeout: settings.doubleTapTimeout,
       textSize: textSettings.textSize,
       lineSpacing: textSettings.lineSpacing,
       fontFamily: textSettings.fontFamily,
@@ -1018,6 +1066,66 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  void _handleTripleTap(TextItem item) async {
+    // Only handle triple tap for terms from the server (items with wordId)
+    if (item.wordId == null) return;
+    if (item.langId == null) return;
+
+    // Check if triple-tap to mark as known is enabled in settings
+    final settings = ref.read(settingsProvider);
+    if (!settings.enableTripleTapToMarkKnown) return;
+
+    try {
+      // Fetch the current term form to update its status
+      final termForm = await ref
+          .read(readerProvider.notifier)
+          .fetchTermFormById(item.wordId!);
+
+      if (termForm != null) {
+        // Update the term status to '99' (known) and save
+        final updatedForm = termForm.copyWith(status: '99');
+        final success = await ref
+            .read(readerProvider.notifier)
+            .saveTerm(updatedForm);
+
+        if (success) {
+          // Update the local status display
+          await ref
+              .read(readerProvider.notifier)
+              .updateTermStatus(item.wordId!, '99');
+
+          // Trigger the glow effect to provide visual feedback
+          _originalTextItem = item;
+          _triggerWordGlow();
+
+          // Show a snackbar to confirm the action
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('"${item.text}" marked as known'),
+                duration: const Duration(milliseconds: 1000),
+              ),
+            );
+          }
+        } else {
+          throw Exception('Failed to save term status');
+        }
+      } else {
+        throw Exception('Could not fetch term form');
+      }
+    } catch (e) {
+      print('Error marking term as known: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to mark "${item.text}" as known'),
+            duration: const Duration(milliseconds: 1500),
+          ),
+        );
+      }
+    }
+  }
+
   String _extractSentence(TextItem item) {
     final state = ref.read(readerProvider);
     if (state.pageData == null) return '';
@@ -1151,8 +1259,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         }
                       }
                     },
-                    onStatus99Changed: (langId) {
-                      ref.read(termsProvider.notifier).loadStats(langId);
+                    onStatus99Changed: (langId) async {
+                      await ref.read(termsProvider.notifier).loadStats(langId);
                     },
                   ),
                 );
@@ -1280,8 +1388,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         }
                       }
                     },
-                    onStatus99Changed: (langId) {
-                      ref.read(termsProvider.notifier).loadStats(langId);
+                    onStatus99Changed: (langId) async {
+                      await ref.read(termsProvider.notifier).loadStats(langId);
                     },
                   ),
                 );
@@ -1620,6 +1728,24 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             duration: Duration(seconds: 1),
           ),
         );
+
+        final currentBookState = ref.read(currentBookProvider);
+        if (currentBookState.book != null) {
+          final updatedBook = currentBookState.book!.copyWith(
+            isCompleted: true,
+          );
+          ref.read(currentBookProvider.notifier).setBook(updatedBook);
+
+          await Future.delayed(const Duration(milliseconds: 500));
+          if (mounted) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) =>
+                  BookCompletionCelebrationDialog(book: updatedBook),
+            );
+          }
+        }
       }
       ref.read(statsProvider.notifier).loadStats();
     } catch (e) {

@@ -11,6 +11,8 @@ import '../../features/books/models/book.dart';
 import '../../features/books/models/datatables_response.dart';
 import '../../features/terms/models/term.dart';
 import '../../shared/models/language.dart';
+import '../../core/cache/term_cache_service.dart';
+import '../../core/cache/models/term_cache_entry.dart';
 import 'api_service.dart';
 import 'html_parser.dart';
 
@@ -20,11 +22,13 @@ class ContentService {
   final ApiService _apiService;
   final HtmlParser parser;
   final PageCacheService _pageCacheService;
+  final TermCacheService _termCacheService;
 
   ContentService({required ApiService apiService, HtmlParser? htmlParser})
     : _apiService = apiService,
       parser = htmlParser ?? HtmlParser(),
-      _pageCacheService = PageCacheService();
+      _pageCacheService = PageCacheService(),
+      _termCacheService = TermCacheService.getInstance();
 
   bool get isConfigured => _apiService.isConfigured;
 
@@ -517,9 +521,6 @@ class ContentService {
     } catch (e) {
       print('Error getting current page for book $bookId: $e');
       return 1; // Default to page 1 on error
-    } catch (e) {
-      print('Error getting current page for book $bookId: $e');
-      return 1; // Default to page 1 on error
     }
   }
 
@@ -528,5 +529,103 @@ class ContentService {
     final jsonString = response.data ?? '{}';
     final json = jsonDecode(jsonString) as Map<String, dynamic>;
     return json;
+  }
+
+  Future<void> warmTermCache({int? langId}) async {
+    try {
+      await _termCacheService.initialize();
+
+      int start = 0;
+      const batchSize = 1000;
+      bool hasMore = true;
+
+      while (hasMore) {
+        final response = await _apiService.fetchAllTerms(
+          start: start,
+          length: batchSize,
+          langId: langId,
+        );
+
+        final jsonString = response.data ?? '{}';
+        final json = jsonDecode(jsonString) as Map<String, dynamic>;
+        final data = json['data'] as List?;
+        final recordsTotal = json['recordsTotal'] as int? ?? 0;
+
+        if (data != null && data.isNotEmpty) {
+          final terms = data
+              .map(
+                (t) => TermCacheEntry.fromServerJson(t as Map<String, dynamic>),
+              )
+              .toList();
+          await _termCacheService.saveTerms(terms);
+          start += batchSize;
+          hasMore = start < recordsTotal;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      print('Term cache warmed with $start terms');
+    } catch (e) {
+      print('Error warming term cache: $e');
+    }
+  }
+
+  Future<List<TermCacheEntry>> getCachedTerms() async {
+    try {
+      await _termCacheService.initialize();
+      return await _termCacheService.getAllTerms();
+    } catch (e) {
+      print('Error getting cached terms: $e');
+      return [];
+    }
+  }
+
+  Future<List<TermCacheEntry>> searchCachedTerms(String query) async {
+    try {
+      await _termCacheService.initialize();
+      return await _termCacheService.searchTerms(query);
+    } catch (e) {
+      print('Error searching cached terms: $e');
+      return [];
+    }
+  }
+
+  Future<TermCacheEntry?> getCachedTerm(int termId) async {
+    try {
+      await _termCacheService.initialize();
+      return await _termCacheService.getTerm(termId);
+    } catch (e) {
+      print('Error getting cached term: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>> getTermCacheStats() async {
+    return await _termCacheService.getCacheStats();
+  }
+
+  Future<void> savePageToCache(
+    int bookId,
+    int pageNum,
+    PageData pageData,
+  ) async {
+    try {
+      final metadataHtml = await _apiService.getBookPageStructure(bookId);
+      final pageTextHtml = await _apiService.loadBookPageForReading(
+        bookId,
+        pageNum,
+      );
+
+      await _pageCacheService.saveToCache(
+        _apiService.baseUrl,
+        bookId,
+        pageNum,
+        metadataHtml.data ?? '',
+        pageTextHtml.data ?? '',
+      );
+    } catch (e) {
+      print('Error saving page to cache: $e');
+    }
   }
 }

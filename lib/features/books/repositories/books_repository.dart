@@ -1,12 +1,14 @@
 import '../../../core/network/content_service.dart';
 import '../models/book.dart';
-import '../../../shared/models/language.dart';
+import '../../../core/cache/books_cache_service.dart';
 
 class BooksRepository {
   final ContentService contentService;
+  final BooksCacheService _cacheService;
   Map<String, int>? _languageNameToIdMap;
 
-  BooksRepository({required this.contentService});
+  BooksRepository({required this.contentService})
+    : _cacheService = BooksCacheService.getInstance();
 
   Future<List<Book>> getActiveBooks() async {
     try {
@@ -28,6 +30,28 @@ class BooksRepository {
     } catch (e) {
       throw Exception('Failed to load archived books: $e');
     }
+  }
+
+  Future<List<Book>?> getActiveBooksFromCache() async {
+    return await _cacheService.getActiveBooks();
+  }
+
+  Future<List<Book>?> getArchivedBooksFromCache() async {
+    return await _cacheService.getArchivedBooks();
+  }
+
+  Future<void> saveBooksToCache({
+    required List<Book> activeBooks,
+    required List<Book> archivedBooks,
+  }) async {
+    await _cacheService.saveBooks(
+      activeBooks: activeBooks,
+      archivedBooks: archivedBooks,
+    );
+  }
+
+  Future<void> invalidateLanguageCache(String langName) async {
+    await _cacheService.invalidateLanguage(langName);
   }
 
   Future<void> _loadLanguageMapping() async {

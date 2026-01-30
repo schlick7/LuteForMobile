@@ -6,7 +6,7 @@ import 'models/tooltip_cache_entry.dart';
 
 class TooltipCacheService {
   static const String _boxName = 'tooltip_cache';
-  static const Duration _ttl = Duration(hours: 48); // 48 hours TTL
+  static const Duration _ttl = Duration(days: 14); // was 48 hours
   static const int _maxCacheSizeBytes = 200 * 1024 * 1024; // 200MB limit
   static const int _maxEntries =
       10000; // Maximum number of entries to prevent unlimited growth

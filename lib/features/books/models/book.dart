@@ -16,9 +16,17 @@ class Book {
   final String? lastRead;
   final bool isCompleted;
   final String? audioFilename;
+  final int? lastStatsRefresh;
 
   bool get hasStats => distinctTerms != null && statusDistribution != null;
   bool get hasAudio => audioFilename != null && audioFilename!.isNotEmpty;
+  bool get isStatsExpired {
+    if (lastStatsRefresh == null) return true;
+    final ttl = Duration(hours: 48);
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final age = now - lastStatsRefresh!;
+    return age > ttl.inMilliseconds;
+  }
 
   Book({
     required this.id,
@@ -36,6 +44,7 @@ class Book {
     this.lastRead,
     this.isCompleted = false,
     this.audioFilename,
+    this.lastStatsRefresh,
   });
 
   String? get formattedLastRead {
@@ -127,6 +136,7 @@ class Book {
           : null,
       isCompleted: isCompleted,
       audioFilename: audioFilename,
+      lastStatsRefresh: null,
     );
   }
 
@@ -181,6 +191,7 @@ class Book {
     String? lastRead,
     bool? isCompleted,
     String? audioFilename,
+    int? lastStatsRefresh,
   }) {
     return Book(
       id: id ?? this.id,
@@ -198,6 +209,7 @@ class Book {
       lastRead: lastRead ?? this.lastRead,
       isCompleted: isCompleted ?? this.isCompleted,
       audioFilename: audioFilename ?? this.audioFilename,
+      lastStatsRefresh: lastStatsRefresh ?? this.lastStatsRefresh,
     );
   }
 }

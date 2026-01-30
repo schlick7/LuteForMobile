@@ -226,6 +226,18 @@ class ApiService {
       'columns[5][orderable]': 'true',
       'columns[5][search][value]': '',
       'columns[5][search][regex]': 'false',
+      'columns[6][data]': '6',
+      'columns[6][name]': 'DistinctCount',
+      'columns[6][searchable]': 'false',
+      'columns[6][orderable]': 'true',
+      'columns[6][search][value]': '',
+      'columns[6][search][regex]': 'false',
+      'columns[7][data]': '7',
+      'columns[7][name]': 'StatusDistribution',
+      'columns[7][searchable]': 'false',
+      'columns[7][orderable]': 'false',
+      'columns[7][search][value]': '',
+      'columns[7][search][regex]': 'false',
       'search[value]': search ?? '',
       'search[regex]': 'false',
     };
@@ -283,6 +295,18 @@ class ApiService {
       'columns[5][orderable]': 'true',
       'columns[5][search][value]': '',
       'columns[5][search][regex]': 'false',
+      'columns[6][data]': '6',
+      'columns[6][name]': 'DistinctCount',
+      'columns[6][searchable]': 'false',
+      'columns[6][orderable]': 'true',
+      'columns[6][search][value]': '',
+      'columns[6][search][regex]': 'false',
+      'columns[7][data]': '7',
+      'columns[7][name]': 'StatusDistribution',
+      'columns[7][searchable]': 'false',
+      'columns[7][orderable]': 'false',
+      'columns[7][search][value]': '',
+      'columns[7][search][regex]': 'false',
       'search[value]': search ?? '',
       'search[regex]': 'false',
     };
@@ -480,5 +504,50 @@ class ApiService {
 
   Future<Response<String>> getStatsData() async {
     return await _dio.get('/stats/data');
+  }
+
+  Future<Response<String>> fetchAllTerms({
+    int start = 0,
+    int length = 1000,
+    String? search,
+    int? langId,
+  }) async {
+    final data = {
+      'draw': 1,
+      'start': start,
+      'length': length,
+      'columns[0][data]': '0',
+      'columns[0][name]': 'WoText',
+      'columns[0][searchable]': 'true',
+      'columns[0][orderable]': 'true',
+      'columns[0][search][value]': '',
+      'columns[0][search][regex]': 'false',
+      'columns[1][data]': '1',
+      'columns[1][name]': 'WoTranslation',
+      'columns[1][searchable]': 'true',
+      'columns[1][orderable]': 'true',
+      'columns[2][data]': '2',
+      'columns[2][name]': 'StID',
+      'columns[2][searchable]': 'true',
+      'columns[2][orderable]': 'true',
+      'search[value]': search ?? '',
+      'search[regex]': 'false',
+      'filtAgeMin': '0',
+      'filtAgeMax': '',
+      'filtStatusMin': '0',
+      'filtStatusMax': '99',
+      'filtLanguage': langId?.toString() ?? '0',
+      'filtText': search ?? '',
+      'filtTermIDs': '',
+      'parentags': '',
+      'included_parentags': '',
+      'excluded_parentags': '',
+    };
+
+    return await _dio.post<String>(
+      '/term/datatables',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
   }
 }
