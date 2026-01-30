@@ -72,230 +72,39 @@ Based on Termux's RUN_COMMAND Intent API (available since v0.95), we can integra
 
 ---
 
-### Phase 3.5: Settings UI - Check & Display Installation Status
+### Phase 3: Settings UI - Check & Display Installation Status - ✅ IMPLEMENTED
 
-**Check Termux and Lute3 status when user switches to Termux connection:**
-```kotlin
-data class TermuxConnectionStatus(
-    val termuxInstalled: Boolean,
-    val termuxPermissionGranted: Boolean,
-    val externalAppsEnabled: Boolean,
-    val lute3Status: InstallationStatus,
-    val lute3Version: String?,
-    val termuxVersion: String?,
-    val serverRunning: Boolean
-)
+**Status:** Complete
 
-suspend fun getTermuxConnectionStatus(context: Context): TermuxConnectionStatus {
-    val termuxInstalled = isTermuxInstalled(context)
-    val permissionGranted = isTermuxPermissionGranted(context)
-    val lute3Status = isLute3Installed(context)
-    val serverRunning = isLute3ServerRunningHttp(5001)
-    
-    val lute3Version = if (lute3Status == InstallationStatus.INSTALLED) {
-        getLute3Version(context)
-    } else null
-    
-    val termuxVersion = if (termuxInstalled) {
-        getTermuxVersion(context)
-    } else null
-    
-    val externalAppsEnabled = checkExternalAppsEnabled(context)
-    
-    return TermuxConnectionStatus(
-        termuxInstalled = termuxInstalled,
-        termuxPermissionGranted = permissionGranted,
-        externalAppsEnabled = externalAppsEnabled,
-        lute3Status = lute3Status,
-        lute3Version = lute3Version,
-        termuxVersion = termuxVersion,
-        serverRunning = serverRunning
-    )
-}
+**Summary:**
+- Created `TermuxSettings.kt` with comprehensive settings UI:
+  - `TermuxConnectionStatus` data class aggregating all status information
+  - `getTermuxConnectionStatus()` - Checks Termux install, permission, external apps, Lute3 install, server status
+  - `getLute3Version()` - Retrieves Lute3 version via pip
+  - `getTermuxVersion()` - Retrieves Termux version
+  - `checkExternalAppsEnabled()` - Tests if external apps are enabled
+- Created `TermuxServer.kt` with server control functions:
+  - `launchLute3ServerWithAutoShutdown()` - Starts server with heartbeat monitoring
+  - `stopLute3Server()` - Stops server and cleans up heartbeat file
+  - `installLute3ServerWithProgress()` - Full Lute3 installation with step tracking
+  - Individual installation step functions (setup storage, update, upgrade, install Python, install Lute3)
+- Material 3 UI with responsive states:
+  - Loading state with progress indicator
+  - Termux not installed with F-Droid link
+  - Permission not granted with settings link
+  - External apps not enabled with copyable command
+  - Lute3 not installed with install button
+  - Full status dashboard when everything is configured
+- Server status dashboard showing version info and running state
+- Update/reinstall/heartbeat test buttons
 
-fun getLute3Version(context: Context): String? {
-    val versionFile = "/data/data/com.termux/files/home/.lute3/version.txt"
-    val script = "pip show lute3 | grep Version > $versionFile"
-    
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-    
-    Thread.sleep(2000)
-    
-    return try {
-        val file = File(versionFile)
-        if (file.exists()) {
-            file.readText().removePrefix("Version: ").trim()
-        } else null
-    } catch (e: Exception) {
-        null
-    }
-}
-
-fun getTermuxVersion(context: Context): String? {
-    val versionFile = "/data/data/com.termux/files/home/.lute3/termux_version.txt"
-    val script = "termux --version > $versionFile 2>&1"
-    
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-    
-    Thread.sleep(1000)
-    
-    return try {
-        val file = File(versionFile)
-        if (file.exists()) {
-            file.readText().trim()
-        } else null
-    } catch (e: Exception) {
-        null
-    }
-}
-
-fun checkExternalAppsEnabled(context: Context): Boolean {
-    val testFile = "/data/data/com.termux/files/home/.lute3/test_external.txt"
-    val script = "echo 'test' > $testFile"
-    
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-    
-    Thread.sleep(1500)
-    
-    return try {
-        val file = File(testFile)
-        file.exists() && file.readText().contains("test")
-    } catch (e: Exception) {
-        false
-    }
-}
-```
-
-**Settings UI Implementation:**
-```kotlin
-@Composable
-fun TermuxSettingsScreen() {
-    var status by remember { mutableStateOf<TermuxConnectionStatus?>(null) }
-    
-    LaunchedEffect(Unit) {
-        status = getTermuxConnectionStatus(context)
-    }
-    
-    Column {
-        Text("Termux Connection")
-        
-        if (status == null) {
-            CircularProgressIndicator()
-        } else if (!status!!.termuxInstalled) {
-            Text("Termux is not installed")
-            Button(onClick = { openF_Droid() }) {
-                Text("Install Termux")
-            }
-        } else if (!status!!.termuxPermissionGranted) {
-            Text("Permission not granted")
-            Button(onClick = { openAppSettings() }) {
-                Text("Grant Permission")
-            }
-        } else if (!status!!.externalAppsEnabled) {
-            Text("External apps not enabled in Termux")
-            Text("Run this command in Termux:")
-            CodeBlock("echo \"allow-external-apps=true\" >> ~/.termux/termux.properties")
-            Button(onClick = { copyCommand() }) {
-                Text("Copy Command")
-            }
-        } else if (status!!.lute3Status != InstallationStatus.INSTALLED) {
-            Text("Lute3 is not installed")
-            Button(onClick = { startInstallation() }) {
-                Text("Install Lute3")
-            }
-        } else {
-            TermuxInstalledContent(status!!)
-        }
-    }
-}
-
-@Composable
-fun TermuxInstalledContent(status: TermuxConnectionStatus) {
-    Column {
-        if (status.termuxVersion != null) {
-            Row {
-                Text("Termux: ")
-                Text(status.termuxVersion, fontWeight = FontWeight.Bold)
-            }
-        }
-        if (status.lute3Version != null) {
-            Row {
-                Text("Lute3: ")
-                Text(status.lute3Version, fontWeight = FontWeight.Bold)
-            }
-        }
-        
-        if (status.serverRunning) {
-            Text("Server: Running", color = Color.Green)
-            Button(onClick = { stopLute3Server(context) }) {
-                Text("Stop Server")
-            }
-        } else {
-            Text("Server: Stopped", color = Color.Red)
-            Button(onClick = { launchLute3ServerWithAutoShutdown(context) }) {
-                Text("Start Server")
-            }
-        }
-        
-        Button(onClick = { updateLute3(context) }) {
-            Text("Update Lute3")
-        }
-        
-        Button(onClick = { reinstallLute3(context) }) {
-            Text("Reinstall Lute3")
-        }
-    }
-}
-
-fun updateLute3(context: Context) {
-    val script = "pip install --upgrade lute3"
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-}
-
-fun reinstallLute3(context: Context) {
-    val script = "pip uninstall -y lute3 && pip install --upgrade lute3"
-    val intent = Intent().apply {
-        setClassName("com.termux", "com.termux.app.RunCommandService")
-        action = "com.termux.RUN_COMMAND"
-        putExtra("com.termux.RUN_COMMAND_PATH", "/data/data/com.termux/files/usr/bin/bash")
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(intent)
-}
-```
+**Files modified:**
+- `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxSettings.kt` (new)
+- `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxServer.kt` (new)
 
 ---
 
-### Phase 3: Auto-Install Lute3 Server
+### Phase 4: Auto-Install Lute3 Server
 
 **Installation Script:**
 ```kotlin
@@ -446,7 +255,7 @@ fun InstallationProgressScreen() {
 
 ---
 
-### Phase 4: Launch Server with Auto-Shutdown (Heartbeat Method)
+### Phase 5: Launch Server with Auto-Shutdown (Heartbeat Method)
 
 **How it works:**
 1. Bash script starts Lute3 server in background
@@ -554,7 +363,7 @@ fi
 
 ---
 
-### Phase 5: Close Server
+### Phase 6: Close Server
 
 **Immediate stop:**
 ```kotlin
@@ -831,7 +640,7 @@ The Lute3 server stopped responding.
 
 ---
 
-## Phase 6: Database Backup, Restore & File Sync
+## Phase 7: Database Backup, Restore & File Sync
 
 ### Lute3 Backup API Overview
 
