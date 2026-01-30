@@ -856,6 +856,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       onTripleTap: (item) {
         _handleTripleTap(item);
       },
+      enableTripleTap: settings.enableTripleTapToMarkKnown,
+      doubleTapTimeout: settings.doubleTapTimeout,
       textSize: textSettings.textSize,
       lineSpacing: textSettings.lineSpacing,
       fontFamily: textSettings.fontFamily,

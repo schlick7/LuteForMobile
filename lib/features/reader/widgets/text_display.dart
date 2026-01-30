@@ -11,6 +11,8 @@ class TextDisplay extends StatefulWidget {
   final void Function(TextItem)? onDoubleTap;
   final void Function(TextItem)? onLongPress;
   final void Function(TextItem)? onTripleTap;
+  final bool enableTripleTap;
+  final int doubleTapTimeout;
   final double textSize;
   final double lineSpacing;
   final String fontFamily;
@@ -31,6 +33,8 @@ class TextDisplay extends StatefulWidget {
     this.onDoubleTap,
     this.onLongPress,
     this.onTripleTap,
+    this.enableTripleTap = false,
+    this.doubleTapTimeout = 300,
     this.textSize = 18.0,
     this.lineSpacing = 1.5,
     this.fontFamily = 'Roboto',
@@ -57,6 +61,8 @@ class TextDisplay extends StatefulWidget {
     void Function(TextItem)? onDoubleTap,
     void Function(TextItem)? onLongPress,
     void Function(TextItem)? onTripleTap,
+    bool enableTripleTap = false,
+    int doubleTapTimeout = 300,
     int? highlightedWordId,
     int? highlightedParagraphId,
     int? highlightedOrder,
@@ -169,11 +175,19 @@ class _TextDisplayState extends State<TextDisplay> {
         _singleTapTimer!.isActive) {
       _singleTapTimer?.cancel();
 
-      _tripleTapTimer = Timer(const Duration(milliseconds: 300), () {
-        _tripleTapTimer = null;
+      if (widget.enableTripleTap) {
+        _tripleTapTimer = Timer(
+          Duration(milliseconds: widget.doubleTapTimeout),
+          () {
+            _tripleTapTimer = null;
+            widget.onDoubleTap?.call(item);
+            _singleTapTimer = null;
+          },
+        );
+      } else {
         widget.onDoubleTap?.call(item);
         _singleTapTimer = null;
-      });
+      }
     } else {
       _tripleTapTimer?.cancel();
       _tripleTapTimer = null;
@@ -181,10 +195,13 @@ class _TextDisplayState extends State<TextDisplay> {
       _singleTapTimer?.cancel();
       widget.onTap?.call(item, tapPosition);
 
-      _singleTapTimer = Timer(const Duration(milliseconds: 300), () {
-        _singleTapTimer = null;
-        TermTooltipClass.makeVisible();
-      });
+      _singleTapTimer = Timer(
+        Duration(milliseconds: widget.doubleTapTimeout),
+        () {
+          _singleTapTimer = null;
+          TermTooltipClass.makeVisible();
+        },
+      );
     }
     _lastTappedItem = item;
   }
