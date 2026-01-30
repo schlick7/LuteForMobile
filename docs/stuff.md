@@ -5,7 +5,12 @@
   
 Lets do a performance review of this app starting with the ReadScreen 
 
-preferably we want this to load from cache and not a fetch if possible. 
+# Termux
+- We want the settings to check if termux is installed and if lute3 is installed when switching the connection to termux.
+  - if termux is install but lute3 isn't we should show an install button
+  - if termux and lute3 are both detected as installed we should show other settings like buttons for start, stop, update and data like lute3 version (if available), termux version (if available)
+- We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
+  - We for sure need to be able to trigger db backups and then be able to download/save the db and to upload/restore/overwrite the db file
 
 
 - Some way to trigger backups. 
