@@ -130,43 +130,43 @@ fun launchLute3ServerWithAutoShutdown(
         #!/data/data/com.termux/files/usr/bin/bash
 
         HEARTBEAT_FILE="${TermuxConstants.HEARTBEAT_FILE}"
-        mkdir -p "$(dirname "$HEARTBEAT_FILE")"
-        touch "$HEARTBEAT_FILE"
+        mkdir -p "\$(dirname "${'$'}HEARTBEAT_FILE")"
+        touch "${'$'}HEARTBEAT_FILE"
 
         python -m lute.main --port $port &
-        SERVER_PID=$!
+        SERVER_PID=${'$'}!
 
-        echo "Lute3 server started with PID $SERVER_PID on port $port"
+        echo "Lute3 server started with PID ${'$'}SERVER_PID on port $port"
 
         MAX_IDLE_MINUTES=$idleTimeoutMinutes
         CHECK_INTERVAL_SECONDS=${TermuxConstants.HEARTBEAT_CHECK_INTERVAL}
-        MAX_CHECKS=$((MAX_IDLE_MINUTES * 60 / CHECK_INTERVAL_SECONDS))
+        MAX_CHECKS=${'$'}((MAX_IDLE_MINUTES * 60 / CHECK_INTERVAL_SECONDS))
         IDLE_CHECKS=0
 
         while true; do
-            sleep $CHECK_INTERVAL_SECONDS
+            sleep ${'$'}CHECK_INTERVAL_SECONDS
 
-            if ! ps -p $SERVER_PID > /dev/null 2>&1; then
+            if ! ps -p ${'$'}SERVER_PID > /dev/null 2>&1; then
                 echo "Server stopped, exiting monitor"
                 exit 0
             fi
 
-            CURRENT_TIME=$(date +%s)
-            HEARTBEAT_TIME=$(stat -c %Y "$HEARTBEAT_FILE" 2>/dev/null || echo "0")
-            TIME_DIFF=$(( (CURRENT_TIME - HEARTBEAT_TIME) / 60 ))
+            CURRENT_TIME=${'$'}$(date +%s)
+            HEARTBEAT_TIME=${'$'}$(stat -c %Y "${'$'}HEARTBEAT_FILE" 2>/dev/null || echo "0")
+            TIME_DIFF=${'$'}(( (CURRENT_TIME - HEARTBEAT_TIME) / 60 ))
 
-            if [ $TIME_DIFF -lt 2 ]; then
+            if [ ${'$'}TIME_DIFF -lt 2 ]; then
                 IDLE_CHECKS=0
                 echo "Heartbeat detected (${'$'}TIME_DIFF min ago), idle counter reset"
             else
-                IDLE_CHECKS=$((IDLE_CHECKS + 1))
-                IDLE_MINUTES=$((IDLE_CHECKS * 2))
+                IDLE_CHECKS=${'$'}((IDLE_CHECKS + 1))
+                IDLE_MINUTES=${'$'}((IDLE_CHECKS * 2))
                 echo "No heartbeat for ${'$'}IDLE_MINUTES minutes (check ${'$'}IDLE_CHECKS/${'$'}MAX_CHECKS)"
 
-                if [ $IDLE_CHECKS -ge $MAX_CHECKS ]; then
+                if [ ${'$'}IDLE_CHECKS -ge ${'$'}MAX_CHECKS ]; then
                     echo "Idle timeout reached (${'$'}MAX_IDLE_MINUTES min), stopping server..."
-                    kill $SERVER_PID 2>/dev/null
-                    rm -f "$HEARTBEAT_FILE"
+                    kill ${'$'}SERVER_PID 2>/dev/null
+                    rm -f "${'$'}HEARTBEAT_FILE"
                     exit 0
                 fi
             fi
@@ -452,7 +452,7 @@ suspend fun syncWithRemoteServer(
 ): SyncResult = withContext(Dispatchers.IO) {
     val backupResult = triggerLute3Backup(context, port, BackupType.MANUAL)
     if (backupResult !is BackupResult.Success) {
-        return@withContext SyncResult.Error("Failed to create backup: ${backupResult.message}")
+        return@withContext SyncResult.Error("Failed to create backup: ${(backupResult as BackupResult.Error).message}")
     }
 
     val backups = listBackups(context, port)
@@ -465,7 +465,7 @@ suspend fun syncWithRemoteServer(
 
     val downloadResult = downloadBackup(context, latestBackup.filename, port)
     if (downloadResult !is DownloadResult.Success) {
-        return@withContext SyncResult.Error("Failed to download backup: ${downloadResult.message}")
+        return@withContext SyncResult.Error("Failed to download backup: ${(downloadResult as DownloadResult.Error).message}")
     }
 
     return@withContext try {

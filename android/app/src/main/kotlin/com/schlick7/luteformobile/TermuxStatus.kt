@@ -60,16 +60,16 @@ suspend fun executeCommandWithCompletion(
         #!/data/data/com.termux/files/usr/bin/bash
 
         $command 2>&1 | tee $outputFile
-        EXIT_CODE=$${'$'}PIPESTATUS[0]
+        EXIT_CODE=${'$'}PIPESTATUS[0]
 
-        if [ $${'$'}EXIT_CODE -eq 0 ]; then
+        if [ ${'$'}EXIT_CODE -eq 0 ]; then
             echo "${TermuxConstants.COMMAND_SUCCESS}" > $statusFile
         else
             echo "${TermuxConstants.COMMAND_FAILED}" > $statusFile
-            echo "Exit code: $${'$'}EXIT_CODE" >> $statusFile
+            echo "Exit code: ${'$'}EXIT_CODE" >> $statusFile
         fi
 
-        exit $${'$'}EXIT_CODE
+        exit ${'$'}EXIT_CODE
     """.trimIndent()
 
     val intent = Intent().apply {
