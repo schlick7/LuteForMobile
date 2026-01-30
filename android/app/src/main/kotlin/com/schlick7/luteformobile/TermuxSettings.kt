@@ -318,53 +318,135 @@ fun Lute3NotInstalledContent(
     onInstallClick: () -> Unit
 ) {
     var isInstalling by remember { mutableStateOf(false) }
+    var installResult by remember { mutableStateOf<InstallationStep?>(null) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Lute3 is not installed",
-            style = MaterialTheme.typography.headlineSmall
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Install Lute3 server to use local database connections.",
-            style = MaterialTheme.typography.bodyMedium
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = {
-                isInstalling = true
-                coroutineScope.launch {
-                    installLute3ServerWithProgress(
-                        onStepChange = { step ->
-                            // Handle step changes if needed
-                        }
-                    )
-                    isInstalling = false
-                    onInstallClick()
-                }
-            },
-            enabled = !isInstalling
-        ) {
-            if (isInstalling) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(16.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text("Install Lute3")
+    if (isInstalling) {
+        InstallationProgressScreen { result ->
+            installResult = result
+            isInstalling = false
+            onInstallClick()
         }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Installation may take 1-3 minutes",
-            style = MaterialTheme.typography.bodySmall
-        )
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (installResult == InstallationStep.FAILED) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Installation Failed",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "The Lute3 server could not be installed. Please try again or install manually in Termux.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Text(
+                text = "Lute3 is not installed",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Install Lute3 server to use local database connections.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = { isInstalling = true },
+                enabled = !isInstalling
+            ) {
+                Text("Install Lute3")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Installation may take 1-3 minutes",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+    }
+}
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (installResult == InstallationStep.FAILED) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Installation Failed",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "The Lute3 server could not be installed. Please try again or install manually in Termux.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+
+            Text(
+                text = "Lute3 is not installed",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Install Lute3 server to use local database connections.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(24.dp))
+            Button(
+                onClick = { isInstalling = true },
+                enabled = !isInstalling
+            ) {
+                if (isInstalling) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text("Install Lute3")
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "Installation may take 1-3 minutes",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 
@@ -545,4 +627,96 @@ fun touchHeartbeat(context: Context) {
         putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
     }
     context.startService(intent)
+}
+
+@Composable
+fun InstallationProgressScreen(
+    onComplete: (InstallationStep) -> Unit
+) {
+    var currentStep by remember { mutableStateOf(InstallationStep.SETUP_STORAGE) }
+    var progress by remember { mutableFloatStateOf(0f) }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val totalEstimatedTime = TermuxConstants.SETUP_STORAGE_TIMEOUT +
+            TermuxConstants.UPDATE_PACKAGES_TIMEOUT +
+            TermuxConstants.UPGRADE_PACKAGES_TIMEOUT +
+            TermuxConstants.INSTALL_PYTHON_TIMEOUT +
+            TermuxConstants.INSTALL_LUTE3_TIMEOUT +
+            5
+
+    LaunchedEffect(Unit) {
+        val result = installLute3ServerWithProgress(context) { step ->
+            currentStep = step
+            val elapsedTime = when (step) {
+                InstallationStep.SETUP_STORAGE -> 0f
+                InstallationStep.UPDATING_PACKAGES -> TermuxConstants.SETUP_STORAGE_TIMEOUT.toFloat()
+                InstallationStep.UPGRADING_PACKAGES -> (TermuxConstants.SETUP_STORAGE_TIMEOUT + TermuxConstants.UPDATE_PACKAGES_TIMEOUT).toFloat()
+                InstallationStep.INSTALLING_PYTHON -> (TermuxConstants.SETUP_STORAGE_TIMEOUT + TermuxConstants.UPDATE_PACKAGES_TIMEOUT + TermuxConstants.UPGRADE_PACKAGES_TIMEOUT).toFloat()
+                InstallationStep.INSTALLING_LUTE3 -> (TermuxConstants.SETUP_STORAGE_TIMEOUT + TermuxConstants.UPDATE_PACKAGES_TIMEOUT + TermuxConstants.UPGRADE_PACKAGES_TIMEOUT + TermuxConstants.INSTALL_PYTHON_TIMEOUT).toFloat()
+                InstallationStep.VERIFYING -> (TermuxConstants.SETUP_STORAGE_TIMEOUT + TermuxConstants.UPDATE_PACKAGES_TIMEOUT + TermuxConstants.UPGRADE_PACKAGES_TIMEOUT + TermuxConstants.INSTALL_PYTHON_TIMEOUT + TermuxConstants.INSTALL_LUTE3_TIMEOUT).toFloat()
+                InstallationStep.COMPLETE -> totalEstimatedTime.toFloat()
+                InstallationStep.FAILED -> totalEstimatedTime.toFloat()
+            }
+            progress = elapsedTime / totalEstimatedTime
+        }
+        onComplete(result)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Installing Lute3 Server",
+            style = MaterialTheme.typography.headlineMedium
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = currentStep.status,
+            style = MaterialTheme.typography.titleMedium,
+            color = if (currentStep == InstallationStep.FAILED) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.primary
+            }
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = when (currentStep) {
+                InstallationStep.SETUP_STORAGE -> "Setting up storage permissions..."
+                InstallationStep.UPDATING_PACKAGES -> "Updating package lists..."
+                InstallationStep.UPGRADING_PACKAGES -> "Upgrading packages..."
+                InstallationStep.INSTALLING_PYTHON -> "Installing Python3..."
+                InstallationStep.INSTALLING_LUTE3 -> "Installing Lute3..."
+                InstallationStep.VERIFYING -> "Verifying installation..."
+                InstallationStep.COMPLETE -> "Installation complete!"
+                InstallationStep.FAILED -> "Installation failed. Please try again or install manually."
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = "Estimated time remaining: ~${totalEstimatedTime - (progress * totalEstimatedTime).toInt()} seconds",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
 }

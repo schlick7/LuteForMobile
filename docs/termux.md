@@ -104,7 +104,30 @@ Based on Termux's RUN_COMMAND Intent API (available since v0.95), we can integra
 
 ---
 
-### Phase 4: Auto-Install Lute3 Server
+### Phase 4: Auto-Install Lute3 Server - ✅ IMPLEMENTED
+
+**Status:** Complete
+
+**Summary:**
+- Created `InstallationStep` enum with all installation steps and estimated times
+- Implemented individual Termux command functions:
+  - `termuxSetupStorage()` - Grants storage permissions
+  - `termuxUpdatePackages()` - Updates package lists
+  - `termuxUpgradePackages()` - Upgrades installed packages
+  - `termuxInstallPython3()` - Installs Python3
+  - `termuxInstallLute3()` - Installs/upgrades Lute3
+- Implemented `installLute3ServerWithProgress()` with step-by-step execution and status callbacks
+- Created `InstallationProgressScreen` Composable with:
+  - Real-time progress tracking across all installation steps
+  - Visual progress bar showing completion percentage
+  - Step-by-step status messages
+  - Estimated time remaining display
+  - Error handling with failure UI
+  - Automatic server verification after installation
+
+**Files modified:**
+- `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxServer.kt`
+- `android/app/src/main/kotlin/com/schlick7/luteformobile/TermuxSettings.kt`
 
 **Installation Script:**
 ```kotlin
