@@ -355,6 +355,22 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       await ref
           .read(readerProvider.notifier)
           .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
+
+      int? langId;
+      for (final paragraph in pageData.paragraphs) {
+        for (final item in paragraph.textItems) {
+          if (item.langId != null && item.langId != 0) {
+            langId = item.langId;
+            break;
+          }
+        }
+        if (langId != null) break;
+      }
+
+      if (langId != null) {
+        ref.read(termsProvider.notifier).loadStats(langId);
+      }
+
       _loadAudioIfNeeded();
     }
   }
@@ -371,6 +387,25 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       await ref
           .read(readerProvider.notifier)
           .loadPage(bookId: bookId, pageNum: pageNum);
+
+      final pageData = ref.read(readerProvider).pageData;
+      if (pageData != null) {
+        int? langId;
+        for (final paragraph in pageData.paragraphs) {
+          for (final item in paragraph.textItems) {
+            if (item.langId != null && item.langId != 0) {
+              langId = item.langId;
+              break;
+            }
+          }
+          if (langId != null) break;
+        }
+
+        if (langId != null) {
+          ref.read(termsProvider.notifier).loadStats(langId);
+        }
+      }
+
       _loadAudioIfNeeded();
     } catch (e, stackTrace) {
       print('ERROR: loadBook failed: $e');
@@ -595,11 +630,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     if (langId != null && langId != 0 && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
-      Future.microtask(() {
-        if (mounted) {
-          ref.read(termsProvider.notifier).loadStats(langId!);
-        }
-      });
+      ref.read(termsProvider.notifier).loadStats(langId);
     }
 
     return Consumer(

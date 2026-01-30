@@ -13,6 +13,7 @@ import '../../../features/settings/providers/settings_provider.dart';
 
 import 'sentence_reader_provider.dart';
 import '../../../core/cache/providers/tooltip_cache_provider.dart';
+import '../../../features/terms/providers/terms_provider.dart';
 
 @immutable
 class ReaderState {
@@ -557,6 +558,26 @@ class ReaderNotifier extends Notifier<ReaderState> {
             currentPageData.currentPage,
             currentPageData,
           );
+        }
+
+        if (termForm.status == '99') {
+          final currentPageData = state.pageData;
+          if (currentPageData != null) {
+            int? langId;
+            for (final paragraph in currentPageData.paragraphs) {
+              for (final item in paragraph.textItems) {
+                if (item.wordId == termForm.termId && item.langId != null) {
+                  langId = item.langId;
+                  break;
+                }
+              }
+              if (langId != null) break;
+            }
+
+            if (langId != null) {
+              ref.read(termsProvider.notifier).loadStats(langId);
+            }
+          }
         }
 
         // Invalidate tooltip cache for this term if caching is enabled
