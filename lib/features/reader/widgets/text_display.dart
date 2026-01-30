@@ -144,7 +144,7 @@ class TextDisplay extends StatefulWidget {
 }
 
 class _TextDisplayState extends State<TextDisplay> {
-  Timer? _doubleTapTimer;
+  Timer? _singleTapTimer;
   Timer? _tripleTapTimer;
   TextItem? _lastTappedItem;
   int _buildCount = 0;
@@ -156,44 +156,42 @@ class _TextDisplayState extends State<TextDisplay> {
 
   void _handleTap(TextItem item, Offset tapPosition) {
     if (_lastTappedItem == item &&
-        _doubleTapTimer != null &&
-        _doubleTapTimer!.isActive) {
-      // Second tap detected
-      _doubleTapTimer?.cancel();
+        _tripleTapTimer != null &&
+        _tripleTapTimer!.isActive) {
+      _singleTapTimer?.cancel();
 
-      // Check if this is actually a third tap (triple tap)
-      if (_tripleTapTimer != null && _tripleTapTimer!.isActive) {
-        _tripleTapTimer?.cancel();
-        widget.onTripleTap?.call(item);
+      _tripleTapTimer?.cancel();
+      widget.onTripleTap?.call(item);
+      _tripleTapTimer = null;
+      _singleTapTimer = null;
+    } else if (_lastTappedItem == item &&
+        _singleTapTimer != null &&
+        _singleTapTimer!.isActive) {
+      _singleTapTimer?.cancel();
+
+      _tripleTapTimer = Timer(const Duration(milliseconds: 300), () {
         _tripleTapTimer = null;
-        _lastTappedItem = null;
-        TermTooltipClass.close();
-      } else {
-        // Wait to see if third tap comes
-        _tripleTapTimer = Timer(const Duration(milliseconds: 300), () {
-          // No third tap - this is a double tap
-          _tripleTapTimer = null;
-          widget.onDoubleTap?.call(item);
-          _lastTappedItem = null;
-        });
-      }
+        widget.onDoubleTap?.call(item);
+        _singleTapTimer = null;
+      });
     } else {
-      _lastTappedItem = item;
-      _doubleTapTimer?.cancel();
+      _tripleTapTimer?.cancel();
+      _tripleTapTimer = null;
 
+      _singleTapTimer?.cancel();
       widget.onTap?.call(item, tapPosition);
 
-      _doubleTapTimer = Timer(const Duration(milliseconds: 300), () {
+      _singleTapTimer = Timer(const Duration(milliseconds: 300), () {
+        _singleTapTimer = null;
         TermTooltipClass.makeVisible();
-        _doubleTapTimer = null;
-        _lastTappedItem = null;
       });
     }
+    _lastTappedItem = item;
   }
 
   @override
   void dispose() {
-    _doubleTapTimer?.cancel();
+    _singleTapTimer?.cancel();
     _tripleTapTimer?.cancel();
     super.dispose();
   }
