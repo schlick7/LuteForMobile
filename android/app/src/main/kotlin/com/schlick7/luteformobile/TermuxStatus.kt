@@ -188,7 +188,12 @@ suspend fun isLute3Installed(context: Context): InstallationStatus {
             putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
             putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
         }
-        context.startService(intent)
+
+        try {
+            context.startService(intent)
+        } catch (e: Exception) {
+            return InstallationStatus.UNKNOWN
+        }
 
         delay(TermuxConstants.INSTALLATION_CHECK_DELAY * 1000L)
 
@@ -204,6 +209,6 @@ suspend fun isLute3Installed(context: Context): InstallationStatus {
             else -> InstallationStatus.UNKNOWN
         }
     } catch (e: Exception) {
-        InstallationStatus.ERROR
+        InstallationStatus.UNKNOWN
     }
 }

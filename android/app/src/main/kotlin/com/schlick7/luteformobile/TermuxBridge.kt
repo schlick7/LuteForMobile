@@ -19,64 +19,102 @@ class TermuxBridge(private val context: Context) {
                 "isTermuxInstalled" -> {
                     result.success(isTermuxInstalled(context))
                 }
+
                 "isTermuxPermissionGranted" -> {
                     result.success(isTermuxPermissionGranted(context))
                 }
+
                 "isLute3Installed" -> {
                     scope.launch {
-                        val status = isLute3Installed(context)
-                        withContext(Dispatchers.Main) {
-                            result.success(status.name)
+                        try {
+                            val status = isLute3Installed(context)
+                            withContext(Dispatchers.Main) {
+                                result.success(status.name)
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                result.success(InstallationStatus.UNKNOWN.name)
+                            }
                         }
                     }
                 }
+
                 "isServerRunning" -> {
                     scope.launch {
-                        val running = isLute3ServerRunningHttp(TermuxConstants.LUTE3_DEFAULT_PORT)
-                        withContext(Dispatchers.Main) {
-                            result.success(running)
+                        try {
+                            val running = isLute3ServerRunningHttp(TermuxConstants.LUTE3_DEFAULT_PORT)
+                            withContext(Dispatchers.Main) {
+                                result.success(running)
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                result.success(false)
+                            }
                         }
                     }
                 }
+
                 "getLute3Version" -> {
                     scope.launch {
-                        val version = getLute3Version(context)
-                        withContext(Dispatchers.Main) {
-                            result.success(version)
+                        try {
+                            val version = getLute3Version(context)
+                            withContext(Dispatchers.Main) {
+                                result.success(version)
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                result.success(null)
+                            }
                         }
                     }
                 }
+
                 "getTermuxVersion" -> {
                     scope.launch {
-                        val version = getTermuxVersion(context)
-                        withContext(Dispatchers.Main) {
-                            result.success(version)
+                        try {
+                            val version = getTermuxVersion(context)
+                            withContext(Dispatchers.Main) {
+                                result.success(version)
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                result.success(null)
+                            }
                         }
                     }
                 }
+
                 "checkExternalAppsEnabled" -> {
                     scope.launch {
-                        val enabled = checkExternalAppsEnabled(context)
-                        withContext(Dispatchers.Main) {
-                            result.success(enabled)
+                        try {
+                            val enabled = checkExternalAppsEnabled(context)
+                            withContext(Dispatchers.Main) {
+                                result.success(enabled)
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                result.success(false)
+                            }
                         }
                     }
                 }
-                
+
                 // Server control
                 "startServer" -> {
                     launchLute3ServerWithAutoShutdown(context)
                     result.success(true)
                 }
+
                 "stopServer" -> {
                     stopLute3Server(context)
                     result.success(true)
                 }
+
                 "touchHeartbeat" -> {
                     touchHeartbeat(context)
                     result.success(true)
                 }
-                
+
                 // Installation
                 "installLute3" -> {
                     scope.launch {
@@ -88,6 +126,7 @@ class TermuxBridge(private val context: Context) {
                         }
                     }
                 }
+
                 "updateLute3" -> {
                     val script = "pip install --upgrade lute3"
                     val intent = android.content.Intent().apply {
@@ -100,6 +139,7 @@ class TermuxBridge(private val context: Context) {
                     context.startService(intent)
                     result.success(true)
                 }
+
                 "reinstallLute3" -> {
                     val script = "pip uninstall -y lute3 && pip install --upgrade lute3"
                     val intent = android.content.Intent().apply {
@@ -112,7 +152,7 @@ class TermuxBridge(private val context: Context) {
                     context.startService(intent)
                     result.success(true)
                 }
-                
+
                 // Backup operations
                 "createBackup" -> {
                     scope.launch {
@@ -125,23 +165,32 @@ class TermuxBridge(private val context: Context) {
                         }
                     }
                 }
+
                 "listBackups" -> {
                     scope.launch {
-                        val backups = listBackups(context)
-                        withContext(Dispatchers.Main) {
-                            result.success(backups?.map { backup ->
-                                mapOf(
-                                    "filename" to backup.filename,
-                                    "lastModified" to backup.lastModified,
-                                    "size" to backup.size,
-                                    "isManual" to backup.isManual
-                                )
-                            })
+                        try {
+                            val backups = listBackups(context)
+                            withContext(Dispatchers.Main) {
+                                result.success(backups?.map { backup ->
+                                    mapOf(
+                                        "filename" to backup.filename,
+                                        "lastModified" to backup.lastModified,
+                                        "size" to backup.size,
+                                        "isManual" to backup.isManual
+                                    )
+                                })
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                result.success(null)
+                            }
                         }
                     }
                 }
+
                 "downloadBackup" -> {
-                    val filename = call.argument<String>("filename") ?: return@setMethodCallHandler result.error("INVALID_ARGUMENT", "filename required", null)
+                    val filename = call.argument<String>("filename")
+                        ?: return@setMethodCallHandler result.error("INVALID_ARGUMENT", "filename required", null)
                     scope.launch {
                         val downloadResult = downloadBackup(context, filename)
                         withContext(Dispatchers.Main) {
@@ -152,6 +201,7 @@ class TermuxBridge(private val context: Context) {
                         }
                     }
                 }
+
                 "restoreBackup" -> {
                     scope.launch {
                         val file = selectBackupFile(context)
@@ -168,8 +218,10 @@ class TermuxBridge(private val context: Context) {
                         }
                     }
                 }
+
                 "syncWithRemote" -> {
-                    val remoteUrl = call.argument<String>("remoteUrl") ?: return@setMethodCallHandler result.error("INVALID_ARGUMENT", "remoteUrl required", null)
+                    val remoteUrl = call.argument<String>("remoteUrl")
+                        ?: return@setMethodCallHandler result.error("INVALID_ARGUMENT", "remoteUrl required", null)
                     val apiKey = call.argument<String>("apiKey")
                     scope.launch {
                         val syncResult = syncWithRemoteServer(context, remoteUrl, apiKey)
@@ -181,12 +233,12 @@ class TermuxBridge(private val context: Context) {
                         }
                     }
                 }
-                
+
                 else -> result.notImplemented()
             }
         }
     }
-    
+
     fun dispose() {
         scope.cancel()
     }
@@ -196,7 +248,7 @@ class TermuxBridge(private val context: Context) {
 private suspend fun getLute3Version(context: Context): String? {
     val versionFile = TermuxConstants.VERSION_FILE
     val script = "pip show lute3 | grep Version > $versionFile"
-    
+
     val intent = android.content.Intent().apply {
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
         action = TermuxConstants.TERMUX_ACTION
@@ -204,10 +256,15 @@ private suspend fun getLute3Version(context: Context): String? {
         putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
         putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
     }
-    context.startService(intent)
-    
+
+    try {
+        context.startService(intent)
+    } catch (e: Exception) {
+        return null
+    }
+
     delay(TermuxConstants.VERSION_CHECK_DELAY * 1000L)
-    
+
     return try {
         val file = java.io.File(versionFile)
         if (file.exists()) {
@@ -221,7 +278,7 @@ private suspend fun getLute3Version(context: Context): String? {
 private suspend fun getTermuxVersion(context: Context): String? {
     val versionFile = TermuxConstants.TERMUX_VERSION_FILE
     val script = "termux --version > $versionFile 2>&1"
-    
+
     val intent = android.content.Intent().apply {
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
         action = TermuxConstants.TERMUX_ACTION
@@ -229,10 +286,15 @@ private suspend fun getTermuxVersion(context: Context): String? {
         putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
         putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
     }
-    context.startService(intent)
-    
+
+    try {
+        context.startService(intent)
+    } catch (e: Exception) {
+        return null
+    }
+
     delay(TermuxConstants.VERSION_CHECK_DELAY * 1000L)
-    
+
     return try {
         val file = java.io.File(versionFile)
         if (file.exists()) {
@@ -245,8 +307,10 @@ private suspend fun getTermuxVersion(context: Context): String? {
 
 private suspend fun checkExternalAppsEnabled(context: Context): Boolean {
     val testFile = TermuxConstants.TEST_EXTERNAL_FILE
-    val script = "echo 'test' > $testFile"
-    
+    // Create the directory first, then write the test file, and finally check if it exists
+    val script =
+        "mkdir -p ${TermuxConstants.TERMUX_LUTE3_DIR} && echo \$(date) > $testFile && test -f $testFile && cat $testFile"
+
     val intent = android.content.Intent().apply {
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
         action = TermuxConstants.TERMUX_ACTION
@@ -254,13 +318,21 @@ private suspend fun checkExternalAppsEnabled(context: Context): Boolean {
         putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
         putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
     }
-    context.startService(intent)
-    
+
+    try {
+        context.startService(intent)
+    } catch (e: Exception) {
+        // If we can't even send the command, external apps are definitely not enabled
+        return false
+    }
+
+    // Wait for the command to complete
     delay(TermuxConstants.EXTERNAL_APP_CHECK_DELAY * 1000L)
-    
+
+    // Check if the file was created successfully by reading it directly
     return try {
         val file = java.io.File(testFile)
-        file.exists() && file.readText().contains("test")
+        file.exists() && file.canRead()
     } catch (e: Exception) {
         false
     }
