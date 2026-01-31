@@ -14,15 +14,21 @@ object TermuxConstants {
     const val LUTE3_DATA_DIR = "$TERMUX_HOME/.local/share/lute3"
     const val LUTE3_DB_PATH = "$LUTE3_DATA_DIR/lute.db"
 
-    // File paths for status tracking
-    const val HEARTBEAT_FILE = "$TERMUX_LUTE3_DIR/heartbeat"
-    const val INSTALLATION_STATUS_FILE = "$TERMUX_LUTE3_DIR/installation_status.txt"
-    const val VERSION_FILE = "$TERMUX_LUTE3_DIR/version.txt"
-    const val TERMUX_VERSION_FILE = "$TERMUX_LUTE3_DIR/termux_version.txt"
-    const val TEST_EXTERNAL_FILE = "$TERMUX_LUTE3_DIR/test_external.txt"
+    // File paths for status tracking (use Downloads directory which both apps can access)
+    val HEARTBEAT_FILE: String
+        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/lute3_heartbeat.txt"
+    val INSTALLATION_STATUS_FILE: String
+        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/lute3_installation_status.txt"
+    val VERSION_FILE: String
+        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/lute3_version.txt"
+    val TERMUX_VERSION_FILE: String
+        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/termux_version.txt"
+    val TEST_EXTERNAL_FILE: String
+        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/termux_test_external.txt"
 
     // Command completion tracking
-    const val COMMAND_STATUS_DIR = "$TERMUX_LUTE3_DIR/commands"
+    val COMMAND_STATUS_DIR: String
+        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/lute3_commands"
     const val COMMAND_SUCCESS = "SUCCESS"
     const val COMMAND_FAILED = "FAILED"
 

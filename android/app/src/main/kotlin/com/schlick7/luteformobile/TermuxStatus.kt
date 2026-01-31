@@ -214,22 +214,26 @@ suspend fun isLute3ServerRunningHttp(port: Int = TermuxConstants.LUTE3_DEFAULT_P
 
 suspend fun isLute3Installed(context: Context): InstallationStatus {
     val checkFile = TermuxConstants.INSTALLATION_STATUS_FILE
-
+    
     return try {
-        // Enhanced script with better error handling and logging
+        // Clean up old status file
+        try {
+            File(checkFile).delete()
+        } catch (e: Exception) {
+            // Ignore
+        }
+        
+        // Simple script to check if lute3 is installed
         val script = """
-            # Ensure the directory exists
-            mkdir -p ${TermuxConstants.TERMUX_LUTE3_DIR} 2>/dev/null
-            
-            # Check if lute3 is installed via pip
             if pip show lute3 > /dev/null 2>&1; then
                 echo "INSTALLED" > $checkFile
-                pip show lute3 >> $checkFile 2>&1
             else
                 echo "NOT_INSTALLED" > $checkFile
             fi
         """.trimIndent()
-
+        
+        android.util.Log.d("TermuxStatus", "Checking lute3 installation, writing to: $checkFile")
+        
         val intent = Intent().apply {
             setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
             action = TermuxConstants.TERMUX_ACTION
@@ -237,27 +241,37 @@ suspend fun isLute3Installed(context: Context): InstallationStatus {
             putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
             putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
         }
-
+        
         try {
             context.startService(intent)
         } catch (e: Exception) {
+            android.util.Log.e("TermuxStatus", "Failed to send command: ${e.message}")
             return InstallationStatus.UNKNOWN
         }
-
+        
         delay(TermuxConstants.INSTALLATION_CHECK_DELAY * 1000L)
-
+        
         val file = File(checkFile)
+        android.util.Log.d("TermuxStatus", "Checking status file exists: ${file.exists()}")
+        
         if (!file.exists()) {
+            android.util.Log.e("TermuxStatus", "Status file does not exist: $checkFile")
             return InstallationStatus.UNKNOWN
         }
-
-        val content = file.readText()
+        
+        val content = file.readText().trim()
+        android.util.Log.d("TermuxStatus", "Status file content: '$content'")
+        
         when {
-            content.contains("INSTALLED") -> InstallationStatus.INSTALLED
-            content.contains("NOT_INSTALLED") -> InstallationStatus.NOT_INSTALLED
-            else -> InstallationStatus.UNKNOWN
+            content == "INSTALLED" -> InstallationStatus.INSTALLED
+            content == "NOT_INSTALLED" -> InstallationStatus.NOT_INSTALLED
+            else -> {
+                android.util.Log.e("TermuxStatus", "Unknown status content: '$content'")
+                InstallationStatus.UNKNOWN
+            }
         }
     } catch (e: Exception) {
+        android.util.Log.e("TermuxStatus", "Installation check failed: ${e.message}")
         InstallationStatus.UNKNOWN
     }
 }

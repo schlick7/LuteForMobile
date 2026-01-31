@@ -111,8 +111,12 @@ class TermuxBridge(private val context: Context) {
                 }
 
                 "touchHeartbeat" -> {
-                    touchHeartbeat(context)
-                    result.success(true)
+                    scope.launch {
+                        val success = touchHeartbeat(context)
+                        withContext(Dispatchers.Main) {
+                            result.success(success)
+                        }
+                    }
                 }
 
                 // Installation
@@ -265,8 +269,18 @@ class TermuxBridge(private val context: Context) {
 // Top-level helper functions for getting version info
 private suspend fun getLute3Version(context: Context): String? {
     val versionFile = TermuxConstants.VERSION_FILE
-    val script = "pip show lute3 | grep Version > $versionFile"
-
+    
+    // Clean up old version file
+    try {
+        java.io.File(versionFile).delete()
+    } catch (e: Exception) {
+        // Ignore
+    }
+    
+    val script = "pip show lute3 > $versionFile"
+    
+    android.util.Log.d("TermuxBridge", "Checking lute3 version, writing to: $versionFile")
+    
     val intent = android.content.Intent().apply {
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
         action = TermuxConstants.TERMUX_ACTION
@@ -274,21 +288,35 @@ private suspend fun getLute3Version(context: Context): String? {
         putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
         putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
     }
-
+    
     try {
         context.startService(intent)
+        android.util.Log.d("TermuxBridge", "Version check command sent")
     } catch (e: Exception) {
+        android.util.Log.e("TermuxBridge", "Failed to send version check: ${e.message}")
         return null
     }
-
+    
     delay(TermuxConstants.VERSION_CHECK_DELAY * 1000L)
-
+    
     return try {
         val file = java.io.File(versionFile)
+        android.util.Log.d("TermuxBridge", "Version file exists: ${file.exists()}")
+        
         if (file.exists()) {
-            file.readText().removePrefix("Version: ").trim()
-        } else null
+            val content = file.readText()
+            android.util.Log.d("TermuxBridge", "Version file content: '$content'")
+            
+            val versionLine = content.lines().find { it.contains("Version") }
+            val version = versionLine?.removePrefix("Version: ")?.trim()
+            android.util.Log.d("TermuxBridge", "Extracted version: $version")
+            version
+        } else {
+            android.util.Log.w("TermuxBridge", "Version file does not exist")
+            null
+        }
     } catch (e: Exception) {
+        android.util.Log.e("TermuxBridge", "Version check failed: ${e.message}")
         null
     }
 }
@@ -327,8 +355,8 @@ private suspend fun checkExternalAppsEnabled(context: Context): Boolean {
         return false
     }
     
-    // Wait for command to complete
-    delay(4000)
+    // Wait for command to complete (echo is instant)
+    delay(300)
     
     // Check if file was created with expected content
     return try {

@@ -348,8 +348,11 @@ fun launchLute3ServerWithAutoShutdown(
     }
     context.startService(intent)
 }
-
-fun touchHeartbeat(context: Context) {
+ 
+suspend fun touchHeartbeat(context: Context): Boolean {
+    val heartbeatFile = File(TermuxConstants.HEARTBEAT_FILE)
+    val lastModifiedBefore = if (heartbeatFile.exists()) heartbeatFile.lastModified() else 0L
+    
     val intent = Intent().apply {
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
         action = TermuxConstants.TERMUX_ACTION
@@ -357,7 +360,19 @@ fun touchHeartbeat(context: Context) {
         putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "touch ${TermuxConstants.HEARTBEAT_FILE}"))
         putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
     }
-    context.startService(intent)
+    
+    return try {
+        context.startService(intent)
+        delay(500)
+        
+        val lastModifiedAfter = if (heartbeatFile.exists()) heartbeatFile.lastModified() else 0L
+        val success = lastModifiedAfter > lastModifiedBefore
+        android.util.Log.d("TermuxServer", "Heartbeat test: ${if (success) "SUCCESS" else "FAILED"}")
+        success
+    } catch (e: Exception) {
+        android.util.Log.e("TermuxServer", "Heartbeat test failed: ${e.message}")
+        false
+    }
 }
 
 fun stopLute3Server(context: Context) {

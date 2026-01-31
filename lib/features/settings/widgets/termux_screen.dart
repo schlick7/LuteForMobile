@@ -192,9 +192,11 @@ class _TermuxScreenState extends State<TermuxScreen> {
   }
 
   Future<void> _testHeartbeat() async {
-    await TermuxService.touchHeartbeat();
+    final success = await TermuxService.touchHeartbeat();
     setState(() {
-      _message = 'Heartbeat test sent';
+      _message = success
+          ? 'Heartbeat test successful'
+          : 'Heartbeat test failed';
     });
   }
 
@@ -388,7 +390,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
               }, statusLabel: _lute3Status),
             if (_lute3Status == 'INSTALLED') ...[
               _buildInfoRow('Lute3 Version', _lute3Version ?? 'Unknown'),
-              _buildInfoRow('Termux Version', _termuxVersion ?? 'Unknown'),
             ],
           ],
         ),
