@@ -1,8 +1,13 @@
+import 'dart:async';
 import 'package:flutter/services.dart';
 
 class TermuxService {
   static const MethodChannel _channel = MethodChannel(
     'com.schlick7.luteformobile/termux',
+  );
+
+  static const EventChannel _progressChannel = EventChannel(
+    'com.schlick7.luteformobile/termux_progress',
   );
 
   // Status checks
@@ -125,5 +130,18 @@ class TermuxService {
   static Future<int?> getAndroidVersion() async {
     final result = await _channel.invokeMethod('getAndroidVersion');
     return result as int?;
+  }
+
+  static Stream<Map<String, dynamic>> getInstallProgress() {
+    return _progressChannel.receiveBroadcastStream().map((event) {
+      if (event is Map) {
+        return Map<String, dynamic>.from(event);
+      }
+      return {
+        'step': event.toString(),
+        'status': 'Processing...',
+        'maxWaitSeconds': 60,
+      };
+    });
   }
 }

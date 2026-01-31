@@ -2,6 +2,7 @@ package com.schlick7.luteformobile
 
 import android.content.Context
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.*
 
@@ -13,6 +14,23 @@ class TermuxBridge(private val context: Context) {
             flutterEngine.dartExecutor.binaryMessenger,
             "com.schlick7.luteformobile/termux"
         )
+        
+        val eventChannel = EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "com.schlick7.luteformobile/termux_progress"
+        )
+        
+        var eventSink: EventChannel.EventSink? = null
+        
+        eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
+            override fun onListen(arguments: Any?, sink: EventChannel.EventSink?) {
+                eventSink = sink
+            }
+            
+            override fun onCancel(arguments: Any?) {
+                eventSink = null
+            }
+        })
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 // Status checks
@@ -121,13 +139,24 @@ class TermuxBridge(private val context: Context) {
 
                 // Installation
                 "installLute3" -> {
+                    android.util.Log.d("TermuxBridge", "installLute3 called, eventSink: ${eventSink != null}")
                     scope.launch {
                         val installResult = installLute3ServerWithProgress(context) { step ->
-                            // Could send progress updates via EventChannel if needed
+                            android.util.Log.d("TermuxBridge", "Progress update: ${step.name} - ${step.status}, sink: ${eventSink != null}")
+                            try {
+                                scope.launch(Dispatchers.Main.immediate) {
+                                    eventSink?.success(mapOf(
+                                        "step" to step.name,
+                                        "status" to step.status,
+                                        "maxWaitSeconds" to step.maxWaitSeconds
+                                    ))
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("TermuxBridge", "Failed to send progress: ${e.message}")
+                            }
                         }
-                        withContext(Dispatchers.Main) {
-                            result.success(installResult.name)
-                        }
+                        android.util.Log.d("TermuxBridge", "Installation complete: $installResult")
+                        result.success(installResult.name)
                     }
                 }
 
@@ -386,10 +415,9 @@ private suspend fun checkExternalAppsEnabled(context: Context): Boolean {
 }
 
 private suspend fun checkExternalAppsByFileCreation(context: Context): Boolean {
-    // Use the app's private directory for the test file - Termux can write here via RUN_COMMAND
-    val appFilesDir = context.filesDir.absolutePath
-    val testFile = "$appFilesDir/termux_external_test.txt"
-    val testDir = "$appFilesDir/termux_external_test_dir"
+    // Use Downloads directory for the test file - both apps can access it
+    val testDir = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/termux_external_test_dir"
+    val testFile = "$testDir/termux_external_test.txt"
     
     // Clean up any previous test files
     try {
@@ -466,8 +494,8 @@ private suspend fun checkExternalAppsByFileCreation(context: Context): Boolean {
 }
 
 private suspend fun checkExternalAppsByCommandExecution(context: Context): Boolean {
-    val appFilesDir = context.filesDir.absolutePath
-    val testFile = "$appFilesDir/termux_command_test.txt"
+    val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+    val testFile = "$downloadsDir/termux_command_test.txt"
     
     // Clean up
     try {
@@ -478,7 +506,7 @@ private suspend fun checkExternalAppsByCommandExecution(context: Context): Boole
     
     // Simpler test: just try to run a basic command
     val script = """
-        # Test basic command execution
+        mkdir -p $downloadsDir && \
         echo "Command execution test: $(date)" > $testFile && \
         echo "COMMAND_SUCCESS=true"
     """.trimIndent()
@@ -517,10 +545,10 @@ private suspend fun checkExternalAppsByCommandExecution(context: Context): Boole
 }
 
 private suspend fun checkExternalAppsByConfigFile(context: Context): Boolean {
-    // Check if the Termux configuration file has allow-external-apps enabled
+    // Check if Termux configuration file has allow-external-apps enabled
     val configFile = "${TermuxConstants.TERMUX_HOME}/.termux/termux.properties"
-    val appFilesDir = context.filesDir.absolutePath
-    val checkResultFile = "$appFilesDir/termux_config_check.txt"
+    val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)
+    val checkResultFile = "$downloadsDir/termux_config_check.txt"
     
     // Clean up
     try {
@@ -530,6 +558,7 @@ private suspend fun checkExternalAppsByConfigFile(context: Context): Boolean {
     }
     
     val script = """
+        mkdir -p $downloadsDir && \
         # Check if the configuration file exists and contains allow-external-apps=true
         if [ -f $configFile ]; then
             if grep -q "allow-external-apps=true" $configFile; then

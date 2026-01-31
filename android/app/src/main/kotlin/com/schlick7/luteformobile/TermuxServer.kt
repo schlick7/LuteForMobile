@@ -18,11 +18,11 @@ import java.util.Date
 import java.util.Locale
 
 enum class InstallationStep(val status: String, val maxWaitSeconds: Int) {
-    SETUP_STORAGE("Setting up storage permissions...", 60),
+    SETUP_STORAGE("Setting up storage permissions...", 10),
     UPDATING_PACKAGES("Updating package lists...", 120),
     UPGRADING_PACKAGES("Upgrading packages...", 300),
-    INSTALLING_PYTHON("Installing Python3...", 180),
-    INSTALLING_LUTE3("Installing Lute3...", 180),
+    INSTALLING_PYTHON("Installing Python3...", 300),
+    INSTALLING_LUTE3("Installing Lute3...", 300),
     VERIFYING("Verifying installation...", 30),
     COMPLETE("Installation complete!", 0),
     FAILED("Installation failed", 0)
@@ -117,20 +117,24 @@ suspend fun executeCommandWithStatusFile(
     context: Context,
     command: String,
     stepName: String,
-    onProgress: (String) -> Unit
+    onProgress: (String) -> Unit,
+    timeoutSeconds: Int = 60
 ): CommandResult {
-    val appFilesDir = context.filesDir.absolutePath
-    val statusFile = "$appFilesDir/cmd_status_${System.currentTimeMillis()}.txt"
-    
+    val statusDir = File(TermuxConstants.COMMAND_STATUS_DIR)
+    statusDir.mkdirs()
+
+    val statusFile = "${TermuxConstants.COMMAND_STATUS_DIR}/cmd_status_${System.currentTimeMillis()}.txt"
+
     File(statusFile).delete()
-    
+
     val script = """
         $command && echo "SUCCESS" > $statusFile || echo "FAILED" > $statusFile
     """.trimIndent()
-    
+
     android.util.Log.d("TermuxServer", "Executing: $stepName")
     android.util.Log.d("TermuxServer", "Status file: $statusFile")
-    
+    android.util.Log.d("TermuxServer", "Timeout: $timeoutSeconds seconds")
+
     val intent = Intent().apply {
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
         action = TermuxConstants.TERMUX_ACTION
@@ -138,7 +142,7 @@ suspend fun executeCommandWithStatusFile(
         putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
         putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
     }
-    
+
     val sendResult = try {
         context.startService(intent)
         android.util.Log.d("TermuxServer", "Command sent successfully")
@@ -147,39 +151,39 @@ suspend fun executeCommandWithStatusFile(
         android.util.Log.e("TermuxServer", "Failed to send command: ${e.message}")
         false
     }
-    
+
     if (!sendResult) {
         return CommandResult.Failed("Could not send command to Termux")
     }
-    
+
     val startTime = System.currentTimeMillis()
-    val timeoutMs = 60_000L
-    
+    val timeoutMs = timeoutSeconds * 1000L
+
     while (System.currentTimeMillis() - startTime < timeoutMs) {
         delay(2000)
-        
+
         val statusFileObj = File(statusFile)
         if (statusFileObj.exists()) {
             val content = statusFileObj.readText().trim()
             statusFileObj.delete()
-            
+
             android.util.Log.d("TermuxServer", "Status file found: $content")
-            
+
             return when (content) {
                 "SUCCESS" -> CommandResult.Success("Command completed successfully")
                 "FAILED" -> CommandResult.Failed("Command failed in Termux")
                 else -> CommandResult.Failed("Unknown status: $content")
             }
         }
-        
+
         val elapsedSeconds = (System.currentTimeMillis() - startTime) / 1000
         onProgress("$stepName (${elapsedSeconds}s elapsed...)")
         android.util.Log.d("TermuxServer", "Waiting for completion... ${elapsedSeconds}s elapsed")
     }
-    
+
     File(statusFile).delete()
-    android.util.Log.w("TermuxServer", "Command timed out after 60 seconds")
-    return CommandResult.Timeout("Command timed out after 60 seconds")
+    android.util.Log.w("TermuxServer", "Command timed out after $timeoutSeconds seconds")
+    return CommandResult.Timeout("Command timed out after $timeoutSeconds seconds")
 }
 
 suspend fun installLute3ServerWithProgress(
@@ -190,91 +194,118 @@ suspend fun installLute3ServerWithProgress(
         onStepChange(step)
         android.util.Log.d("TermuxServer", "Status: ${step.status} - $message")
     }
-    
+
     return try {
         updateStatus(InstallationStep.SETUP_STORAGE, "Starting storage setup...")
-        when (val result = executeCommandWithStatusFile(context, "termux-setup-storage", "Storage setup",
-            { msg -> updateStatus(InstallationStep.SETUP_STORAGE, msg) })) {
+        when (val result = executeCommandWithStatusFile(
+            context, "termux-setup-storage", "Storage setup",
+            { msg -> updateStatus(InstallationStep.SETUP_STORAGE, msg) }, InstallationStep.SETUP_STORAGE.maxWaitSeconds
+        )) {
             is CommandResult.Success -> android.util.Log.d("TermuxServer", "Storage setup complete")
             is CommandResult.Failed -> {
                 android.util.Log.e("TermuxServer", "Storage setup failed: ${result.error}")
                 updateStatus(InstallationStep.FAILED, "Failed to setup storage")
                 return InstallationStep.FAILED
             }
+
             is CommandResult.Timeout -> {
                 android.util.Log.e("TermuxServer", "Storage setup timed out: ${result.message}")
                 updateStatus(InstallationStep.FAILED, "Storage setup timed out")
                 return InstallationStep.FAILED
             }
         }
-        
+
         updateStatus(InstallationStep.UPDATING_PACKAGES, "Updating package lists...")
-        when (val result = executeCommandWithStatusFile(context, "pkg update -y", "Package update",
-            { msg -> updateStatus(InstallationStep.UPDATING_PACKAGES, msg) })) {
+        when (val result = executeCommandWithStatusFile(
+            context,
+            "pkg update -y",
+            "Package update",
+            { msg -> updateStatus(InstallationStep.UPDATING_PACKAGES, msg) },
+            InstallationStep.UPDATING_PACKAGES.maxWaitSeconds
+        )) {
             is CommandResult.Success -> android.util.Log.d("TermuxServer", "Package update complete")
             is CommandResult.Failed -> {
                 android.util.Log.e("TermuxServer", "Package update failed: ${result.error}")
                 updateStatus(InstallationStep.FAILED, "Failed to update packages")
                 return InstallationStep.FAILED
             }
+
             is CommandResult.Timeout -> {
                 android.util.Log.e("TermuxServer", "Package update timed out: ${result.message}")
                 updateStatus(InstallationStep.FAILED, "Package update timed out")
                 return InstallationStep.FAILED
             }
         }
-        
+
         updateStatus(InstallationStep.UPGRADING_PACKAGES, "Upgrading packages...")
-        when (val result = executeCommandWithStatusFile(context, "pkg upgrade -y", "Package upgrade",
-            { msg -> updateStatus(InstallationStep.UPGRADING_PACKAGES, msg) })) {
+        when (val result = executeCommandWithStatusFile(
+            context,
+            "pkg upgrade -y",
+            "Package upgrade",
+            { msg -> updateStatus(InstallationStep.UPGRADING_PACKAGES, msg) },
+            InstallationStep.UPGRADING_PACKAGES.maxWaitSeconds
+        )) {
             is CommandResult.Success -> android.util.Log.d("TermuxServer", "Package upgrade complete")
             is CommandResult.Failed -> {
                 android.util.Log.e("TermuxServer", "Package upgrade failed: ${result.error}")
                 updateStatus(InstallationStep.FAILED, "Failed to upgrade packages")
                 return InstallationStep.FAILED
             }
+
             is CommandResult.Timeout -> {
                 android.util.Log.e("TermuxServer", "Package upgrade timed out: ${result.message}")
                 updateStatus(InstallationStep.FAILED, "Package upgrade timed out")
                 return InstallationStep.FAILED
             }
         }
-        
+
         updateStatus(InstallationStep.INSTALLING_PYTHON, "Installing Python3...")
-        when (val result = executeCommandWithStatusFile(context, "pkg install python3 -y", "Python installation",
-            { msg -> updateStatus(InstallationStep.INSTALLING_PYTHON, msg) })) {
+        when (val result = executeCommandWithStatusFile(
+            context,
+            "pkg install python3 -y",
+            "Python installation",
+            { msg -> updateStatus(InstallationStep.INSTALLING_PYTHON, msg) },
+            InstallationStep.INSTALLING_PYTHON.maxWaitSeconds
+        )) {
             is CommandResult.Success -> android.util.Log.d("TermuxServer", "Python installation complete")
             is CommandResult.Failed -> {
                 android.util.Log.e("TermuxServer", "Python install failed: ${result.error}")
                 updateStatus(InstallationStep.FAILED, "Failed to install Python")
                 return InstallationStep.FAILED
             }
+
             is CommandResult.Timeout -> {
                 android.util.Log.e("TermuxServer", "Python install timed out: ${result.message}")
                 updateStatus(InstallationStep.FAILED, "Python installation timed out")
                 return InstallationStep.FAILED
             }
         }
-        
+
         updateStatus(InstallationStep.INSTALLING_LUTE3, "Installing Lute3...")
-        when (val result = executeCommandWithStatusFile(context, "pip install --upgrade lute3", "Lute3 installation",
-            { msg -> updateStatus(InstallationStep.INSTALLING_LUTE3, msg) })) {
+        when (val result = executeCommandWithStatusFile(
+            context,
+            "pip install --upgrade lute3",
+            "Lute3 installation",
+            { msg -> updateStatus(InstallationStep.INSTALLING_LUTE3, msg) },
+            InstallationStep.INSTALLING_LUTE3.maxWaitSeconds
+        )) {
             is CommandResult.Success -> android.util.Log.d("TermuxServer", "Lute3 installation complete")
             is CommandResult.Failed -> {
                 android.util.Log.e("TermuxServer", "Lute3 install failed: ${result.error}")
                 updateStatus(InstallationStep.FAILED, "Failed to install Lute3")
                 return InstallationStep.FAILED
             }
+
             is CommandResult.Timeout -> {
                 android.util.Log.e("TermuxServer", "Lute3 install timed out: ${result.message}")
                 updateStatus(InstallationStep.FAILED, "Lute3 installation timed out")
                 return InstallationStep.FAILED
             }
         }
-        
+
         updateStatus(InstallationStep.VERIFYING, "Verifying installation...")
         delay(5000)
-        
+
         if (isLute3ServerRunningHttp(TermuxConstants.LUTE3_DEFAULT_PORT)) {
             InstallationStep.COMPLETE
         } else {
@@ -348,11 +379,11 @@ fun launchLute3ServerWithAutoShutdown(
     }
     context.startService(intent)
 }
- 
+
 suspend fun touchHeartbeat(context: Context): Boolean {
     val heartbeatFile = File(TermuxConstants.HEARTBEAT_FILE)
     val lastModifiedBefore = if (heartbeatFile.exists()) heartbeatFile.lastModified() else 0L
-    
+
     val intent = Intent().apply {
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
         action = TermuxConstants.TERMUX_ACTION
@@ -360,11 +391,11 @@ suspend fun touchHeartbeat(context: Context): Boolean {
         putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "touch ${TermuxConstants.HEARTBEAT_FILE}"))
         putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
     }
-    
+
     return try {
         context.startService(intent)
         delay(500)
-        
+
         val lastModifiedAfter = if (heartbeatFile.exists()) heartbeatFile.lastModified() else 0L
         val success = lastModifiedAfter > lastModifiedBefore
         android.util.Log.d("TermuxServer", "Heartbeat test: ${if (success) "SUCCESS" else "FAILED"}")
@@ -521,9 +552,13 @@ suspend fun downloadBackup(
 
         if (response.isSuccessful) {
             val inputStream = response.body?.byteStream()
-            
-            val result = StorageHelper.saveDownloadedFile(context, filename, inputStream ?: return@withContext DownloadResult.Error("No response body"))
-            
+
+            val result = StorageHelper.saveDownloadedFile(
+                context,
+                filename,
+                inputStream ?: return@withContext DownloadResult.Error("No response body")
+            )
+
             result.fold(
                 onSuccess = { file -> DownloadResult.Success(file.absolutePath) },
                 onFailure = { e -> DownloadResult.Error("Failed to save file: ${e.message}") }
@@ -645,8 +680,10 @@ suspend fun syncWithRemoteServer(
         val client = OkHttpClient()
         val requestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("backup", latestBackup.filename,
-                File(downloadResult.filePath).asRequestBody("application/gzip".toMediaType()))
+            .addFormDataPart(
+                "backup", latestBackup.filename,
+                File(downloadResult.filePath).asRequestBody("application/gzip".toMediaType())
+            )
             .build()
 
         val requestBuilder = Request.Builder()

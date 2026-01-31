@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -30,10 +31,21 @@ class _TermuxScreenState extends State<TermuxScreen> {
   String _remoteUrl = '';
   String _apiKey = '';
 
+  StreamSubscription? _progressSubscription;
+  String _currentStep = '';
+  String _currentStatus = '';
+  int _currentMaxWaitSeconds = 60;
+
   @override
   void initState() {
     super.initState();
     _refreshStatus();
+  }
+
+  @override
+  void dispose() {
+    _progressSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _refreshStatus() async {
@@ -163,15 +175,39 @@ class _TermuxScreenState extends State<TermuxScreen> {
   Future<void> _installLute3() async {
     setState(() {
       _isLoading = true;
-      _message = 'Installing Lute3 Server...\nThis may take 1-3 minutes.';
+      _message = 'Starting Lute3 installation...\nThis may take 1-3 minutes.';
+      _currentStep = 'Preparing...';
+      _currentStatus = 'Starting...';
     });
 
+    _progressSubscription?.cancel();
+    _progressSubscription = TermuxService.getInstallProgress().listen(
+      (progress) {
+        setState(() {
+          _currentStep = progress['step'] ?? 'Processing...';
+          _currentStatus = progress['status'] ?? 'Processing...';
+          _currentMaxWaitSeconds = progress['maxWaitSeconds'] ?? 60;
+          _message = '$_currentStatus\n$_currentStep';
+        });
+      },
+      onError: (error) {
+        setState(() {
+          _message = 'Installation error: $error';
+        });
+      },
+    );
+
     final result = await TermuxService.installLute3();
+
+    await _progressSubscription?.cancel();
+    _progressSubscription = null;
 
     setState(() {
       _message = result == 'COMPLETE'
           ? 'Lute3 installed successfully!'
-          : 'Installation failed.';
+          : 'Installation failed. Check logs for details.';
+      _currentStep = '';
+      _currentStatus = '';
       _isLoading = false;
     });
 
@@ -308,7 +344,41 @@ class _TermuxScreenState extends State<TermuxScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 24),
+              if (_currentStep.isNotEmpty) ...[
+                Text(
+                  'Step: $_currentStep',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+              ],
+              if (_currentStatus.isNotEmpty)
+                Text(
+                  _currentStatus,
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  textAlign: TextAlign.center,
+                ),
+              const SizedBox(height: 8),
+              Text(
+                'This may take up to ${_currentMaxWaitSeconds} seconds',
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return SingleChildScrollView(
@@ -793,79 +863,8 @@ class _TermuxScreenState extends State<TermuxScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Step 4: Reopen Termux and verify',
+                'Step 4: Return to LuteForMobile and refresh',
                 style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const Text(
-                'Run: cat ~/.termux/termux.properties',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Step 5: Test with a simple command',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const Text(
-                'Run: echo "Termux test"',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Step 6: Return to LuteForMobile and refresh',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.orange.shade50,
-                  border: Border.all(color: Colors.orange.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.warning,
-                          color: Colors.orange.shade700,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Troubleshooting',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange.shade900,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      '• Make sure you have Termux 0.118.3 or higher installed',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const Text(
-                      '• Verify the RUN_COMMAND permission is granted in Android Settings',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const Text(
-                      '• If still showing "Disabled", try using the app anyway',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'The detection may fail on some devices even if external apps are properly configured.',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
