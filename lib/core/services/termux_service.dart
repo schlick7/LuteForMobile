@@ -68,14 +68,34 @@ class TermuxService {
     return result as String? ?? 'FAILED';
   }
 
+  static Future<String> installLute3Tmux() async {
+    final result = await _channel.invokeMethod('installLute3Tmux');
+    return result as String? ?? 'FAILED';
+  }
+
+  static Future<String> testInstall() async {
+    final result = await _channel.invokeMethod('testInstall');
+    return result as String? ?? 'FAILED';
+  }
+
   static Future<bool> updateLute3() async {
-    final result = await _channel.invokeMethod('updateLute3');
-    return result as bool? ?? false;
+    try {
+      final result = await _channel.invokeMethod('updateLute3');
+      return result as bool? ?? false;
+    } on PlatformException catch (e) {
+      print('Update Lute3 failed: ${e.message}');
+      return false;
+    }
   }
 
   static Future<bool> reinstallLute3() async {
-    final result = await _channel.invokeMethod('reinstallLute3');
-    return result as bool? ?? false;
+    try {
+      final result = await _channel.invokeMethod('reinstallLute3');
+      return result as bool? ?? false;
+    } on PlatformException catch (e) {
+      print('Reinstall Lute3 failed: ${e.message}');
+      return false;
+    }
   }
 
   // Backup operations
@@ -130,6 +150,17 @@ class TermuxService {
   static Future<int?> getAndroidVersion() async {
     final result = await _channel.invokeMethod('getAndroidVersion');
     return result as int?;
+  }
+
+  // tmux-related methods
+  static Future<String> getTmuxStatus() async {
+    final result = await _channel.invokeMethod('getTmuxStatus');
+    return result as String? ?? 'ERROR';
+  }
+
+  static Future<String> attachTmuxSession() async {
+    final result = await _channel.invokeMethod('attachTmuxSession');
+    return result as String? ?? 'Failed to get attach instructions';
   }
 
   static Stream<Map<String, dynamic>> getInstallProgress() {

@@ -18,49 +18,43 @@ import java.util.Date
 import java.util.Locale
 
 enum class InstallationStep(val status: String, val maxWaitSeconds: Int) {
+    // tmux-based installation steps
+    INSTALLING_TMUX("Installing tmux...", 180),
+    CONFIGURING_TMUX("Configuring tmux...", 30),
     SETUP_STORAGE("Setting up storage permissions...", 10),
-    CONFIGURING_MIRRORS("Configuring mirrors...", 180),
+    CONFIGURING_MIRRORS("Configuring mirrors...", 10),
     UPDATING_PACKAGES("Updating package lists...", 120),
     UPGRADING_PACKAGES("Upgrading packages...", 300),
-    INSTALLING_PYTHON("Installing Python3...", 300),
+    INSTALLING_PYTHON3("Installing Python3...", 300),
+    VERIFYING_PYTHON("Verifying Python installation...", 15),
+    UPGRADING_PIP("Upgrading pip...", 60),
     INSTALLING_LUTE3("Installing Lute3...", 300),
-    VERIFYING("Verifying installation...", 30),
+    VERIFYING_LUTE3("Verifying Lute3 installation...", 30),
+    STARTING_SERVER("Starting Lute3 server...", 30),
+    VERIFYING_SERVER("Verifying server is responding...", 20),
+    FINAL_CHECK("Performing final verification...", 10),
     COMPLETE("Installation complete!", 0),
     FAILED("Installation failed", 0)
 }
 
-fun termuxUpdatePackages(context: Context): Boolean {
-    return try {
-        val intent = Intent().apply {
-            setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-            action = TermuxConstants.TERMUX_ACTION
-            putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "pkg update -y"))
-            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-        }
-        context.startService(intent)
-        true
-    } catch (e: Exception) {
-        android.util.Log.e("TermuxServer", "Failed to start package update: ${e.message}")
-        false
-    }
+suspend fun termuxUpdatePackages(context: Context): CommandResult {
+    return executeCommandWithStatusFile(
+        context,
+        "pkg update -y",
+        "Updating packages",
+        { progress -> android.util.Log.d("TermuxServer", progress) },
+        TermuxConstants.UPDATE_PACKAGES_TIMEOUT
+    )
 }
 
-fun termuxUpgradePackages(context: Context): Boolean {
-    return try {
-        val intent = Intent().apply {
-            setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-            action = TermuxConstants.TERMUX_ACTION
-            putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "pkg upgrade -y"))
-            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-        }
-        context.startService(intent)
-        true
-    } catch (e: Exception) {
-        android.util.Log.e("TermuxServer", "Failed to start package upgrade: ${e.message}")
-        false
-    }
+suspend fun termuxUpgradePackages(context: Context): CommandResult {
+    return executeCommandWithStatusFile(
+        context,
+        "pkg upgrade -y",
+        "Upgrading packages",
+        { progress -> android.util.Log.d("TermuxServer", progress) },
+        TermuxConstants.UPGRADE_PACKAGES_TIMEOUT
+    )
 }
 
 fun termuxInstallPython3(context: Context): Boolean {
@@ -104,6 +98,8 @@ suspend fun executeCommandWithStatusFile(
     onProgress: (String) -> Unit,
     timeoutSeconds: Int = 60
 ): CommandResult {
+    android.util.Log.d("TermuxServer", "=== executeCommandWithStatusFile: $stepName ===")
+    android.util.Log.d("TermuxServer", "Command: $command")
     val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
     val statusFile = "$downloadsDir/${stepName.replace(" ", "_")}_status.txt"
     val outputFile = "$downloadsDir/${stepName.replace(" ", "_")}_output.txt"
@@ -226,42 +222,98 @@ suspend fun installLute3ServerWithProgress(
     return try {
         val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
         val statusFile = "$downloadsDir/lute3_install_status.txt"
+        val lutePort = TermuxConstants.LUTE3_DEFAULT_PORT
 
         val installScript = """
             #!/data/data/com.termux/files/usr/bin/bash
-            set -e
+
+            # Kill any existing installation processes to avoid conflicts
+            pkill -9 -f 'pkg.*update|pkg.*upgrade|apt|dpkg' 2>/dev/null || true
+
+            # Function to log detailed status
+            log_status() {
+                local step_name="${'$'}1"
+                local message="${'$'}2"
+                local max_wait="${'$'}3"
+                local detail="${'$'}4"
+                echo "STATUS|${'$'}step_name|${'$'}message|${'$'}max_wait|${'$'}detail" > "${'$'}statusFile"
+            }
 
             # Clear any stale locks first
+            log_status "SETUP_STORAGE" "Cleaning up stale locks..." "10" "Clearing locks"
             pkill -9 -f 'apt|dpkg|pkg' 2>/dev/null || true
             rm -f ${'$'}PREFIX/var/lib/dpkg/lock-frontend ${'$'}PREFIX/var/lib/dpkg/lock ${'$'}PREFIX/var/cache/apt/archives/lock 2>/dev/null || true
             dpkg --configure -a 2>/dev/null || true
+            log_status "SETUP_STORAGE" "Ready" "10" "Locks cleared"
 
-            echo "STATUS|SETUP_STORAGE|Storage access configured|10" > "$statusFile"
-
-            echo "STATUS|CONFIGURING_MIRRORS|Configuring mirrors...|10" > "$statusFile"
+            # Configure Termux mirrors
+            log_status "CONFIGURING_MIRRORS" "Configuring mirrors..." "10" "Setting up repo"
             echo 'deb https://packages.termux.dev/apt/termux-main stable main' > ${'$'}PREFIX/etc/apt/sources.list
+            log_status "CONFIGURING_MIRRORS" "Done" "10" "Mirrors configured"
 
-            echo "STATUS|UPDATING_PACKAGES|Updating package lists...|120" > "$statusFile"
-            pkg update -y
+            # Update package lists
+            log_status "UPDATING_PACKAGES" "Updating package lists..." "60" "Running pkg update"
+            pkg update -y || (log_status "FAILED" "pkg update failed" "0" "Command failed" && exit 1)
+            log_status "UPDATING_PACKAGES" "Done" "60" "Packages updated"
 
-            echo "STATUS|UPGRADING_PACKAGES|Upgrading packages...|300" > "$statusFile"
-            pkg upgrade -y
+            # Upgrade packages
+            log_status "UPGRADING_PACKAGES" "Upgrading packages..." "300" "Running pkg upgrade"
+            pkg upgrade -y || (log_status "FAILED" "pkg upgrade failed" "0" "Command failed" && exit 1)
+            log_status "UPGRADING_PACKAGES" "Done" "300" "Packages upgraded"
 
-            echo "STATUS|INSTALLING_PYTHON3|Installing Python3...|300" > "$statusFile"
-            pkg install python3 -y
+            # Install Python3
+            log_status "INSTALLING_PYTHON3" "Installing Python3..." "300" "Running pkg install python3"
+            pkg install python3 -y || (log_status "FAILED" "Python3 install failed" "0" "Command failed" && exit 1)
+            log_status "INSTALLING_PYTHON3" "Done" "300" "Python3 installed"
 
-            echo "STATUS|INSTALLING_LUTE3|Downloading and installing...|300" > "$statusFile"
-            pip install --upgrade lute3
+            # Verify Python installation
+            log_status "VERIFYING_PYTHON" "Verifying Python..." "15" "Running python --version"
+            python --version || (log_status "FAILED" "Python not found" "0" "Verification failed" && exit 1)
+            log_status "VERIFYING_PYTHON" "Done" "15" "Python verified"
 
-            echo "STATUS|VERIFYING|Verifying installation...|30" > "$statusFile"
-            sleep 5
+            # Upgrade pip
+            log_status "UPGRADING_PIP" "Upgrading pip..." "60" "Running pip install --upgrade pip"
+            pip install --upgrade pip || (log_status "FAILED" "pip upgrade failed" "0" "Command failed" && exit 1)
+            log_status "UPGRADING_PIP" "Done" "60" "pip upgraded"
 
-            # Check if server is running
-            if curl -s http://localhost:${'$'}{TermuxConstants.LUTE3_DEFAULT_PORT} > /dev/null 2>&1; then
-                echo "STATUS|COMPLETE|Installation complete!|0" > "$statusFile"
-            else
-                echo "STATUS|FAILED|Server failed to start|0" > "$statusFile"
-            fi
+            # Install Lute3
+            log_status "INSTALLING_LUTE3" "Installing Lute3..." "300" "Running pip install --upgrade lute3"
+            pip install --upgrade lute3 || (log_status "FAILED" "lute3 install failed" "0" "Command failed" && exit 1)
+            log_status "INSTALLING_LUTE3" "Done" "300" "Lute3 installed"
+
+            # Verify Lute3 installation
+            log_status "VERIFYING_LUTE3" "Verifying Lute3..." "30" "Running lute3 --version"
+            lute3 --version || (log_status "FAILED" "lute3 not found" "0" "Verification failed" && exit 1)
+            log_status "VERIFYING_LUTE3" "Done" "30" "Lute3 verified"
+
+            # Start Lute3 server for verification
+            log_status "STARTING_SERVER" "Starting server..." "30" "Launching on port $lutePort"
+            python -m lute.main --port $lutePort &
+            LUTE_PID=${'$'}!
+            log_status "STARTING_SERVER" "Started (PID: ${'$'}LUTE_PID)" "30" "Server running"
+
+            # Wait for server to be ready
+            log_status "VERIFYING_SERVER" "Verifying server..." "20" "Checking HTTP"
+            sleep 3
+            for i in {1..10}; do
+                if curl -s http://localhost:$lutePort > /dev/null 2>&1; then
+                    log_status "VERIFYING_SERVER" "Responding" "20" "Server ready"
+                    break
+                fi
+                if [ ${'$'}i -eq 10 ]; then
+                    log_status "FAILED" "Server not responding" "0" "Server failed" && kill ${'$'}LUTE_PID 2>/dev/null && exit 1
+                fi
+                sleep 1
+            done
+
+            # Stop verification server
+            kill ${'$'}LUTE_PID 2>/dev/null || true
+            log_status "VERIFYING_SERVER" "Done" "20" "Verification complete"
+
+            # Final verification
+            log_status "FINAL_CHECK" "Final check..." "10" "Checking components"
+            command -v python3 > /dev/null && command -v pip > /dev/null && command -v lute3 > /dev/null || (log_status "FAILED" "Missing tools" "0" "Not all tools found" && exit 1)
+            log_status "COMPLETE" "Complete!" "0" "All verified"
         """.trimIndent()
 
         android.util.Log.d("TermuxServer", "Starting combined installation script")
@@ -272,6 +324,7 @@ suspend fun installLute3ServerWithProgress(
             putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
             putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", installScript))
             putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+            putExtra("com.termux.RUN_COMMAND_RESULT_DIRECTORY", downloadsDir)
         }
 
         context.startService(intent)
@@ -281,22 +334,32 @@ suspend fun installLute3ServerWithProgress(
         var lastStep = ""
 
         while (System.currentTimeMillis() - startTime < maxWaitMs) {
-            delay(3000)
+            delay(2000)
 
             try {
                 val file = java.io.File(statusFile)
                 if (file.exists()) {
                     val content = file.readText().trim()
+                    android.util.Log.d("TermuxServer", "Status file content: $content")
+                    
                     if (content.startsWith("STATUS|")) {
                         val parts = content.split("|")
                         if (parts.size >= 4) {
                             val step = parts[1]
                             val status = parts[2]
                             val maxWait = parts[3].toIntOrNull() ?: 60
+                            val detail = if (parts.size >= 5) parts[4] else ""
+
+                            android.util.Log.d("TermuxServer", "Step: $step, Status: $status, Detail: $detail")
 
                             if (step != lastStep) {
                                 lastStep = step
-                                onStepChange(step, status, maxWait)
+                                val combinedStatus = if (detail.isNotEmpty()) {
+                                    "$status - $detail"
+                                } else {
+                                    status
+                                }
+                                onStepChange(step, combinedStatus, maxWait)
                             }
 
                             when (step) {
@@ -306,7 +369,12 @@ suspend fun installLute3ServerWithProgress(
                                 }
                                 "FAILED" -> {
                                     file.delete()
-                                    onStepChange(InstallationStep.FAILED.name, status, 0)
+                                    val combinedStatus = if (detail.isNotEmpty()) {
+                                        "$status - $detail"
+                                    } else {
+                                        status
+                                    }
+                                    onStepChange(InstallationStep.FAILED.name, combinedStatus, 0)
                                     return InstallationStep.FAILED
                                 }
                             }

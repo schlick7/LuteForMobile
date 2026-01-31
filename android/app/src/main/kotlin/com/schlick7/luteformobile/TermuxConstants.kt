@@ -16,21 +16,31 @@ object TermuxConstants {
 
     // File paths for status tracking (use Downloads directory which both apps can access)
     val HEARTBEAT_FILE: String
-        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/lute3_heartbeat.txt"
+        get() = "${StorageHelper.getDownloadsDirectory()}/lute3_heartbeat.txt"
     val INSTALLATION_STATUS_FILE: String
-        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/lute3_installation_status.txt"
+        get() = "${StorageHelper.getDownloadsDirectory()}/lute3_installation_status.txt"
     val VERSION_FILE: String
-        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/lute3_version.txt"
+        get() = "${StorageHelper.getDownloadsDirectory()}/lute3_version.txt"
     val TERMUX_VERSION_FILE: String
-        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/termux_version.txt"
+        get() = "${StorageHelper.getDownloadsDirectory()}/termux_version.txt"
     val TEST_EXTERNAL_FILE: String
-        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/termux_test_external.txt"
+        get() = "${StorageHelper.getDownloadsDirectory()}/termux_test_external.txt"
 
     // Command completion tracking
     val COMMAND_STATUS_DIR: String
-        get() = "${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS)}/lute3_commands"
+        get() = "${StorageHelper.getDownloadsDirectory()}/lute3_commands"
+
+    val DOWNLOADS_DIR: String
+        get() = StorageHelper.getDownloadsDirectory().absolutePath
     const val COMMAND_SUCCESS = "SUCCESS"
     const val COMMAND_FAILED = "FAILED"
+
+    // tmux configuration
+    const val TMUX_SOCKET_DIR = "/data/data/com.termux/files/usr/var/run/tmux"
+    val TMUX_SOCKET_FILE: String
+        get() = "$TMUX_SOCKET_DIR/lute_session_socket"
+    const val TMUX_INSTALL_TIMEOUT = 180  // 3 minutes for tmux installation
+    const val TMUX_CONFIGURE_TIMEOUT = 30  // 30 seconds for tmux configuration
 
     // Timeouts (in seconds)
     const val INSTALLATION_CHECK_DELAY = 3

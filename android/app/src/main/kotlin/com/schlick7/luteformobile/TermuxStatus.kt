@@ -34,12 +34,27 @@ suspend fun executeCommandWithCompletion(
     val statusFile = "$downloadsDir/${commandId}_status.txt"
     val outputFile = "$downloadsDir/${commandId}_output.txt"
 
+    android.util.Log.d("TermuxStatus", "Downloads dir: $downloadsDir")
+    android.util.Log.d("TermuxStatus", "Status file: $statusFile")
+    android.util.Log.d("TermuxStatus", "Output file: $outputFile")
+
+    val mkdirScript = "mkdir -p '$downloadsDir'"
+    val mkdirIntent = Intent().apply {
+        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+        action = TermuxConstants.TERMUX_ACTION
+        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", mkdirScript))
+        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+    }
+    context.startService(mkdirIntent)
+    delay(500)
+
     val clearIntent = Intent().apply {
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
         action = TermuxConstants.TERMUX_ACTION
         putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
         putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf(
-            "-c", "rm -f $statusFile $outputFile"
+            "-c", "rm -f '$statusFile' '$outputFile'"
         ))
         putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
     }
@@ -49,16 +64,18 @@ suspend fun executeCommandWithCompletion(
     val script = """
         #!/data/data/com.termux/files/usr/bin/bash
 
-        $command 2>&1 | tee $outputFile
+        mkdir -p '$downloadsDir'
+        $command 2>&1 | tee '$outputFile'
         EXIT_CODE=${'$'}PIPESTATUS[0]
 
         if [ ${'$'}EXIT_CODE -eq 0 ]; then
-            echo "${TermuxConstants.COMMAND_SUCCESS}" > $statusFile
+            echo "${TermuxConstants.COMMAND_SUCCESS}" > '$statusFile'
         else
-            echo "${TermuxConstants.COMMAND_FAILED}" > $statusFile
-            echo "Exit code: ${'$'}EXIT_CODE" >> $statusFile
+            echo "${TermuxConstants.COMMAND_FAILED}" > '$statusFile'
+            echo "Exit code: ${'$'}EXIT_CODE" >> '$statusFile'
         fi
 
+        # Explicitly exit with the exit code
         exit ${'$'}EXIT_CODE
     """.trimIndent()
 

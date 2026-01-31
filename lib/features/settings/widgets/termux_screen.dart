@@ -36,6 +36,10 @@ class _TermuxScreenState extends State<TermuxScreen> {
   String _currentStatus = '';
   int _currentMaxWaitSeconds = 60;
 
+  // tmux-related state
+  String _tmuxStatus = 'UNKNOWN';
+  bool _isTmuxInstall = true; // Default to tmux-based installation
+
   @override
   void initState() {
     super.initState();
@@ -128,6 +132,13 @@ class _TermuxScreenState extends State<TermuxScreen> {
           _backups = null;
         }
       }
+
+      // Check tmux status
+      try {
+        _tmuxStatus = await TermuxService.getTmuxStatus();
+      } catch (e) {
+        _tmuxStatus = 'ERROR';
+      }
     } catch (e) {
       setState(() {
         _message = 'Error checking Termux status: $e';
@@ -173,11 +184,20 @@ class _TermuxScreenState extends State<TermuxScreen> {
   }
 
   Future<void> _installLute3() async {
+    if (_isTmuxInstall) {
+      await _installLute3Tmux();
+    } else {
+      await _installLute3Legacy();
+    }
+  }
+
+  Future<void> _installLute3Tmux() async {
     setState(() {
       _isLoading = true;
-      _message = 'Starting Lute3 installation...\nThis may take 1-3 minutes.';
+      _message =
+          'Starting tmux-based Lute3 installation...\nThis may take 5-15 minutes depending on network speed.\n\nYou can view live progress by attaching to the tmux session.';
       _currentStep = 'Preparing...';
-      _currentStatus = 'Starting...';
+      _currentStatus = 'Initializing...';
     });
 
     _progressSubscription?.cancel();
@@ -187,12 +207,74 @@ class _TermuxScreenState extends State<TermuxScreen> {
           _currentStep = progress['step'] ?? 'Processing...';
           _currentStatus = progress['status'] ?? 'Processing...';
           _currentMaxWaitSeconds = progress['maxWaitSeconds'] ?? 60;
-          _message = '$_currentStatus\n$_currentStep';
+
+          // Format message with more detail for tmux installation
+          String detailMessage = 'Step: $_currentStep\nStatus: $_currentStatus';
+          if (_currentMaxWaitSeconds > 0) {
+            detailMessage +=
+                '\nEstimated time: ~$_currentMaxWaitSeconds seconds';
+          }
+          detailMessage +=
+              '\n\nTip: You can view live progress in Termux using the "View tmux Session" button below.';
+          _message = detailMessage;
         });
       },
       onError: (error) {
         setState(() {
-          _message = 'Installation error: $error';
+          _message =
+              'tmux installation error: $error\n\nTip: Check Downloads folder for log files:\n- lute_*.log files\n\nYou can also try attaching to the tmux session to debug.';
+        });
+      },
+    );
+
+    final result = await TermuxService.installLute3Tmux();
+
+    await _progressSubscription?.cancel();
+    _progressSubscription = null;
+
+    setState(() {
+      _message = result == 'COMPLETE'
+          ? 'Lute3 installed successfully via tmux!'
+          : 'tmux installation failed.\n\nCheck Downloads folder for log files to diagnose the issue:\n- lute_*.log files\n\nYou can try attaching to the tmux session for debugging or retry the installation.';
+      _currentStep = '';
+      _currentStatus = '';
+      _isLoading = false;
+    });
+
+    await Future.delayed(const Duration(seconds: 3));
+    _refreshStatus();
+  }
+
+  Future<void> _installLute3Legacy() async {
+    setState(() {
+      _isLoading = true;
+      _message =
+          'Starting legacy Lute3 installation...\nThis may take 5-15 minutes depending on network speed.';
+      _currentStep = 'Preparing...';
+      _currentStatus = 'Initializing...';
+    });
+
+    _progressSubscription?.cancel();
+    _progressSubscription = TermuxService.getInstallProgress().listen(
+      (progress) {
+        setState(() {
+          _currentStep = progress['step'] ?? 'Processing...';
+          _currentStatus = progress['status'] ?? 'Processing...';
+          _currentMaxWaitSeconds = progress['maxWaitSeconds'] ?? 60;
+
+          // Format message with more detail
+          String detailMessage = 'Step: $_currentStep\nStatus: $_currentStatus';
+          if (_currentMaxWaitSeconds > 0) {
+            detailMessage +=
+                '\nEstimated time: ~$_currentMaxWaitSeconds seconds';
+          }
+          _message = detailMessage;
+        });
+      },
+      onError: (error) {
+        setState(() {
+          _message =
+              'Installation error: $error\n\nTip: Check Downloads folder for output files:\n- pkg_update_output.txt\n- pkg_upgrade_output.txt\n- python_install_output.txt\n- lute3_install_output.txt';
         });
       },
     );
@@ -205,13 +287,13 @@ class _TermuxScreenState extends State<TermuxScreen> {
     setState(() {
       _message = result == 'COMPLETE'
           ? 'Lute3 installed successfully!'
-          : 'Installation failed. Check logs for details.';
+          : 'Installation failed.\n\nCheck Downloads folder for output files to diagnose the issue:\n- pkg_update_output.txt\n- pkg_upgrade_output.txt\n- python_install_output.txt\n- lute3_install_output.txt';
       _currentStep = '';
       _currentStatus = '';
       _isLoading = false;
     });
 
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 3));
     _refreshStatus();
   }
 
@@ -233,6 +315,76 @@ class _TermuxScreenState extends State<TermuxScreen> {
       _message = success
           ? 'Heartbeat test successful'
           : 'Heartbeat test failed';
+    });
+  }
+
+  Future<void> _showTmuxAttachInstructions() async {
+    final instructions = await TermuxService.attachTmuxSession();
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('View Live Installation Progress'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'You can view the live installation progress by attaching to the tmux session:',
+                style: TextStyle(fontSize: 14),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SelectableText(
+                  instructions,
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                '💡 Tips:\n'
+                '• Use Ctrl+b then "d" to detach without stopping the installation\n'
+                '• You can safely close the Termux app after detaching\n'
+                '• The app will continue to show progress updates',
+                style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
+            ),
+            TextButton(
+              onPressed: () {
+                _openTermuxApp();
+                Navigator.of(context).pop();
+              },
+              child: const Text('Open Termux'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _toggleInstallationMethod() async {
+    setState(() {
+      _isTmuxInstall = !_isTmuxInstall;
+    });
+
+    setState(() {
+      _message = _isTmuxInstall
+          ? 'Switched to tmux-based installation (recommended)'
+          : 'Switched to legacy installation (not recommended)';
     });
   }
 
@@ -326,6 +478,19 @@ class _TermuxScreenState extends State<TermuxScreen> {
     });
   }
 
+  Future<void> _testInstall() async {
+    setState(() {
+      _message =
+          'Running test: pkg update && pkg upgrade...\nThis will take a few minutes.';
+    });
+
+    final result = await TermuxService.testInstall();
+
+    setState(() {
+      _message = 'Test result: $result';
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -361,20 +526,30 @@ class _TermuxScreenState extends State<TermuxScreen> {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
               ],
               if (_currentStatus.isNotEmpty)
                 Text(
                   _currentStatus,
                   style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
                   textAlign: TextAlign.center,
+                  maxLines: 5,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              const SizedBox(height: 8),
-              Text(
-                'This may take up to ${_currentMaxWaitSeconds} seconds',
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                textAlign: TextAlign.center,
-              ),
+              if (_currentMaxWaitSeconds > 0) ...[
+                const SizedBox(height: 16),
+                Text(
+                  'Estimated wait time: ~$_currentMaxWaitSeconds seconds',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Tip: Output logs are saved to Downloads folder',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
           ),
         ),
@@ -458,6 +633,171 @@ class _TermuxScreenState extends State<TermuxScreen> {
               _buildStatusRow('Lute3', _lute3Status == 'INSTALLED', () {
                 _installLute3();
               }, statusLabel: _lute3Status),
+
+            // tmux installation method toggle
+            if (_termuxInstalled && _lute3Status != 'INSTALLED')
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Card(
+                  color: Colors.blue.shade50,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.settings,
+                              size: 16,
+                              color: Colors.blue,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Installation Method',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: _toggleInstallationMethod,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: _isTmuxInstall
+                                        ? Colors.blue
+                                        : Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.terminal,
+                                        size: 16,
+                                        color: _isTmuxInstall
+                                            ? Colors.white
+                                            : Colors.grey.shade600,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'tmux (Recommended)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: _isTmuxInstall
+                                              ? Colors.white
+                                              : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: _toggleInstallationMethod,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: !_isTmuxInstall
+                                        ? Colors.blue
+                                        : Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.history,
+                                        size: 16,
+                                        color: !_isTmuxInstall
+                                            ? Colors.white
+                                            : Colors.grey.shade600,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Legacy',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: !_isTmuxInstall
+                                              ? Colors.white
+                                              : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          _isTmuxInstall
+                              ? '✓ Single persistent session\n✓ Live progress visibility\n✓ Better error recovery'
+                              : '⚠ Fire-and-forget commands\n⚠ No session visibility\n⚠ Potential orphan processes',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.blueGrey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+            // tmux session management buttons
+            if (_termuxInstalled)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Wrap(
+                  spacing: 8,
+                  children: [
+                    if (_tmuxStatus != 'NOT_FOUND' && _tmuxStatus != 'UNKNOWN')
+                      ElevatedButton.icon(
+                        onPressed: _showTmuxAttachInstructions,
+                        icon: const Icon(Icons.terminal),
+                        label: const Text('View tmux Session'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    if (_tmuxStatus == 'NOT_FOUND' || _tmuxStatus == 'UNKNOWN')
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _message =
+                                'No tmux session found. Start an installation to create one.';
+                          });
+                        },
+                        icon: const Icon(Icons.info_outline),
+                        label: const Text('No tmux session'),
+                      ),
+                  ],
+                ),
+              ),
+
+            if (_termuxInstalled)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: ElevatedButton.icon(
+                  onPressed: _testInstall,
+                  icon: const Icon(Icons.bug_report),
+                  label: const Text('Test: pkg update && pkg upgrade'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                  ),
+                ),
+              ),
             if (_lute3Status == 'INSTALLED') ...[
               _buildInfoRow('Lute3 Version', _lute3Version ?? 'Unknown'),
             ],

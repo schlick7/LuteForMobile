@@ -62,13 +62,22 @@ object StorageHelper {
     }
     
     fun getDownloadsDirectory(): File {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val apiDownloadsDir = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         } else {
             File(
                 Environment.getExternalStorageDirectory(),
-                Environment.DIRECTORY_DOWNLOADS
-            )
+                Environment.DIRECTORY_DOWNLOADS)
+        }
+
+        val altDownloadsDir = File("/sdcard/Download")
+
+        return if (apiDownloadsDir.exists()) {
+            apiDownloadsDir
+        } else if (altDownloadsDir.exists()) {
+            altDownloadsDir
+        } else {
+            apiDownloadsDir
         }
     }
     

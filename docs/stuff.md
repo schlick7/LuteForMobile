@@ -5,13 +5,19 @@
   
 Lets do a performance review of this app starting with the ReadScreen 
 
-inplement phase 6 in [@termux.md](file:///home/cody/LuteForMobile/docs/termux.md) . don't start on phase 7
+---
 
-Can we use the PWA that we have to handle back and restore on our local (not on device) server?
+
+https://github.com/termux/termux-packages/wiki/Mirrors
+https://github.com/termux/termux-tools/tree/master/mirrors
+
+---
+
+Can we use the PWA that we have to handle backup and restore on our local (not on device) server?
 
 # Termux
 - We want the settings to check if termux is installed and if lute3 is installed when switching the connection to termux.
-  - if termux is install but lute3 isn't we should show an install button
+  - if termux is installed but lute3 isn't we should show an install button
   - if termux and lute3 are both detected as installed we should show other settings like buttons for start, stop, update and data like lute3 version (if available), termux version (if available)
 
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
