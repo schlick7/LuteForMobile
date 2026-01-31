@@ -30,19 +30,9 @@ suspend fun executeCommandWithCompletion(
     commandId: String,
     timeoutSeconds: Int
 ): CommandResult {
-    val statusFile = "${TermuxConstants.COMMAND_STATUS_DIR}/${commandId}_status.txt"
-    val outputFile = "${TermuxConstants.COMMAND_STATUS_DIR}/${commandId}_output.txt"
-
-    val mkdirIntent = Intent().apply {
-        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-        action = TermuxConstants.TERMUX_ACTION
-        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf(
-            "-c", "mkdir -p ${TermuxConstants.COMMAND_STATUS_DIR}"
-        ))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(mkdirIntent)
+    val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
+    val statusFile = "$downloadsDir/${commandId}_status.txt"
+    val outputFile = "$downloadsDir/${commandId}_output.txt"
 
     val clearIntent = Intent().apply {
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
@@ -252,7 +242,7 @@ suspend fun isLute3Installed(context: Context): InstallationStatus {
         delay(TermuxConstants.INSTALLATION_CHECK_DELAY * 1000L)
         
         val file = File(checkFile)
-        android.util.Log.d("TermuxStatus", "Checking status file exists: ${file.exists()}")
+        android.util.Log.d("TermuxStatus", "Checking status file exists: ${file.exists()}, path: $checkFile")
         
         if (!file.exists()) {
             android.util.Log.e("TermuxStatus", "Status file does not exist: $checkFile")
