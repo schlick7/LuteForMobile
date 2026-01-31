@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:app_settings/app_settings.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:lute_for_mobile/core/services/termux_service.dart';
+import 'package:lute_for_mobile/core/services/storage_service.dart';
 
 class TermuxScreen extends StatefulWidget {
   const TermuxScreen({super.key});
@@ -59,10 +61,31 @@ class _TermuxScreenState extends State<TermuxScreen> {
             _serverRunning = false;
           }
 
-          // Check external apps setting regardless of permission status
+          // Request storage permission before checking external apps
           try {
-            _externalAppsEnabled =
-                await TermuxService.checkExternalAppsEnabled();
+            final hasStoragePermission =
+                await Permission.manageExternalStorage.isGranted;
+            if (!hasStoragePermission) {
+              final storageResult = await Permission.manageExternalStorage
+                  .request();
+              if (!storageResult.isGranted) {
+                _externalAppsEnabled = false;
+              } else {
+                try {
+                  _externalAppsEnabled =
+                      await TermuxService.checkExternalAppsEnabled();
+                } catch (e) {
+                  _externalAppsEnabled = false;
+                }
+              }
+            } else {
+              try {
+                _externalAppsEnabled =
+                    await TermuxService.checkExternalAppsEnabled();
+              } catch (e) {
+                _externalAppsEnabled = false;
+              }
+            }
           } catch (e) {
             _externalAppsEnabled = false;
           }
@@ -204,6 +227,31 @@ class _TermuxScreenState extends State<TermuxScreen> {
   }
 
   Future<void> _restoreBackup() async {
+    final hasPermissions = await StorageService.checkStoragePermissions();
+
+    if (!hasPermissions) {
+      final granted = await StorageService.requestStoragePermissions();
+      if (!granted) {
+        setState(() {
+          _message = 'Storage permissions are required to restore backups';
+        });
+        return;
+      }
+    }
+
+    setState(() {
+      _message = 'Selecting backup file...';
+    });
+
+    final backupPath = await StorageService.selectBackupFile();
+
+    if (backupPath == null) {
+      setState(() {
+        _message = 'No backup file selected';
+      });
+      return;
+    }
+
     setState(() {
       _message = 'Restoring backup...';
     });
@@ -330,17 +378,13 @@ class _TermuxScreenState extends State<TermuxScreen> {
               _buildStatusRow('External Apps', _externalAppsEnabled, () {
                 _showExternalAppsInstructions();
               }),
-            if (_termuxInstalled && _externalAppsEnabled)
+            if (_termuxInstalled)
               _buildStatusRow('Permission', _permissionGranted, () {
-                if (!_permissionGranted) {
-                  _openAppSettings();
-                }
+                _openAppSettings();
               }),
-            if (_externalAppsEnabled)
+            if (_termuxInstalled)
               _buildStatusRow('Lute3', _lute3Status == 'INSTALLED', () {
-                if (_lute3Status != 'INSTALLED') {
-                  _installLute3();
-                }
+                _installLute3();
               }, statusLabel: _lute3Status),
             if (_lute3Status == 'INSTALLED') ...[
               _buildInfoRow('Lute3 Version', _lute3Version ?? 'Unknown'),
@@ -446,7 +490,7 @@ class _TermuxScreenState extends State<TermuxScreen> {
   }
 
   Widget _buildServerCard() {
-    if (!_externalAppsEnabled || _lute3Status != 'INSTALLED') {
+    if (_lute3Status != 'INSTALLED') {
       return const SizedBox.shrink();
     }
 
@@ -680,12 +724,12 @@ class _TermuxScreenState extends State<TermuxScreen> {
               ),
               const SizedBox(height: 16),
               const Text(
-                '1. Open the Termux app',
+                'Step 1: Open the Termux app',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               const Text(
-                '2. Run this command:',
+                'Step 2: Run these commands one by one:',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -698,13 +742,18 @@ class _TermuxScreenState extends State<TermuxScreen> {
                         color: Colors.grey.shade800,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(
-                        'echo "allow-external-apps=true" >> ~/.termux/termux.properties',
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'echo "allow-external-apps=true" > ~/.termux/termux.properties',
+                            style: TextStyle(
+                              fontFamily: 'monospace',
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -715,7 +764,7 @@ class _TermuxScreenState extends State<TermuxScreen> {
                       Clipboard.setData(
                         const ClipboardData(
                           text:
-                              'echo "allow-external-apps=true" >> ~/.termux/termux.properties',
+                              'echo "allow-external-apps=true" > ~/.termux/termux.properties',
                         ),
                       );
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -727,15 +776,95 @@ class _TermuxScreenState extends State<TermuxScreen> {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              const Text(
+                'You should see: allow-external-apps=true',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
               const SizedBox(height: 16),
               const Text(
-                '3. Close Termux completely (swipe it away from recent apps)',
+                'Step 3: Force-stop Termux',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 8),
               const Text(
-                '4. Reopen Termux',
+                'Settings → Apps → Termux → Force Stop',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Step 4: Reopen Termux and verify',
                 style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Run: cat ~/.termux/termux.properties',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Step 5: Test with a simple command',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Run: echo "Termux test"',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Step 6: Return to LuteForMobile and refresh',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  border: Border.all(color: Colors.orange.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.warning,
+                          color: Colors.orange.shade700,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Troubleshooting',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      '• Make sure you have Termux 0.118.3 or higher installed',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    const Text(
+                      '• Verify the RUN_COMMAND permission is granted in Android Settings',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    const Text(
+                      '• If still showing "Disabled", try using the app anyway',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'The detection may fail on some devices even if external apps are properly configured.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -745,11 +874,13 @@ class _TermuxScreenState extends State<TermuxScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
-          TextButton(
+          ElevatedButton.icon(
             onPressed: () {
+              Navigator.pop(context);
               _openTermuxApp();
             },
-            child: const Text('Open Termux'),
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('Open Termux'),
           ),
         ],
       ),

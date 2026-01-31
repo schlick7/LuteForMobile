@@ -134,10 +134,54 @@ fun isTermuxInstalled(context: Context): Boolean {
 }
 
 fun isTermuxPermissionGranted(context: Context): Boolean {
-    return ContextCompat.checkSelfPermission(
-        context,
-        "com.termux.permission.RUN_COMMAND"
-    ) == PackageManager.PERMISSION_GRANTED
+    try {
+        // Check if the RUN_COMMAND permission is granted
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            "com.termux.permission.RUN_COMMAND"
+        ) == PackageManager.PERMISSION_GRANTED
+        
+        if (hasPermission) {
+            // Verify that Termux package is actually queryable
+            try {
+                val packageInfo = context.packageManager.getPackageInfo(
+                    TermuxConstants.TERMUX_PACKAGE,
+                    PackageManager.GET_ACTIVITIES
+                )
+                // If we can get package info, the permission is working
+                return true
+            } catch (e: Exception) {
+                // Permission might be granted but package visibility is blocked
+                return false
+            }
+        }
+        
+        return false
+    } catch (e: Exception) {
+        return false
+    }
+}
+
+fun isTermuxVersionCompatible(context: Context): Boolean {
+    return try {
+        val packageInfo = context.packageManager.getPackageInfo(
+            TermuxConstants.TERMUX_PACKAGE,
+            0
+        )
+        
+        // Termux 0.95 or higher is required for external apps
+        val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            packageInfo.longVersionCode.toInt()
+        } else {
+            @Suppress("DEPRECATION")
+            packageInfo.versionCode
+        }
+        
+        // Version 0.95 has version code around 95
+        versionCode >= 95
+    } catch (e: Exception) {
+        false
+    }
 }
 
 fun isLute3ServerRunning(context: Context): Boolean {
@@ -172,10 +216,15 @@ suspend fun isLute3Installed(context: Context): InstallationStatus {
     val checkFile = TermuxConstants.INSTALLATION_STATUS_FILE
 
     return try {
+        // Enhanced script with better error handling and logging
         val script = """
+            # Ensure the directory exists
+            mkdir -p ${TermuxConstants.TERMUX_LUTE3_DIR} 2>/dev/null
+            
+            # Check if lute3 is installed via pip
             if pip show lute3 > /dev/null 2>&1; then
                 echo "INSTALLED" > $checkFile
-                pip show lute3 >> $checkFile
+                pip show lute3 >> $checkFile 2>&1
             else
                 echo "NOT_INSTALLED" > $checkFile
             fi

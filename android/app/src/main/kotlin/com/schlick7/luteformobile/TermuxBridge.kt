@@ -234,6 +234,24 @@ class TermuxBridge(private val context: Context) {
                     }
                 }
 
+                "checkStoragePermissions" -> {
+                    scope.launch {
+                        val hasPermissions = StorageHelper.hasStoragePermissions(context)
+                        withContext(Dispatchers.Main) {
+                            result.success(hasPermissions)
+                        }
+                    }
+                }
+
+                "requestStoragePermissions" -> {
+                    result.error("NOT_IMPLEMENTED", "Use permission_handler package in Dart instead", null)
+                }
+
+                "getAndroidVersion" -> {
+                    val androidVersion = android.os.Build.VERSION.SDK_INT
+                    result.success(androidVersion)
+                }
+
                 else -> result.notImplemented()
             }
         }
@@ -275,6 +293,258 @@ private suspend fun getLute3Version(context: Context): String? {
     }
 }
 
+private suspend fun checkExternalAppsEnabled(context: Context): Boolean {
+    val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
+    val testFile = "$downloadsDir/termux_test_external.txt"
+    
+    // Clean up any previous test file
+    try {
+        java.io.File(testFile).delete()
+        android.util.Log.d("TermuxBridge", "Cleaned up old test file: $testFile")
+    } catch (e: Exception) {
+        android.util.Log.w("TermuxBridge", "Cleanup failed (file may not exist): ${e.message}")
+    }
+    
+    val script = """
+        echo 'EXTERNAL_APPS_ENABLED=true' > $testFile
+    """.trimIndent()
+    
+    android.util.Log.d("TermuxBridge", "Sending command to check external apps, writing to: $testFile")
+    
+    val intent = android.content.Intent().apply {
+        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+        action = TermuxConstants.TERMUX_ACTION
+        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
+        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+    }
+    
+    try {
+        context.startService(intent)
+        android.util.Log.d("TermuxBridge", "Command sent successfully")
+    } catch (e: Exception) {
+        android.util.Log.e("TermuxBridge", "Failed to send command: ${e.message}")
+        return false
+    }
+    
+    // Wait for command to complete
+    delay(4000)
+    
+    // Check if file was created with expected content
+    return try {
+        val file = java.io.File(testFile)
+        
+        android.util.Log.d("TermuxBridge", "Checking file existence...")
+        if (!file.exists()) {
+            android.util.Log.e("TermuxBridge", "Test file does not exist: $testFile")
+            return false
+        }
+        
+        val content = file.readText().trim()
+        android.util.Log.d("TermuxBridge", "File content: '$content'")
+        
+        val success = content == "EXTERNAL_APPS_ENABLED=true"
+        android.util.Log.d("TermuxBridge", "Match result: $success")
+        
+        if (success) {
+            file.delete()
+        }
+        
+        success
+    } catch (e: Exception) {
+        android.util.Log.e("TermuxBridge", "File check failed: ${e.message}")
+        false
+    }
+}
+
+private suspend fun checkExternalAppsByFileCreation(context: Context): Boolean {
+    // Use the app's private directory for the test file - Termux can write here via RUN_COMMAND
+    val appFilesDir = context.filesDir.absolutePath
+    val testFile = "$appFilesDir/termux_external_test.txt"
+    val testDir = "$appFilesDir/termux_external_test_dir"
+    
+    // Clean up any previous test files
+    try {
+        java.io.File(testFile).delete()
+        java.io.File(testDir).delete()
+    } catch (e: Exception) {
+        // Ignore cleanup errors
+    }
+    
+    // Enhanced script that tests multiple aspects:
+    // 1. Directory creation
+    // 2. File writing
+    // 3. File reading
+    // 4. Permission checks
+    val script = """
+        # Create test directory
+        mkdir -p $testDir && \
+        # Write test file with timestamp
+        echo "External apps test: $(date)" > $testFile && \
+        # Verify file exists and is readable
+        if [ -f $testFile ] && [ -r $testFile ]; then
+            # Read the file content to verify
+            cat $testFile && \
+            # Test if we can write to the app's directory
+            echo "Test completed successfully" >> $testFile && \
+            # Return success
+            echo "EXTERNAL_APPS_ENABLED=true"
+        else
+            # Return failure
+            echo "EXTERNAL_APPS_ENABLED=false"
+            exit 1
+        fi
+    """.trimIndent()
+
+    val intent = android.content.Intent().apply {
+        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+        action = TermuxConstants.TERMUX_ACTION
+        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
+        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+    }
+
+    try {
+        context.startService(intent)
+    } catch (e: Exception) {
+        // If we can't even send the command, external apps are definitely not enabled
+        return false
+    }
+
+    // Wait for the command to complete with extended timeout for Termux 0.118.3
+    delay((TermuxConstants.EXTERNAL_APP_CHECK_DELAY * 2) * 1000L)
+
+    // Check if the file was created successfully by reading it from the app's directory
+    return try {
+        val file = java.io.File(testFile)
+        val exists = file.exists() && file.canRead()
+        
+        // Read the file content to verify the test result
+        val content = if (exists) file.readText().trim() else ""
+        val success = content.contains("EXTERNAL_APPS_ENABLED=true")
+        
+        // Clean up the test files
+        try {
+            file.delete()
+            java.io.File(testDir).delete()
+        } catch (e: Exception) {
+            // Ignore cleanup errors
+        }
+        
+        success
+    } catch (e: Exception) {
+        false
+    }
+}
+
+private suspend fun checkExternalAppsByCommandExecution(context: Context): Boolean {
+    val appFilesDir = context.filesDir.absolutePath
+    val testFile = "$appFilesDir/termux_command_test.txt"
+    
+    // Clean up
+    try {
+        java.io.File(testFile).delete()
+    } catch (e: Exception) {
+        // Ignore cleanup errors
+    }
+    
+    // Simpler test: just try to run a basic command
+    val script = """
+        # Test basic command execution
+        echo "Command execution test: $(date)" > $testFile && \
+        echo "COMMAND_SUCCESS=true"
+    """.trimIndent()
+
+    val intent = android.content.Intent().apply {
+        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+        action = TermuxConstants.TERMUX_ACTION
+        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
+        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+    }
+
+    try {
+        context.startService(intent)
+    } catch (e: Exception) {
+        return false
+    }
+
+    delay(TermuxConstants.EXTERNAL_APP_CHECK_DELAY * 1000L)
+
+    return try {
+        val file = java.io.File(testFile)
+        val exists = file.exists() && file.canRead()
+        
+        if (exists) {
+            val content = file.readText().trim()
+            val success = content.contains("COMMAND_SUCCESS=true")
+            file.delete()
+            success
+        } else {
+            false
+        }
+    } catch (e: Exception) {
+        false
+    }
+}
+
+private suspend fun checkExternalAppsByConfigFile(context: Context): Boolean {
+    // Check if the Termux configuration file has allow-external-apps enabled
+    val configFile = "${TermuxConstants.TERMUX_HOME}/.termux/termux.properties"
+    val appFilesDir = context.filesDir.absolutePath
+    val checkResultFile = "$appFilesDir/termux_config_check.txt"
+    
+    // Clean up
+    try {
+        java.io.File(checkResultFile).delete()
+    } catch (e: Exception) {
+        // Ignore cleanup errors
+    }
+    
+    val script = """
+        # Check if the configuration file exists and contains allow-external-apps=true
+        if [ -f $configFile ]; then
+            if grep -q "allow-external-apps=true" $configFile; then
+                echo "CONFIG_EXTERNAL_APPS=true" > $checkResultFile
+            else
+                echo "CONFIG_EXTERNAL_APPS=false" > $checkResultFile
+            fi
+        else
+            echo "CONFIG_EXTERNAL_APPS=false" > $checkResultFile
+        fi
+    """.trimIndent()
+
+    val intent = android.content.Intent().apply {
+        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+        action = TermuxConstants.TERMUX_ACTION
+        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
+        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+    }
+
+    try {
+        context.startService(intent)
+    } catch (e: Exception) {
+        return false
+    }
+
+    delay(TermuxConstants.EXTERNAL_APP_CHECK_DELAY * 1000L)
+
+    return try {
+        val file = java.io.File(checkResultFile)
+        if (file.exists() && file.canRead()) {
+            val content = file.readText().trim()
+            val success = content.contains("CONFIG_EXTERNAL_APPS=true")
+            file.delete()
+            success
+        } else {
+            false
+        }
+    } catch (e: Exception) {
+        false
+    }
+}
+
 private suspend fun getTermuxVersion(context: Context): String? {
     val versionFile = TermuxConstants.TERMUX_VERSION_FILE
     val script = "termux --version > $versionFile 2>&1"
@@ -302,38 +572,5 @@ private suspend fun getTermuxVersion(context: Context): String? {
         } else null
     } catch (e: Exception) {
         null
-    }
-}
-
-private suspend fun checkExternalAppsEnabled(context: Context): Boolean {
-    val testFile = TermuxConstants.TEST_EXTERNAL_FILE
-    // Create the directory first, then write the test file, and finally check if it exists
-    val script =
-        "mkdir -p ${TermuxConstants.TERMUX_LUTE3_DIR} && echo \$(date) > $testFile && test -f $testFile && cat $testFile"
-
-    val intent = android.content.Intent().apply {
-        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-        action = TermuxConstants.TERMUX_ACTION
-        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-
-    try {
-        context.startService(intent)
-    } catch (e: Exception) {
-        // If we can't even send the command, external apps are definitely not enabled
-        return false
-    }
-
-    // Wait for the command to complete
-    delay(TermuxConstants.EXTERNAL_APP_CHECK_DELAY * 1000L)
-
-    // Check if the file was created successfully by reading it directly
-    return try {
-        val file = java.io.File(testFile)
-        file.exists() && file.canRead()
-    } catch (e: Exception) {
-        false
     }
 }

@@ -116,4 +116,14 @@ class TermuxService {
     }
     return result as String?;
   }
+
+  static Future<bool> checkStoragePermissions() async {
+    final result = await _channel.invokeMethod('checkStoragePermissions');
+    return result as bool? ?? false;
+  }
+
+  static Future<int?> getAndroidVersion() async {
+    final result = await _channel.invokeMethod('getAndroidVersion');
+    return result as int?;
+  }
 }
