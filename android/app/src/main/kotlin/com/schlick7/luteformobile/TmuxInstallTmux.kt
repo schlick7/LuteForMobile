@@ -154,7 +154,7 @@ private fun createInstallationScript(statusFile: String, lutePort: Int, download
         log_to_file() {
             local log_file="${'$'}1"
             local message="${'$'}2"
-            echo "${'$'}message" >> "$log_file"
+            echo "${'$'}message" >> "${'$'}log_file"
         }
         
         # Clear old status
