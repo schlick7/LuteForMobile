@@ -323,7 +323,16 @@ suspend fun installLute3ServerWithProgress(
 
         onStepChange(upgradeStepName, "Starting...", InstallationStep.UPGRADING_PACKAGES.maxWaitSeconds)
         android.util.Log.d("TermuxServer", "Starting package upgrade...")
-        
+
+        // Clear any stale locks before upgrade
+        executeCommandWithStatusFile(
+            context,
+            "pkill -9 -f 'apt|dpkg|pkg' 2>/dev/null || true; rm -f \$PREFIX/var/lib/dpkg/lock-frontend \$PREFIX/var/lib/dpkg/lock \$PREFIX/var/cache/apt/archives/lock 2>/dev/null || true; dpkg --configure -a 2>/dev/null || true",
+            "Clear package locks",
+            { },
+            30
+        )
+
         val pkgUpgradeResult = executeCommandWithStatusFile(
             context,
             "pkg upgrade -y 2>&1",
