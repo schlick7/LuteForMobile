@@ -224,212 +224,106 @@ suspend fun installLute3ServerWithProgress(
     onStepChange: (stepName: String, stepStatus: String, maxWaitSeconds: Int) -> Unit
 ): InstallationStep {
     return try {
-        onStepChange(InstallationStep.SETUP_STORAGE.name, "Storage access configured", InstallationStep.SETUP_STORAGE.maxWaitSeconds)
+        val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
+        val statusFile = "$downloadsDir/lute3_install_status.txt"
 
-        onStepChange(InstallationStep.CONFIGURING_MIRRORS.name, "Configuring mirrors...", InstallationStep.CONFIGURING_MIRRORS.maxWaitSeconds)
-        
-        val mirrorSelectionResult = executeCommandWithStatusFile(
-            context,
-            "echo 'deb https://packages.termux.dev/apt/termux-main stable main' > \$PREFIX/etc/apt/sources.list && echo 'Mirror set successfully'",
-            "Mirror selection",
-            { msg -> onStepChange(InstallationStep.CONFIGURING_MIRRORS.name, msg, InstallationStep.CONFIGURING_MIRRORS.maxWaitSeconds) },
-            InstallationStep.CONFIGURING_MIRRORS.maxWaitSeconds
-        )
-        when (mirrorSelectionResult) {
-            is CommandResult.Success -> {
-                val output = mirrorSelectionResult.output
-                android.util.Log.d("TermuxServer", "Mirror selection complete")
-                android.util.Log.d("TermuxServer", "Mirror selection output: $output")
-            }
-            is CommandResult.Failed -> {
-                val error = mirrorSelectionResult.error
-                android.util.Log.e("TermuxServer", "Mirror selection failed: $error")
-            }
-            is CommandResult.Timeout -> {
-                android.util.Log.e("TermuxServer", "Mirror selection timed out, continuing anyway")
-            }
-        }
-        
-        val mirrorDebugResult = executeCommandWithStatusFile(
-            context,
-            "cat \$PREFIX/etc/apt/sources.list 2>/dev/null; echo '--- Sources List End ---'; ls -la \$PREFIX/etc/apt/sources.list.d/ 2>/dev/null || echo 'No sources.list.d directory'",
-            "Mirror configuration debug",
-            { },
-            30
-        )
-        when (mirrorDebugResult) {
-            is CommandResult.Success -> {
-                val output = mirrorDebugResult.output
-                android.util.Log.d("TermuxServer", "Mirror config debug: $output")
-            }
-            is CommandResult.Failed -> {
-                android.util.Log.e("TermuxServer", "Mirror config debug failed: ${mirrorDebugResult.error}")
-            }
-            is CommandResult.Timeout -> android.util.Log.w("TermuxServer", "Mirror config debug timed out")
-        }
+        val installScript = """
+            #!/data/data/com.termux/files/usr/bin/bash
+            set -e
 
-        onStepChange(InstallationStep.UPDATING_PACKAGES.name, "Updating package lists...", InstallationStep.UPDATING_PACKAGES.maxWaitSeconds)
-        android.util.Log.d("TermuxServer", "Starting package update...")
-        
-        val pkgUpdateResult = executeCommandWithStatusFile(
-            context,
-            "pkg update -y 2>&1",
-            "Package update",
-            { msg -> onStepChange(InstallationStep.UPDATING_PACKAGES.name, msg, InstallationStep.UPDATING_PACKAGES.maxWaitSeconds) },
-            InstallationStep.UPDATING_PACKAGES.maxWaitSeconds
-        )
-        when (pkgUpdateResult) {
-            is CommandResult.Success -> {
-                val output = pkgUpdateResult.output
-                android.util.Log.d("TermuxServer", "Package update complete")
-                android.util.Log.d("TermuxServer", "Package update output: $output")
-            }
-            is CommandResult.Failed -> {
-                val error = pkgUpdateResult.error
-                android.util.Log.e("TermuxServer", "Package update failed: $error")
-                onStepChange(InstallationStep.FAILED.name, "Failed to update packages: $error", InstallationStep.FAILED.maxWaitSeconds)
-                return InstallationStep.FAILED
-            }
-            is CommandResult.Timeout -> {
-                android.util.Log.e("TermuxServer", "Package update timed out: ${pkgUpdateResult.message}")
-                onStepChange(InstallationStep.FAILED.name, "Package update timed out", InstallationStep.FAILED.maxWaitSeconds)
-                return InstallationStep.FAILED
-            }
+            # Clear any stale locks first
+            pkill -9 -f 'apt|dpkg|pkg' 2>/dev/null || true
+            rm -f ${'$'}PREFIX/var/lib/dpkg/lock-frontend ${'$'}PREFIX/var/lib/dpkg/lock ${'$'}PREFIX/var/cache/apt/archives/lock 2>/dev/null || true
+            dpkg --configure -a 2>/dev/null || true
+
+            echo "STATUS|SETUP_STORAGE|Storage access configured|10" > "$statusFile"
+
+            echo "STATUS|CONFIGURING_MIRRORS|Configuring mirrors...|10" > "$statusFile"
+            echo 'deb https://packages.termux.dev/apt/termux-main stable main' > ${'$'}PREFIX/etc/apt/sources.list
+
+            echo "STATUS|UPDATING_PACKAGES|Updating package lists...|120" > "$statusFile"
+            pkg update -y
+
+            echo "STATUS|UPGRADING_PACKAGES|Upgrading packages...|300" > "$statusFile"
+            pkg upgrade -y
+
+            echo "STATUS|INSTALLING_PYTHON3|Installing Python3...|300" > "$statusFile"
+            pkg install python3 -y
+
+            echo "STATUS|INSTALLING_LUTE3|Downloading and installing...|300" > "$statusFile"
+            pip install --upgrade lute3
+
+            echo "STATUS|VERIFYING|Verifying installation...|30" > "$statusFile"
+            sleep 5
+
+            # Check if server is running
+            if curl -s http://localhost:${'$'}{TermuxConstants.LUTE3_DEFAULT_PORT} > /dev/null 2>&1; then
+                echo "STATUS|COMPLETE|Installation complete!|0" > "$statusFile"
+            else
+                echo "STATUS|FAILED|Server failed to start|0" > "$statusFile"
+            fi
+        """.trimIndent()
+
+        android.util.Log.d("TermuxServer", "Starting combined installation script")
+
+        val intent = Intent().apply {
+            setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+            action = TermuxConstants.TERMUX_ACTION
+            putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", installScript))
+            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
         }
 
-        val packagesToUpgrade = try {
-            val countResult = executeCommandWithStatusFile(
-                context,
-                "apt list --upgradable 2>/dev/null | wc -l",
-                "Count packages",
-                { },
-                30
-            )
-            when (countResult) {
-                is CommandResult.Success -> {
-                    val countOutput = countResult.output.filter { it.isDigit() }.take(5).toList().joinToString("")
-                    val parsedCount = countOutput.toIntOrNull() ?: 0
-                    android.util.Log.d("TermuxServer", "Packages to upgrade: $parsedCount")
-                    parsedCount
+        context.startService(intent)
+
+        val maxWaitMs = 15 * 60 * 1000L
+        val startTime = System.currentTimeMillis()
+        var lastStep = ""
+
+        while (System.currentTimeMillis() - startTime < maxWaitMs) {
+            delay(3000)
+
+            try {
+                val file = java.io.File(statusFile)
+                if (file.exists()) {
+                    val content = file.readText().trim()
+                    if (content.startsWith("STATUS|")) {
+                        val parts = content.split("|")
+                        if (parts.size >= 4) {
+                            val step = parts[1]
+                            val status = parts[2]
+                            val maxWait = parts[3].toIntOrNull() ?: 60
+
+                            if (step != lastStep) {
+                                lastStep = step
+                                onStepChange(step, status, maxWait)
+                            }
+
+                            when (step) {
+                                "COMPLETE" -> {
+                                    file.delete()
+                                    return InstallationStep.COMPLETE
+                                }
+                                "FAILED" -> {
+                                    file.delete()
+                                    onStepChange(InstallationStep.FAILED.name, status, 0)
+                                    return InstallationStep.FAILED
+                                }
+                            }
+                        }
+                    }
                 }
-                else -> 0
-            }
-        } catch (e: Exception) {
-            android.util.Log.e("TermuxServer", "Failed to count packages: ${e.message}")
-            0
-        }
-
-        val upgradeStepName = if (packagesToUpgrade > 0) "Upgrading $packagesToUpgrade packages" else "Upgrading packages"
-
-        onStepChange(upgradeStepName, "Starting...", InstallationStep.UPGRADING_PACKAGES.maxWaitSeconds)
-        android.util.Log.d("TermuxServer", "Starting package upgrade...")
-
-        // Clear any stale locks before upgrade
-        executeCommandWithStatusFile(
-            context,
-            "pkill -9 -f 'apt|dpkg|pkg' 2>/dev/null || true; rm -f \$PREFIX/var/lib/dpkg/lock-frontend \$PREFIX/var/lib/dpkg/lock \$PREFIX/var/cache/apt/archives/lock 2>/dev/null || true; dpkg --configure -a 2>/dev/null || true",
-            "Clear package locks",
-            { },
-            30
-        )
-
-        val pkgUpgradeResult = executeCommandWithStatusFile(
-            context,
-            "pkg upgrade -y 2>&1",
-            "Package upgrade",
-            { msg -> onStepChange(upgradeStepName, msg, InstallationStep.UPGRADING_PACKAGES.maxWaitSeconds) },
-            InstallationStep.UPGRADING_PACKAGES.maxWaitSeconds
-        )
-        when (pkgUpgradeResult) {
-            is CommandResult.Success -> {
-                val output = pkgUpgradeResult.output
-                android.util.Log.d("TermuxServer", "Package upgrade complete")
-                android.util.Log.d("TermuxServer", "Package upgrade output: $output")
-            }
-            is CommandResult.Failed -> {
-                val error = pkgUpgradeResult.error
-                android.util.Log.e("TermuxServer", "Package upgrade failed: $error")
-                onStepChange(InstallationStep.FAILED.name, "Failed to upgrade packages: $error", InstallationStep.FAILED.maxWaitSeconds)
-                return InstallationStep.FAILED
-            }
-            is CommandResult.Timeout -> {
-                android.util.Log.e("TermuxServer", "Package upgrade timed out: ${pkgUpgradeResult.message}")
-                onStepChange(InstallationStep.FAILED.name, "Package upgrade timed out", InstallationStep.FAILED.maxWaitSeconds)
-                return InstallationStep.FAILED
+            } catch (e: Exception) {
+                android.util.Log.w("TermuxServer", "Status check error: ${e.message}")
             }
         }
 
-        onStepChange(InstallationStep.INSTALLING_PYTHON.name, "Installing Python3...", InstallationStep.INSTALLING_PYTHON.maxWaitSeconds)
-        android.util.Log.d("TermuxServer", "Installing Python3...")
-        
-        val pythonInstallResult = executeCommandWithStatusFile(
-            context,
-            "pkg install python3 -y 2>&1",
-            "Python installation",
-            { msg -> onStepChange(InstallationStep.INSTALLING_PYTHON.name, msg, InstallationStep.INSTALLING_PYTHON.maxWaitSeconds) },
-            InstallationStep.INSTALLING_PYTHON.maxWaitSeconds
-        )
-        when (pythonInstallResult) {
-            is CommandResult.Success -> {
-                val output = pythonInstallResult.output
-                android.util.Log.d("TermuxServer", "Python installation complete")
-                android.util.Log.d("TermuxServer", "Python installation output: $output")
-            }
-            is CommandResult.Failed -> {
-                val error = pythonInstallResult.error
-                android.util.Log.e("TermuxServer", "Python install failed: $error")
-                onStepChange(InstallationStep.FAILED.name, "Failed to install Python: $error", InstallationStep.FAILED.maxWaitSeconds)
-                return InstallationStep.FAILED
-            }
-            is CommandResult.Timeout -> {
-                android.util.Log.e("TermuxServer", "Python installation timed out: ${pythonInstallResult.message}")
-                onStepChange(InstallationStep.FAILED.name, "Python installation timed out", InstallationStep.FAILED.maxWaitSeconds)
-                return InstallationStep.FAILED
-            }
-        }
-
-        onStepChange(InstallationStep.INSTALLING_LUTE3.name, "Installing Lute3...", InstallationStep.INSTALLING_LUTE3.maxWaitSeconds)
-        android.util.Log.d("TermuxServer", "Installing Lute3...")
-        
-        val lute3InstallResult = executeCommandWithStatusFile(
-            context,
-            "pip install --upgrade lute3 2>&1",
-            "Lute3 installation",
-            { msg -> onStepChange(InstallationStep.INSTALLING_LUTE3.name, msg, InstallationStep.INSTALLING_LUTE3.maxWaitSeconds) },
-            InstallationStep.INSTALLING_LUTE3.maxWaitSeconds
-        )
-        when (lute3InstallResult) {
-            is CommandResult.Success -> {
-                val output = lute3InstallResult.output
-                android.util.Log.d("TermuxServer", "Lute3 installation complete")
-                android.util.Log.d("TermuxServer", "Lute3 installation output: $output")
-            }
-            is CommandResult.Failed -> {
-                val error = lute3InstallResult.error
-                android.util.Log.e("TermuxServer", "Lute3 install failed: $error")
-                onStepChange(InstallationStep.FAILED.name, "Failed to install Lute3: $error", InstallationStep.FAILED.maxWaitSeconds)
-                return InstallationStep.FAILED
-            }
-            is CommandResult.Timeout -> {
-                android.util.Log.e("TermuxServer", "Lute3 installation timed out: ${lute3InstallResult.message}")
-                onStepChange(InstallationStep.FAILED.name, "Lute3 installation timed out", InstallationStep.FAILED.maxWaitSeconds)
-                return InstallationStep.FAILED
-            }
-        }
-
-        onStepChange(InstallationStep.VERIFYING.name, "Verifying installation...", InstallationStep.VERIFYING.maxWaitSeconds)
-        delay(5000)
-
-        if (isLute3ServerRunningHttp(TermuxConstants.LUTE3_DEFAULT_PORT)) {
-            onStepChange(InstallationStep.COMPLETE.name, "Installation complete!", InstallationStep.COMPLETE.maxWaitSeconds)
-            InstallationStep.COMPLETE
-        } else {
-            onStepChange(InstallationStep.FAILED.name, "Server failed to start", InstallationStep.FAILED.maxWaitSeconds)
-            InstallationStep.FAILED
-        }
+        try { java.io.File(statusFile).delete() } catch (e: Exception) {}
+        onStepChange(InstallationStep.FAILED.name, "Installation timed out", 0)
+        InstallationStep.FAILED
     } catch (e: Exception) {
-        android.util.Log.e("TermuxServer", "Installation failed with exception: ${e.message}")
-        onStepChange(InstallationStep.FAILED.name, "Installation failed: ${e.message}", InstallationStep.FAILED.maxWaitSeconds)
+        android.util.Log.e("TermuxServer", "Installation failed: ${e.message}")
+        onStepChange(InstallationStep.FAILED.name, "Installation failed: ${e.message}", 0)
         InstallationStep.FAILED
     }
 }
