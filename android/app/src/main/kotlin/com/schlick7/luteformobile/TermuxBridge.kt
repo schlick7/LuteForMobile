@@ -141,14 +141,14 @@ class TermuxBridge(private val context: Context) {
                 "installLute3" -> {
                     android.util.Log.d("TermuxBridge", "installLute3 called, eventSink: ${eventSink != null}")
                     scope.launch {
-                        val installResult = installLute3ServerWithProgress(context) { step ->
-                            android.util.Log.d("TermuxBridge", "Progress update: ${step.name} - ${step.status}, sink: ${eventSink != null}")
+                        val installResult = installLute3ServerWithProgress(context) { stepName, stepStatus, maxWaitSeconds ->
+                            android.util.Log.d("TermuxBridge", "Progress update: $stepName - $stepStatus, sink: ${eventSink != null}")
                             try {
                                 scope.launch(Dispatchers.Main.immediate) {
                                     eventSink?.success(mapOf(
-                                        "step" to step.name,
-                                        "status" to step.status,
-                                        "maxWaitSeconds" to step.maxWaitSeconds
+                                        "step" to stepName,
+                                        "status" to stepStatus,
+                                        "maxWaitSeconds" to maxWaitSeconds
                                     ))
                                 }
                             } catch (e: Exception) {
