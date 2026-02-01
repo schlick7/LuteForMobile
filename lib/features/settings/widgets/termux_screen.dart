@@ -827,13 +827,12 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                   : const Icon(Icons.backup),
               label: Text(_isBackingUp ? 'Creating...' : 'Create Backup'),
             ),
-            if (_backups != null) ...[
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Available Backups (${_backups!.length})',
+                    'Available Backups (${_backups?.length ?? 0})',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   TextButton.icon(
@@ -843,10 +842,27 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                   ),
                 ],
               ),
-              if (_backups!.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('No backups found. Create a backup first.'),
+              if (_backups == null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud_off, size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 8),
+                      Text('Server not connected. Start the server to view backups.', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                    ],
+                  ),
+                )
+              else if (_backups!.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud_off, size: 16, color: Colors.grey.shade600),
+                      const SizedBox(width: 8),
+                      Text('Server not connected or No backups found. Create a backup first.', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                    ],
+                  ),
                 )
               else
                 ..._backups!.take(5).map((backup) {
