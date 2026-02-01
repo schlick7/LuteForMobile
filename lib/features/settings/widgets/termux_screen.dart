@@ -409,19 +409,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
     });
   }
 
-  Future<void> _testInstall() async {
-    setState(() {
-      _message =
-          'Running test: pkg update && pkg upgrade...\nThis will take a few minutes.';
-    });
-
-    final result = await TermuxService.testInstall();
-
-    setState(() {
-      _message = 'Test result: $result';
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -565,18 +552,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
                 _installLute3();
               }, statusLabel: _lute3Status),
 
-            if (_termuxInstalled)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: ElevatedButton.icon(
-                  onPressed: _testInstall,
-                  icon: const Icon(Icons.bug_report),
-                  label: const Text('Test: pkg update && pkg upgrade'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
-                  ),
-                ),
-              ),
             if (_lute3Status == 'INSTALLED') ...[
               _buildInfoRow('Lute3 Version', _lute3Version ?? 'Unknown'),
             ],

@@ -78,11 +78,6 @@ class TermuxService {
     return result as String? ?? 'FAILED';
   }
 
-  static Future<String> testInstall() async {
-    final result = await _channel.invokeMethod('testInstall');
-    return result as String? ?? 'FAILED';
-  }
-
   static Future<bool> updateLute3() async {
     try {
       final result = await _channel.invokeMethod('updateLute3');

@@ -145,15 +145,6 @@ class TermuxBridge(private val context: Context) {
                     }
                 }
 
-                "testInstall" -> {
-                    scope.launch {
-                        val testResult = testCombinedInstall(context)
-                        withContext(Dispatchers.Main) {
-                            result.success(testResult)
-                        }
-                    }
-                }
-
                 // Installation
                 "installLute3" -> {
                     // Now uses chained installation approach
@@ -1057,49 +1048,4 @@ suspend fun installLute3Chained(context: Context, onProgress: (stepName: String,
     }
 }
 
-suspend fun testCombinedInstall(context: Context): String {
-    val downloadsDir = StorageHelper.getDownloadsDirectory().absolutePath
-    val testFile = "$downloadsDir/test_install_result.txt"
 
-    val script = """
-        # Kill any existing pkg processes first
-        pkill -9 -f 'pkg.*update|pkg.*upgrade' 2>/dev/null || true
-
-        pkg update -y && pkg upgrade -y && echo "TEST_SUCCESS" > '$testFile'
-
-        # Explicitly exit
-        exit 0
-    """.trimIndent()
-
-    android.util.Log.d("TermuxBridge", "Running test combined install")
-    android.util.Log.d("TermuxBridge", "Downloads dir: $downloadsDir")
-
-    val intent = android.content.Intent().apply {
-        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-        action = TermuxConstants.TERMUX_ACTION
-        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-
-    return try {
-        context.startService(intent)
-
-        for (i in 1..60) {
-            delay(5000)
-            val file = java.io.File(testFile)
-            if (file.exists()) {
-                val content = file.readText().trim()
-                android.util.Log.d("TermuxBridge", "Test file found: $content")
-                file.delete()
-                return "SUCCESS: $content"
-            }
-            android.util.Log.d("TermuxBridge", "Waiting... $i/60")
-        }
-
-        return "TIMEOUT: Test file never created. Termux may not have received the command."
-    } catch (e: Exception) {
-        android.util.Log.e("TermuxBridge", "Test failed: ${e.message}")
-        return "ERROR: ${e.message}"
-    }
-}
