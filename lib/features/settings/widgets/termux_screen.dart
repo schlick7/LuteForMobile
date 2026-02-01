@@ -30,6 +30,9 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   List<Map<String, dynamic>>? _backups;
   bool _isBackingUp = false;
   final Set<String> _downloadingBackups = {};
+  List<Map<String, dynamic>>? _localBackups;
+  bool _isBackingUpLocal = false;
+  final Set<String> _downloadingLocalBackups = {};
 
   StreamSubscription? _progressSubscription;
   String _currentStep = '';
@@ -43,6 +46,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _checkingServer = false;
   bool _checkingVersion = false;
   bool _checkingBackups = false;
+  bool _checkingLocalBackups = false;
 
   @override
   void initState() {
@@ -154,22 +158,14 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         });
 
         if (lute3Status == 'INSTALLED') {
-          setState(() {
-            _checkingVersion = true;
-          });
-          final lute3Version = await TermuxService.getLute3Version();
-          setState(() {
-            _checkingVersion = false;
-            _lute3Version = lute3Version;
-          });
-
           if (serverRunning) {
             setState(() {
               _checkingBackups = true;
             });
             try {
-              final serverUrl = ref.read(settingsProvider).serverUrl;
-              final backups = await BackupService.listBackups(serverUrl);
+              final backups = await BackupService.listBackups(
+                Settings.termuxUrl,
+              );
               setState(() {
                 _checkingBackups = false;
                 _backups = backups;
@@ -181,6 +177,30 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               });
             }
           }
+        }
+
+        setState(() {
+          _checkingLocalBackups = true;
+        });
+        try {
+          final localUrl = ref.read(settingsProvider).serverUrl;
+          if (localUrl.isNotEmpty && localUrl != Settings.termuxUrl) {
+            final localBackups = await BackupService.listBackups(localUrl);
+            setState(() {
+              _checkingLocalBackups = false;
+              _localBackups = localBackups;
+            });
+          } else {
+            setState(() {
+              _checkingLocalBackups = false;
+              _localBackups = null;
+            });
+          }
+        } catch (e) {
+          setState(() {
+            _checkingLocalBackups = false;
+            _localBackups = null;
+          });
         }
       }
     } catch (e) {
@@ -310,8 +330,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     });
 
     try {
-      final serverUrl = ref.read(settingsProvider).serverUrl;
-      await BackupService.createBackup(serverUrl);
+      await BackupService.createBackup(Settings.termuxUrl);
 
       setState(() {
         _isBackingUp = false;
@@ -351,8 +370,10 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     });
 
     try {
-      final serverUrl = ref.read(settingsProvider).serverUrl;
-      final result = await BackupService.downloadBackup(serverUrl, filename);
+      final result = await BackupService.downloadBackup(
+        Settings.termuxUrl,
+        filename,
+      );
 
       setState(() {
         _downloadingBackups.remove(filename);
@@ -370,6 +391,85 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     } catch (e) {
       setState(() {
         _downloadingBackups.remove(filename);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _createLocalBackup() async {
+    setState(() {
+      _isBackingUpLocal = true;
+    });
+
+    try {
+      final localUrl = ref.read(settingsProvider).serverUrl;
+      await BackupService.createBackup(localUrl);
+
+      setState(() {
+        _isBackingUpLocal = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Local backup created successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      await Future.delayed(const Duration(seconds: 2));
+      _refreshStatus();
+    } catch (e) {
+      setState(() {
+        _isBackingUpLocal = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create local backup: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadLocalBackup(String filename) async {
+    setState(() {
+      _downloadingLocalBackups.add(filename);
+    });
+
+    try {
+      final localUrl = ref.read(settingsProvider).serverUrl;
+      final result = await BackupService.downloadBackup(localUrl, filename);
+
+      setState(() {
+        _downloadingLocalBackups.remove(filename);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Downloaded to: $result'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _downloadingLocalBackups.remove(filename);
       });
 
       if (mounted) {
@@ -521,6 +621,12 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
             _buildServerCard(),
             const SizedBox(height: 16),
             _buildBackupCard(),
+            if (ref.watch(settingsProvider).serverUrl.isNotEmpty &&
+                ref.watch(settingsProvider).serverUrl !=
+                    Settings.termuxUrl) ...[
+              const SizedBox(height: 16),
+              _buildLocalBackupCard(),
+            ],
           ] else ...[
             const SizedBox(height: 24),
             Center(
@@ -817,6 +923,219 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                   ),
                 );
               }).toList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocalBackupCard() {
+    final settings = ref.watch(settingsProvider);
+    final localUrl = settings.serverUrl;
+    final hasLocalUrl = localUrl.isNotEmpty && localUrl != Settings.termuxUrl;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Local URL Backup',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                if (hasLocalUrl)
+                  Text(
+                    localUrl,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (!hasLocalUrl)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(Icons.link_off, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 8),
+                    Text(
+                      'No local URL configured',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else ...[
+              ElevatedButton.icon(
+                onPressed: _isBackingUpLocal ? null : _createLocalBackup,
+                icon: _isBackingUpLocal
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.backup),
+                label: Text(
+                  _isBackingUpLocal ? 'Creating...' : 'Create Backup',
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Available Backups (${_localBackups?.length ?? 0})',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  TextButton.icon(
+                    onPressed: _refreshStatus,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Refresh'),
+                  ),
+                ],
+              ),
+              if (_checkingLocalBackups)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: LinearProgressIndicator(value: null),
+                )
+              else if (_localBackups == null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.cloud_off,
+                        size: 16,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Server not connected',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else if (_localBackups!.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.cloud_off,
+                        size: 16,
+                        color: Colors.grey.shade600,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'No backups found',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ..._localBackups!.take(5).map((backup) {
+                  final filename = backup['filename'] as String;
+                  final lastModified = backup['lastModified'] as int;
+                  final size = backup['size'] as String;
+                  final date = DateTime.fromMillisecondsSinceEpoch(
+                    lastModified,
+                  );
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  filename,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              Text(
+                                size,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed:
+                                  _downloadingLocalBackups.contains(filename)
+                                  ? null
+                                  : () => _downloadLocalBackup(filename),
+                              icon: _downloadingLocalBackups.contains(filename)
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.download, size: 16),
+                              label: Text(
+                                _downloadingLocalBackups.contains(filename)
+                                    ? 'Downloading...'
+                                    : 'Download',
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+            ],
           ],
         ),
       ),
