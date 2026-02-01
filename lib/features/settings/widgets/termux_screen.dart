@@ -703,7 +703,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Server not connected. Start the server to view backups.',
+                      'Server not connected',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade600,
@@ -724,7 +724,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Server not connected or No backups found. Create a backup first.',
+                      'Server not connected or No backups found',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey.shade600,
