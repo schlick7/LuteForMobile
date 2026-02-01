@@ -36,15 +36,12 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   String _currentStatus = '';
   int _currentMaxWaitSeconds = 60;
 
-  String _tmuxStatus = 'UNKNOWN';
-
   bool _checkingTermux = false;
   bool _checkingPermission = false;
   bool _checkingExternalApps = false;
   bool _checkingLute3 = false;
   bool _checkingServer = false;
   bool _checkingVersion = false;
-  bool _checkingTmux = false;
   bool _checkingBackups = false;
 
   @override
@@ -72,14 +69,12 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         _permissionGranted = false;
         _externalAppsEnabled = false;
         _serverRunning = false;
-        _tmuxStatus = 'UNKNOWN';
       } else {
         _termuxInstalled = false;
         _termuxInstalledConfirmed = false;
         _permissionGranted = false;
         _externalAppsEnabled = false;
         _serverRunning = false;
-        _tmuxStatus = 'UNKNOWN';
       }
     });
 
@@ -94,7 +89,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       _checkingExternalApps = true;
       _checkingLute3 = true;
       _checkingServer = true;
-      _checkingTmux = true;
     });
 
     try {
@@ -159,12 +153,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           _serverRunning = serverRunning;
         });
 
-        final tmuxStatus = await TermuxService.getTmuxStatus();
-        setState(() {
-          _checkingTmux = false;
-          _tmuxStatus = tmuxStatus;
-        });
-
         if (lute3Status == 'INSTALLED') {
           setState(() {
             _checkingVersion = true;
@@ -216,7 +204,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Future<void> _openTermuxApp() async {
-    const termuxPackage = 'com.termux';
     try {
       final uri = Uri.parse('android-app://com.termux');
       if (await canLaunchUrl(uri)) {
@@ -315,64 +302,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     await TermuxService.stopServer();
     await Future.delayed(const Duration(seconds: 2));
     _refreshStatus();
-  }
-
-  Future<void> _showTmuxAttachInstructions() async {
-    final instructions = await TermuxService.attachTmuxSession();
-
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('View Live Installation Progress'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'You can view the live installation progress by attaching to the tmux session:',
-                style: TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: SelectableText(
-                  instructions,
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                '💡 Tips:\n'
-                '• Use Ctrl+b then "d" to detach without stopping the installation\n'
-                '• You can safely close the Termux app after detaching\n'
-                '• The app will continue to show progress updates',
-                style: TextStyle(fontSize: 12, color: Color(0xFF616161)),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-            TextButton(
-              onPressed: () {
-                _openTermuxApp();
-                Navigator.of(context).pop();
-              },
-              child: const Text('Open Termux'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   Future<void> _createBackup() async {
@@ -524,37 +453,74 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildInfoRow(
-            'Termux',
-            _termuxInstalledConfirmed
-                ? (_termuxInstalled ? 'Installed' : 'Not installed')
-                : 'Checking...',
-            checking: _checkingTermux,
-          ),
-          if (_termuxInstalled) ...[
-            _buildInfoRow(
-              'Permission',
-              _permissionGranted ? 'Granted' : 'Not granted',
-              checking: _checkingPermission,
-            ),
-            _buildInfoRow(
-              'External Apps',
-              _externalAppsEnabled ? 'Enabled' : 'Disabled',
-              checking: _checkingExternalApps,
-            ),
-            _buildInfoRow('Lute3', _lute3Status, checking: _checkingLute3),
-            if (_lute3Status == 'INSTALLED' && _lute3Version != null)
-              _buildInfoRow(
-                'Version',
-                _lute3Version!,
-                checking: _checkingVersion,
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Connection Status',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildStatusRow(
+                    'Termux',
+                    _termuxInstalled,
+                    _checkingTermux,
+                    _termuxInstalledConfirmed,
+                    'Not installed',
+                  ),
+                  if (_termuxInstalled) ...[
+                    const SizedBox(height: 8),
+                    _buildStatusRow(
+                      'Permission',
+                      _permissionGranted,
+                      _checkingPermission,
+                      !_checkingPermission,
+                      'Not granted',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStatusRow(
+                      'External Apps',
+                      _externalAppsEnabled,
+                      _checkingExternalApps,
+                      !_checkingExternalApps,
+                      'Disabled',
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStatusRow(
+                      'Lute3',
+                      _lute3Status == 'INSTALLED',
+                      _checkingLute3,
+                      !_checkingLute3,
+                      'Not installed',
+                    ),
+                    if (_lute3Status == 'INSTALLED') ...[
+                      const SizedBox(height: 8),
+                      _buildStatusRow(
+                        'Version',
+                        _lute3Version != null,
+                        _checkingVersion,
+                        !_checkingVersion,
+                        'Unknown',
+                        statusText: _lute3Version ?? 'Checking...',
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    _buildStatusRow(
+                      'Server',
+                      _serverRunning,
+                      _checkingServer,
+                      !_checkingServer,
+                      'Stopped',
+                    ),
+                  ],
+                ],
               ),
-            _buildInfoRow(
-              'Server',
-              _serverRunning ? 'Running' : 'Stopped',
-              checking: _checkingServer,
             ),
-            _buildInfoRow('Tmux', _tmuxStatus, checking: _checkingTmux),
+          ),
+          if (_lute3Status == 'INSTALLED') ...[
             const SizedBox(height: 16),
             _buildServerCard(),
             const SizedBox(height: 16),
@@ -587,51 +553,64 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     );
   }
 
-  Widget _buildInfoRow(
+  Widget _buildStatusRow(
     String labelText,
-    String value, {
-    bool checking = false,
+    bool status,
+    bool isLoading,
+    bool showFdroidLink,
+    String defaultText, {
+    String? statusText,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-        ),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(labelText, style: const TextStyle(fontSize: 16)),
-          Row(
-            children: [
-              if (checking)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                  ),
-                ),
+    String displayText;
+    bool displayStatus = status;
+
+    if (isLoading) {
+      displayText = 'Checking...';
+      displayStatus = false;
+    } else if (labelText == 'Permission') {
+      displayText = status ? 'Granted' : 'Not granted';
+    } else if (labelText == 'External Apps') {
+      displayText = status ? 'Enabled' : 'Disabled';
+    } else if (labelText == 'Lute3' && statusText != null) {
+      displayText = statusText;
+    } else if (labelText == 'Version' && statusText != null) {
+      displayText = statusText;
+    } else {
+      displayText = status ? 'Installed' : defaultText;
+    }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(labelText, style: const TextStyle(fontSize: 16)),
+        Row(
+          children: [
+            if (isLoading)
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            else
+              Text(
+                displayText,
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+            if (!isLoading) ...[
+              const SizedBox(width: 8),
+              Icon(
+                status ? Icons.check_circle : Icons.error,
+                color: status ? Colors.green : Colors.red,
+                size: 20,
+              ),
             ],
-          ),
-        ],
-      ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildServerCard() {
-    if (_lute3Status != 'INSTALLED') {
-      return const SizedBox.shrink();
-    }
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -672,10 +651,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Widget _buildBackupCard() {
-    if (_lute3Status != 'INSTALLED') {
-      return const SizedBox.shrink();
-    }
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
