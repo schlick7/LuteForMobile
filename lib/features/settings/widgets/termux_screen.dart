@@ -470,6 +470,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     _checkingTermux,
                     _termuxInstalledConfirmed,
                     'Not installed',
+                    onTap: _openTermuxApp,
                   ),
                   if (_termuxInstalled) ...[
                     const SizedBox(height: 8),
@@ -479,6 +480,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       _checkingPermission,
                       !_checkingPermission,
                       'Not granted',
+                      onTap: _openAppSettings,
                     ),
                     const SizedBox(height: 8),
                     _buildStatusRow(
@@ -487,6 +489,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       _checkingExternalApps,
                       !_checkingExternalApps,
                       'Disabled',
+                      onTap: _showExternalAppsInstructions,
                     ),
                     const SizedBox(height: 8),
                     _buildStatusRow(
@@ -507,14 +510,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                         statusText: _lute3Version ?? 'Checking...',
                       ),
                     ],
-                    const SizedBox(height: 8),
-                    _buildStatusRow(
-                      'Server',
-                      _serverRunning,
-                      _checkingServer,
-                      !_checkingServer,
-                      'Stopped',
-                    ),
                   ],
                 ],
               ),
@@ -560,6 +555,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     bool showFdroidLink,
     String defaultText, {
     String? statusText,
+    VoidCallback? onTap,
   }) {
     String displayText;
     bool displayStatus = status;
@@ -579,34 +575,45 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       displayText = status ? 'Installed' : defaultText;
     }
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(labelText, style: const TextStyle(fontSize: 16)),
-        Row(
+    return InkWell(
+      onTap: isLoading ? null : onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            if (isLoading)
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            else
-              Text(
-                displayText,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              ),
-            if (!isLoading) ...[
-              const SizedBox(width: 8),
-              Icon(
-                status ? Icons.check_circle : Icons.error,
-                color: status ? Colors.green : Colors.red,
-                size: 20,
-              ),
-            ],
+            Text(labelText, style: const TextStyle(fontSize: 16)),
+            Row(
+              children: [
+                if (isLoading)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                else
+                  Text(
+                    displayText,
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                  ),
+                if (!isLoading) ...[
+                  const SizedBox(width: 8),
+                  Icon(
+                    status ? Icons.check_circle : Icons.error,
+                    color: status ? Colors.green : Colors.red,
+                    size: 20,
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
-      ],
+      ),
     );
   }
 
