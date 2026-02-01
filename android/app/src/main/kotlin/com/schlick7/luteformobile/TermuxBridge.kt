@@ -156,15 +156,15 @@ class TermuxBridge(private val context: Context) {
 
                 // Installation
                 "installLute3" -> {
-                    // Legacy method - now redirects to tmux installation
-                    android.util.Log.d("TermuxBridge", "Legacy installLute3 called, redirecting to tmux")
+                    // Now uses chained installation approach
+                    android.util.Log.d("TermuxBridge", "installLute3 called, using chained approach")
                     scope.launch {
                         // Start foreground service to keep app in foreground
                         val serviceIntent = Intent(context, InstallationForegroundService::class.java)
                         context.startForegroundService(serviceIntent)
                         
-                        val installResult = installLute3WithTmux(context) { stepName, stepStatus, maxWaitSeconds ->
-                            android.util.Log.d("TermuxBridge", "Legacy redirect progress: $stepName - $stepStatus, sink: ${eventSink != null}")
+                        val installResult = installLute3Chained(context) { stepName, stepStatus, maxWaitSeconds ->
+                            android.util.Log.d("TermuxBridge", "Chained installation progress: $stepName - $stepStatus, sink: ${eventSink != null}")
                             try {
                                 scope.launch(Dispatchers.Main.immediate) {
                                     eventSink?.success(mapOf(
@@ -174,29 +174,29 @@ class TermuxBridge(private val context: Context) {
                                     ))
                                 }
                             } catch (e: Exception) {
-                                android.util.Log.e("TermuxBridge", "Failed to send legacy redirect progress: ${e.message}")
+                                android.util.Log.e("TermuxBridge", "Failed to send chained progress: ${e.message}")
                             }
                         }
-                        android.util.Log.d("TermuxBridge", "Legacy redirect installation complete: $installResult")
+                        android.util.Log.d("TermuxBridge", "Chained installation complete: $installResult")
                         // Stop foreground service
                         val stopIntent = Intent(context, InstallationForegroundService::class.java).apply {
                             action = InstallationForegroundService.ACTION_STOP
                         }
                         context.startService(stopIntent)
                         withContext(Dispatchers.Main) {
-                            result.success(installResult.name)
+                            result.success(installResult)
                         }
                     }
                 }
 
                 "installLute3Tmux" -> {
-                    android.util.Log.d("TermuxBridge", "installLute3Tmux called, eventSink: ${eventSink != null}")
+                    android.util.Log.d("TermuxBridge", "installLute3Tmux called, redirecting to chained approach, eventSink: ${eventSink != null}")
                     // Start foreground service to keep app in foreground
                     val serviceIntent = Intent(context, InstallationForegroundService::class.java)
                     context.startForegroundService(serviceIntent)
                     scope.launch {
-                        val installResult = installLute3WithTmux(context) { stepName, stepStatus, maxWaitSeconds ->
-                            android.util.Log.d("TermuxBridge", "Tmux progress update: $stepName - $stepStatus, sink: ${eventSink != null}")
+                        val installResult = installLute3Chained(context) { stepName, stepStatus, maxWaitSeconds ->
+                            android.util.Log.d("TermuxBridge", "Chained installation progress update: $stepName - $stepStatus, sink: ${eventSink != null}")
                             try {
                                 scope.launch(Dispatchers.Main.immediate) {
                                     eventSink?.success(mapOf(
@@ -206,16 +206,16 @@ class TermuxBridge(private val context: Context) {
                                     ))
                                 }
                             } catch (e: Exception) {
-                                android.util.Log.e("TermuxBridge", "Failed to send tmux progress: ${e.message}")
+                                android.util.Log.e("TermuxBridge", "Failed to send chained progress: ${e.message}")
                             }
                         }
-                        android.util.Log.d("TermuxBridge", "Tmux installation complete: $installResult")
+                        android.util.Log.d("TermuxBridge", "Chained installation complete: $installResult")
                         // Stop foreground service
                         val stopIntent = Intent(context, InstallationForegroundService::class.java).apply {
                             action = InstallationForegroundService.ACTION_STOP
                         }
                         context.startService(stopIntent)
-                        result.success(installResult.name)
+                        result.success(installResult)
                     }
                 }
 
@@ -242,15 +242,65 @@ class TermuxBridge(private val context: Context) {
                 "attachTmuxSession" -> {
                     scope.launch {
                         try {
-                            val instructions = TmuxHelper.getAttachInstructions()
+                            val instructions = "Chained installation doesn't use tmux sessions. Check the installation status in the Downloads folder for lute_install_status.txt and log files."
                             withContext(Dispatchers.Main) {
                                 result.success(instructions)
                             }
                         } catch (e: Exception) {
                             withContext(Dispatchers.Main) {
-                                result.error("TMUX_ERROR", "Failed to get attach instructions", e.message)
+                                result.error("STATUS_ERROR", "Failed to get status instructions", e.message)
                             }
                         }
+                    }
+                }
+
+                "getInstallationStatus" -> {
+                    scope.launch {
+                        try {
+                            val statusFile = java.io.File("${android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath}/lute_install_status.txt")
+                            val status = if (statusFile.exists()) {
+                                statusFile.readText().trim()
+                            } else {
+                                "NOT_STARTED"
+                            }
+                            withContext(Dispatchers.Main) {
+                                result.success(status)
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                result.success("ERROR")
+                            }
+                        }
+                    }
+                }
+
+                "installLute3Chained" -> {
+                    android.util.Log.d("TermuxBridge", "installLute3Chained called, eventSink: ${eventSink != null}")
+                    // Start foreground service to keep app in foreground
+                    val serviceIntent = Intent(context, InstallationForegroundService::class.java)
+                    context.startForegroundService(serviceIntent)
+                    scope.launch {
+                        val installResult = installLute3Chained(context) { stepName, stepStatus, maxWaitSeconds ->
+                            android.util.Log.d("TermuxBridge", "Chained installation progress update: $stepName - $stepStatus, sink: ${eventSink != null}")
+                            try {
+                                scope.launch(Dispatchers.Main.immediate) {
+                                    eventSink?.success(mapOf(
+                                        "step" to stepName,
+                                        "status" to stepStatus,
+                                        "maxWaitSeconds" to maxWaitSeconds
+                                    ))
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("TermuxBridge", "Failed to send chained progress: ${e.message}")
+                            }
+                        }
+                        android.util.Log.d("TermuxBridge", "Chained installation complete: $installResult")
+                        // Stop foreground service
+                        val stopIntent = Intent(context, InstallationForegroundService::class.java).apply {
+                            action = InstallationForegroundService.ACTION_STOP
+                        }
+                        context.startService(stopIntent)
+                        result.success(installResult)
                     }
                 }
 
@@ -791,6 +841,210 @@ class InstallationForegroundService : Service() {
             ).apply { description = "Lute3 installation progress" }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
+        }
+    }
+}
+
+suspend fun installLute3Chained(context: Context, onProgress: (stepName: String, stepStatus: String, maxWaitSeconds: Int) -> Unit = { _, _, _ -> }): String {
+    return withContext(Dispatchers.IO) {
+        try {
+            val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
+            val statusFile = "$downloadsDir/lute_install_status.txt"
+            val versionFile = "${downloadsDir}/lute3_version.txt"
+            
+            android.util.Log.d("TermuxBridge", "Starting chained Lute3 installation")
+            android.util.Log.d("TermuxBridge", "Downloads directory: $downloadsDir")
+            android.util.Log.d("TermuxBridge", "Status file: $statusFile")
+            
+            // Check if external apps are enabled first
+            val externalAppsEnabled = checkExternalAppsEnabled(context)
+            if (!externalAppsEnabled) {
+                android.util.Log.e("TermuxBridge", "External apps not enabled in Termux")
+                return@withContext "ERROR: Termux external apps not enabled. Please run 'termux-setup-storage' in Termux and ensure allow-external-apps=true is set in ~/.termux/termux.properties"
+            }
+            
+            // Verify downloads directory exists
+            val downloadsDirFile = java.io.File(downloadsDir)
+            if (!downloadsDirFile.exists()) {
+                android.util.Log.e("TermuxBridge", "Downloads directory does not exist: $downloadsDir")
+                try {
+                    downloadsDirFile.mkdirs()
+                    android.util.Log.d("TermuxBridge", "Created downloads directory: $downloadsDir")
+                } catch (e: Exception) {
+                    android.util.Log.e("TermuxBridge", "Failed to create downloads directory: ${e.message}")
+                    return@withContext "ERROR: Cannot create Downloads directory"
+                }
+            }
+            
+            // Clear previous installation status
+            java.io.File(statusFile).delete()
+            java.io.File("$downloadsDir/lute_pkg_update.log").delete()
+            java.io.File("$downloadsDir/lute_pkg_upgrade.log").delete()
+            java.io.File("$downloadsDir/lute_python_install.log").delete()
+            java.io.File("$downloadsDir/lute_lute3_install.log").delete()
+            
+
+            
+            // Clear previous installation status
+            java.io.File(statusFile).delete()
+            java.io.File("$downloadsDir/lute_pkg_update.log").delete()
+            java.io.File("$downloadsDir/lute_pkg_upgrade.log").delete()
+            java.io.File("$downloadsDir/lute_python_install.log").delete()
+            java.io.File("$downloadsDir/lute_lute3_install.log").delete()
+            
+            // Send initial progress update
+            withContext(Dispatchers.Main.immediate) {
+                onProgress("SETUP", "Starting installation...", 1800)
+            }
+            
+            // Use simplest possible test
+            val simpleTestScript = "echo 'SIMPLE_TEST' > '$statusFile'"
+            
+            val testIntent = android.content.Intent().apply {
+                setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+                action = TermuxConstants.TERMUX_ACTION
+                putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+                putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", simpleTestScript))
+                putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+            }
+            
+            try {
+                context.startService(testIntent)
+                android.util.Log.d("TermuxBridge", "Simple test command sent to Termux")
+                
+                // Wait for file creation
+                delay(5000)
+                
+                val statusFileObj = java.io.File(statusFile)
+                android.util.Log.d("TermuxBridge", "Checking simple test result: ${statusFileObj.exists()}")
+                
+                if (statusFileObj.exists()) {
+                    val content = statusFileObj.readText()
+                    android.util.Log.d("TermuxBridge", "Simple test SUCCESS: $content")
+                    statusFileObj.delete()
+                } else {
+                    android.util.Log.e("TermuxBridge", "Simple test FAILED: no status file created")
+                    return@withContext "ERROR: Simple test failed - Termux cannot write to Downloads. Please ensure 'termux-setup-storage' has been run and allow-external-apps=true is set in ~/.termux/termux.properties"
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("TermuxBridge", "Simple test exception: ${e.message}")
+                return@withContext "ERROR: Simple test exception: ${e.message}"
+            }
+            
+            val chainedScript = """
+                #!/data/data/com.termux/files/usr/bin/bash
+                
+                STATUS_FILE="${statusFile}"
+                
+                # Step 1: Update package lists
+                echo "STEP:1/5 - Updating package lists" > ${'$'}STATUS_FILE
+                pkg update -y 2>&1 | tee "${downloadsDir}/lute_pkg_update.log"
+                
+                # Step 2: Upgrade packages
+                echo "STEP:2/5 - Upgrading packages" > ${'$'}STATUS_FILE
+                DEBIAN_FRONTEND=noninteractive pkg upgrade -y 2>&1 | tee "${downloadsDir}/lute_pkg_upgrade.log"
+                
+                # Step 3: Install Python3
+                echo "STEP:3/5 - Installing Python3" > ${'$'}STATUS_FILE
+                DEBIAN_FRONTEND=noninteractive pkg install python3 -y 2>&1 | tee "${downloadsDir}/lute_python_install.log"
+                
+                # Step 4: Upgrade pip
+                echo "STEP:4/5 - Upgrading pip" > ${'$'}STATUS_FILE
+                pip install --upgrade pip 2>&1 | tee "${downloadsDir}/lute_pip_upgrade.log"
+                
+                # Step 5: Install Lute3
+                echo "STEP:5/5 - Installing Lute3" > ${'$'}STATUS_FILE
+                pip install --upgrade lute3 2>&1 | tee "${downloadsDir}/lute_lute3_install.log"
+                
+                # Complete
+                echo "STEP:COMPLETE" > ${'$'}STATUS_FILE
+                exit 0
+            """.trimIndent()
+            
+            android.util.Log.d("TermuxBridge", "Sending chained installation script")
+            android.util.Log.d("TermuxBridge", "Downloads dir: $downloadsDir")
+            android.util.Log.d("TermuxBridge", "Script length: ${chainedScript.length} characters")
+            android.util.Log.d("TermuxBridge", "Script preview: ${chainedScript.take(100)}...")
+            
+            val intent = android.content.Intent().apply {
+                setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+                action = TermuxConstants.TERMUX_ACTION
+                putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+                putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", chainedScript))
+                putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+            }
+            
+            try {
+                context.startService(intent)
+                android.util.Log.d("TermuxBridge", "Installation command sent successfully to Termux")
+            } catch (e: Exception) {
+                android.util.Log.e("TermuxBridge", "Failed to start Termux service: ${e.message}")
+                return@withContext "ERROR: Failed to start Termux service: ${e.message}"
+            }
+            
+            // Poll for completion with progress updates
+            val startTime = System.currentTimeMillis()
+            val timeoutMs = 30 * 60 * 1000L // 30 minutes
+            var lastStep = ""
+            
+            while (System.currentTimeMillis() - startTime < timeoutMs) {
+                delay(3000) // Poll every 3 seconds
+                
+                val statusFileObj = java.io.File(statusFile)
+                android.util.Log.d("TermuxBridge", "Checking status file: $statusFile, exists: ${statusFileObj.exists()}")
+                
+                if (statusFileObj.exists()) {
+                    try {
+                        val content = statusFileObj.readText().trim()
+                        android.util.Log.d("TermuxBridge", "Status file content: $content")
+                        
+                        // Send progress update if step changed
+                        if (content != lastStep && content.isNotEmpty()) {
+                            android.util.Log.d("TermuxBridge", "Installation progress: $content")
+                            
+                            val stepName = when {
+                                content.contains("1/5") -> "CONFIGURING_MIRRORS"
+                                content.contains("2/5") -> "UPDATING_PACKAGES"
+                                content.contains("3/5") -> "UPGRADING_PACKAGES"
+                                content.contains("4/5") -> "INSTALLING_PYTHON3"
+                                content.contains("COMPLETE") -> "COMPLETE"
+                                else -> "UNKNOWN"
+                            }
+                            
+                            val stepStatus = content.substringAfter("STEP:").trim()
+                            val maxWaitSeconds = when {
+                                content.contains("1/5") -> 30
+                                content.contains("2/5") -> 120
+                                content.contains("3/5") -> 300
+                                content.contains("4/5") -> 300
+                                content.contains("COMPLETE") -> 0
+                                else -> 30
+                            }
+                            
+                            withContext(Dispatchers.Main.immediate) {
+                                onProgress(stepName, stepStatus, maxWaitSeconds)
+                            }
+                            
+                            lastStep = content
+                            
+                            // Check for completion
+                            if (content.contains("COMPLETE")) {
+                                android.util.Log.d("TermuxBridge", "Installation completed successfully")
+                                return@withContext "COMPLETE"
+                            }
+                        }
+                    } catch (e: Exception) {
+                        android.util.Log.e("TermuxBridge", "Error reading status file: ${e.message}")
+                    }
+                }
+            }
+            
+            android.util.Log.w("TermuxBridge", "Installation timed out after 30 minutes")
+            return@withContext "TIMEOUT: Installation timed out"
+            
+        } catch (e: Exception) {
+            android.util.Log.e("TermuxBridge", "Installation failed: ${e.message}")
+            return@withContext "ERROR: ${e.message}"
         }
     }
 }

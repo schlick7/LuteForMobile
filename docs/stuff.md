@@ -7,7 +7,7 @@ Lets do a performance review of this app starting with the ReadScreen
 
 ---
 
-
+https://wiki.termux.com/wiki/Main_Page
 https://github.com/termux/termux-packages/wiki/Mirrors
 https://github.com/termux/termux-tools/tree/master/mirrors
 

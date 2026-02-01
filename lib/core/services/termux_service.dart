@@ -73,6 +73,11 @@ class TermuxService {
     return result as String? ?? 'FAILED';
   }
 
+  static Future<String> installLute3Chained() async {
+    final result = await _channel.invokeMethod('installLute3Chained');
+    return result as String? ?? 'FAILED';
+  }
+
   static Future<String> testInstall() async {
     final result = await _channel.invokeMethod('testInstall');
     return result as String? ?? 'FAILED';
@@ -96,6 +101,11 @@ class TermuxService {
       print('Reinstall Lute3 failed: ${e.message}');
       return false;
     }
+  }
+
+  static Future<String> getInstallationStatus() async {
+    final result = await _channel.invokeMethod('getInstallationStatus');
+    return result as String? ?? 'NOT_STARTED';
   }
 
   // Backup operations
