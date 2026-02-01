@@ -781,7 +781,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Database Backup',
+              'Termux Backup',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
