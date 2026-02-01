@@ -107,13 +107,6 @@ class SettingsNotifier extends Notifier<Settings> {
   Future<void> updateLocalUrl(String url) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyLocalUrl, url);
-
-    final useTermux = prefs.getBool(_keyUseTermux) ?? false;
-    if (!useTermux) {
-      final isValid = _isValidUrl(url);
-      state = state.copyWith(serverUrl: url, isUrlValid: isValid);
-      await prefs.setString(_keyLocalUrl, url);
-    }
   }
 
   Future<void> setServerSelection(bool useTermux) async {

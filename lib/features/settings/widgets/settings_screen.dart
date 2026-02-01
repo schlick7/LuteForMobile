@@ -24,7 +24,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _serverUrlController;
+  final _localUrlController = TextEditingController();
   bool _isTesting = false;
   String? _connectionStatus;
   bool _connectionTestPassed = false;
@@ -46,20 +46,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInitialUrl();
-  }
-
-  Future<void> _loadInitialUrl() async {
-    final prefs = await SharedPreferences.getInstance();
-    final initialUrl = prefs.getString('local_url') ?? '';
-    setState(() {
-      _serverUrlController = TextEditingController(text: initialUrl);
+    SharedPreferences.getInstance().then((prefs) {
+      final savedUrl = prefs.getString('local_url') ?? '';
+      if (mounted) {
+        _localUrlController.text = savedUrl;
+      }
     });
   }
 
   @override
   void dispose() {
-    _serverUrlController.dispose();
+    _localUrlController.dispose();
     super.dispose();
   }
 
@@ -72,7 +69,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _connectionTestPassed = false;
     });
 
-    final url = _serverUrlController.text.trim();
+    final url = _localUrlController.text.trim();
     try {
       final dio = Dio();
       final response = await dio.get(
@@ -108,7 +105,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _saveSettings() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final newUrl = _serverUrlController.text.trim();
+    final newUrl = _localUrlController.text.trim();
 
     await _testConnection();
 
@@ -153,21 +150,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final themeSettings = ref.watch(themeSettingsProvider);
     final textSettings = ref.watch(textFormattingSettingsProvider);
 
-    ref.listen(settingsProvider, (previous, next) {
-      if (previous?.serverUrl != next.serverUrl &&
-          _serverUrlController.text != next.serverUrl) {
-        final currentSelection = _serverUrlController.selection;
-        _serverUrlController.value = TextEditingValue(
-          text: next.serverUrl,
-          selection: currentSelection.baseOffset <= next.serverUrl.length
-              ? currentSelection
-              : TextSelection.collapsed(offset: next.serverUrl.length),
-        );
-        _connectionTestPassed = false;
-        _connectionStatus = null;
-      }
-    });
-
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
@@ -204,9 +186,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _serverUrlController,
+                      controller: _localUrlController,
                       decoration: InputDecoration(
-                        labelText: 'Server URL',
+                        labelText: 'Local URL',
                         hintText: 'http://192.168.1.100:5001',
                         labelStyle: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
@@ -830,7 +812,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ref
                                         .read(settingsProvider.notifier)
                                         .resetSettings();
-                                    _serverUrlController.text = ref
+                                    _localUrlController.text = ref
                                         .read(settingsProvider)
                                         .serverUrl;
                                     _connectionStatus = null;
