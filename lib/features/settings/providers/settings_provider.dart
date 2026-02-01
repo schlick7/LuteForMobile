@@ -17,8 +17,8 @@ class ViewDrawerSettings {
 }
 
 class SettingsNotifier extends Notifier<Settings> {
-  static const String _keyServerUrl = 'server_url';
-  static const String _keySavedServerUrl = 'saved_server_url';
+  static const String _keyLocalUrl = 'local_url';
+  static const String _keyUseTermux = 'use_termux';
   static const String _keyTranslationProvider = 'translation_provider';
   static const String _keyShowTags = 'show_tags';
   static const String _keyShowLastRead = 'show_last_read';
@@ -42,17 +42,25 @@ class SettingsNotifier extends Notifier<Settings> {
 
   @override
   Settings build() {
-    final serverUrl = ref.read(initialServerUrlProvider);
-    final settings = Settings.defaultSettings().copyWith(
+    _loadSettings();
+    return state;
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final localUrl = prefs.getString(_keyLocalUrl) ?? '';
+    final useTermux = prefs.getBool(_keyUseTermux) ?? false;
+    final serverUrl = useTermux ? Settings.termuxUrl : localUrl;
+
+    state = Settings.defaultSettings().copyWith(
       serverUrl: serverUrl,
       isUrlValid: _isValidUrl(serverUrl),
     );
-    _loadOtherSettingsAsync();
-    return settings;
+
+    _loadOtherSettings(prefs);
   }
 
-  Future<void> _loadOtherSettingsAsync() async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _loadOtherSettings(SharedPreferences prefs) async {
     final translationProvider =
         prefs.getString(_keyTranslationProvider) ?? 'local';
     final showTags = prefs.getBool(_keyShowTags) ?? true;
@@ -96,12 +104,29 @@ class SettingsNotifier extends Notifier<Settings> {
     );
   }
 
-  Future<void> updateServerUrl(String url) async {
-    final isValid = _isValidUrl(url);
-    state = state.copyWith(serverUrl: url, isUrlValid: isValid);
-
+  Future<void> updateLocalUrl(String url) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyServerUrl, url);
+    await prefs.setString(_keyLocalUrl, url);
+
+    final useTermux = prefs.getBool(_keyUseTermux) ?? false;
+    if (!useTermux) {
+      final isValid = _isValidUrl(url);
+      state = state.copyWith(serverUrl: url, isUrlValid: isValid);
+      await prefs.setString(_keyLocalUrl, url);
+    }
+  }
+
+  Future<void> setServerSelection(bool useTermux) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyUseTermux, useTermux);
+
+    if (useTermux) {
+      state = state.copyWith(serverUrl: Settings.termuxUrl, isUrlValid: true);
+    } else {
+      final localUrl = prefs.getString(_keyLocalUrl) ?? '';
+      final isValid = _isValidUrl(localUrl);
+      state = state.copyWith(serverUrl: localUrl, isUrlValid: isValid);
+    }
   }
 
   Future<void> updateTranslationProvider(String provider) async {
@@ -261,18 +286,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyEnableTripleTapToMarkKnown, enabled);
   }
 
-  Future<void> setUseTermuxServer(bool useTermux) async {
-    final prefs = await SharedPreferences.getInstance();
-    if (useTermux) {
-      await prefs.setString(_keySavedServerUrl, state.serverUrl);
-      await updateServerUrl(Settings.termuxUrl);
-    } else {
-      final savedUrl = prefs.getString(_keySavedServerUrl) ?? '';
-      await updateServerUrl(savedUrl);
-      await prefs.remove(_keySavedServerUrl);
-    }
-  }
-
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -286,7 +299,8 @@ class SettingsNotifier extends Notifier<Settings> {
 
   void resetSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyServerUrl);
+    await prefs.remove(_keyLocalUrl);
+    await prefs.remove(_keyUseTermux);
     await prefs.remove(_keyTranslationProvider);
     await prefs.remove(_keyShowTags);
     await prefs.remove(_keyShowLastRead);
@@ -302,7 +316,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyShowStatsBar);
     await prefs.remove(_keyShowPageNumbers);
     await prefs.remove(_keyEnableTripleTapToMarkKnown);
-    await prefs.remove(_keySavedServerUrl);
 
     state = Settings.defaultSettings();
   }

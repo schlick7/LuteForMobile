@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
@@ -45,8 +46,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    final initialUrl = ref.read(settingsProvider).serverUrl;
-    _serverUrlController = TextEditingController(text: initialUrl);
+    _loadInitialUrl();
+  }
+
+  Future<void> _loadInitialUrl() async {
+    final prefs = await SharedPreferences.getInstance();
+    final initialUrl = prefs.getString('local_url') ?? '';
+    setState(() {
+      _serverUrlController = TextEditingController(text: initialUrl);
+    });
   }
 
   @override
@@ -108,12 +116,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return;
     }
 
-    final oldUrl = ref.read(settingsProvider).serverUrl;
+    final prefs = await SharedPreferences.getInstance();
+    final oldUrl = prefs.getString('local_url') ?? '';
 
     if (oldUrl != newUrl) {
       // Clear current book BEFORE updating URL to prevent race conditions
       await ref.read(settingsProvider.notifier).clearCurrentBook();
-      await ref.read(settingsProvider.notifier).updateServerUrl(newUrl);
+      await ref.read(settingsProvider.notifier).updateLocalUrl(newUrl);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -124,7 +133,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       RestartWidget.restartApp(context);
     } else {
       // Update URL without changing (no book clearing needed)
-      await ref.read(settingsProvider.notifier).updateServerUrl(newUrl);
+      await ref.read(settingsProvider.notifier).updateLocalUrl(newUrl);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

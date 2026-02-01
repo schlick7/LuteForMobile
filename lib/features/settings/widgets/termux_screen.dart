@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:app_settings/app_settings.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -684,7 +683,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     onChanged: (value) {
                       ref
                           .read(settingsProvider.notifier)
-                          .setUseTermuxServer(value);
+                          .setServerSelection(value);
                     },
                   ),
                 ),
