@@ -21,8 +21,6 @@ object TermuxConstants {
         get() = "${StorageHelper.getDownloadsDirectory()}/lute3_installation_status.txt"
     val VERSION_FILE: String
         get() = "${StorageHelper.getDownloadsDirectory()}/lute3_version.txt"
-    val TERMUX_VERSION_FILE: String
-        get() = "${StorageHelper.getDownloadsDirectory()}/termux_version.txt"
     val TEST_EXTERNAL_FILE: String
         get() = "${StorageHelper.getDownloadsDirectory()}/termux_test_external.txt"
 

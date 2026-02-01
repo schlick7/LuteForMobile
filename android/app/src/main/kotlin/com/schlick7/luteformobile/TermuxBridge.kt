@@ -95,21 +95,6 @@ class TermuxBridge(private val context: Context) {
                     }
                 }
 
-                "getTermuxVersion" -> {
-                    scope.launch {
-                        try {
-                            val version = getTermuxVersion(context)
-                            withContext(Dispatchers.Main) {
-                                result.success(version)
-                            }
-                        } catch (e: Exception) {
-                            withContext(Dispatchers.Main) {
-                                result.success(null)
-                            }
-                        }
-                    }
-                }
-
                 "checkExternalAppsEnabled" -> {
                     scope.launch {
                         try {
@@ -663,36 +648,6 @@ private suspend fun checkExternalAppsByConfigFile(context: Context): Boolean {
         }
     } catch (e: Exception) {
         false
-    }
-}
-
-private suspend fun getTermuxVersion(context: Context): String? {
-    val versionFile = TermuxConstants.TERMUX_VERSION_FILE
-    val script = "termux --version > $versionFile 2>&1"
-
-    val intent = android.content.Intent().apply {
-        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-        action = TermuxConstants.TERMUX_ACTION
-        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-
-    try {
-        context.startService(intent)
-    } catch (e: Exception) {
-        return null
-    }
-
-    delay(TermuxConstants.VERSION_CHECK_DELAY * 1000L)
-
-    return try {
-        val file = java.io.File(versionFile)
-        if (file.exists()) {
-            file.readText().trim()
-        } else null
-    } catch (e: Exception) {
-        null
     }
 }
 
