@@ -1,5 +1,5 @@
 # Bug Fixes
-- 
+- PENDINGStop autobackups from triggering constantly
 
 # New Feature
 - Termux Integration (Android APK only)
