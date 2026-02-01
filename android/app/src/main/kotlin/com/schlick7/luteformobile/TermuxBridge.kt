@@ -1003,20 +1003,22 @@ suspend fun installLute3Chained(context: Context, onProgress: (stepName: String,
                             android.util.Log.d("TermuxBridge", "Installation progress: $content")
                             
                             val stepName = when {
-                                content.contains("1/5") -> "CONFIGURING_MIRRORS"
-                                content.contains("2/5") -> "UPDATING_PACKAGES"
-                                content.contains("3/5") -> "UPGRADING_PACKAGES"
-                                content.contains("4/5") -> "INSTALLING_PYTHON3"
+                                content.contains("1/5") -> "UPDATING_PACKAGES"
+                                content.contains("2/5") -> "UPGRADING_PACKAGES"
+                                content.contains("3/5") -> "INSTALLING_PYTHON3"
+                                content.contains("4/5") -> "UPGRADING_PIP"
+                                content.contains("5/5") -> "INSTALLING_LUTE3"
                                 content.contains("COMPLETE") -> "COMPLETE"
                                 else -> "UNKNOWN"
                             }
                             
                             val stepStatus = content.substringAfter("STEP:").trim()
                             val maxWaitSeconds = when {
-                                content.contains("1/5") -> 30
-                                content.contains("2/5") -> 120
+                                content.contains("1/5") -> 60
+                                content.contains("2/5") -> 300
                                 content.contains("3/5") -> 300
-                                content.contains("4/5") -> 300
+                                content.contains("4/5") -> 60
+                                content.contains("5/5") -> 300
                                 content.contains("COMPLETE") -> 0
                                 else -> 30
                             }
