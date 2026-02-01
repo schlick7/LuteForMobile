@@ -252,15 +252,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
     _refreshStatus();
   }
 
-  Future<void> _testHeartbeat() async {
-    final success = await TermuxService.touchHeartbeat();
-    setState(() {
-      _message = success
-          ? 'Heartbeat test successful'
-          : 'Heartbeat test failed';
-    });
-  }
-
   Future<void> _showTmuxAttachInstructions() async {
     final instructions = await TermuxService.attachTmuxSession();
 
@@ -691,17 +682,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: _testHeartbeat,
-              icon: const Icon(Icons.favorite),
-              label: const Text('Test Heartbeat'),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Server will auto-shutdown after 30 minutes of inactivity',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             ),
           ],
         ),
