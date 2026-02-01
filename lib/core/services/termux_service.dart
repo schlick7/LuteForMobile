@@ -103,6 +103,11 @@ class TermuxService {
     return result as String? ?? 'NOT_STARTED';
   }
 
+  static Future<String> getQuickInstallationStatus() async {
+    final result = await _channel.invokeMethod('getQuickInstallationStatus');
+    return result as String? ?? 'NOT_INSTALLED';
+  }
+
   static Future<bool> checkStoragePermissions() async {
     final result = await _channel.invokeMethod('checkStoragePermissions');
     return result as bool? ?? false;

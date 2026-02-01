@@ -250,6 +250,26 @@ class TermuxBridge(private val context: Context) {
                     }
                 }
 
+                "getQuickInstallationStatus" -> {
+                    scope.launch(Dispatchers.IO) {
+                        try {
+                            val statusFile = java.io.File("${StorageHelper.getDownloadsDirectory()}/lute3_installation_status.txt")
+                            val status = if (statusFile.exists()) {
+                                statusFile.readText().trim()
+                            } else {
+                                "NOT_INSTALLED"
+                            }
+                            withContext(Dispatchers.Main) {
+                                result.success(status)
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                result.success("UNKNOWN")
+                            }
+                        }
+                    }
+                }
+
                 "installLute3Chained" -> {
                     android.util.Log.d("TermuxBridge", "installLute3Chained called, eventSink: ${eventSink != null}")
                     // Start foreground service to keep app in foreground
