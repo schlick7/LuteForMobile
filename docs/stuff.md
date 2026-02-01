@@ -5,6 +5,13 @@
   
 Lets do a performance review of this app starting with the ReadScreen 
 
+
+Did the code change for testing termux 'external apps' ? I have a file in Download called 'termux_test_external.txt' that says "EXTERNAL_APPS_ENABLED=true" but the UI in connection status says disabled. this is a brand new file so it is still passing the check correctly
+
+Why does pressing "Start Server" cause a recheck of all the connection statuses?
+
+add TermuxURL to settings (not visible) and hardcode it to localhost. This will be used when Termux is selected as the lute server. We can just link it to ServerURL somehow so that the ServerURL is correct everywhere. We need to make sure that this doesn't clear the saved ServerURL though. 
+
 ---
 
 https://wiki.termux.com/wiki/Main_Page
@@ -12,18 +19,21 @@ https://github.com/termux/termux-packages/wiki/Mirrors
 https://github.com/termux/termux-tools/tree/master/mirrors
 
 ---
-
+ 
 Can we use the PWA that we have to handle backup and restore on our local (not on device) server?
 
 # Termux
-- Let's simplify the Database backup for now to only have the basics for a phase 1 working product. We want to be able to see the current backup files (visible here on the webpage /backup/index), being able to trigger a backup, and be able to 'download' that backup to the Download folder. 
-- 
+- Lets work in the settings Termux integration backups. Add the ability to "restore" a backup. This means that we need to transfer a db file of the users choosing to the correct lute3 directory and overrite the current db file. We should ask the user if they want to create a backup first before restoring. If yes create the backup and when finished continue the process, If no then just continue the process. 
+- Should be able to see termux backups AND the local(configured URL) backups
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
   - We for sure need to be able to trigger db backups and then be able to download/save the db to a local folder (like downloads) and to upload/restore/overwrite the db file to the termux install location. We can possibly just use the lute3 backup/restore functionality for this. 
   - Does the db file contain EVERYTHING that we need?
+- What happens if f-droid is not installed?
+- Cleanup External Apps popup
 
-
-- Some way to trigger backups. 
+---
+The auto backups are triggering constantly instead of the server doing it on its once a day setting
+---
 - When the app is opened we should somehow make sure that the backup system is triggered. Not a manual backup. The way the current Lute Webpage works is that when you open it for the first time that day it somehow triggers a backup to run. Our app never triggers that. Look into the @lute-v3 code and find out what is triggering this. 
 
 # Requests 
