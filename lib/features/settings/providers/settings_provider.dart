@@ -18,6 +18,7 @@ class ViewDrawerSettings {
 
 class SettingsNotifier extends Notifier<Settings> {
   static const String _keyServerUrl = 'server_url';
+  static const String _keySavedServerUrl = 'saved_server_url';
   static const String _keyTranslationProvider = 'translation_provider';
   static const String _keyShowTags = 'show_tags';
   static const String _keyShowLastRead = 'show_last_read';
@@ -260,6 +261,18 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyEnableTripleTapToMarkKnown, enabled);
   }
 
+  Future<void> setUseTermuxServer(bool useTermux) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (useTermux) {
+      await prefs.setString(_keySavedServerUrl, state.serverUrl);
+      await updateServerUrl(Settings.termuxUrl);
+    } else {
+      final savedUrl = prefs.getString(_keySavedServerUrl) ?? '';
+      await updateServerUrl(savedUrl);
+      await prefs.remove(_keySavedServerUrl);
+    }
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -289,6 +302,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyShowStatsBar);
     await prefs.remove(_keyShowPageNumbers);
     await prefs.remove(_keyEnableTripleTapToMarkKnown);
+    await prefs.remove(_keySavedServerUrl);
 
     state = Settings.defaultSettings();
   }

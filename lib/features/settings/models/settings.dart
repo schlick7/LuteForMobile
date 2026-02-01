@@ -29,6 +29,8 @@ class Settings {
   final AIProvider? aiProvider;
   final bool enableTripleTapToMarkKnown;
 
+  static const String termuxUrl = 'http://localhost:5001';
+
   const Settings({
     required this.serverUrl,
     this.aiServerUrl,
