@@ -28,6 +28,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
   - Does the db file contain EVERYTHING that we need?
 - What happens if f-droid is not installed?
 - Cleanup External Apps popup
+- Add a termux integration toggle (default off) to settings in the Server Configuration. When this is toggled on show the ServerSelection toggle and the Termux Integration setting card. With this not toggled both should be hidden. This termux integration toggle only needs to be visible on the Android APK, not the WPAs as this feature ONLY works on the android apk install. 
 
 ---
 The auto backups are triggering constantly instead of the server doing it on its once a day setting
