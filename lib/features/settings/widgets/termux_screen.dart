@@ -158,6 +158,15 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         });
 
         if (lute3Status == 'INSTALLED') {
+          setState(() {
+            _checkingVersion = true;
+          });
+          final lute3Version = await TermuxService.getLute3Version();
+          setState(() {
+            _checkingVersion = false;
+            _lute3Version = lute3Version;
+          });
+
           if (serverRunning) {
             setState(() {
               _checkingBackups = true;
