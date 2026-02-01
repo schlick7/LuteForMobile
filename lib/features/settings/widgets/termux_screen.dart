@@ -498,6 +498,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       _checkingLute3,
                       !_checkingLute3,
                       'Not installed',
+                      onTap: _showLute3Options,
                     ),
                     if (_lute3Status == 'INSTALLED') ...[
                       const SizedBox(height: 8),
@@ -925,6 +926,57 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
             label: const Text('Open Termux'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showLute3Options() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Lute3 Options'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.update),
+              title: const Text('Update Lute3'),
+              subtitle: const Text('Update to the latest version'),
+              onTap: () {
+                Navigator.pop(context);
+                _updateLute3();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.restart_alt),
+              title: const Text('Reinstall Lute3'),
+              subtitle: const Text('Uninstall and reinstall'),
+              onTap: () {
+                Navigator.pop(context);
+                _reinstallLute3();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateLute3() async {
+    await _installLute3();
+  }
+
+  Future<void> _reinstallLute3() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Reinstall feature coming soon'),
+        duration: Duration(seconds: 2),
       ),
     );
   }
