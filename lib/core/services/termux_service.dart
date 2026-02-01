@@ -93,6 +93,18 @@ class TermuxService {
     }
   }
 
+  static Future<bool> restoreBackup(String localFilePath) async {
+    try {
+      final result = await _channel.invokeMethod('restoreBackup', {
+        'filePath': localFilePath,
+      });
+      return result as bool? ?? false;
+    } on PlatformException catch (e) {
+      print('Restore backup failed: ${e.message}');
+      return false;
+    }
+  }
+
   static Future<String> getInstallationStatus() async {
     final result = await _channel.invokeMethod('getInstallationStatus');
     return result as String? ?? 'NOT_STARTED';

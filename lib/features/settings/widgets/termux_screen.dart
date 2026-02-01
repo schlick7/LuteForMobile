@@ -7,6 +7,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/core/services/termux_service.dart';
 import 'package:lute_for_mobile/core/services/backup_service.dart';
+import 'package:lute_for_mobile/core/services/storage_service.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
 
@@ -33,6 +34,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   List<Map<String, dynamic>>? _localBackups;
   bool _isBackingUpLocal = false;
   final Set<String> _downloadingLocalBackups = {};
+  bool _isRestoring = false;
 
   StreamSubscription? _progressSubscription;
   String _currentStep = '';
@@ -492,6 +494,136 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     }
   }
 
+  void _showRestoreConfirmDialog(String filePath) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Restore Backup'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Do you want to create a backup before restoring?'),
+            const SizedBox(height: 8),
+            Text(
+              'File: ${filePath.split('/').last}',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _performRestore(filePath, createBackupFirst: false);
+            },
+            child: const Text('No, Restore Now'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _performRestore(filePath, createBackupFirst: true);
+            },
+            child: const Text('Yes, Create Backup First'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _performRestore(
+    String filePath, {
+    required bool createBackupFirst,
+  }) async {
+    setState(() {
+      _isRestoring = true;
+    });
+
+    try {
+      if (createBackupFirst) {
+        final backupResult = await BackupService.createBackup(
+          Settings.termuxUrl,
+        );
+        if (!backupResult.contains('successfully')) {
+          setState(() {
+            _isRestoring = false;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Backup failed: $backupResult'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      final success = await TermuxService.restoreBackup(filePath);
+
+      setState(() {
+        _isRestoring = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Restore completed successfully'
+                  : 'Restore failed: Operation failed',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      if (success) {
+        await Future.delayed(const Duration(seconds: 2));
+        _refreshStatus();
+      }
+    } catch (e) {
+      setState(() {
+        _isRestoring = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Restore failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _restoreBackup() async {
+    final hasPermissions = await StorageService.checkStoragePermissions();
+    if (!hasPermissions) {
+      final granted = await StorageService.requestStoragePermissions();
+      if (!granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Storage permission required'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    final filePath = await StorageService.selectBackupFile();
+    if (filePath == null) {
+      return;
+    }
+
+    _showRestoreConfirmDialog(filePath);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -798,6 +930,24 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     )
                   : const Icon(Icons.backup),
               label: Text(_isBackingUp ? 'Creating...' : 'Create Backup'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: _isRestoring ? null : _restoreBackup,
+              icon: _isRestoring
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.restore),
+              label: Text(_isRestoring ? 'Restoring...' : 'Restore Backup'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange.shade700,
+              ),
             ),
             const SizedBox(height: 16),
             Row(

@@ -133,4 +133,33 @@ class BackupService {
       throw Exception('Failed to download backup: $e');
     }
   }
+
+  static Future<String> restoreBackup(
+    String serverUrl,
+    String localFilePath,
+  ) async {
+    try {
+      final file = File(localFilePath);
+      final bytes = await file.readAsBytes();
+      final filename = file.uri.pathSegments.last;
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$serverUrl/backup/restore'),
+      );
+      request.files.add(
+        http.MultipartFile.fromBytes('file', bytes, filename: filename),
+      );
+
+      final response = await request.send();
+
+      if (response.statusCode == 200) {
+        return 'Restore completed successfully';
+      } else {
+        throw Exception('Failed to restore backup: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to restore backup: $e');
+    }
+  }
 }

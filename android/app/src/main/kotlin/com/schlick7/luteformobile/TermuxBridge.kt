@@ -271,6 +271,23 @@ class TermuxBridge(private val context: Context) {
                     }
                 }
 
+                "restoreBackup" -> {
+                    scope.launch {
+                        val filePath = call.argument<String>("filePath")
+                        if (filePath == null) {
+                            withContext(Dispatchers.Main) {
+                                result.error("INVALID_PATH", "No file path provided", null)
+                            }
+                            return@launch
+                        }
+
+                        val restoreResult = restoreBackupToLute3(context, filePath)
+                        withContext(Dispatchers.Main) {
+                            result.success(restoreResult)
+                        }
+                    }
+                }
+
                 "checkStoragePermissions" -> {
                     scope.launch {
                         val hasPermissions = StorageHelper.hasStoragePermissions(context)
@@ -869,10 +886,79 @@ suspend fun installLute3Chained(context: Context, onProgress: (stepName: String,
             
             android.util.Log.w("TermuxBridge", "Installation timed out after 30 minutes")
             return@withContext "TIMEOUT: Installation timed out"
-            
+
         } catch (e: Exception) {
             android.util.Log.e("TermuxBridge", "Installation failed: ${e.message}")
             return@withContext "ERROR: ${e.message}"
+        }
+    }
+}
+
+private suspend fun restoreBackupToLute3(context: Context, localFilePath: String): Boolean {
+    return withContext(Dispatchers.IO) {
+        try {
+            android.util.Log.d("TermuxBridge", "Starting restore: localFilePath=$localFilePath")
+
+            val localFile = java.io.File(localFilePath)
+            if (!localFile.exists()) {
+                android.util.Log.e("TermuxBridge", "Local file does not exist: $localFilePath")
+                return@withContext false
+            }
+
+            val fileName = localFile.name
+            android.util.Log.d("TermuxBridge", "File name: $fileName")
+
+            val termuxSharedDir = "/data/data/com.termux/files/shared_dir"
+            val termuxDownloadsDir = "$termuxSharedDir/Download"
+            val tempTermuxPath = "$termuxDownloadsDir/$fileName"
+
+            android.util.Log.d("TermuxBridge", "Copying file to Termux shared directory: $tempTermuxPath")
+
+            localFile.copyTo(java.io.File(tempTermuxPath), overwrite = true)
+
+            android.util.Log.d("TermuxBridge", "File copied to Termux Downloads")
+
+            val lute3DbPath = "\$HOME/.local/share/lute3/lute.db"
+
+            val restoreScript = """
+                #!/data/data/com.termux/files/usr/bin/bash
+
+                # Stop the server
+                pkill -f "lute3" 2>/dev/null || true
+                sleep 1
+
+                # Copy the restore file to the correct location
+                cp "$tempTermuxPath" "$lute3DbPath"
+
+                # Set proper permissions
+                chmod 600 "$lute3DbPath"
+
+                # Clean up temp file
+                rm -f "$tempTermuxPath"
+
+                echo "RESTORE_SUCCESS"
+            """.trimIndent()
+
+            android.util.Log.d("TermuxBridge", "Sending restore script to Termux")
+
+            val intent = android.content.Intent().apply {
+                setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+                action = TermuxConstants.TERMUX_ACTION
+                putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+                putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", restoreScript))
+                putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+            }
+
+            context.startService(intent)
+
+            delay(3000)
+
+            android.util.Log.d("TermuxBridge", "Restore completed successfully")
+            true
+
+        } catch (e: Exception) {
+            android.util.Log.e("TermuxBridge", "Restore failed: ${e.message}")
+            false
         }
     }
 }
