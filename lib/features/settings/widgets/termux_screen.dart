@@ -5,16 +5,19 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:app_settings/app_settings.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/core/services/termux_service.dart';
+import 'package:lute_for_mobile/core/services/backup_service.dart';
+import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 
-class TermuxScreen extends StatefulWidget {
+class TermuxScreen extends ConsumerStatefulWidget {
   const TermuxScreen({super.key});
 
   @override
-  State<TermuxScreen> createState() => _TermuxScreenState();
+  ConsumerState<TermuxScreen> createState() => _TermuxScreenState();
 }
 
-class _TermuxScreenState extends State<TermuxScreen> {
+class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _isLoading = true;
   bool _termuxInstalled = false;
   bool _permissionGranted = false;
@@ -23,10 +26,9 @@ class _TermuxScreenState extends State<TermuxScreen> {
   String? _lute3Version;
   String? _termuxVersion;
   bool _serverRunning = false;
-  String? _message;
-
   List<Map<String, dynamic>>? _backups;
   bool _isBackingUp = false;
+  final Set<String> _downloadingBackups = {};
 
   StreamSubscription? _progressSubscription;
   String _currentStep = '';
@@ -51,7 +53,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
   Future<void> _refreshStatus() async {
     setState(() {
       _isLoading = true;
-      _message = null;
     });
 
     try {
@@ -123,7 +124,8 @@ class _TermuxScreenState extends State<TermuxScreen> {
 
       if (_lute3Status == 'INSTALLED') {
         try {
-          _backups = await TermuxService.listBackups();
+          final serverUrl = ref.read(settingsProvider).serverUrl;
+          _backups = await BackupService.listBackups(serverUrl);
           print('Backups found: ${_backups?.length ?? 0}');
           if (_backups != null) {
             for (var backup in _backups!) {
@@ -145,9 +147,14 @@ class _TermuxScreenState extends State<TermuxScreen> {
         _tmuxStatus = 'ERROR';
       }
     } catch (e) {
-      setState(() {
-        _message = 'Error checking Termux status: $e';
-      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error checking Termux status: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
 
     setState(() {
@@ -195,8 +202,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
   Future<void> _installLute3Chained() async {
     setState(() {
       _isLoading = true;
-      _message =
-          'Starting Lute3 installation...\nThis may take 5-15 minutes depending on network speed.\n\nProgress will be shown step-by-step.';
       _currentStep = 'Preparing...';
       _currentStatus = 'Initializing...';
     });
@@ -208,22 +213,22 @@ class _TermuxScreenState extends State<TermuxScreen> {
           _currentStep = progress['step'] ?? 'Processing...';
           _currentStatus = progress['status'] ?? 'Processing...';
           _currentMaxWaitSeconds = progress['maxWaitSeconds'] ?? 60;
-
-          // Format message with more detail for chained installation
-          String detailMessage = 'Step: $_currentStep\nStatus: $_currentStatus';
-          if (_currentMaxWaitSeconds > 0) {
-            detailMessage +=
-                '\nEstimated time: ~$_currentMaxWaitSeconds seconds';
-          }
-          detailMessage +=
-              '\n\nTip: Check Downloads folder for lute_install_status.txt and lute_*.log files for details.';
-          _message = detailMessage;
         });
       },
       onError: (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Installation error: $error. Check Downloads folder for log files',
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
         setState(() {
-          _message =
-              'Installation error: $error\n\nTip: Check Downloads folder for log files:\n- lute_pkg_update.log\n- lute_pkg_upgrade.log\n- lute_python_install.log\n- lute_lute3_install.log\n\nRetry installation.';
+          _isLoading = false;
         });
       },
     );
@@ -234,13 +239,24 @@ class _TermuxScreenState extends State<TermuxScreen> {
     _progressSubscription = null;
 
     setState(() {
-      _message = result == 'COMPLETE'
-          ? 'Lute3 installed successfully!'
-          : 'Installation failed.\n\nCheck Downloads folder for log files to diagnose issue:\n\nCommon fixes:\n1. Check internet connection\n2. Clear Termux data and retry\n3. Check device storage space';
       _currentStep = '';
       _currentStatus = '';
       _isLoading = false;
     });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            result == 'COMPLETE'
+                ? 'Lute3 installed successfully!'
+                : 'Installation failed. Check Downloads folder for log files',
+          ),
+          backgroundColor: result == 'COMPLETE' ? Colors.green : Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
 
     await Future.delayed(const Duration(seconds: 3));
     _refreshStatus();
@@ -321,27 +337,78 @@ class _TermuxScreenState extends State<TermuxScreen> {
       _isBackingUp = true;
     });
 
-    final result = await TermuxService.createBackup();
+    try {
+      final serverUrl = ref.read(settingsProvider).serverUrl;
+      await BackupService.createBackup(serverUrl);
 
-    setState(() {
-      _message = result;
-      _isBackingUp = false;
-    });
+      setState(() {
+        _isBackingUp = false;
+      });
 
-    await Future.delayed(const Duration(seconds: 2));
-    _refreshStatus();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Backup created successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      await Future.delayed(const Duration(seconds: 2));
+      _refreshStatus();
+    } catch (e) {
+      setState(() {
+        _isBackingUp = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create backup: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _downloadBackup(String filename) async {
     setState(() {
-      _message = 'Downloading $filename...';
+      _downloadingBackups.add(filename);
     });
 
-    final result = await TermuxService.downloadBackup(filename);
+    try {
+      final serverUrl = ref.read(settingsProvider).serverUrl;
+      final result = await BackupService.downloadBackup(serverUrl, filename);
 
-    setState(() {
-      _message = result != null ? 'Downloaded to: $result' : 'Download failed';
-    });
+      setState(() {
+        _downloadingBackups.remove(filename);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Downloaded to: $result'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _downloadingBackups.remove(filename);
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Download failed: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -414,37 +481,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_message != null) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color:
-                    _message!.contains('Error') || _message!.contains('failed')
-                    ? Colors.red.shade50
-                    : Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color:
-                      _message!.contains('Error') ||
-                          _message!.contains('failed')
-                      ? Colors.red
-                      : Colors.green,
-                ),
-              ),
-              child: Text(
-                _message!,
-                style: TextStyle(
-                  color:
-                      _message!.contains('Error') ||
-                          _message!.contains('failed')
-                      ? Colors.red.shade900
-                      : Colors.green.shade900,
-                ),
-              ),
-            ),
-          ],
           _buildStatusCard(),
           const SizedBox(height: 16),
           _buildServerCard(),
@@ -665,9 +701,19 @@ class _TermuxScreenState extends State<TermuxScreen> {
             ),
             if (_backups != null) ...[
               const SizedBox(height: 16),
-              Text(
-                'Available Backups',
-                style: Theme.of(context).textTheme.titleMedium,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Available Backups (${_backups!.length})',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  TextButton.icon(
+                    onPressed: _refreshStatus,
+                    icon: const Icon(Icons.refresh, size: 16),
+                    label: const Text('Refresh'),
+                  ),
+                ],
               ),
               if (_backups!.isEmpty)
                 const Padding(
@@ -679,7 +725,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
                   final filename = backup['filename'] as String;
                   final lastModified = backup['lastModified'] as int;
                   final size = backup['size'] as String;
-                  final isManual = backup['isManual'] as bool;
                   final date = DateTime.fromMillisecondsSinceEpoch(
                     lastModified,
                   );
@@ -703,12 +748,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              if (isManual)
-                                Chip(
-                                  label: const Text('Manual'),
-                                  backgroundColor: Colors.blue.shade100,
-                                  labelStyle: TextStyle(fontSize: 10),
-                                ),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -735,9 +774,23 @@ class _TermuxScreenState extends State<TermuxScreen> {
                           SizedBox(
                             width: double.infinity,
                             child: OutlinedButton.icon(
-                              onPressed: () => _downloadBackup(filename),
-                              icon: const Icon(Icons.download, size: 16),
-                              label: const Text('Download to Downloads'),
+                              onPressed: _downloadingBackups.contains(filename)
+                                  ? null
+                                  : () => _downloadBackup(filename),
+                              icon: _downloadingBackups.contains(filename)
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.download, size: 16),
+                              label: Text(
+                                _downloadingBackups.contains(filename)
+                                    ? 'Downloading...'
+                                    : 'Download',
+                              ),
                             ),
                           ),
                         ],

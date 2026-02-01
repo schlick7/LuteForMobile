@@ -103,50 +103,6 @@ class TermuxService {
     return result as String? ?? 'NOT_STARTED';
   }
 
-  // Backup operations
-  static Future<String> createBackup() async {
-    final result = await _channel.invokeMethod('createBackup');
-    return result as String? ?? 'Backup failed';
-  }
-
-  static Future<List<Map<String, dynamic>>?> listBackups() async {
-    final result = await _channel.invokeMethod('listBackups');
-    if (result == null) return null;
-    return List<Map<String, dynamic>>.from(result as List);
-  }
-
-  static Future<String?> downloadBackup(String filename) async {
-    final result = await _channel.invokeMethod('downloadBackup', {
-      'filename': filename,
-    });
-    if (result is PlatformException) {
-      return null;
-    }
-    return result as String?;
-  }
-
-  static Future<String?> restoreBackup() async {
-    final result = await _channel.invokeMethod('restoreBackup');
-    if (result is PlatformException) {
-      return result.message;
-    }
-    return result as String?;
-  }
-
-  static Future<String?> syncWithRemote(
-    String remoteUrl, {
-    String? apiKey,
-  }) async {
-    final result = await _channel.invokeMethod('syncWithRemote', {
-      'remoteUrl': remoteUrl,
-      if (apiKey != null) 'apiKey': apiKey,
-    });
-    if (result is PlatformException) {
-      return result.message;
-    }
-    return result as String?;
-  }
-
   static Future<bool> checkStoragePermissions() async {
     final result = await _channel.invokeMethod('checkStoragePermissions');
     return result as bool? ?? false;
