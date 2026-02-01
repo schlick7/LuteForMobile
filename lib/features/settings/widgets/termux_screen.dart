@@ -619,7 +619,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Widget _buildServerCard() {
-    final settings = ref.watch(settingsProvider);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -649,42 +648,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                     ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Use Termux Server',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'Connect to localhost when server is running',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Transform.scale(
-                  scale: 0.8,
-                  child: Switch(
-                    value: settings.serverUrl == Settings.termuxUrl,
-                    onChanged: (value) {
-                      ref
-                          .read(settingsProvider.notifier)
-                          .setServerSelection(value);
-                    },
                   ),
                 ),
               ],

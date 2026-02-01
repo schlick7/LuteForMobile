@@ -364,6 +364,42 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
                     ],
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Server Selection',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                'Use Termux server (localhost)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).colorScheme.onSurface
+                                      .withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Transform.scale(
+                          scale: 0.8,
+                          child: Switch(
+                            value:
+                                settings.serverUrl == 'http://localhost:5001',
+                            onChanged: (value) {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .setServerSelection(value);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
