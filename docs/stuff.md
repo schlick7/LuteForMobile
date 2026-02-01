@@ -6,11 +6,9 @@
 Lets do a performance review of this app starting with the ReadScreen 
 
 
-Did the code change for testing termux 'external apps' ? I have a file in Download called 'termux_test_external.txt' that says "EXTERNAL_APPS_ENABLED=true" but the UI in connection status says disabled. this is a brand new file so it is still passing the check correctly
 
 Why does pressing "Start Server" cause a recheck of all the connection statuses?
 
-add TermuxURL to settings (not visible) and hardcode it to localhost. This will be used when Termux is selected as the lute server. We can just link it to ServerURL somehow so that the ServerURL is correct everywhere. We need to make sure that this doesn't clear the saved ServerURL though. 
 
 ---
 
