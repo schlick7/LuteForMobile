@@ -936,24 +936,28 @@ suspend fun installLute3Chained(context: Context, onProgress: (stepName: String,
                 
                 STATUS_FILE="${statusFile}"
                 
-                # Step 1: Update package lists
-                echo "STEP:1/5 - Updating package lists" > ${'$'}STATUS_FILE
+                # Step 1: Configure mirrors
+                echo "STEP:1/6 - Configuring mirrors" > ${'$'}STATUS_FILE
+                echo 'deb https://packages.termux.dev/apt/termux-main stable main' > ${'$'}PREFIX/etc/apt/sources.list
+                
+                # Step 2: Update package lists
+                echo "STEP:2/6 - Updating package lists" > ${'$'}STATUS_FILE
                 pkg update -y 2>&1 | tee "${downloadsDir}/lute_pkg_update.log"
                 
-                # Step 2: Upgrade packages
-                echo "STEP:2/5 - Upgrading packages" > ${'$'}STATUS_FILE
+                # Step 3: Upgrade packages
+                echo "STEP:3/6 - Upgrading packages" > ${'$'}STATUS_FILE
                 DEBIAN_FRONTEND=noninteractive pkg upgrade -y 2>&1 | tee "${downloadsDir}/lute_pkg_upgrade.log"
                 
-                # Step 3: Install Python3
-                echo "STEP:3/5 - Installing Python3" > ${'$'}STATUS_FILE
+                # Step 4: Install Python3
+                echo "STEP:4/6 - Installing Python3" > ${'$'}STATUS_FILE
                 DEBIAN_FRONTEND=noninteractive pkg install python3 -y 2>&1 | tee "${downloadsDir}/lute_python_install.log"
                 
-                # Step 4: Upgrade pip
-                echo "STEP:4/5 - Upgrading pip" > ${'$'}STATUS_FILE
+                # Step 5: Upgrade pip
+                echo "STEP:5/6 - Upgrading pip" > ${'$'}STATUS_FILE
                 pip install --upgrade pip 2>&1 | tee "${downloadsDir}/lute_pip_upgrade.log"
                 
-                # Step 5: Install Lute3
-                echo "STEP:5/5 - Installing Lute3" > ${'$'}STATUS_FILE
+                # Step 6: Install Lute3
+                echo "STEP:6/6 - Installing Lute3" > ${'$'}STATUS_FILE
                 pip install --upgrade lute3 2>&1 | tee "${downloadsDir}/lute_lute3_install.log"
                 
                 # Complete
@@ -1003,22 +1007,24 @@ suspend fun installLute3Chained(context: Context, onProgress: (stepName: String,
                             android.util.Log.d("TermuxBridge", "Installation progress: $content")
                             
                             val stepName = when {
-                                content.contains("1/5") -> "UPDATING_PACKAGES"
-                                content.contains("2/5") -> "UPGRADING_PACKAGES"
-                                content.contains("3/5") -> "INSTALLING_PYTHON3"
-                                content.contains("4/5") -> "UPGRADING_PIP"
-                                content.contains("5/5") -> "INSTALLING_LUTE3"
+                                content.contains("1/6") -> "CONFIGURING_MIRRORS"
+                                content.contains("2/6") -> "UPDATING_PACKAGES"
+                                content.contains("3/6") -> "UPGRADING_PACKAGES"
+                                content.contains("4/6") -> "INSTALLING_PYTHON3"
+                                content.contains("5/6") -> "UPGRADING_PIP"
+                                content.contains("6/6") -> "INSTALLING_LUTE3"
                                 content.contains("COMPLETE") -> "COMPLETE"
                                 else -> "UNKNOWN"
                             }
                             
                             val stepStatus = content.substringAfter("STEP:").trim()
                             val maxWaitSeconds = when {
-                                content.contains("1/5") -> 60
-                                content.contains("2/5") -> 300
-                                content.contains("3/5") -> 300
-                                content.contains("4/5") -> 60
-                                content.contains("5/5") -> 300
+                                content.contains("1/6") -> 10
+                                content.contains("2/6") -> 60
+                                content.contains("3/6") -> 300
+                                content.contains("4/6") -> 300
+                                content.contains("5/6") -> 60
+                                content.contains("6/6") -> 300
                                 content.contains("COMPLETE") -> 0
                                 else -> 30
                             }
