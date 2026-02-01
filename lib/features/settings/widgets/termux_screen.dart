@@ -6,7 +6,6 @@ import 'package:url_launcher/url_launcher_string.dart';
 import 'package:app_settings/app_settings.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:lute_for_mobile/core/services/termux_service.dart';
-import 'package:lute_for_mobile/core/services/storage_service.dart';
 
 class TermuxScreen extends StatefulWidget {
   const TermuxScreen({super.key});
@@ -28,8 +27,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
 
   List<Map<String, dynamic>>? _backups;
   bool _isBackingUp = false;
-  String _remoteUrl = '';
-  String _apiKey = '';
 
   StreamSubscription? _progressSubscription;
   String _currentStep = '';
@@ -127,7 +124,16 @@ class _TermuxScreenState extends State<TermuxScreen> {
       if (_lute3Status == 'INSTALLED') {
         try {
           _backups = await TermuxService.listBackups();
+          print('Backups found: ${_backups?.length ?? 0}');
+          if (_backups != null) {
+            for (var backup in _backups!) {
+              print(
+                'Backup: ${backup['filename']} - ${backup['lastModified']}',
+              );
+            }
+          }
         } catch (e) {
+          print('Error loading backups: $e');
           _backups = null;
         }
       }
@@ -335,68 +341,6 @@ class _TermuxScreenState extends State<TermuxScreen> {
 
     setState(() {
       _message = result != null ? 'Downloaded to: $result' : 'Download failed';
-    });
-  }
-
-  Future<void> _restoreBackup() async {
-    final hasPermissions = await StorageService.checkStoragePermissions();
-
-    if (!hasPermissions) {
-      final granted = await StorageService.requestStoragePermissions();
-      if (!granted) {
-        setState(() {
-          _message = 'Storage permissions are required to restore backups';
-        });
-        return;
-      }
-    }
-
-    setState(() {
-      _message = 'Selecting backup file...';
-    });
-
-    final backupPath = await StorageService.selectBackupFile();
-
-    if (backupPath == null) {
-      setState(() {
-        _message = 'No backup file selected';
-      });
-      return;
-    }
-
-    setState(() {
-      _message = 'Restoring backup...';
-    });
-
-    final result = await TermuxService.restoreBackup();
-
-    setState(() {
-      _message = result;
-    });
-
-    await Future.delayed(const Duration(seconds: 5));
-    _refreshStatus();
-  }
-
-  Future<void> _syncWithRemote() async {
-    if (_remoteUrl.isEmpty) {
-      setState(() {
-        _message = 'Please enter remote server URL';
-      });
-      return;
-    }
-
-    setState(() {
-      _message = 'Syncing backup to remote server...';
-    });
-
-    final result = await TermuxService.syncWithRemote(
-      _remoteUrl,
-      apiKey: _apiKey.isEmpty ? null : _apiKey,
-    );
-
-    setState(() {
-      _message = result;
     });
   }
 
@@ -701,7 +645,7 @@ class _TermuxScreenState extends State<TermuxScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Database Backup & Sync',
+              'Database Backup',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
@@ -719,135 +663,89 @@ class _TermuxScreenState extends State<TermuxScreen> {
                   : const Icon(Icons.backup),
               label: Text(_isBackingUp ? 'Creating...' : 'Create Backup'),
             ),
-            if (_backups != null && _backups!.isNotEmpty) ...[
+            if (_backups != null) ...[
               const SizedBox(height: 16),
               Text(
                 'Available Backups',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              const SizedBox(height: 8),
-              ..._backups!.take(5).map((backup) {
-                final filename = backup['filename'] as String;
-                final lastModified = backup['lastModified'] as int;
-                final size = backup['size'] as String;
-                final isManual = backup['isManual'] as bool;
-                final date = DateTime.fromMillisecondsSinceEpoch(lastModified);
+              if (_backups!.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('No backups found. Create a backup first.'),
+                )
+              else
+                ..._backups!.take(5).map((backup) {
+                  final filename = backup['filename'] as String;
+                  final lastModified = backup['lastModified'] as int;
+                  final size = backup['size'] as String;
+                  final isManual = backup['isManual'] as bool;
+                  final date = DateTime.fromMillisecondsSinceEpoch(
+                    lastModified,
+                  );
 
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                filename,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            if (isManual)
-                              Chip(
-                                label: const Text('Manual'),
-                                backgroundColor: Colors.blue.shade100,
-                                labelStyle: TextStyle(fontSize: 10),
-                              ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                            Text(
-                              size,
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () => _downloadBackup(filename),
-                                icon: const Icon(Icons.download, size: 16),
-                                label: const Text('Download'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  filename,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
                                   ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: () => _restoreBackup(),
-                                icon: const Icon(Icons.restore, size: 16),
-                                label: const Text('Restore'),
-                                style: ElevatedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                  ),
+                              if (isManual)
+                                Chip(
+                                  label: const Text('Manual'),
+                                  backgroundColor: Colors.blue.shade100,
+                                  labelStyle: TextStyle(fontSize: 10),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
                                 ),
                               ),
+                              Text(
+                                size,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => _downloadBackup(filename),
+                              icon: const Icon(Icons.download, size: 16),
+                              label: const Text('Download to Downloads'),
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
             ],
-            const SizedBox(height: 24),
-            Text(
-              'Sync with Remote Server',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              decoration: const InputDecoration(
-                labelText: 'Remote Server URL',
-                hintText: 'https://your-lute-server.com',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                _remoteUrl = value;
-              },
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              decoration: const InputDecoration(
-                labelText: 'API Key (optional)',
-                border: OutlineInputBorder(),
-              ),
-              onChanged: (value) {
-                _apiKey = value;
-              },
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: _remoteUrl.isEmpty ? null : _syncWithRemote,
-              icon: const Icon(Icons.cloud_upload),
-              label: const Text('Upload Backup to Remote'),
-            ),
           ],
         ),
       ),
