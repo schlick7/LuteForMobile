@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
@@ -346,46 +347,133 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Server Selection',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                'Use Termux server (localhost)',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.6),
+                    if (Platform.isAndroid) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Termux Integration',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
-                              ),
-                            ],
+                                Text(
+                                  'Enable Termux server features',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value:
-                                settings.serverUrl == 'http://localhost:5001',
-                            onChanged: (value) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .setServerSelection(value);
-                            },
+                          Transform.scale(
+                            scale: 0.8,
+                            child: Switch(
+                              value: settings.termuxIntegrationEnabled,
+                              onChanged: (value) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .updateTermuxIntegrationEnabled(value);
+                              },
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
+                    if (settings.termuxIntegrationEnabled) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Server Selection',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  'Use Termux server (localhost)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Transform.scale(
+                            scale: 0.8,
+                            child: Switch(
+                              value:
+                                  settings.serverUrl == 'http://localhost:5001',
+                              onChanged: (value) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .setServerSelection(value);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
+            if (settings.termuxIntegrationEnabled) ...[
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Termux Integration',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const TermuxScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.phone_android),
+                            label: const Text('Open'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Run Lute3 server locally on your device using Termux',
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Card(
               elevation: 2,
@@ -717,48 +805,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: 8),
                     Text(
                       _getThemeDescription(themeSettings.themeType),
-                      style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Termux Integration',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        TextButton.icon(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const TermuxScreen(),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.phone_android),
-                          label: const Text('Open'),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Run Lute3 server locally on your device using Termux',
                       style: TextStyle(
                         color: Theme.of(
                           context,

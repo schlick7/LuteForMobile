@@ -28,6 +28,7 @@ class Settings {
   final TTSProvider? ttsProvider;
   final AIProvider? aiProvider;
   final bool enableTripleTapToMarkKnown;
+  final bool termuxIntegrationEnabled;
 
   static const String termuxUrl = 'http://localhost:5001';
 
@@ -55,6 +56,7 @@ class Settings {
     this.ttsProvider,
     this.aiProvider,
     this.enableTripleTapToMarkKnown = false,
+    this.termuxIntegrationEnabled = false,
   });
 
   Settings copyWith({
@@ -83,6 +85,7 @@ class Settings {
     TTSProvider? ttsProvider,
     AIProvider? aiProvider,
     bool? enableTripleTapToMarkKnown,
+    bool? termuxIntegrationEnabled,
   }) {
     return Settings(
       serverUrl: serverUrl ?? this.serverUrl,
@@ -120,6 +123,8 @@ class Settings {
       aiProvider: aiProvider ?? this.aiProvider,
       enableTripleTapToMarkKnown:
           enableTripleTapToMarkKnown ?? this.enableTripleTapToMarkKnown,
+      termuxIntegrationEnabled:
+          termuxIntegrationEnabled ?? this.termuxIntegrationEnabled,
     );
   }
 
@@ -148,6 +153,7 @@ class Settings {
       ttsProvider: TTSProvider.onDevice,
       aiProvider: AIProvider.none,
       enableTripleTapToMarkKnown: false,
+      termuxIntegrationEnabled: false,
     );
   }
 
@@ -178,7 +184,8 @@ class Settings {
         other.showPageNumbers == showPageNumbers &&
         other.ttsProvider == ttsProvider &&
         other.aiProvider == aiProvider &&
-        other.enableTripleTapToMarkKnown == enableTripleTapToMarkKnown;
+        other.enableTripleTapToMarkKnown == enableTripleTapToMarkKnown &&
+        other.termuxIntegrationEnabled == termuxIntegrationEnabled;
   }
 
   @override
@@ -206,6 +213,7 @@ class Settings {
     ttsProvider,
     aiProvider,
     enableTripleTapToMarkKnown,
+    termuxIntegrationEnabled,
   ]);
 
   bool isValidServerUrl(String url) {
