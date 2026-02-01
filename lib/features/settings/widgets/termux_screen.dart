@@ -36,10 +36,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   String _currentStatus = '';
   int _currentMaxWaitSeconds = 60;
 
-  // tmux-related state
   String _tmuxStatus = 'UNKNOWN';
 
-  // Individual loading states for each item
   bool _checkingTermux = false;
   bool _checkingPermission = false;
   bool _checkingExternalApps = false;
@@ -220,12 +218,10 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   Future<void> _openTermuxApp() async {
     const termuxPackage = 'com.termux';
     try {
-      // Try to launch the Termux app directly using its package name
       final uri = Uri.parse('android-app://com.termux');
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
       } else {
-        // Alternative approach: try using Android Intent
         await launchUrl(
           Uri.parse(
             'intent://com.termux#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;launchFlags=0x10000000;package=com.termux;end',
@@ -234,7 +230,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         );
       }
     } catch (e) {
-      // If direct launch fails, try using app_settings to open the app info
       AppSettings.openAppSettings();
     }
   }
@@ -358,7 +353,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                 '• Use Ctrl+b then "d" to detach without stopping the installation\n'
                 '• You can safely close the Termux app after detaching\n'
                 '• The app will continue to show progress updates',
-                style: TextStyle(fontSize: 12, color: const Color(0xFF616161)),
+                style: TextStyle(fontSize: 12, color: Color(0xFF616161)),
               ),
             ],
           ),
@@ -524,191 +519,70 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       );
     }
 
-    return Stack(
-      children: [
-        SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildStatusCard(),
-              if (_lute3Status == 'INSTALLED') ...[
-                const SizedBox(height: 16),
-                _buildServerCard(),
-                const SizedBox(height: 16),
-                _buildBackupCard(),
-              ],
-            ],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildInfoRow(
+            'Termux',
+            _termuxInstalledConfirmed
+                ? (_termuxInstalled ? 'Installed' : 'Not installed')
+                : 'Checking...',
+            checking: _checkingTermux,
           ),
-        ),
-        if (_isBackgroundChecking)
-          Positioned(
-            top: 0,
-            right: 0,
-            child: Container(
-              margin: const EdgeInsets.all(16),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Checking...',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
+          if (_termuxInstalled) ...[
+            _buildInfoRow(
+              'Permission',
+              _permissionGranted ? 'Granted' : 'Not granted',
+              checking: _checkingPermission,
             ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildStatusCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Connection Status',
-              style: Theme.of(context).textTheme.titleLarge,
+            _buildInfoRow(
+              'External Apps',
+              _externalAppsEnabled ? 'Enabled' : 'Disabled',
+              checking: _checkingExternalApps,
             ),
-            const SizedBox(height: 16),
-            _buildStatusRow('Termux', _termuxInstalled, () {
-              if (!_termuxInstalled) {
-                _openFStore();
-              } else {
-                _openTermuxApp();
-              }
-            }, checking: _checkingTermux),
-            if (_termuxInstalled || _termuxInstalledConfirmed)
-              _buildStatusRow('External Apps', _externalAppsEnabled, () {
-                _showExternalAppsInstructions();
-              }, checking: _checkingExternalApps),
-            if (_termuxInstalled || _termuxInstalledConfirmed)
-              _buildStatusRow('Permission', _permissionGranted, () {
-                _openAppSettings();
-              }, checking: _checkingPermission),
-            if (_termuxInstalled || _termuxInstalledConfirmed)
-              _buildStatusRow(
-                'Lute3',
-                _lute3Status == 'INSTALLED',
-                () {
-                  _installLute3();
-                },
-                statusLabel: _lute3Status,
-                checking: _checkingLute3,
-              ),
-
-            if (_lute3Status == 'INSTALLED') ...[
+            _buildInfoRow('Lute3', _lute3Status, checking: _checkingLute3),
+            if (_lute3Status == 'INSTALLED' && _lute3Version != null)
               _buildInfoRow(
-                'Lute3 Version',
-                _lute3Version ?? 'Unknown',
+                'Version',
+                _lute3Version!,
                 checking: _checkingVersion,
               ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusRow(
-    String labelText,
-    bool status,
-    VoidCallback onTap, {
-    String? statusLabel,
-    bool? checking,
-  }) {
-    String statusText;
-    bool isLoading = checking ?? false;
-
-    if (isLoading) {
-      statusText = 'Checking...';
-    } else if (labelText == 'Permission') {
-      statusText = status ? 'Granted' : 'Not granted';
-    } else if (labelText == 'External Apps') {
-      statusText = status ? 'Enabled' : 'Disabled';
-    } else if (labelText == 'Lute3' && statusLabel != null) {
-      statusText = statusLabel;
-    } else {
-      statusText = status ? 'Installed' : 'Not installed';
-    }
-
-    final showFdroidLink = labelText == 'Termux' && !status && !isLoading;
-
-    return InkWell(
-      onTap: isLoading ? null : onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(labelText, style: const TextStyle(fontSize: 16)),
-            Row(
-              children: [
-                if (isLoading)
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  Text(
-                    statusText,
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                  ),
-                const SizedBox(width: 8),
-                if (showFdroidLink)
-                  Row(
-                    children: [
-                      Text(
-                        'Open in F-Droid',
-                        style: TextStyle(fontSize: 14, color: Colors.blue),
-                      ),
-                      const SizedBox(width: 4),
-                      const Icon(
-                        Icons.open_in_new,
-                        size: 16,
-                        color: Colors.blue,
-                      ),
-                    ],
-                  ),
-                if (!isLoading) ...[
-                  const SizedBox(width: 8),
-                  Icon(
-                    status ? Icons.check_circle : Icons.error,
-                    color: status ? Colors.green : Colors.red,
-                    size: 20,
-                  ),
-                ],
-              ],
+            _buildInfoRow(
+              'Server',
+              _serverRunning ? 'Running' : 'Stopped',
+              checking: _checkingServer,
+            ),
+            _buildInfoRow('Tmux', _tmuxStatus, checking: _checkingTmux),
+            const SizedBox(height: 16),
+            _buildServerCard(),
+            const SizedBox(height: 16),
+            _buildBackupCard(),
+          ] else ...[
+            const SizedBox(height: 24),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: _installLute3,
+                icon: const Icon(Icons.download),
+                label: const Text('Install Lute3 in Termux'),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton.icon(
+                onPressed: _openFStore,
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Get Termux from F-Droid'),
+              ),
             ),
           ],
-        ),
+          if (_isBackgroundChecking)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: LinearProgressIndicator(value: null),
+            ),
+        ],
       ),
     );
   }
@@ -827,122 +701,139 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                   : const Icon(Icons.backup),
               label: Text(_isBackingUp ? 'Creating...' : 'Create Backup'),
             ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Available Backups (${_backups?.length ?? 0})',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  TextButton.icon(
-                    onPressed: _refreshStatus,
-                    icon: const Icon(Icons.refresh, size: 16),
-                    label: const Text('Refresh'),
-                  ),
-                ],
-              ),
-              if (_backups == null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Icon(Icons.cloud_off, size: 16, color: Colors.grey.shade600),
-                      const SizedBox(width: 8),
-                      Text('Server not connected. Start the server to view backups.', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
-                    ],
-                  ),
-                )
-              else if (_backups!.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Row(
-                    children: [
-                      Icon(Icons.cloud_off, size: 16, color: Colors.grey.shade600),
-                      const SizedBox(width: 8),
-                      Text('Server not connected or No backups found. Create a backup first.', style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
-                    ],
-                  ),
-                )
-              else
-                ..._backups!.take(5).map((backup) {
-                  final filename = backup['filename'] as String;
-                  final lastModified = backup['lastModified'] as int;
-                  final size = backup['size'] as String;
-                  final date = DateTime.fromMillisecondsSinceEpoch(
-                    lastModified,
-                  );
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  filename,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                              Text(
-                                size,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: _downloadingBackups.contains(filename)
-                                  ? null
-                                  : () => _downloadBackup(filename),
-                              icon: _downloadingBackups.contains(filename)
-                                  ? const SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                  : const Icon(Icons.download, size: 16),
-                              label: Text(
-                                _downloadingBackups.contains(filename)
-                                    ? 'Downloading...'
-                                    : 'Download',
-                              ),
-                            ),
-                          ),
-                        ],
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Available Backups (${_backups?.length ?? 0})',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                TextButton.icon(
+                  onPressed: _refreshStatus,
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Refresh'),
+                ),
+              ],
+            ),
+            if (_backups == null)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_off,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Server not connected. Start the server to view backups.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
                       ),
                     ),
-                  );
-                }).toList(),
-            ],
+                  ],
+                ),
+              )
+            else if (_backups!.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_off,
+                      size: 16,
+                      color: Colors.grey.shade600,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Server not connected or No backups found. Create a backup first.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ..._backups!.take(5).map((backup) {
+                final filename = backup['filename'] as String;
+                final lastModified = backup['lastModified'] as int;
+                final size = backup['size'] as String;
+                final date = DateTime.fromMillisecondsSinceEpoch(lastModified);
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                filename,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            Text(
+                              size,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: _downloadingBackups.contains(filename)
+                                ? null
+                                : () => _downloadBackup(filename),
+                            icon: _downloadingBackups.contains(filename)
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.download, size: 16),
+                            label: Text(
+                              _downloadingBackups.contains(filename)
+                                  ? 'Downloading...'
+                                  : 'Download',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
           ],
         ),
       ),
@@ -977,7 +868,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                 children: [
                   Expanded(
                     child: Container(
-                      padding: EdgeInsets.all(12),
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.grey.shade800,
                         borderRadius: BorderRadius.circular(4),
