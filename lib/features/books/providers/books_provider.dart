@@ -174,46 +174,54 @@ class BooksNotifier extends Notifier<BooksState> {
         bookId,
         timeout: const Duration(seconds: 15),
       );
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(seconds: 1));
 
-      final active = await _repository.getActiveBooks();
-      final archived = state.archivedBooks;
+      // Get the existing book from the current state to avoid fetching all books
+      final existingBook = state.activeBooks.firstWhere(
+        (book) => book.id == bookId,
+        orElse: () =>
+            throw Exception('Book with id $bookId not found in active books'),
+      );
+      final updatedBook = await _repository.getBookStats(
+        bookId,
+        existingBook: existingBook,
+      );
+      final updatedBookWithRefreshTime = updatedBook.copyWith(
+        lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
+      );
 
-      final existingActiveMap = {for (var b in state.activeBooks) b.id: b};
-
-      final mergedActive = active.map((networkBook) {
-        final existing = existingActiveMap[networkBook.id];
-        if (existing != null) {
-          return existing.copyWith(
-            title: networkBook.title,
-            language: networkBook.language,
-            langId: existing.langId,
-            totalPages: networkBook.totalPages,
-            currentPage: networkBook.currentPage,
-            percent: networkBook.percent,
-            wordCount: networkBook.wordCount,
-            distinctTerms: networkBook.distinctTerms,
-            unknownPct: networkBook.unknownPct,
-            statusDistribution: networkBook.statusDistribution,
-            tags: networkBook.tags,
-            lastRead: networkBook.lastRead,
-            isCompleted: networkBook.isCompleted,
-            lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
+      // Update only the specific book in the state
+      final updatedActiveBooks = state.activeBooks.map((book) {
+        if (book.id == bookId) {
+          return book.copyWith(
+            title: updatedBookWithRefreshTime.title,
+            language: updatedBookWithRefreshTime.language,
+            langId: updatedBookWithRefreshTime.langId,
+            totalPages: updatedBookWithRefreshTime.totalPages,
+            currentPage: updatedBookWithRefreshTime.currentPage,
+            percent: updatedBookWithRefreshTime.percent,
+            wordCount: updatedBookWithRefreshTime.wordCount,
+            distinctTerms: updatedBookWithRefreshTime.distinctTerms,
+            unknownPct: updatedBookWithRefreshTime.unknownPct,
+            statusDistribution: updatedBookWithRefreshTime.statusDistribution,
+            tags: updatedBookWithRefreshTime.tags,
+            lastRead: updatedBookWithRefreshTime.lastRead,
+            isCompleted: updatedBookWithRefreshTime.isCompleted,
+            lastStatsRefresh: updatedBookWithRefreshTime.lastStatsRefresh,
+            audioFilename: updatedBookWithRefreshTime.audioFilename,
           );
         }
-        return networkBook.copyWith(
-          lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
-        );
+        return book;
       }).toList();
 
       await _repository.saveBooksToCache(
-        activeBooks: mergedActive,
-        archivedBooks: archived,
+        activeBooks: updatedActiveBooks,
+        archivedBooks: state.archivedBooks,
       );
 
       state = state.copyWith(
-        activeBooks: mergedActive,
-        archivedBooks: archived,
+        activeBooks: updatedActiveBooks,
+        archivedBooks: state.archivedBooks,
       );
     } finally {
       _isRefreshingBook = false;

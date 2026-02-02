@@ -318,6 +318,74 @@ class ContentService {
     await _apiService.refreshBookStats(bookId, timeout: timeout);
   }
 
+  Future<Book> getBookStats(int bookId) async {
+    final response = await _apiService.getBookStats(bookId);
+    final jsonString = response.data ?? '';
+
+    try {
+      final jsonData = json.decode(jsonString) as Map<String, dynamic>;
+
+      // The /book/table_stats/$bookId endpoint returns only stats data, not a full book object
+      // Example response: {"distinctterms": 2390, "distinctunknowns": 0,
+      //                   "status_distribution": "{\"0\": 0, \"1\": 1011, ...}", "unknownpercent": 0}
+      // We need to create a minimal book object with just the stats data
+      // This will be merged with existing book data in the repository layer
+
+      // Parse the status distribution string into a map
+      Map<String, dynamic> statusDistMap = {};
+      if (jsonData['status_distribution'] != null &&
+          jsonData['status_distribution'] != '') {
+        try {
+          statusDistMap = json.decode(jsonData['status_distribution']);
+        } catch (e) {
+          print('Error parsing status_distribution: $e');
+        }
+      }
+
+      // Convert status distribution to the format expected by Book model
+      List<int>? statusDistribution;
+      if (statusDistMap.isNotEmpty) {
+        statusDistribution = [
+          statusDistMap['0'] ?? 0,
+          statusDistMap['1'] ?? 0,
+          statusDistMap['2'] ?? 0,
+          statusDistMap['3'] ?? 0,
+          statusDistMap['4'] ?? 0,
+          statusDistMap['5'] ?? 0,
+          statusDistMap['98'] ?? 0, // Ignored
+          statusDistMap['99'] ?? 0, // Well-known
+        ];
+      }
+
+      // Create a minimal book object with just the stats data
+      // The other fields will be filled in by the repository layer
+      return Book(
+        id: bookId, // We only have the ID from the request
+        title: '', // Will be filled in by repository
+        language: '', // Will be filled in by repository
+        langId: null, // Will be filled in by repository
+        totalPages: 0, // Will be filled in by repository
+        currentPage: 0, // Will be filled in by repository
+        percent: 0, // Will be filled in by repository
+        wordCount: 0, // Will be filled in by repository
+        distinctTerms: jsonData['distinctterms'],
+        unknownPct: (jsonData['unknownpercent'] is num)
+            ? (jsonData['unknownpercent'] as num).toDouble()
+            : null,
+        statusDistribution: statusDistribution,
+        tags: null, // Will be filled in by repository
+        lastRead: null, // Will be filled in by repository
+        isCompleted: false, // Will be filled in by repository
+        audioFilename: null, // Will be filled in by repository
+        lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
+      );
+    } catch (e) {
+      print('ERROR parsing getBookStats response: $e');
+      print('Raw response: $jsonString');
+      rethrow;
+    }
+  }
+
   Future<void> archiveBook(int bookId) async {
     await _apiService.archiveBook(bookId);
   }

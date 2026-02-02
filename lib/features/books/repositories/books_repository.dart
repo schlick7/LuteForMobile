@@ -99,6 +99,58 @@ class BooksRepository {
     }
   }
 
+  Future<Book> getBookStats(int bookId, {Book? existingBook}) async {
+    try {
+      // Get the updated stats from the API
+      final statsBook = await contentService.getBookStats(bookId);
+
+      // If existing book data is provided, merge the stats with it
+      if (existingBook != null) {
+        // Merge the stats with the existing book data
+        final mergedBook = existingBook.copyWith(
+          distinctTerms: statsBook.distinctTerms,
+          unknownPct: statsBook.unknownPct,
+          statusDistribution: statsBook.statusDistribution,
+          lastStatsRefresh: statsBook.lastStatsRefresh,
+        );
+
+        // Enrich with language and audio info
+        await _loadLanguageMapping(); // Ensure language mapping is loaded
+        final enrichedBook = _enrichBooksWithLanguageIds([mergedBook]).first;
+        return await _enrichBookWithAudio(enrichedBook);
+      } else {
+        // If no existing book provided, we need to fetch it
+        final activeBooks = await getActiveBooks();
+        Book existingBookFromServer = activeBooks.firstWhere(
+          (book) => book.id == bookId,
+          orElse: () => throw Exception('Book with id $bookId not found'),
+        );
+
+        // Merge the stats with the existing book data
+        final mergedBook = existingBookFromServer.copyWith(
+          distinctTerms: statsBook.distinctTerms,
+          unknownPct: statsBook.unknownPct,
+          statusDistribution: statsBook.statusDistribution,
+          lastStatsRefresh: statsBook.lastStatsRefresh,
+        );
+
+        // Enrich with language and audio info
+        await _loadLanguageMapping(); // Ensure language mapping is loaded
+        final enrichedBook = _enrichBooksWithLanguageIds([mergedBook]).first;
+        return await _enrichBookWithAudio(enrichedBook);
+      }
+    } catch (e) {
+      print('ERROR in getBookStats repository: $e');
+      rethrow;
+    }
+  }
+
+  /// Helper method to enrich a single book with audio info
+  Future<Book> _enrichBookWithAudio(Book book) async {
+    final audioFilename = await contentService.getBookAudioFilename(book.id);
+    return book.copyWith(audioFilename: audioFilename);
+  }
+
   Future<void> refreshAllBookStats(List<Book> books) async {
     for (final book in books) {
       if (!book.hasStats) {
