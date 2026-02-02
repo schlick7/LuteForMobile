@@ -260,10 +260,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   @override
   Widget build(BuildContext context) {
-    _mainBuildCount++;
-
     final currentScreenRoute = ref.watch(currentScreenRouteProvider);
     final isVisible = currentScreenRoute == 'sentence-reader';
+
+    if (!isVisible) {
+      return const SizedBox.shrink();
+    }
+
+    _mainBuildCount++;
 
     print(
       'DEBUG: SentenceReaderScreen build #$_mainBuildCount, isVisible=$isVisible, _hasInitialized=$_hasInitialized',
