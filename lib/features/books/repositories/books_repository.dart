@@ -73,6 +73,7 @@ class BooksRepository {
     if (_languageNameToIdMap == null) return books;
 
     return books.map((book) {
+      if (book.langId != null) return book;
       final langId = _languageNameToIdMap![book.language];
       print(
         'DEBUG: Enriching book "${book.title}" (language: ${book.language}) with langId: $langId',

@@ -45,7 +45,7 @@ class CurrentBookNotifier extends Notifier<CurrentBookState> {
   }
 
   Future<void> setBook(Book book) async {
-    if (book.langId == 0) {
+    if (book.langId == null) {
       state = CurrentBookState(
         bookId: book.id,
         langId: book.langId,
@@ -56,7 +56,7 @@ class CurrentBookNotifier extends Notifier<CurrentBookState> {
     }
 
     final contentService = ref.read(contentServiceProvider);
-    final language = await contentService.getLanguageById(book.langId);
+    final language = await contentService.getLanguageById(book.langId!);
 
     state = CurrentBookState(
       bookId: book.id,

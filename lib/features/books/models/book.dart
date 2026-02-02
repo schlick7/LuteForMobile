@@ -4,7 +4,7 @@ class Book {
   final int id;
   final String title;
   final String language;
-  final int langId;
+  final int? langId;
   final int totalPages;
   final int currentPage;
   final int percent;
@@ -32,7 +32,7 @@ class Book {
     required this.id,
     required this.title,
     required this.language,
-    this.langId = 0,
+    this.langId,
     required this.totalPages,
     required this.currentPage,
     required this.percent,
@@ -122,7 +122,8 @@ class Book {
       id: json['BkID'] as int,
       title: json['BkTitle'] as String,
       language: json['LgName'] as String,
-      langId: json['LgID'] as int? ?? 0,
+      langId:
+          null, // Server doesn't return LgID - we enrich via _enrichBooksWithLanguageIds
       totalPages: pageCount,
       currentPage: pageNum,
       percent: percent,

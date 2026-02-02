@@ -367,7 +367,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       int? langId;
       for (final paragraph in pageData.paragraphs) {
         for (final item in paragraph.textItems) {
-          if (item.langId != null && item.langId != 0) {
+          if (item.langId != null) {
             langId = item.langId;
             break;
           }
@@ -620,7 +620,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     if (pageData != null) {
       for (final paragraph in pageData.paragraphs) {
         for (final textItem in paragraph.textItems) {
-          if (textItem.langId != null && textItem.langId != 0) {
+          if (textItem.langId != null) {
             langId = textItem.langId;
             break;
           }
@@ -629,11 +629,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       }
     }
 
-    final languageName = langId != null && langId != 0
+    final languageName = langId != null
         ? (_languageIdToName[langId] ?? '')
         : '';
-
-    if (langId != null && langId != 0 && langId != _lastStatsLangId) {
+    if (langId != null && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
       ref.read(termsProvider.notifier).loadStats(langId);
     }

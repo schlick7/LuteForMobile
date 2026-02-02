@@ -62,6 +62,7 @@ class BooksNotifier extends Notifier<BooksState> {
   bool _isRefreshingBook = false;
   int? _originalSampleSize;
   bool _refreshRequestedAfterNavigate = false;
+  bool _isLoadingArchivedBooks = false;
 
   @override
   BooksState build() {
@@ -185,6 +186,7 @@ class BooksNotifier extends Notifier<BooksState> {
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
+            langId: existing.langId,
             totalPages: networkBook.totalPages,
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
@@ -250,6 +252,7 @@ class BooksNotifier extends Notifier<BooksState> {
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
+            langId: existing.langId,
             totalPages: networkBook.totalPages,
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
@@ -300,6 +303,7 @@ class BooksNotifier extends Notifier<BooksState> {
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
+            langId: existing.langId,
             totalPages: networkBook.totalPages,
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
@@ -355,6 +359,7 @@ class BooksNotifier extends Notifier<BooksState> {
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
+            langId: existing.langId,
             totalPages: networkBook.totalPages,
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
@@ -401,6 +406,7 @@ class BooksNotifier extends Notifier<BooksState> {
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
+            langId: existing.langId,
             totalPages: networkBook.totalPages,
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
@@ -437,8 +443,13 @@ class BooksNotifier extends Notifier<BooksState> {
     final newShowArchived = !state.showArchived;
     state = state.copyWith(showArchived: newShowArchived);
 
-    if (newShowArchived && state.archivedBooks.isEmpty) {
-      _loadArchivedBooksFromNetwork();
+    if (newShowArchived &&
+        state.archivedBooks.isEmpty &&
+        !_isLoadingArchivedBooks) {
+      _isLoadingArchivedBooks = true;
+      _loadArchivedBooksFromNetwork().then((_) {
+        _isLoadingArchivedBooks = false;
+      });
     }
   }
 
@@ -523,6 +534,7 @@ class BooksNotifier extends Notifier<BooksState> {
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
+            langId: existing.langId,
             totalPages: networkBook.totalPages,
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
@@ -568,6 +580,7 @@ class BooksNotifier extends Notifier<BooksState> {
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
+            langId: existing.langId,
             totalPages: networkBook.totalPages,
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,

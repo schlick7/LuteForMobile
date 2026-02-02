@@ -788,11 +788,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       langId = currentSentence.textItems.first.langId;
     }
 
-    final languageName = langId != null && langId != 0
+    final languageName = langId != null
         ? (_languageIdToName[langId] ?? '')
         : '';
-
-    if (langId != null && langId != 0 && langId != _lastStatsLangId) {
+    if (langId != null && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
       Future.microtask(() {
         if (mounted) {
