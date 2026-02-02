@@ -213,6 +213,13 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
+  void _loadStatsIfNeeded() {
+    final statsState = ref.read(statsProvider);
+    if (statsState.value == null) {
+      ref.read(statsProvider.notifier).loadStats();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -220,6 +227,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     _hasInitialized = true;
     _scrollController.addListener(_handleScrollPosition);
     Future.delayed(Duration.zero, _loadLanguageMapping);
+    Future.delayed(Duration.zero, _loadStatsIfNeeded);
   }
 
   @override
@@ -440,9 +448,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     final statsState = ref.watch(statsProvider);
-    if (statsState.value == null) {
-      ref.read(statsProvider.notifier).loadStats();
-    }
 
     _buildCount++;
 

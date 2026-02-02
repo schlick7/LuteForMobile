@@ -219,6 +219,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   void initState() {
     super.initState();
     Future.delayed(Duration.zero, _loadLanguageMapping);
+    Future.delayed(Duration.zero, _loadStatsIfNeeded);
+  }
+
+  void _loadStatsIfNeeded() {
+    final statsState = ref.read(statsProvider);
+    if (statsState.value == null) {
+      ref.read(statsProvider.notifier).loadStats();
+    }
   }
 
   Future<void> _loadLanguageMapping() async {
@@ -262,9 +270,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     );
 
     final statsState = ref.watch(statsProvider);
-    if (statsState.value == null) {
-      ref.read(statsProvider.notifier).loadStats();
-    }
 
     final pageTitle = ref.watch(
       readerProvider.select((state) => state.pageData?.title),
