@@ -7,7 +7,32 @@ Lets do a performance review of this app starting with the ReadScreen
 
 using the exact file from the logs give me the command so i can run it manually in termux to see if that works. 
 
-Why does pressing "Start Server" cause a recheck of all the connection statuses?
+done? Why does pressing "Start Server" cause a recheck of all the connection statuses?
+
+
+
+
+You're absolutely right!** There IS a `getBookStats(bookId)` endpoint at `/book/table_stats/$bookId` (api_service.dart:331-333).
+
+The problem is `_refreshBookWith500SampleSize()` is calling `getActiveBooks()` (fetching ALL 11 books) instead of `getBookStats(bookId)` (fetching just that one book's stats).
+
+**The fix:**
+In `books_provider.dart:179`, change:
+```dart
+final active = await _repository.getActiveBooks();
+```
+To:
+```dart
+final stats = await _repository.getBookStats(bookId);
+```
+
+Then update only that specific book in the state with the new stats, instead of replacing all books.
+
+This reduces the redundant calls and makes the batching actually efficient - each batch of 2 would only make 2 calls instead of fetching all 11 books.
+
+
+
+Add logging for all calls in api service
 
 
 02-01 17:50:49.685  9554  9554 I flutter : Error saving stats cache: HiveError: Cannot write, unknown type: StatsCacheEntry. Did you forget to register an adapter?
@@ -15,6 +40,10 @@ Why does pressing "Start Server" cause a recheck of all the connection statuses?
 02
 
 Look at flutter logs and cleanup issues
+
+Hive cache affected by termuxurl and localurl usage?
+
+Reduce delay between detailed book fetch to 1 second. 
 
 ---
 
