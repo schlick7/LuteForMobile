@@ -14,8 +14,7 @@ class BooksRepository {
     try {
       await _loadLanguageMapping();
       final books = await contentService.getAllActiveBooks();
-      final enrichedBooks = _enrichBooksWithLanguageIds(books);
-      return await _enrichBooksWithAudio(enrichedBooks);
+      return _enrichBooksWithLanguageIds(books);
     } catch (e) {
       throw Exception('Failed to load active books: $e');
     }
@@ -25,8 +24,7 @@ class BooksRepository {
     try {
       await _loadLanguageMapping();
       final books = await contentService.getAllArchivedBooks();
-      final enrichedBooks = _enrichBooksWithLanguageIds(books);
-      return await _enrichBooksWithAudio(enrichedBooks);
+      return _enrichBooksWithLanguageIds(books);
     } catch (e) {
       throw Exception('Failed to load archived books: $e');
     }
@@ -82,15 +80,6 @@ class BooksRepository {
     }).toList();
   }
 
-  Future<List<Book>> _enrichBooksWithAudio(List<Book> books) async {
-    final enrichedBooks = <Book>[];
-    for (final book in books) {
-      final audioFilename = await contentService.getBookAudioFilename(book.id);
-      enrichedBooks.add(book.copyWith(audioFilename: audioFilename));
-    }
-    return enrichedBooks;
-  }
-
   Future<void> refreshBookStats(int bookId, {Duration? timeout}) async {
     try {
       await contentService.refreshBookStats(bookId, timeout: timeout);
@@ -101,12 +90,9 @@ class BooksRepository {
 
   Future<Book> getBookStats(int bookId, {Book? existingBook}) async {
     try {
-      // Get the updated stats from the API
       final statsBook = await contentService.getBookStats(bookId);
 
-      // If existing book data is provided, merge the stats with it
       if (existingBook != null) {
-        // Merge the stats with the existing book data
         final mergedBook = existingBook.copyWith(
           distinctTerms: statsBook.distinctTerms,
           unknownPct: statsBook.unknownPct,
@@ -114,19 +100,15 @@ class BooksRepository {
           lastStatsRefresh: statsBook.lastStatsRefresh,
         );
 
-        // Enrich with language and audio info
-        await _loadLanguageMapping(); // Ensure language mapping is loaded
-        final enrichedBook = _enrichBooksWithLanguageIds([mergedBook]).first;
-        return await _enrichBookWithAudio(enrichedBook);
+        await _loadLanguageMapping();
+        return _enrichBooksWithLanguageIds([mergedBook]).first;
       } else {
-        // If no existing book provided, we need to fetch it
         final activeBooks = await getActiveBooks();
         Book existingBookFromServer = activeBooks.firstWhere(
           (book) => book.id == bookId,
           orElse: () => throw Exception('Book with id $bookId not found'),
         );
 
-        // Merge the stats with the existing book data
         final mergedBook = existingBookFromServer.copyWith(
           distinctTerms: statsBook.distinctTerms,
           unknownPct: statsBook.unknownPct,
@@ -134,21 +116,13 @@ class BooksRepository {
           lastStatsRefresh: statsBook.lastStatsRefresh,
         );
 
-        // Enrich with language and audio info
-        await _loadLanguageMapping(); // Ensure language mapping is loaded
-        final enrichedBook = _enrichBooksWithLanguageIds([mergedBook]).first;
-        return await _enrichBookWithAudio(enrichedBook);
+        await _loadLanguageMapping();
+        return _enrichBooksWithLanguageIds([mergedBook]).first;
       }
     } catch (e) {
       print('ERROR in getBookStats repository: $e');
       rethrow;
     }
-  }
-
-  /// Helper method to enrich a single book with audio info
-  Future<Book> _enrichBookWithAudio(Book book) async {
-    final audioFilename = await contentService.getBookAudioFilename(book.id);
-    return book.copyWith(audioFilename: audioFilename);
   }
 
   Future<void> refreshAllBookStats(List<Book> books) async {

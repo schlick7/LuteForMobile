@@ -44,6 +44,9 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
     if (_lastSettings == null &&
         settings.serverUrl.isNotEmpty &&
         !_hasTriggeredLoad) {
+      print(
+        'DEBUG: BooksScreen build #1 - triggering loadBooks() (first time)',
+      );
       _lastSettings = settings;
       _hasTriggeredLoad = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -54,6 +57,9 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
         _lastSettings!.serverUrl.isEmpty &&
         settings.serverUrl.isNotEmpty &&
         !_hasTriggeredLoad) {
+      print(
+        'DEBUG: BooksScreen build #2 - triggering loadBooks() (server URL now set)',
+      );
       _lastSettings = settings;
       _hasTriggeredLoad = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {

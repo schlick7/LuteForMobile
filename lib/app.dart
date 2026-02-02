@@ -103,10 +103,11 @@ class NavigationController {
 
   void navigateToScreen(String route) {
     print(
-      'DEBUG: NavigationController.navigateToScreen called with route=$route',
+      'DEBUG: NavigationController.navigateToScreen called with route=$route, listeners count=${_screenListeners.length}',
     );
     try {
       for (final listener in _screenListeners) {
+        print('DEBUG: Calling screen listener with route=$route');
         listener(route);
       }
     } catch (e, stackTrace) {
@@ -237,6 +238,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   }
 
   void _handleNavigateToScreen(String route) {
+    print('DEBUG: _handleNavigateToScreen called with route=$route');
     final routeToIndex = {
       'reader': 0,
       'books': 1,
@@ -253,6 +255,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     });
 
     if (route == 'books') {
+      print('DEBUG: _handleNavigateToScreen calling loadBooks()');
       ref.read(booksProvider.notifier).loadBooks();
     }
 
@@ -331,9 +334,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           _handleNavigateToScreen(route);
           if (route == 'reader' && _readerKey.currentState != null) {
             _readerKey.currentState!.reloadPage();
-          }
-          if (route == 'books') {
-            await ref.read(booksProvider.notifier).loadBooks();
           }
         },
       ),

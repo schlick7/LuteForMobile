@@ -66,6 +66,7 @@ class BooksNotifier extends Notifier<BooksState> {
   bool _refreshRequestedAfterNavigate = false;
   bool _isLoadingArchivedBooks = false;
   bool _isLoadingFromNetwork = false;
+  bool _isLoadingBooks = false;
 
   @override
   BooksState build() {
@@ -74,11 +75,20 @@ class BooksNotifier extends Notifier<BooksState> {
   }
 
   Future<void> loadBooks() async {
+    if (_isLoadingBooks) {
+      print('DEBUG: loadBooks() skipped - already loading');
+      return;
+    }
+
+    print('DEBUG: loadBooks() called');
+    _isLoadingBooks = true;
+
     if (!_repository.contentService.isConfigured) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Server URL not configured. Please set it in settings.',
       );
+      _isLoadingBooks = false;
       return;
     }
 
@@ -94,16 +104,18 @@ class BooksNotifier extends Notifier<BooksState> {
           activeBooks: activeFromCache,
           archivedBooks: archivedFromCache ?? state.archivedBooks,
         );
+        _backgroundRefreshExpiredBooks();
       } else {
         state = state.copyWith(isLoading: false);
+        await _loadBooksFromNetwork();
+        _backgroundRefreshExpiredBooks();
       }
     } catch (e) {
       state = state.copyWith(isLoading: false);
       print('Error loading books from cache: $e');
+    } finally {
+      _isLoadingBooks = false;
     }
-
-    await _loadBooksFromNetwork();
-    _backgroundRefreshExpiredBooks();
   }
 
   void setCurrentBook(int? bookId) {
@@ -270,16 +282,19 @@ class BooksNotifier extends Notifier<BooksState> {
 
         // Save to cache asynchronously without waiting to avoid blocking the UI
         // This reduces the frequency of cache writes while still persisting the changes
-        () async {
-          try {
-            await _repository.saveBooksToCache(
-              activeBooks: updatedActiveBooks,
-              archivedBooks: state.archivedBooks,
-            );
-          } catch (e) {
-            print('Cache save error: $e');
-          }
-        }();
+        // Only do this when NOT in batch mode (batch mode handles its own save)
+        if (updatedBooksList == null) {
+          () async {
+            try {
+              await _repository.saveBooksToCache(
+                activeBooks: updatedActiveBooks,
+                archivedBooks: state.archivedBooks,
+              );
+            } catch (e) {
+              print('Cache save error: $e');
+            }
+          }();
+        }
       }
     } finally {
       _isRefreshingBook = false;
