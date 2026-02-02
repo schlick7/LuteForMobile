@@ -4,6 +4,8 @@ import 'package:dio/dio.dart';
 class ApiService {
   final Dio _dio;
 
+  static bool enableLogging = true;
+
   ApiService({required String baseUrl, Dio? dio})
     : _dio =
           dio ??
@@ -19,6 +21,7 @@ class ApiService {
             ),
           ) {
     _addRetryInterceptor();
+    _addLoggingInterceptor();
   }
 
   void _addRetryInterceptor() {
@@ -37,6 +40,38 @@ class ApiService {
                 return handler.next(error);
               }
             }
+          }
+          return handler.next(error);
+        },
+      ),
+    );
+  }
+
+  void _addLoggingInterceptor() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (enableLogging) {
+            print('API REQUEST: ${options.method} ${options.uri}');
+            if (options.data != null) {
+              print('  Data: ${options.data}');
+            }
+          }
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          if (enableLogging) {
+            print(
+              'API RESPONSE: ${response.requestOptions.method} ${response.requestOptions.uri} - ${response.statusCode}',
+            );
+          }
+          return handler.next(response);
+        },
+        onError: (error, handler) {
+          if (enableLogging) {
+            print(
+              'API ERROR: ${error.requestOptions.method} ${error.requestOptions.uri} - ${error.type}',
+            );
           }
           return handler.next(error);
         },
@@ -139,13 +174,11 @@ class ApiService {
 
   Future<Response<String>> getTermTooltip(int termId) async {
     final url = '/read/termpopup/$termId';
-    print('DEBUG ApiService.getTermTooltip: Calling GET $url');
     return await _dio.get<String>(url);
   }
 
   Future<String> getRawTermTooltipHtml(int termId) async {
     final url = '/read/termpopup/$termId';
-    print('DEBUG ApiService.getRawTermTooltipHtml: Calling GET $url');
     final response = await _dio.get<String>(url);
     return response.data ?? '';
   }
@@ -242,14 +275,10 @@ class ApiService {
       'search[regex]': 'false',
     };
 
-    print('DEBUG: API FETCH /book/datatables/active');
     final response = await _dio.post<String>(
       '/book/datatables/active',
       data: data,
       options: Options(contentType: Headers.formUrlEncodedContentType),
-    );
-    print(
-      'DEBUG: API RESPONSE /book/datatables/active - status: ${response.statusCode}',
     );
     return response;
   }
@@ -316,14 +345,10 @@ class ApiService {
       'search[regex]': 'false',
     };
 
-    print('DEBUG: API FETCH /book/datatables/archived');
     final response = await _dio.post<String>(
       '/book/datatables/archived',
       data: data,
       options: Options(contentType: Headers.formUrlEncodedContentType),
-    );
-    print(
-      'DEBUG: API RESPONSE /book/datatables/archived - status: ${response.statusCode}',
     );
     return response;
   }
@@ -493,13 +518,6 @@ class ApiService {
         data['filtIncludeIgnored'] = 'true';
       }
     }
-
-    print(
-      'DEBUG getTermsDatatables SENDING: filtLanguage=${data['filtLanguage']}, filtText=${data['filtText']}',
-    );
-    print(
-      'DEBUG getTermsDatatables SENDING: filtStatusNew=${data['filtStatusNew']}, filtStatus1=${data['filtStatus1']}, filtStatus2=${data['filtStatus2']}',
-    );
 
     return await _dio.post<String>(
       '/term/datatables',
