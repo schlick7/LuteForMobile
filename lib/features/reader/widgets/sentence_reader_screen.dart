@@ -218,7 +218,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   @override
   void initState() {
     super.initState();
-    _loadLanguageMapping();
+    Future.delayed(Duration.zero, _loadLanguageMapping);
   }
 
   Future<void> _loadLanguageMapping() async {

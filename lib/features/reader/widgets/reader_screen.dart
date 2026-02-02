@@ -219,7 +219,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     WidgetsBinding.instance.addObserver(this);
     _hasInitialized = true;
     _scrollController.addListener(_handleScrollPosition);
-    _loadLanguageMapping();
+    Future.delayed(Duration.zero, _loadLanguageMapping);
   }
 
   @override
