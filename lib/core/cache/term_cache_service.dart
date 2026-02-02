@@ -27,7 +27,6 @@ class TermCacheService {
     if (_isInitialized) return;
 
     try {
-      Hive.registerAdapter(TermCacheEntryAdapter());
       await Hive.openBox<TermCacheEntry>(_boxName);
       _isInitialized = true;
       print('Term cache initialized successfully');

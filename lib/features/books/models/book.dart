@@ -140,6 +140,21 @@ class Book {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'BkID': id,
+      'BkTitle': title,
+      'LgName': language,
+      'LgID': langId,
+      'PageCount': totalPages,
+      'PageNum': currentPage,
+      'WordCount': wordCount,
+      'IsCompleted': isCompleted ? 1 : 0,
+      'audio_filename': audioFilename,
+      'LastOpenedDate': lastRead,
+    };
+  }
+
   static List<int> _parseStatusDist(String dist) {
     if (dist.isEmpty || dist == 'null') {
       return List.generate(7, (i) => 0);

@@ -27,14 +27,6 @@ class BooksCacheService {
   Future<void> initialize() async {
     try {
       if (!_isInitialized) {
-        try {
-          Hive.registerAdapter(BookCacheEntryAdapter());
-        } catch (e) {
-          print(
-            'BookCacheEntry adapter registration failed (might be duplicate): $e',
-          );
-        }
-
         await Hive.initFlutter();
 
         _box = await Hive.openBox<BookCacheEntry>(_boxName);

@@ -16,7 +16,6 @@ class SentenceCacheService {
     if (_isInitialized) return;
 
     try {
-      Hive.registerAdapter(SentenceCacheEntryAdapter());
       await Hive.openBox<SentenceCacheEntry>(_boxName);
       _isInitialized = true;
     } catch (e) {

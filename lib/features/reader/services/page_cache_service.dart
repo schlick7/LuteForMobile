@@ -15,7 +15,6 @@ class PageCacheService {
     if (_isInitialized) return;
 
     try {
-      Hive.registerAdapter(PageCacheEntryAdapter());
       await Hive.openBox<PageCacheEntry>(_boxName);
       _isInitialized = true;
     } catch (e) {

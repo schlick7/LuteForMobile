@@ -32,18 +32,8 @@ class TooltipCacheService {
   Future<void> initialize() async {
     try {
       if (!_isInitialized) {
-        // Register the adapter only once
-        try {
-          Hive.registerAdapter(TooltipCacheEntryAdapter());
-        } catch (e) {
-          // Adapter might already be registered, continue anyway
-          print('Adapter registration failed (might be duplicate): $e');
-        }
-
-        // Initialize Hive with Flutter
         await Hive.initFlutter();
 
-        // Open the box
         _box = await Hive.openBox<TooltipCacheEntry>(_boxName);
 
         // Clean up expired entries on initialization
