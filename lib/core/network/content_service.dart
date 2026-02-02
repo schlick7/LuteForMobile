@@ -131,6 +131,44 @@ class ContentService {
     await _apiService.postPageDone(bookId, pageNum, true);
   }
 
+  /// Preloads a page by fetching it from the network and caching it.
+  /// Does nothing if the page is already cached.
+  /// This is used for precaching the next page for better UX.
+  Future<void> preloadPage(int bookId, int pageNum) async {
+    // Check if already cached - skip if it is
+    final cached = await _pageCacheService.getFromCache(
+      _apiService.baseUrl,
+      bookId,
+      pageNum,
+    );
+    if (cached != null) return;
+
+    // Not cached - fetch and cache it
+    try {
+      final pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
+      final metadataDocument = html_parser.parse(pageMetadataHtml);
+      final actualPageNum =
+          pageNum ?? _extractPageNumFromMetadata(metadataDocument);
+      final pageTextHtml = await _fetchPageTextHtml(
+        bookId,
+        actualPageNum,
+        ContentMode.reading,
+      );
+
+      // Cache the fetched data
+      await _pageCacheService.saveToCache(
+        _apiService.baseUrl,
+        bookId,
+        actualPageNum,
+        pageMetadataHtml,
+        pageTextHtml,
+      );
+    } catch (e) {
+      // Silently fail - preloading is best effort
+      print('Preload error for page $pageNum: $e');
+    }
+  }
+
   Future<Response<String>> _getPageHtml(
     int bookId,
     int pageNum,

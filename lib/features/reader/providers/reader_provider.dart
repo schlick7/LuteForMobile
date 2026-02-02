@@ -134,26 +134,40 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
       if (updateReaderState) {
         if (refreshStatuses) {
+          // Background refresh mode: merge with current data
           final currentData = state.pageData;
-          if (currentData != null) {
+          if (currentData != null && pageData != null) {
             final mergedData = _mergePageStatuses(currentData, pageData);
             state = state.copyWith(
               isBackgroundRefreshing: false,
               pageData: mergedData,
             );
+          } else if (pageData != null) {
+            // No current data, just use the fresh data
+            state = state.copyWith(
+              isBackgroundRefreshing: false,
+              isLoading: false,
+              pageData: pageData,
+            );
           }
-        } else {
+        } else if (pageData != null) {
+          // Cache hit: update state with cached data
           state = state.copyWith(isLoading: false, pageData: pageData);
 
+          // Refresh current page statuses in background first
+          _backgroundRefreshStatuses(bookId, pageNum);
+
+          // Then load current page tooltips
+          preloadTooltipsForCurrentPage();
+
+          // Preload next page AFTER everything else is done
           if (pageData.currentPage < pageData.pageCount) {
             preloadNextPage();
             preloadTooltipsForNextPage(); // Preload tooltips for the next page
           }
-
-          // Preload tooltips for the current page to improve performance
-          preloadTooltipsForCurrentPage();
-
-          _backgroundRefreshStatuses();
+        } else {
+          // Cache miss: stay in loading state and trigger background refresh
+          _backgroundRefreshStatuses(bookId, pageNum);
         }
       }
     } catch (e) {
@@ -170,24 +184,43 @@ class ReaderNotifier extends Notifier<ReaderState> {
     }
   }
 
-  void _backgroundRefreshStatuses() {
+  void _backgroundRefreshStatuses(int bookId, int? pageNum) {
     Future.microtask(() {
-      if (state.pageData == null) return;
       state = state.copyWith(isBackgroundRefreshing: true);
 
       _repository
           .getPage(
-            bookId: state.pageData!.bookId,
-            pageNum: state.pageData!.currentPage,
+            bookId: bookId,
+            pageNum: pageNum,
             useCache: false,
             forceRefresh: true,
           )
           .then((freshPage) async {
-            final mergedData = _mergePageStatuses(state.pageData!, freshPage);
-            state = state.copyWith(
-              isBackgroundRefreshing: false,
-              pageData: mergedData,
-            );
+            if (freshPage == null) {
+              state = state.copyWith(isBackgroundRefreshing: false);
+              return;
+            }
+
+            final currentData = state.pageData;
+            if (currentData == null) {
+              // No cached data, use fresh data directly and stop loading
+              state = state.copyWith(
+                isBackgroundRefreshing: false,
+                isLoading: false,
+                pageData: freshPage,
+              );
+            } else {
+              // Merge statuses with existing data
+              final mergedData = _mergePageStatuses(currentData, freshPage);
+              state = state.copyWith(
+                isBackgroundRefreshing: false,
+                pageData: mergedData,
+              );
+            }
+          })
+          .catchError((e) {
+            print('Background refresh error: $e');
+            state = state.copyWith(isBackgroundRefreshing: false);
           });
     });
   }
@@ -231,29 +264,8 @@ class ReaderNotifier extends Notifier<ReaderState> {
     final nextPageNum = currentPageData.currentPage + 1;
     if (nextPageNum > currentPageData.pageCount) return;
 
-    int retryCount = 0;
-    const maxRetries = 3;
-
-    while (retryCount < maxRetries) {
-      try {
-        await _repository.getPage(
-          bookId: currentPageData.bookId,
-          pageNum: nextPageNum,
-          useCache: true,
-          forceRefresh: false,
-        );
-        return;
-      } catch (e) {
-        retryCount++;
-        if (retryCount < maxRetries) {
-          await Future.delayed(Duration(milliseconds: 100 * retryCount));
-        } else {
-          print(
-            'Preload error for page $nextPageNum after $maxRetries attempts: $e',
-          );
-        }
-      }
-    }
+    // Use the dedicated preload method which checks cache first and fetches if needed
+    await _repository.preloadPage(currentPageData.bookId, nextPageNum);
   }
 
   /// Preload tooltips for terms on the current page if caching is enabled
@@ -323,6 +335,8 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
       // Extract unique term IDs from the next page
       final termIds = <int>{};
+      if (nextPageData == null) return;
+
       for (final paragraph in nextPageData.paragraphs) {
         for (final item in paragraph.textItems) {
           if (item.wordId != null && item.wordId! > 0) {
@@ -371,7 +385,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
         forceRefresh: true,
       );
 
-      // No longer needed - getPageContent now handles caching
+      if (freshPage == null) {
+        state = state.copyWith(isBackgroundRefreshing: false);
+        return;
+      }
 
       final mergedData = _mergePageStatuses(currentPageData, freshPage);
       state = state.copyWith(

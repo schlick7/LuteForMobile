@@ -166,4 +166,16 @@ class ReaderRepository {
       print('Failed to save page to cache: $e');
     }
   }
+
+  /// Preloads a page by fetching it from the network and caching it.
+  /// Does nothing if the page is already cached.
+  /// This is used for precaching the next page for better UX.
+  Future<void> preloadPage(int bookId, int pageNum) async {
+    try {
+      await contentService.preloadPage(bookId, pageNum);
+    } catch (e) {
+      // Silently fail - preloading is best effort
+      print('Failed to preload page $pageNum: $e');
+    }
+  }
 }
