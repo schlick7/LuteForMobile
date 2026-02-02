@@ -108,7 +108,11 @@ class Book {
 
     List<int>? parsedStatusDist;
     if (statusDist is String && statusDist.isNotEmpty && statusDist != 'null') {
+      // Parse from server (JSON string format)
       parsedStatusDist = _parseStatusDist(statusDist);
+    } else if (statusDist is List) {
+      // Already a List (from cache)
+      parsedStatusDist = statusDist.map((e) => e as int).toList();
     }
 
     List<String>? parsedTags;
@@ -136,7 +140,7 @@ class Book {
           : null,
       isCompleted: isCompleted,
       audioFilename: audioFilename,
-      lastStatsRefresh: null,
+      lastStatsRefresh: json['lastStatsRefresh'] as int?,
     );
   }
 
@@ -155,6 +159,7 @@ class Book {
       'IsCompleted': isCompleted ? 1 : 0,
       'audio_filename': audioFilename,
       'LastOpenedDate': lastRead,
+      'lastStatsRefresh': lastStatsRefresh,
     };
   }
 

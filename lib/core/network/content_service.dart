@@ -32,7 +32,7 @@ class ContentService {
 
   bool get isConfigured => _apiService.isConfigured;
 
-  Future<PageData> getPageContent(
+  Future<PageData?> getPageContent(
     int bookId, {
     int? pageNum,
     ContentMode mode = ContentMode.reading,
@@ -43,6 +43,7 @@ class ContentService {
     String pageTextHtml;
 
     if (useCache && !forceRefresh) {
+      // Cache-only mode: return cached data or null if not found
       final cached = await _pageCacheService.getFromCache(
         _apiService.baseUrl,
         bookId,
@@ -52,35 +53,25 @@ class ContentService {
         pageMetadataHtml = cached.metadataHtml;
         pageTextHtml = cached.pageTextHtml;
       } else {
-        pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
-        final metadataDocument = html_parser.parse(pageMetadataHtml);
-        final actualPageNum =
-            pageNum ?? _extractPageNumFromMetadata(metadataDocument);
-        pageTextHtml = await _fetchPageTextHtml(bookId, actualPageNum, mode);
-        await _pageCacheService.saveToCache(
-          _apiService.baseUrl,
-          bookId,
-          actualPageNum,
-          pageMetadataHtml,
-          pageTextHtml,
-        );
+        // Cache miss - return null immediately without fetching
+        return null;
       }
     } else {
+      // Network mode: fetch from server and cache the result
       pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
       final metadataDocument = html_parser.parse(pageMetadataHtml);
       final actualPageNum =
           pageNum ?? _extractPageNumFromMetadata(metadataDocument);
       pageTextHtml = await _fetchPageTextHtml(bookId, actualPageNum, mode);
 
-      if (useCache) {
-        await _pageCacheService.saveToCache(
-          _apiService.baseUrl,
-          bookId,
-          actualPageNum,
-          pageMetadataHtml,
-          pageTextHtml,
-        );
-      }
+      // Always cache fresh data when we fetch it from server
+      await _pageCacheService.saveToCache(
+        _apiService.baseUrl,
+        bookId,
+        actualPageNum,
+        pageMetadataHtml,
+        pageTextHtml,
+      );
     }
 
     return parser.parsePage(pageTextHtml, pageMetadataHtml, bookId: bookId);
@@ -116,7 +107,20 @@ class ContentService {
   Future<PageData> markPageDone(int bookId, int pageNum, bool restKnown) async {
     await _apiService.postPageDone(bookId, pageNum, restKnown);
 
-    return getPageContent(bookId, pageNum: pageNum, mode: ContentMode.reading);
+    // Load from cache first for instant UX, then let background refresh update statuses
+    final pageData = await getPageContent(
+      bookId,
+      pageNum: pageNum,
+      mode: ContentMode.reading,
+      useCache: true,
+      forceRefresh: false,
+    );
+
+    if (pageData == null) {
+      throw Exception('Page not found in cache after marking as done');
+    }
+
+    return pageData;
   }
 
   Future<void> markPageReadOnly(int bookId, int pageNum) async {
@@ -654,22 +658,10 @@ class ContentService {
     int pageNum,
     PageData pageData,
   ) async {
-    try {
-      final metadataHtml = await _apiService.getBookPageStructure(bookId);
-      final pageTextHtml = await _apiService.loadBookPageForReading(
-        bookId,
-        pageNum,
-      );
-
-      await _pageCacheService.saveToCache(
-        _apiService.baseUrl,
-        bookId,
-        pageNum,
-        metadataHtml.data ?? '',
-        pageTextHtml.data ?? '',
-      );
-    } catch (e) {
-      print('Error saving page to cache: $e');
-    }
+    // This method is deprecated - caching is now handled in getPageContent
+    // Kept for backward compatibility but should not be called
+    print(
+      'Warning: savePageToCache called - caching should be handled in getPageContent',
+    );
   }
 }

@@ -12,7 +12,7 @@ class ReaderRepository {
   ReaderRepository({required ContentService contentService})
     : contentService = contentService;
 
-  Future<PageData> getPage({
+  Future<PageData?> getPage({
     required int bookId,
     int? pageNum,
     bool useCache = true,

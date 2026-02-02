@@ -183,20 +183,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
             forceRefresh: true,
           )
           .then((freshPage) async {
-            await _repository.savePageToCache(
-              state.pageData!.bookId,
-              state.pageData!.currentPage,
-              freshPage,
-            );
             final mergedData = _mergePageStatuses(state.pageData!, freshPage);
             state = state.copyWith(
               isBackgroundRefreshing: false,
               pageData: mergedData,
             );
-          })
-          .catchError((e) {
-            print('Background status refresh error: $e');
-            state = state.copyWith(isBackgroundRefreshing: false);
           });
     });
   }
@@ -380,11 +371,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
         forceRefresh: true,
       );
 
-      await _repository.savePageToCache(
-        currentPageData.bookId,
-        currentPageData.currentPage,
-        freshPage,
-      );
+      // No longer needed - getPageContent now handles caching
 
       final mergedData = _mergePageStatuses(currentPageData, freshPage);
       state = state.copyWith(
@@ -551,14 +538,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
         await _repository.editTerm(termForm.termId!, termForm.toFormData());
         await updateTermStatus(termForm.termId!, termForm.status);
 
-        final currentPageData = state.pageData;
-        if (currentPageData != null) {
-          await _repository.savePageToCache(
-            currentPageData.bookId,
-            currentPageData.currentPage,
-            currentPageData,
-          );
-        }
+        // No longer needed - getPageContent handles caching when fresh data is loaded
 
         if (termForm.status == '99') {
           final currentPageData = state.pageData;
