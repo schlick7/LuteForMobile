@@ -197,7 +197,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           _checkingLocalBackups = true;
         });
         try {
-          final localUrl = ref.read(settingsProvider).serverUrl;
+          final localUrl = ref.read(settingsProvider).localUrl;
           if (localUrl.isNotEmpty && localUrl != Settings.termuxUrl) {
             final localBackups = await BackupService.listBackups(localUrl);
             setState(() {
@@ -424,7 +424,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     });
 
     try {
-      final localUrl = ref.read(settingsProvider).serverUrl;
+      final localUrl = ref.read(settingsProvider).localUrl;
       await BackupService.createBackup(localUrl);
 
       setState(() {
@@ -465,7 +465,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     });
 
     try {
-      final localUrl = ref.read(settingsProvider).serverUrl;
+      final localUrl = ref.read(settingsProvider).localUrl;
       final result = await BackupService.downloadBackup(localUrl, filename);
 
       setState(() {
@@ -836,9 +836,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
             _buildServerCard(),
             const SizedBox(height: 16),
             _buildBackupCard(),
-            if (ref.watch(settingsProvider).serverUrl.isNotEmpty &&
-                ref.watch(settingsProvider).serverUrl !=
-                    Settings.termuxUrl) ...[
+            if (ref.watch(settingsProvider).serverUrl.isNotEmpty) ...[
               const SizedBox(height: 16),
               _buildLocalBackupCard(),
             ],
@@ -1164,8 +1162,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
 
   Widget _buildLocalBackupCard() {
     final settings = ref.watch(settingsProvider);
-    final localUrl = settings.serverUrl;
-    final hasLocalUrl = localUrl.isNotEmpty && localUrl != Settings.termuxUrl;
+    final localUrl = settings.localUrl;
+    final hasLocalUrl = localUrl.isNotEmpty;
 
     return Card(
       child: Padding(

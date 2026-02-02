@@ -5,6 +5,7 @@ import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
 
 @immutable
 class Settings {
+  final String localUrl;
   final String serverUrl;
   final String? aiServerUrl;
   final String? ttsServerUrl;
@@ -33,6 +34,7 @@ class Settings {
   static const String termuxUrl = 'http://localhost:5001';
 
   const Settings({
+    required this.localUrl,
     required this.serverUrl,
     this.aiServerUrl,
     this.ttsServerUrl,
@@ -60,6 +62,7 @@ class Settings {
   });
 
   Settings copyWith({
+    String? localUrl,
     String? serverUrl,
     String? aiServerUrl,
     String? ttsServerUrl,
@@ -88,6 +91,7 @@ class Settings {
     bool? termuxIntegrationEnabled,
   }) {
     return Settings(
+      localUrl: localUrl ?? this.localUrl,
       serverUrl: serverUrl ?? this.serverUrl,
       aiServerUrl: aiServerUrl ?? this.aiServerUrl,
       ttsServerUrl: ttsServerUrl ?? this.ttsServerUrl,
@@ -130,6 +134,7 @@ class Settings {
 
   factory Settings.defaultSettings() {
     return const Settings(
+      localUrl: '',
       serverUrl: '',
       aiServerUrl: null,
       ttsServerUrl: null,
@@ -161,6 +166,7 @@ class Settings {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is Settings &&
+        other.localUrl == localUrl &&
         other.serverUrl == serverUrl &&
         other.aiServerUrl == aiServerUrl &&
         other.ttsServerUrl == ttsServerUrl &&
@@ -190,6 +196,7 @@ class Settings {
 
   @override
   int get hashCode => Object.hashAll([
+    localUrl,
     serverUrl,
     aiServerUrl,
     ttsServerUrl,

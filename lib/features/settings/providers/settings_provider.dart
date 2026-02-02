@@ -55,6 +55,7 @@ class SettingsNotifier extends Notifier<Settings> {
     final serverUrl = useTermux ? Settings.termuxUrl : localUrl;
 
     state = Settings.defaultSettings().copyWith(
+      localUrl: localUrl,
       serverUrl: serverUrl,
       isUrlValid: _isValidUrl(serverUrl),
     );
@@ -112,6 +113,15 @@ class SettingsNotifier extends Notifier<Settings> {
   Future<void> updateLocalUrl(String url) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyLocalUrl, url);
+    final isValid = _isValidUrl(url);
+    final serverUrl = prefs.getBool(_keyUseTermux) ?? false
+        ? Settings.termuxUrl
+        : url;
+    state = state.copyWith(
+      localUrl: url,
+      serverUrl: serverUrl,
+      isUrlValid: isValid,
+    );
   }
 
   Future<void> setServerSelection(bool useTermux) async {
