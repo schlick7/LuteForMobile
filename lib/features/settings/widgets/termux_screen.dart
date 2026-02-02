@@ -326,16 +326,23 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     _refreshStatus();
   }
 
+  Future<void> _refreshServerStatus() async {
+    final serverRunning = await TermuxService.isServerRunning();
+    setState(() {
+      _serverRunning = serverRunning;
+    });
+  }
+
   Future<void> _startServer() async {
     await TermuxService.startServer();
     await Future.delayed(const Duration(seconds: 2));
-    _refreshStatus();
+    await _refreshServerStatus();
   }
 
   Future<void> _stopServer() async {
     await TermuxService.stopServer();
     await Future.delayed(const Duration(seconds: 2));
-    _refreshStatus();
+    await _refreshServerStatus();
   }
 
   Future<void> _createBackup() async {
