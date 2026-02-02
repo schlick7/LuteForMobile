@@ -248,11 +248,6 @@ class BooksNotifier extends Notifier<BooksState> {
     print(
       'DEBUG: _refreshBookSimple called for bookId=$bookId at ${DateTime.now().millisecondsSinceEpoch}',
     );
-    await _repository.refreshBookStats(
-      bookId,
-      timeout: const Duration(seconds: 15),
-    );
-    await Future.delayed(const Duration(seconds: 1));
 
     final booksList = updatedBooksList ?? state.activeBooks;
     final existingBook = booksList.firstWhere(
