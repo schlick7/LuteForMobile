@@ -103,6 +103,10 @@ class BooksNotifier extends Notifier<BooksState> {
       final activeFromCache = await _repository.getActiveBooksFromCache();
       final archivedFromCache = await _repository.getArchivedBooksFromCache();
 
+      print(
+        'DEBUG: loadBooks() - cache activeFromCache=${activeFromCache != null}, first book hasStats=${activeFromCache?.first.hasStats ?? "N/A"}, count=${activeFromCache?.length ?? 0}',
+      );
+
       if (activeFromCache != null) {
         state = state.copyWith(
           isLoading: false,
@@ -170,6 +174,10 @@ class BooksNotifier extends Notifier<BooksState> {
       return age > ttl.inMilliseconds;
     }).toList();
 
+    print(
+      'DEBUG: _backgroundRefreshExpiredBooks - ${expiredBooks.length} expired books out of ${state.activeBooks.length} total, first book hasStats=${state.activeBooks.first.hasStats}, distinctTerms=${state.activeBooks.first.distinctTerms}',
+    );
+
     if (expiredBooks.isEmpty) {
       _lastBackgroundRefreshTime = now;
       return;
@@ -213,6 +221,9 @@ class BooksNotifier extends Notifier<BooksState> {
         archivedBooks: state.archivedBooks,
       );
 
+      print(
+        'DEBUG: Updating state with ${updatedActiveBooks.length} books, first book hasStats=${updatedActiveBooks.first.hasStats}, distinctTerms=${updatedActiveBooks.first.distinctTerms}',
+      );
       state = state.copyWith(activeBooks: updatedActiveBooks);
     } finally {
       if (_originalSampleSize != null) {
@@ -234,6 +245,9 @@ class BooksNotifier extends Notifier<BooksState> {
     int bookId, {
     List<Book>? updatedBooksList,
   }) async {
+    print(
+      'DEBUG: _refreshBookSimple called for bookId=$bookId at ${DateTime.now().millisecondsSinceEpoch}',
+    );
     await _repository.refreshBookStats(
       bookId,
       timeout: const Duration(seconds: 15),
@@ -247,6 +261,9 @@ class BooksNotifier extends Notifier<BooksState> {
           throw Exception('Book with id $bookId not found in active books'),
     );
     final statsBook = await _repository.contentService.getBookStats(bookId);
+    print(
+      'DEBUG: Refresh stats for book $bookId - distinctTerms: ${statsBook.distinctTerms}, unknownPct: ${statsBook.unknownPct}, statusDistribution: ${statsBook.statusDistribution}',
+    );
     final updatedBook = existingBook.copyWith(
       distinctTerms: statsBook.distinctTerms,
       unknownPct: statsBook.unknownPct,
@@ -383,11 +400,18 @@ class BooksNotifier extends Notifier<BooksState> {
 
     try {
       final networkBooks = await _repository.getActiveBooks();
+      print(
+        'DEBUG: _loadBooksFromNetwork - got ${networkBooks.length} books from network, first book hasStats=${networkBooks.first.hasStats}, distinctTerms=${networkBooks.first.distinctTerms}',
+      );
 
       final existingBookIds = {for (var b in state.activeBooks) b.id};
       final newBooks = networkBooks
           .where((b) => !existingBookIds.contains(b.id))
           .toList();
+
+      print(
+        'DEBUG: _loadBooksFromNetwork - ${newBooks.length} new books (out of ${networkBooks.length}), ${existingBookIds.length} existing books',
+      );
 
       final finalActiveBooks = [...state.activeBooks, ...newBooks];
 

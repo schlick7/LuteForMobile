@@ -21,6 +21,9 @@ class BookCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final displaySettings = ref.watch(bookDisplaySettingsProvider);
+    print(
+      'DEBUG BookCard: book=${book.title}, hasStats=${book.hasStats}, distinctTerms=${book.distinctTerms}, statusDistribution=${book.statusDistribution}',
+    );
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
