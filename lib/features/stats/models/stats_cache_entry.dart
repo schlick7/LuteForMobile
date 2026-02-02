@@ -28,7 +28,7 @@ class StatsCacheEntry extends HiveObject {
   }
 
   StatsCacheEntry({
-    required Map<String, LanguageReadingStats> stats,
+    Map<String, LanguageReadingStats> stats = const {},
     required this.timestamp,
   }) : statsJson = jsonEncode(
          stats.map((key, value) => MapEntry(key, value.toJson())),
