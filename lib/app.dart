@@ -127,7 +127,6 @@ class App extends ConsumerWidget {
       'DEBUG: App.build called, themeSettings.accentLabelColor: ${themeSettings.accentLabelColor}, themeType: ${themeSettings.themeType}',
     );
 
-    // Determine theme based on ThemeSettings
     ThemeMode themeMode;
     switch (themeSettings.themeType) {
       case ThemeType.light:
@@ -168,10 +167,20 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   int _currentIndex = 0;
   final GlobalKey<ReaderScreenState> _readerKey =
       GlobalKey<ReaderScreenState>();
+  final GlobalKey<State<StatefulWidget>> _booksKey =
+      GlobalKey<State<StatefulWidget>>();
+  final GlobalKey<State<StatefulWidget>> _statsKey =
+      GlobalKey<State<StatefulWidget>>();
+  final GlobalKey<State<StatefulWidget>> _settingsKey =
+      GlobalKey<State<StatefulWidget>>();
   final GlobalKey<SentenceReaderScreenState> _sentenceReaderKey =
       GlobalKey<SentenceReaderScreenState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late final NavigationController _navigationController;
+  final GlobalKey<State<StatefulWidget>> _termsKey =
+      GlobalKey<State<StatefulWidget>>();
+  final GlobalKey<State<StatefulWidget>> _helpKey =
+      GlobalKey<State<StatefulWidget>>();
 
   @override
   void initState() {
@@ -337,39 +346,44 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           }
         },
       ),
-      body: _currentIndex == 2
-          ? TermsScreen(scaffoldKey: _scaffoldKey)
-          : _currentIndex == 4
-          ? HelpScreen(scaffoldKey: _scaffoldKey)
-          : IndexedStack(
-              index: switch (_currentIndex) {
-                0 => 0,
-                1 => 1,
-                3 => 2,
-                5 => 3,
-                6 => 4,
-                _ => 0,
-              },
-              children: [
-                RepaintBoundary(
-                  child: ReaderScreen(
-                    key: _readerKey,
-                    scaffoldKey: _scaffoldKey,
-                  ),
-                ),
-                RepaintBoundary(child: BooksScreen(scaffoldKey: _scaffoldKey)),
-                RepaintBoundary(child: StatsScreen(scaffoldKey: _scaffoldKey)),
-                RepaintBoundary(
-                  child: SettingsScreen(scaffoldKey: _scaffoldKey),
-                ),
-                RepaintBoundary(
-                  child: SentenceReaderScreen(
-                    key: _sentenceReaderKey,
-                    scaffoldKey: _scaffoldKey,
-                  ),
-                ),
-              ],
+      body: IndexedStack(
+        index: switch (_currentIndex) {
+          0 => 0,
+          1 => 1,
+          2 => 2,
+          3 => 3,
+          4 => 4,
+          5 => 5,
+          6 => 6,
+          _ => 0,
+        },
+        children: [
+          RepaintBoundary(
+            child: ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
+          ),
+          RepaintBoundary(
+            child: BooksScreen(key: _booksKey, scaffoldKey: _scaffoldKey),
+          ),
+          RepaintBoundary(
+            child: TermsScreen(key: _termsKey, scaffoldKey: _scaffoldKey),
+          ),
+          RepaintBoundary(
+            child: StatsScreen(key: _statsKey, scaffoldKey: _scaffoldKey),
+          ),
+          RepaintBoundary(
+            child: HelpScreen(key: _helpKey, scaffoldKey: _scaffoldKey),
+          ),
+          RepaintBoundary(
+            child: SettingsScreen(key: _settingsKey, scaffoldKey: _scaffoldKey),
+          ),
+          RepaintBoundary(
+            child: SentenceReaderScreen(
+              key: _sentenceReaderKey,
+              scaffoldKey: _scaffoldKey,
             ),
+          ),
+        ],
+      ),
     );
   }
 }
