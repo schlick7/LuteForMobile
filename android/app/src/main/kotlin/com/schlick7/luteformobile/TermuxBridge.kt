@@ -905,36 +905,64 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
                 return@withContext false
             }
 
-            val fileName = localFile.name
-            android.util.Log.d("TermuxBridge", "File name: $fileName")
+            android.util.Log.d("TermuxBridge", "File exists: ${localFile.absolutePath}")
 
-            val termuxSharedDir = "/data/data/com.termux/files/shared_dir"
-            val termuxDownloadsDir = "$termuxSharedDir/Download"
-            val tempTermuxPath = "$termuxDownloadsDir/$fileName"
-
-            android.util.Log.d("TermuxBridge", "Copying file to Termux shared directory: $tempTermuxPath")
-
-            localFile.copyTo(java.io.File(tempTermuxPath), overwrite = true)
-
-            android.util.Log.d("TermuxBridge", "File copied to Termux Downloads")
-
-            val lute3DbPath = "\$HOME/.local/share/lute3/lute.db"
+            val lute3DbPath = "\$HOME/.local/share/Lute3/lute.db"
 
             val restoreScript = """
                 #!/data/data/com.termux/files/usr/bin/bash
 
+                # Verify source file exists
+                if [ ! -f "$localFilePath" ]; then
+                    echo "RESTORE_FAILED: Source file not found: $localFilePath"
+                    exit 1
+                fi
+
+                # Get current timestamp of lute.db before restore
+                OLD_MTIME=""
+                if [ -f "${'$'}lute3DbPath" ]; then
+                    OLD_MTIME=$(stat -c %Y "${'$'}lute3DbPath")
+                fi
+
                 # Stop the server
                 pkill -f "lute3" 2>/dev/null || true
-                sleep 1
 
-                # Copy the restore file to the correct location
-                cp "$tempTermuxPath" "$lute3DbPath"
+                # Wait for server to actually stop
+                for i in {1..10}; do
+                    if ! pgrep -f "lute3" > /dev/null 2>&1; then
+                        break
+                    fi
+                    sleep 1
+                done
+
+                # Verify server is stopped
+                if pgrep -f "lute3" > /dev/null 2>&1; then
+                    echo "RESTORE_FAILED: Server did not stop"
+                    exit 1
+                fi
+
+                # Extract and copy the restore file to the correct location
+                if [[ "$localFilePath" == *.gz ]]; then
+                    gunzip -c "$localFilePath" > "${'$'}lute3DbPath"
+                else
+                    cp "$localFilePath" "${'$'}lute3DbPath"
+                fi
+
+                # Verify copy succeeded
+                if [ ! -f "${'$'}lute3DbPath" ]; then
+                    echo "RESTORE_FAILED: Copy failed - destination file not created"
+                    exit 1
+                fi
 
                 # Set proper permissions
-                chmod 600 "$lute3DbPath"
+                chmod 600 "${'$'}lute3DbPath"
 
-                # Clean up temp file
-                rm -f "$tempTermuxPath"
+                # Verify timestamp changed (restore actually happened)
+                NEW_MTIME=$(stat -c %Y "${'$'}lute3DbPath")
+                if [ -n "${'$'}OLD_MTIME" ] && [ "${'$'}OLD_MTIME" = "${'$'}NEW_MTIME" ]; then
+                    echo "RESTORE_FAILED: File was not modified - restore may have failed"
+                    exit 1
+                fi
 
                 echo "RESTORE_SUCCESS"
             """.trimIndent()
@@ -951,7 +979,7 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
 
             context.startService(intent)
 
-            delay(3000)
+            delay(15000)
 
             android.util.Log.d("TermuxBridge", "Restore completed successfully")
             true

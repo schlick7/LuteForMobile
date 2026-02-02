@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -35,6 +36,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _isBackingUpLocal = false;
   final Set<String> _downloadingLocalBackups = {};
   bool _isRestoring = false;
+  List<String>? _downloadFolderFiles;
+  bool _isLoadingDownloadFiles = false;
 
   StreamSubscription? _progressSubscription;
   String _currentStep = '';
@@ -495,6 +498,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   void _showRestoreConfirmDialog(String filePath) {
+    debugPrint('_showRestoreConfirmDialog called with filePath: $filePath');
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -513,6 +517,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         actions: [
           TextButton(
             onPressed: () {
+              debugPrint('User selected NO for backup');
               Navigator.pop(context);
               _performRestore(filePath, createBackupFirst: false);
             },
@@ -520,6 +525,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           ),
           ElevatedButton(
             onPressed: () {
+              debugPrint('User selected YES for backup');
               Navigator.pop(context);
               _performRestore(filePath, createBackupFirst: true);
             },
@@ -534,15 +540,20 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     String filePath, {
     required bool createBackupFirst,
   }) async {
+    debugPrint(
+      '_performRestore called with filePath: $filePath, createBackupFirst: $createBackupFirst',
+    );
     setState(() {
       _isRestoring = true;
     });
 
     try {
       if (createBackupFirst) {
+        debugPrint('Creating backup via server...');
         final backupResult = await BackupService.createBackup(
           Settings.termuxUrl,
         );
+        debugPrint('Backup result: $backupResult');
         if (!backupResult.contains('successfully')) {
           setState(() {
             _isRestoring = false;
@@ -559,31 +570,45 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         }
       }
 
+      debugPrint(
+        'Calling TermuxService.restoreBackup with filePath: $filePath',
+      );
       final success = await TermuxService.restoreBackup(filePath);
+      debugPrint('TermuxService.restoreBackup returned: $success');
 
       setState(() {
         _isRestoring = false;
       });
 
+      if (!success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Restore failed: Termux operation did not complete',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              success
-                  ? 'Restore completed successfully'
-                  : 'Restore failed: Operation failed',
-            ),
-            backgroundColor: success ? Colors.green : Colors.red,
-            duration: const Duration(seconds: 3),
+          const SnackBar(
+            content: Text('Restore completed successfully'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
           ),
         );
       }
 
-      if (success) {
-        await Future.delayed(const Duration(seconds: 2));
-        _refreshStatus();
-      }
-    } catch (e) {
+      await Future.delayed(const Duration(seconds: 2));
+      _refreshStatus();
+    } catch (e, stack) {
+      debugPrint('Restore exception: $e');
+      debugPrint('Stack trace: $stack');
       setState(() {
         _isRestoring = false;
       });
@@ -600,28 +625,77 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Future<void> _restoreBackup() async {
-    final hasPermissions = await StorageService.checkStoragePermissions();
-    if (!hasPermissions) {
-      final granted = await StorageService.requestStoragePermissions();
-      if (!granted) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Storage permission required'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-    }
+    setState(() {
+      _isLoadingDownloadFiles = true;
+    });
 
-    final filePath = await StorageService.selectBackupFile();
-    if (filePath == null) {
+    final files = await StorageService.getBackupFilesInDownloads();
+    debugPrint('Found ${files.length} backup files in Downloads');
+
+    setState(() {
+      _downloadFolderFiles = files;
+      _isLoadingDownloadFiles = false;
+    });
+
+    if (files.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No backup files found in Downloads folder'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
       return;
     }
 
-    _showRestoreConfirmDialog(filePath);
+    _showRestoreFileSelectionDialog(files);
+  }
+
+  void _showRestoreFileSelectionDialog(List<String> files) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Backup to Restore'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: files.length,
+            itemBuilder: (context, index) {
+              final filePath = files[index];
+              final fileName = filePath.split('/').last;
+              final file = File(filePath);
+              final lastModified = file.lastModifiedSync();
+              final size = file.lengthSync();
+
+              return ListTile(
+                title: Text(fileName),
+                subtitle: Text(
+                  '${lastModified.day}/${lastModified.month}/${lastModified.year} ${lastModified.hour}:${lastModified.minute.toString().padLeft(2, '0')} - ${_formatFileSize(size)}',
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showRestoreConfirmDialog(filePath);
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
   @override

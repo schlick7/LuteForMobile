@@ -50,7 +50,6 @@ class StorageService {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['db', 'gz'],
-        withData: false,
       );
 
       if (result != null && result.files.single.path != null) {
@@ -60,6 +59,36 @@ class StorageService {
     } catch (e) {
       debugPrint('Error selecting backup file: $e');
       return null;
+    }
+  }
+
+  static Future<List<String>> getBackupFilesInDownloads() async {
+    try {
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      if (!downloadsDir.existsSync()) {
+        return [];
+      }
+
+      final files = downloadsDir
+          .listSync()
+          .where((entity) {
+            if (entity is File) {
+              final name = entity.path.split('/').last.toLowerCase();
+              return name.endsWith('.db.gz');
+            }
+            return false;
+          })
+          .map((entity) => entity.path)
+          .toList();
+
+      files.sort(
+        (a, b) =>
+            File(b).lastModifiedSync().compareTo(File(a).lastModifiedSync()),
+      );
+      return files;
+    } catch (e) {
+      debugPrint('Error getting backup files: $e');
+      return [];
     }
   }
 
