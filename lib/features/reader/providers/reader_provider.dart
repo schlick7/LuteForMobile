@@ -59,12 +59,19 @@ class ReaderState {
 }
 
 class ReaderNotifier extends Notifier<ReaderState> {
+  // Track the current page request to ignore stale responses
+  String _currentRequestKey = '';
+
   @override
   ReaderState build() {
     return const ReaderState();
   }
 
   ReaderRepository get _repository => ref.read(readerRepositoryProvider);
+
+  String _getRequestKey(int bookId, int? pageNum) {
+    return '${bookId}_${pageNum ?? 0}';
+  }
 
   String _formatError(dynamic error) {
     if (error is DioException) {
@@ -120,8 +127,30 @@ class ReaderNotifier extends Notifier<ReaderState> {
       return;
     }
 
+    // Set the current request key to track this page load
+    final requestKey = _getRequestKey(bookId, pageNum);
+    _currentRequestKey = requestKey;
+
+    print(
+      'DEBUG: loadPage() requestKey=$requestKey, useCache=$useCache, refreshStatuses=$refreshStatuses',
+    );
+
     if (updateReaderState && !refreshStatuses) {
       state = state.copyWith(isLoading: true, errorMessage: null);
+    }
+
+    // Safety timeout - if loading takes more than 15 seconds, force stop
+    Timer? safetyTimeout;
+    if (updateReaderState && !refreshStatuses) {
+      safetyTimeout = Timer(const Duration(seconds: 15), () {
+        if (state.isLoading) {
+          print('DEBUG: Safety timeout triggered - forcing isLoading=false');
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage: 'Loading timed out. Please try again.',
+          );
+        }
+      });
     }
 
     try {
@@ -131,6 +160,8 @@ class ReaderNotifier extends Notifier<ReaderState> {
         useCache: useCache && !refreshStatuses,
         forceRefresh: false,
       );
+
+      print('DEBUG: loadPage() cache result - pageData=${pageData != null}');
 
       if (updateReaderState) {
         if (refreshStatuses) {
@@ -155,7 +186,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
           state = state.copyWith(isLoading: false, pageData: pageData);
 
           // Refresh current page statuses in background first
-          _backgroundRefreshStatuses(bookId, pageNum);
+          _backgroundRefreshStatuses(bookId, pageNum, requestKey);
 
           // Then load current page tooltips
           preloadTooltipsForCurrentPage();
@@ -167,7 +198,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
           }
         } else {
           // Cache miss: stay in loading state and trigger background refresh
-          _backgroundRefreshStatuses(bookId, pageNum);
+          _backgroundRefreshStatuses(bookId, pageNum, requestKey);
         }
       }
     } catch (e) {
@@ -181,47 +212,96 @@ class ReaderNotifier extends Notifier<ReaderState> {
         print('Navigation error (not showing full screen): $e');
         state = state.copyWith(isLoading: false, isBackgroundRefreshing: false);
       }
+    } finally {
+      // Always cancel the safety timeout
+      safetyTimeout?.cancel();
     }
   }
 
-  void _backgroundRefreshStatuses(int bookId, int? pageNum) {
-    Future.microtask(() {
+  void _backgroundRefreshStatuses(int bookId, int? pageNum, String requestKey) {
+    Future.microtask(() async {
       state = state.copyWith(isBackgroundRefreshing: true);
 
-      _repository
-          .getPage(
+      const maxRetries = 3;
+      int attempt = 0;
+      PageData? freshPage;
+      Object? lastError;
+
+      while (attempt < maxRetries && freshPage == null) {
+        try {
+          freshPage = await _repository.getPage(
             bookId: bookId,
             pageNum: pageNum,
             useCache: false,
             forceRefresh: true,
-          )
-          .then((freshPage) async {
-            if (freshPage == null) {
-              state = state.copyWith(isBackgroundRefreshing: false);
-              return;
-            }
+          );
+        } catch (e) {
+          attempt++;
+          lastError = e;
+          print('Background refresh attempt $attempt failed: $e');
+          if (attempt < maxRetries) {
+            await Future.delayed(Duration(milliseconds: 500 * attempt));
+          }
+        }
+      }
 
-            final currentData = state.pageData;
-            if (currentData == null) {
-              // No cached data, use fresh data directly and stop loading
-              state = state.copyWith(
-                isBackgroundRefreshing: false,
-                isLoading: false,
-                pageData: freshPage,
-              );
-            } else {
-              // Merge statuses with existing data
-              final mergedData = _mergePageStatuses(currentData, freshPage);
-              state = state.copyWith(
-                isBackgroundRefreshing: false,
-                pageData: mergedData,
-              );
-            }
-          })
-          .catchError((e) {
-            print('Background refresh error: $e');
-            state = state.copyWith(isBackgroundRefreshing: false);
-          });
+      print(
+        'DEBUG: Background refresh complete for $requestKey, current=$_currentRequestKey, freshPage=${freshPage != null}',
+      );
+
+      // Check if this response is still valid (user hasn't navigated to a different page)
+      if (requestKey != _currentRequestKey) {
+        print(
+          'Background refresh response IGNORED - page changed from $requestKey to $_currentRequestKey',
+        );
+        return;
+      }
+
+      if (freshPage == null) {
+        print('DEBUG: Background refresh failed after $maxRetries attempts');
+        // All retries exhausted - stop loading and show error
+        state = state.copyWith(
+          isBackgroundRefreshing: false,
+          isLoading: false,
+          errorMessage: lastError != null
+              ? 'Failed to load page: ${_formatError(lastError)}'
+              : 'Failed to load page',
+        );
+        return;
+      }
+
+      final currentData = state.pageData;
+      print(
+        'DEBUG: currentData=${currentData != null}, updating state with fresh page ${freshPage.currentPage}',
+      );
+      if (currentData == null) {
+        // No cached data, use fresh data directly and stop loading
+        state = state.copyWith(
+          isBackgroundRefreshing: false,
+          isLoading: false,
+          pageData: freshPage,
+        );
+        print(
+          'DEBUG: State updated - isLoading=false, page=${freshPage.currentPage}',
+        );
+      } else if (currentData.currentPage == freshPage.currentPage) {
+        // Same page - merge statuses with existing data
+        final mergedData = _mergePageStatuses(currentData, freshPage);
+        state = state.copyWith(
+          isBackgroundRefreshing: false,
+          isLoading: false,
+          pageData: mergedData,
+        );
+        print('DEBUG: State updated (merge) - page=${mergedData.currentPage}');
+      } else {
+        // Different page - use fresh data directly
+        state = state.copyWith(
+          isBackgroundRefreshing: false,
+          isLoading: false,
+          pageData: freshPage,
+        );
+        print('DEBUG: State updated (replace) - page=${freshPage.currentPage}');
+      }
     });
   }
 
