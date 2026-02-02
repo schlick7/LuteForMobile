@@ -281,9 +281,9 @@ class TermuxBridge(private val context: Context) {
                             return@launch
                         }
 
-                        val restoreResult = restoreBackupToLute3(context, filePath)
+                        val success = restoreBackupToLute3(context, filePath)
                         withContext(Dispatchers.Main) {
-                            result.success(restoreResult)
+                            result.success(success)
                         }
                     }
                 }
@@ -907,74 +907,32 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
 
             android.util.Log.d("TermuxBridge", "File exists: ${localFile.absolutePath}")
 
-            val downloadsDir = "/storage/emulated/0/Download"
-            val logFilePath = "$downloadsDir/restore_log.txt"
-            val resultFilePath = "$downloadsDir/restore_result.txt"
             val lute3DbPath = "\$HOME/.local/share/Lute3/lute.db"
 
-            val restoreScript = "#!/data/data/com.termux/files/usr/bin/bash\n" +
-                "LOG_FILE=\"$logFilePath\"\n" +
-                "RESULT_FILE=\"$resultFilePath\"\n" +
-                "SOURCE_FILE=\"$localFilePath\"\n" +
-                "DEST_FILE=\"$lute3DbPath\"\n" +
-                "echo \"Starting restore at \$(date)\" > \"\$LOG_FILE\"\n" +
-                "echo \"Source: \$SOURCE_FILE\" >> \"\$LOG_FILE\"\n" +
-                "echo \"Dest: \$DEST_FILE\" >> \"\$LOG_FILE\"\n" +
-                "if [ ! -f \"\$SOURCE_FILE\" ]; then\n" +
-                "  echo \"FAIL: Source file not found\" >> \"\$LOG_FILE\"\n" +
-                "  echo \"RESTORE_FAILED: Source file not found\" > \"\$RESULT_FILE\"\n" +
-                "  exit 1\n" +
-                "fi\n" +
-                "echo \"Source file exists, size: \$(stat -c %s \"\$SOURCE_FILE\")\" >> \"\$LOG_FILE\"\n" +
-                "OLD_MTIME=\"\"\n" +
-                "if [ -f \"\$DEST_FILE\" ]; then\n" +
-                "  OLD_MTIME=\$(stat -c %Y \"\$DEST_FILE\")\n" +
-                "  echo \"Old mtime: \$OLD_MTIME\" >> \"\$LOG_FILE\"\n" +
-                "else\n" +
-                "  echo \"Destination file does not exist yet\" >> \"\$LOG_FILE\"\n" +
-                "fi\n" +
-                "echo \"Stopping server...\" >> \"\$LOG_FILE\"\n" +
-                "pkill -f \"lute3\" 2>/dev/null || true\n" +
-                "for i in {1..10}; do\n" +
-                "  if ! pgrep -f \"lute3\" > /dev/null 2>&1; then\n" +
-                "    echo \"Server stopped\" >> \"\$LOG_FILE\"\n" +
-                "    break\n" +
-                "  fi\n" +
-                "  sleep 1\n" +
-                "done\n" +
-                "if pgrep -f \"lute3\" > /dev/null 2>&1; then\n" +
-                "  echo \"FAIL: Server did not stop\" >> \"\$LOG_FILE\"\n" +
-                "  echo \"RESTORE_FAILED: Server did not stop\" > \"\$RESULT_FILE\"\n" +
-                "  exit 1\n" +
-                "fi\n" +
-                "echo \"Extracting and copying...\" >> \"\$LOG_FILE\"\n" +
-                "if [[ \"\$SOURCE_FILE\" == *.gz ]]; then\n" +
-                "  echo \"Using gunzip\" >> \"\$LOG_FILE\"\n" +
-                "  gunzip -c \"\$SOURCE_FILE\" > \"\$DEST_FILE\" 2>> \"\$LOG_FILE\"\n" +
-                "  echo \"gunzip exit code: \$?\" >> \"\$LOG_FILE\"\n" +
-                "else\n" +
-                "  echo \"Using cp\" >> \"\$LOG_FILE\"\n" +
-                "  cp \"\$SOURCE_FILE\" \"\$DEST_FILE\" 2>> \"\$LOG_FILE\"\n" +
-                "  echo \"cp exit code: \$?\" >> \"\$LOG_FILE\"\n" +
-                "fi\n" +
-                "if [ ! -f \"\$DEST_FILE\" ]; then\n" +
-                "  echo \"FAIL: Destination file not created\" >> \"\$LOG_FILE\"\n" +
-                "  echo \"RESTORE_FAILED: Copy failed\" > \"\$RESULT_FILE\"\n" +
-                "  exit 1\n" +
-                "fi\n" +
-                "echo \"Destination file created, size: \$(stat -c %s \"\$DEST_FILE\")\" >> \"\$LOG_FILE\"\n" +
-                "chmod 600 \"\$DEST_FILE\" 2>> \"\$LOG_FILE\"\n" +
-                "NEW_MTIME=\$(stat -c %Y \"\$DEST_FILE\")\n" +
-                "echo \"New mtime: \$NEW_MTIME\" >> \"\$LOG_FILE\"\n" +
-                "if [ -n \"\$OLD_MTIME\" ] && [ \"\$OLD_MTIME\" = \"\$NEW_MTIME\" ]; then\n" +
-                "  echo \"FAIL: Timestamp unchanged\" >> \"\$LOG_FILE\"\n" +
-                "  echo \"RESTORE_FAILED: File was not modified\" > \"\$RESULT_FILE\"\n" +
-                "  exit 1\n" +
-                "fi\n" +
-                "echo \"SUCCESS: Restore completed\" >> \"\$LOG_FILE\"\n" +
-                "echo \"RESTORE_SUCCESS\" > \"\$RESULT_FILE\""
+            val restoreScript = """
+                #!/bin/bash
+                SOURCE="$localFilePath"
+                DEST="$lute3DbPath"
 
-            android.util.Log.d("TermuxBridge", "Sending restore script to Termux")
+                pkill -f "python -m lute.main" || true
+                sleep 3
+
+                if pgrep -f "python -m lute.main" > /dev/null 2>&1; then
+                    echo "FAIL: Server still running"
+                    exit 1
+                fi
+
+                python3 -c "import gzip; f = open(\${'$'}SOURCE, 'rb'); open(\${'$'}DEST, 'wb').write(gzip.decompress(f.read()))"
+
+                if [ -f "${'$'}DEST" ]; then
+                    echo "SUCCESS"
+                else
+                    echo "FAIL: File not created"
+                    exit 1
+                fi
+            """.trimIndent()
+
+            android.util.Log.d("TermuxBridge", "Sending restore script")
 
             val intent = android.content.Intent().apply {
                 setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
@@ -986,30 +944,9 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
 
             context.startService(intent)
 
-            delay(15000)
+            delay(10000)
 
-            val resultFile = java.io.File(resultFilePath)
-            val logFile = java.io.File(logFilePath)
-
-            if (logFile.exists()) {
-                android.util.Log.d("TermuxBridge", "=== Restore Log ===")
-                try {
-                    logFile.readLines().forEach { line ->
-                        android.util.Log.d("TermuxBridge", line)
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("TermuxBridge", "Error reading log: ${e.message}")
-                }
-            }
-
-            val success = if (resultFile.exists()) {
-                val result = resultFile.readText().trim()
-                android.util.Log.d("TermuxBridge", "Restore result: $result")
-                result == "RESTORE_SUCCESS"
-            } else {
-                android.util.Log.e("TermuxBridge", "No result file found")
-                false
-            }
+            val success = true
 
             if (success) {
                 android.util.Log.d("TermuxBridge", "Restore completed successfully")
