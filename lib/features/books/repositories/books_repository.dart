@@ -88,52 +88,11 @@ class BooksRepository {
     }
   }
 
-  Future<Book> getBookStats(int bookId, {Book? existingBook}) async {
+  Future<void> invalidateAllBookStatsCache() async {
     try {
-      final statsBook = await contentService.getBookStats(bookId);
-
-      if (existingBook != null) {
-        final mergedBook = existingBook.copyWith(
-          distinctTerms: statsBook.distinctTerms,
-          unknownPct: statsBook.unknownPct,
-          statusDistribution: statsBook.statusDistribution,
-          lastStatsRefresh: statsBook.lastStatsRefresh,
-        );
-
-        await _loadLanguageMapping();
-        return _enrichBooksWithLanguageIds([mergedBook]).first;
-      } else {
-        final activeBooks = await getActiveBooks();
-        Book existingBookFromServer = activeBooks.firstWhere(
-          (book) => book.id == bookId,
-          orElse: () => throw Exception('Book with id $bookId not found'),
-        );
-
-        final mergedBook = existingBookFromServer.copyWith(
-          distinctTerms: statsBook.distinctTerms,
-          unknownPct: statsBook.unknownPct,
-          statusDistribution: statsBook.statusDistribution,
-          lastStatsRefresh: statsBook.lastStatsRefresh,
-        );
-
-        await _loadLanguageMapping();
-        return _enrichBooksWithLanguageIds([mergedBook]).first;
-      }
+      await contentService.invalidateAllBookStatsCache();
     } catch (e) {
-      print('ERROR in getBookStats repository: $e');
-      rethrow;
-    }
-  }
-
-  Future<void> refreshAllBookStats(List<Book> books) async {
-    for (final book in books) {
-      if (!book.hasStats) {
-        try {
-          await refreshBookStats(book.id);
-        } catch (e) {
-          print('Failed to refresh stats for book ${book.id}: $e');
-        }
-      }
+      throw Exception('Failed to invalidate all book stats cache: $e');
     }
   }
 

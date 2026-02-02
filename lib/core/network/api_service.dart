@@ -416,6 +416,10 @@ class ApiService {
     );
   }
 
+  Future<void> invalidateAllBookStatsCache() async {
+    await _dio.get<String>('/refresh_all_stats');
+  }
+
   Future<Response<String>> getSettingsPage() async {
     return await _dio.get<String>('/settings/index');
   }

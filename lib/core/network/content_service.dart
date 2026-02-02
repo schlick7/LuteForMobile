@@ -318,6 +318,10 @@ class ContentService {
     await _apiService.refreshBookStats(bookId, timeout: timeout);
   }
 
+  Future<void> invalidateAllBookStatsCache() async {
+    await _apiService.invalidateAllBookStatsCache();
+  }
+
   Future<Book> getBookStats(int bookId) async {
     final response = await _apiService.getBookStats(bookId);
     final jsonString = response.data ?? '';
@@ -406,12 +410,6 @@ class ContentService {
     required List<double> bookmarks,
   }) async {
     await _apiService.postPlayerData(bookId, position, bookmarks);
-  }
-
-  Future<List<String>> getAllLanguages() async {
-    final response = await _apiService.getLanguages();
-    final htmlContent = response.data ?? '';
-    return parser.parseLanguages(htmlContent);
   }
 
   Future<List<Language>> getLanguagesWithIds() async {

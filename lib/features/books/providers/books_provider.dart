@@ -175,37 +175,105 @@ class BooksNotifier extends Notifier<BooksState> {
       return;
     }
 
-    // Collect all updated books during the refresh process
-    final updatedActiveBooks = List<Book>.from(state.activeBooks);
+    try {
+      await _repository.invalidateAllBookStatsCache();
 
-    for (int i = 0; i < expiredBooks.length; i += 2) {
-      final batch = <Future<void>>[];
-      if (i < expiredBooks.length) {
-        batch.add(
-          _refreshBookWith500SampleSize(
-            expiredBooks[i].id,
-            updatedBooksList: updatedActiveBooks,
-          ),
-        );
+      _originalSampleSize ??= await _repository.contentService
+          .getStatsSampleSize();
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        '500',
+      );
+
+      final updatedActiveBooks = List<Book>.from(state.activeBooks);
+
+      for (int i = 0; i < expiredBooks.length; i += 2) {
+        final batch = <Future<void>>[];
+        if (i < expiredBooks.length) {
+          batch.add(
+            _refreshBookSimple(
+              expiredBooks[i].id,
+              updatedBooksList: updatedActiveBooks,
+            ),
+          );
+        }
+        if (i + 1 < expiredBooks.length) {
+          batch.add(
+            _refreshBookSimple(
+              expiredBooks[i + 1].id,
+              updatedBooksList: updatedActiveBooks,
+            ),
+          );
+        }
+        await Future.wait(batch);
       }
-      if (i + 1 < expiredBooks.length) {
-        batch.add(
-          _refreshBookWith500SampleSize(
-            expiredBooks[i + 1].id,
-            updatedBooksList: updatedActiveBooks,
-          ),
-        );
+
+      await _repository.saveBooksToCache(
+        activeBooks: updatedActiveBooks,
+        archivedBooks: state.archivedBooks,
+      );
+    } finally {
+      if (_originalSampleSize != null) {
+        try {
+          await _repository.contentService.setUserSetting(
+            'stats_calc_sample_size',
+            _originalSampleSize!.toString(),
+          );
+        } catch (e) {
+          print('Failed to restore sample size: $e');
+        }
       }
-      await Future.wait(batch);
     }
 
-    // Save all updated books to cache once after all refreshes are done
-    await _repository.saveBooksToCache(
-      activeBooks: updatedActiveBooks,
-      archivedBooks: state.archivedBooks,
+    _lastBackgroundRefreshTime = now;
+  }
+
+  Future<void> _refreshBookSimple(
+    int bookId, {
+    List<Book>? updatedBooksList,
+  }) async {
+    await _repository.refreshBookStats(
+      bookId,
+      timeout: const Duration(seconds: 15),
+    );
+    await Future.delayed(const Duration(seconds: 1));
+
+    final booksList = updatedBooksList ?? state.activeBooks;
+    final existingBook = booksList.firstWhere(
+      (book) => book.id == bookId,
+      orElse: () =>
+          throw Exception('Book with id $bookId not found in active books'),
+    );
+    final statsBook = await _repository.contentService.getBookStats(bookId);
+    final updatedBook = existingBook.copyWith(
+      distinctTerms: statsBook.distinctTerms,
+      unknownPct: statsBook.unknownPct,
+      statusDistribution: statsBook.statusDistribution,
+      lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
     );
 
-    _lastBackgroundRefreshTime = now;
+    if (updatedBooksList != null) {
+      final index = updatedBooksList.indexWhere((book) => book.id == bookId);
+      if (index != -1) {
+        updatedBooksList[index] = updatedBooksList[index].copyWith(
+          title: updatedBook.title,
+          language: updatedBook.language,
+          langId: updatedBook.langId,
+          totalPages: updatedBook.totalPages,
+          currentPage: updatedBook.currentPage,
+          percent: updatedBook.percent,
+          wordCount: updatedBook.wordCount,
+          distinctTerms: updatedBook.distinctTerms,
+          unknownPct: updatedBook.unknownPct,
+          statusDistribution: updatedBook.statusDistribution,
+          tags: updatedBook.tags,
+          lastRead: updatedBook.lastRead,
+          isCompleted: updatedBook.isCompleted,
+          lastStatsRefresh: updatedBook.lastStatsRefresh,
+          audioFilename: updatedBook.audioFilename,
+        );
+      }
+    }
   }
 
   Future<void> _refreshBookWith500SampleSize(
@@ -240,11 +308,11 @@ class BooksNotifier extends Notifier<BooksState> {
         orElse: () =>
             throw Exception('Book with id $bookId not found in active books'),
       );
-      final updatedBook = await _repository.getBookStats(
-        bookId,
-        existingBook: existingBook,
-      );
-      final updatedBookWithRefreshTime = updatedBook.copyWith(
+      final statsBook = await _repository.contentService.getBookStats(bookId);
+      final updatedBook = existingBook.copyWith(
+        distinctTerms: statsBook.distinctTerms,
+        unknownPct: statsBook.unknownPct,
+        statusDistribution: statsBook.statusDistribution,
         lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
       );
 
@@ -254,21 +322,21 @@ class BooksNotifier extends Notifier<BooksState> {
         final index = updatedBooksList.indexWhere((book) => book.id == bookId);
         if (index != -1) {
           updatedBooksList[index] = updatedBooksList[index].copyWith(
-            title: updatedBookWithRefreshTime.title,
-            language: updatedBookWithRefreshTime.language,
-            langId: updatedBookWithRefreshTime.langId,
-            totalPages: updatedBookWithRefreshTime.totalPages,
-            currentPage: updatedBookWithRefreshTime.currentPage,
-            percent: updatedBookWithRefreshTime.percent,
-            wordCount: updatedBookWithRefreshTime.wordCount,
-            distinctTerms: updatedBookWithRefreshTime.distinctTerms,
-            unknownPct: updatedBookWithRefreshTime.unknownPct,
-            statusDistribution: updatedBookWithRefreshTime.statusDistribution,
-            tags: updatedBookWithRefreshTime.tags,
-            lastRead: updatedBookWithRefreshTime.lastRead,
-            isCompleted: updatedBookWithRefreshTime.isCompleted,
-            lastStatsRefresh: updatedBookWithRefreshTime.lastStatsRefresh,
-            audioFilename: updatedBookWithRefreshTime.audioFilename,
+            title: updatedBook.title,
+            language: updatedBook.language,
+            langId: updatedBook.langId,
+            totalPages: updatedBook.totalPages,
+            currentPage: updatedBook.currentPage,
+            percent: updatedBook.percent,
+            wordCount: updatedBook.wordCount,
+            distinctTerms: updatedBook.distinctTerms,
+            unknownPct: updatedBook.unknownPct,
+            statusDistribution: updatedBook.statusDistribution,
+            tags: updatedBook.tags,
+            lastRead: updatedBook.lastRead,
+            isCompleted: updatedBook.isCompleted,
+            lastStatsRefresh: updatedBook.lastStatsRefresh,
+            audioFilename: updatedBook.audioFilename,
           );
         }
       } else {
@@ -276,21 +344,21 @@ class BooksNotifier extends Notifier<BooksState> {
         final updatedActiveBooks = state.activeBooks.map((book) {
           if (book.id == bookId) {
             return book.copyWith(
-              title: updatedBookWithRefreshTime.title,
-              language: updatedBookWithRefreshTime.language,
-              langId: updatedBookWithRefreshTime.langId,
-              totalPages: updatedBookWithRefreshTime.totalPages,
-              currentPage: updatedBookWithRefreshTime.currentPage,
-              percent: updatedBookWithRefreshTime.percent,
-              wordCount: updatedBookWithRefreshTime.wordCount,
-              distinctTerms: updatedBookWithRefreshTime.distinctTerms,
-              unknownPct: updatedBookWithRefreshTime.unknownPct,
-              statusDistribution: updatedBookWithRefreshTime.statusDistribution,
-              tags: updatedBookWithRefreshTime.tags,
-              lastRead: updatedBookWithRefreshTime.lastRead,
-              isCompleted: updatedBookWithRefreshTime.isCompleted,
-              lastStatsRefresh: updatedBookWithRefreshTime.lastStatsRefresh,
-              audioFilename: updatedBookWithRefreshTime.audioFilename,
+              title: updatedBook.title,
+              language: updatedBook.language,
+              langId: updatedBook.langId,
+              totalPages: updatedBook.totalPages,
+              currentPage: updatedBook.currentPage,
+              percent: updatedBook.percent,
+              wordCount: updatedBook.wordCount,
+              distinctTerms: updatedBook.distinctTerms,
+              unknownPct: updatedBook.unknownPct,
+              statusDistribution: updatedBook.statusDistribution,
+              tags: updatedBook.tags,
+              lastRead: updatedBook.lastRead,
+              isCompleted: updatedBook.isCompleted,
+              lastStatsRefresh: updatedBook.lastStatsRefresh,
+              audioFilename: updatedBook.audioFilename,
             );
           }
           return book;
@@ -595,24 +663,64 @@ class BooksNotifier extends Notifier<BooksState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
+      await _repository.invalidateAllBookStatsCache();
+
+      _originalSampleSize ??= await _repository.contentService
+          .getStatsSampleSize();
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        '500',
+      );
+
       final activeBooksToRefresh = state.activeBooks;
+      final updatedActiveBooks = List<Book>.from(state.activeBooks);
 
       for (int i = 0; i < activeBooksToRefresh.length; i += 2) {
         final batch = <Future<void>>[];
         if (i < activeBooksToRefresh.length) {
-          batch.add(_refreshBookWith500SampleSize(activeBooksToRefresh[i].id));
+          batch.add(
+            _refreshBookSimple(
+              activeBooksToRefresh[i].id,
+              updatedBooksList: updatedActiveBooks,
+            ),
+          );
         }
         if (i + 1 < activeBooksToRefresh.length) {
           batch.add(
-            _refreshBookWith500SampleSize(activeBooksToRefresh[i + 1].id),
+            _refreshBookSimple(
+              activeBooksToRefresh[i + 1].id,
+              updatedBooksList: updatedActiveBooks,
+            ),
           );
         }
         await Future.wait(batch);
       }
 
-      state = state.copyWith(isLoading: false);
+      await _repository.saveBooksToCache(
+        activeBooks: updatedActiveBooks,
+        archivedBooks: state.archivedBooks,
+      );
+
+      state = state.copyWith(
+        isLoading: false,
+        activeBooks: updatedActiveBooks,
+        archivedBooks: state.archivedBooks,
+      );
       _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
+
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        '100',
+      );
     } catch (e) {
+      try {
+        await _repository.contentService.setUserSetting(
+          'stats_calc_sample_size',
+          '100',
+        );
+      } catch (err) {
+        print('Failed to restore sample size: $err');
+      }
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
@@ -858,9 +966,4 @@ final booksRepositoryProvider = Provider<BooksRepository>((ref) {
 
 final booksProvider = NotifierProvider<BooksNotifier, BooksState>(() {
   return BooksNotifier();
-});
-
-final languagesProvider = FutureProvider<List<String>>((ref) async {
-  final contentService = ref.read(contentServiceProvider);
-  return await contentService.getAllLanguages();
 });
