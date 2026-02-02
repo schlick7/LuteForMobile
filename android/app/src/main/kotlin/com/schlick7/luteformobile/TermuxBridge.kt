@@ -907,65 +907,72 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
 
             android.util.Log.d("TermuxBridge", "File exists: ${localFile.absolutePath}")
 
+            val downloadsDir = "/storage/emulated/0/Download"
+            val logFilePath = "$downloadsDir/restore_log.txt"
+            val resultFilePath = "$downloadsDir/restore_result.txt"
             val lute3DbPath = "\$HOME/.local/share/Lute3/lute.db"
 
-            val restoreScript = """
-                #!/data/data/com.termux/files/usr/bin/bash
-
-                # Verify source file exists
-                if [ ! -f "$localFilePath" ]; then
-                    echo "RESTORE_FAILED: Source file not found: $localFilePath"
-                    exit 1
-                fi
-
-                # Get current timestamp of lute.db before restore
-                OLD_MTIME=""
-                if [ -f "${'$'}lute3DbPath" ]; then
-                    OLD_MTIME=$(stat -c %Y "${'$'}lute3DbPath")
-                fi
-
-                # Stop the server
-                pkill -f "lute3" 2>/dev/null || true
-
-                # Wait for server to actually stop
-                for i in {1..10}; do
-                    if ! pgrep -f "lute3" > /dev/null 2>&1; then
-                        break
-                    fi
-                    sleep 1
-                done
-
-                # Verify server is stopped
-                if pgrep -f "lute3" > /dev/null 2>&1; then
-                    echo "RESTORE_FAILED: Server did not stop"
-                    exit 1
-                fi
-
-                # Extract and copy the restore file to the correct location
-                if [[ "$localFilePath" == *.gz ]]; then
-                    gunzip -c "$localFilePath" > "${'$'}lute3DbPath"
-                else
-                    cp "$localFilePath" "${'$'}lute3DbPath"
-                fi
-
-                # Verify copy succeeded
-                if [ ! -f "${'$'}lute3DbPath" ]; then
-                    echo "RESTORE_FAILED: Copy failed - destination file not created"
-                    exit 1
-                fi
-
-                # Set proper permissions
-                chmod 600 "${'$'}lute3DbPath"
-
-                # Verify timestamp changed (restore actually happened)
-                NEW_MTIME=$(stat -c %Y "${'$'}lute3DbPath")
-                if [ -n "${'$'}OLD_MTIME" ] && [ "${'$'}OLD_MTIME" = "${'$'}NEW_MTIME" ]; then
-                    echo "RESTORE_FAILED: File was not modified - restore may have failed"
-                    exit 1
-                fi
-
-                echo "RESTORE_SUCCESS"
-            """.trimIndent()
+            val restoreScript = "#!/data/data/com.termux/files/usr/bin/bash\n" +
+                "LOG_FILE=\"$logFilePath\"\n" +
+                "RESULT_FILE=\"$resultFilePath\"\n" +
+                "SOURCE_FILE=\"$localFilePath\"\n" +
+                "DEST_FILE=\"$lute3DbPath\"\n" +
+                "echo \"Starting restore at \$(date)\" > \"\$LOG_FILE\"\n" +
+                "echo \"Source: \$SOURCE_FILE\" >> \"\$LOG_FILE\"\n" +
+                "echo \"Dest: \$DEST_FILE\" >> \"\$LOG_FILE\"\n" +
+                "if [ ! -f \"\$SOURCE_FILE\" ]; then\n" +
+                "  echo \"FAIL: Source file not found\" >> \"\$LOG_FILE\"\n" +
+                "  echo \"RESTORE_FAILED: Source file not found\" > \"\$RESULT_FILE\"\n" +
+                "  exit 1\n" +
+                "fi\n" +
+                "echo \"Source file exists, size: \$(stat -c %s \"\$SOURCE_FILE\")\" >> \"\$LOG_FILE\"\n" +
+                "OLD_MTIME=\"\"\n" +
+                "if [ -f \"\$DEST_FILE\" ]; then\n" +
+                "  OLD_MTIME=\$(stat -c %Y \"\$DEST_FILE\")\n" +
+                "  echo \"Old mtime: \$OLD_MTIME\" >> \"\$LOG_FILE\"\n" +
+                "else\n" +
+                "  echo \"Destination file does not exist yet\" >> \"\$LOG_FILE\"\n" +
+                "fi\n" +
+                "echo \"Stopping server...\" >> \"\$LOG_FILE\"\n" +
+                "pkill -f \"lute3\" 2>/dev/null || true\n" +
+                "for i in {1..10}; do\n" +
+                "  if ! pgrep -f \"lute3\" > /dev/null 2>&1; then\n" +
+                "    echo \"Server stopped\" >> \"\$LOG_FILE\"\n" +
+                "    break\n" +
+                "  fi\n" +
+                "  sleep 1\n" +
+                "done\n" +
+                "if pgrep -f \"lute3\" > /dev/null 2>&1; then\n" +
+                "  echo \"FAIL: Server did not stop\" >> \"\$LOG_FILE\"\n" +
+                "  echo \"RESTORE_FAILED: Server did not stop\" > \"\$RESULT_FILE\"\n" +
+                "  exit 1\n" +
+                "fi\n" +
+                "echo \"Extracting and copying...\" >> \"\$LOG_FILE\"\n" +
+                "if [[ \"\$SOURCE_FILE\" == *.gz ]]; then\n" +
+                "  echo \"Using gunzip\" >> \"\$LOG_FILE\"\n" +
+                "  gunzip -c \"\$SOURCE_FILE\" > \"\$DEST_FILE\" 2>> \"\$LOG_FILE\"\n" +
+                "  echo \"gunzip exit code: \$?\" >> \"\$LOG_FILE\"\n" +
+                "else\n" +
+                "  echo \"Using cp\" >> \"\$LOG_FILE\"\n" +
+                "  cp \"\$SOURCE_FILE\" \"\$DEST_FILE\" 2>> \"\$LOG_FILE\"\n" +
+                "  echo \"cp exit code: \$?\" >> \"\$LOG_FILE\"\n" +
+                "fi\n" +
+                "if [ ! -f \"\$DEST_FILE\" ]; then\n" +
+                "  echo \"FAIL: Destination file not created\" >> \"\$LOG_FILE\"\n" +
+                "  echo \"RESTORE_FAILED: Copy failed\" > \"\$RESULT_FILE\"\n" +
+                "  exit 1\n" +
+                "fi\n" +
+                "echo \"Destination file created, size: \$(stat -c %s \"\$DEST_FILE\")\" >> \"\$LOG_FILE\"\n" +
+                "chmod 600 \"\$DEST_FILE\" 2>> \"\$LOG_FILE\"\n" +
+                "NEW_MTIME=\$(stat -c %Y \"\$DEST_FILE\")\n" +
+                "echo \"New mtime: \$NEW_MTIME\" >> \"\$LOG_FILE\"\n" +
+                "if [ -n \"\$OLD_MTIME\" ] && [ \"\$OLD_MTIME\" = \"\$NEW_MTIME\" ]; then\n" +
+                "  echo \"FAIL: Timestamp unchanged\" >> \"\$LOG_FILE\"\n" +
+                "  echo \"RESTORE_FAILED: File was not modified\" > \"\$RESULT_FILE\"\n" +
+                "  exit 1\n" +
+                "fi\n" +
+                "echo \"SUCCESS: Restore completed\" >> \"\$LOG_FILE\"\n" +
+                "echo \"RESTORE_SUCCESS\" > \"\$RESULT_FILE\""
 
             android.util.Log.d("TermuxBridge", "Sending restore script to Termux")
 
@@ -981,8 +988,36 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
 
             delay(15000)
 
-            android.util.Log.d("TermuxBridge", "Restore completed successfully")
-            true
+            val resultFile = java.io.File(resultFilePath)
+            val logFile = java.io.File(logFilePath)
+
+            if (logFile.exists()) {
+                android.util.Log.d("TermuxBridge", "=== Restore Log ===")
+                try {
+                    logFile.readLines().forEach { line ->
+                        android.util.Log.d("TermuxBridge", line)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("TermuxBridge", "Error reading log: ${e.message}")
+                }
+            }
+
+            val success = if (resultFile.exists()) {
+                val result = resultFile.readText().trim()
+                android.util.Log.d("TermuxBridge", "Restore result: $result")
+                result == "RESTORE_SUCCESS"
+            } else {
+                android.util.Log.e("TermuxBridge", "No result file found")
+                false
+            }
+
+            if (success) {
+                android.util.Log.d("TermuxBridge", "Restore completed successfully")
+            } else {
+                android.util.Log.e("TermuxBridge", "Restore failed")
+            }
+
+            success
 
         } catch (e: Exception) {
             android.util.Log.e("TermuxBridge", "Restore failed: ${e.message}")
