@@ -5,10 +5,16 @@
   
 Lets do a performance review of this app starting with the ReadScreen 
 
-
+using the exact file from the logs give me the command so i can run it manually in termux to see if that works. 
 
 Why does pressing "Start Server" cause a recheck of all the connection statuses?
 
+
+02-01 17:50:49.685  9554  9554 I flutter : Error saving stats cache: HiveError: Cannot write, unknown type: StatsCacheEntry. Did you forget to register an adapter?
+02-01 17:50:51.100  9554  9554 I flutter : Error saving books to cache: HiveError: Cannot write, unknown type: Book. Did you forget to register an adapter?
+02
+
+Look at flutter logs and cleanup issues
 
 ---
 
@@ -21,8 +27,7 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 Can we use the PWA that we have to handle backup and restore on our local (not on device) server?
 
 # Termux
-- Lets work in the settings Termux integration backups. Add the ability to "restore" a backup. This means that we need to transfer a db file of the users choosing to the correct lute3 directory and overrite the current db file. We should ask the user if they want to create a backup first before restoring. If yes create the backup and when finished continue the process, If no then just continue the process. 
-- Should be able to see termux backups AND the local(configured URL) backups
+- Lets work in the settings Termux integration termux backups. Add the ability to "restore" a backup. This is only for the termux server. This means that we need to transfer a db file of the users choosing to the correct lute3 directory and overrite the current db file. We should ask the user if they want to create a backup first before restoring. If yes create the backup first and when finished continue the process, If no then just continue the process. 
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
   - We for sure need to be able to trigger db backups and then be able to download/save the db to a local folder (like downloads) and to upload/restore/overwrite the db file to the termux install location. We can possibly just use the lute3 backup/restore functionality for this. 
   - Does the db file contain EVERYTHING that we need?
