@@ -255,23 +255,7 @@ class BooksNotifier extends Notifier<BooksState> {
     if (updatedBooksList != null) {
       final index = updatedBooksList.indexWhere((book) => book.id == bookId);
       if (index != -1) {
-        updatedBooksList[index] = updatedBooksList[index].copyWith(
-          title: updatedBook.title,
-          language: updatedBook.language,
-          langId: updatedBook.langId,
-          totalPages: updatedBook.totalPages,
-          currentPage: updatedBook.currentPage,
-          percent: updatedBook.percent,
-          wordCount: updatedBook.wordCount,
-          distinctTerms: updatedBook.distinctTerms,
-          unknownPct: updatedBook.unknownPct,
-          statusDistribution: updatedBook.statusDistribution,
-          tags: updatedBook.tags,
-          lastRead: updatedBook.lastRead,
-          isCompleted: updatedBook.isCompleted,
-          lastStatsRefresh: updatedBook.lastStatsRefresh,
-          audioFilename: updatedBook.audioFilename,
-        );
+        updatedBooksList[index] = updatedBook;
       }
     }
   }
@@ -318,26 +302,9 @@ class BooksNotifier extends Notifier<BooksState> {
 
       // Update only the specific book in the provided list or in the state
       if (updatedBooksList != null) {
-        // Update the book in the provided list directly
         final index = updatedBooksList.indexWhere((book) => book.id == bookId);
         if (index != -1) {
-          updatedBooksList[index] = updatedBooksList[index].copyWith(
-            title: updatedBook.title,
-            language: updatedBook.language,
-            langId: updatedBook.langId,
-            totalPages: updatedBook.totalPages,
-            currentPage: updatedBook.currentPage,
-            percent: updatedBook.percent,
-            wordCount: updatedBook.wordCount,
-            distinctTerms: updatedBook.distinctTerms,
-            unknownPct: updatedBook.unknownPct,
-            statusDistribution: updatedBook.statusDistribution,
-            tags: updatedBook.tags,
-            lastRead: updatedBook.lastRead,
-            isCompleted: updatedBook.isCompleted,
-            lastStatsRefresh: updatedBook.lastStatsRefresh,
-            audioFilename: updatedBook.audioFilename,
-          );
+          updatedBooksList[index] = updatedBook;
         }
       } else {
         // Update the state normally (for non-batch updates)
@@ -422,7 +389,11 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedActive = active.map((networkBook) {
         final existing = existingActiveMap[networkBook.id];
         if (existing != null) {
-          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
+          final shouldUseNetworkStats =
+              networkBook.hasStats &&
+              (!existing.hasStats ||
+                  networkBook.distinctTerms != null ||
+                  networkBook.statusDistribution != null);
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -431,19 +402,23 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: shouldUpdateStats
+            distinctTerms:
+                shouldUseNetworkStats && networkBook.distinctTerms != null
                 ? networkBook.distinctTerms
                 : existing.distinctTerms,
-            unknownPct: shouldUpdateStats
+            unknownPct: shouldUseNetworkStats && networkBook.unknownPct != null
                 ? networkBook.unknownPct
                 : existing.unknownPct,
-            statusDistribution: shouldUpdateStats
+            statusDistribution:
+                shouldUseNetworkStats && networkBook.statusDistribution != null
                 ? networkBook.statusDistribution
                 : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
-            lastStatsRefresh: existing.lastStatsRefresh,
+            lastStatsRefresh: shouldUseNetworkStats
+                ? DateTime.now().millisecondsSinceEpoch
+                : existing.lastStatsRefresh,
           );
         }
         return networkBook;
@@ -476,7 +451,11 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedArchived = archived.map((networkBook) {
         final existing = existingArchivedMap[networkBook.id];
         if (existing != null) {
-          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
+          final shouldUseNetworkStats =
+              networkBook.hasStats &&
+              (!existing.hasStats ||
+                  networkBook.distinctTerms != null ||
+                  networkBook.statusDistribution != null);
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -485,19 +464,23 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: shouldUpdateStats
+            distinctTerms:
+                shouldUseNetworkStats && networkBook.distinctTerms != null
                 ? networkBook.distinctTerms
                 : existing.distinctTerms,
-            unknownPct: shouldUpdateStats
+            unknownPct: shouldUseNetworkStats && networkBook.unknownPct != null
                 ? networkBook.unknownPct
                 : existing.unknownPct,
-            statusDistribution: shouldUpdateStats
+            statusDistribution:
+                shouldUseNetworkStats && networkBook.statusDistribution != null
                 ? networkBook.statusDistribution
                 : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
-            lastStatsRefresh: existing.lastStatsRefresh,
+            lastStatsRefresh: shouldUseNetworkStats
+                ? DateTime.now().millisecondsSinceEpoch
+                : existing.lastStatsRefresh,
           );
         }
         return networkBook;
@@ -542,7 +525,11 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedActive = active.map((networkBook) {
         final existing = existingActiveMap[networkBook.id];
         if (existing != null) {
-          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
+          final shouldUseNetworkStats =
+              networkBook.hasStats &&
+              (!existing.hasStats ||
+                  networkBook.distinctTerms != null ||
+                  networkBook.statusDistribution != null);
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -551,18 +538,23 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: shouldUpdateStats
+            distinctTerms:
+                shouldUseNetworkStats && networkBook.distinctTerms != null
                 ? networkBook.distinctTerms
                 : existing.distinctTerms,
-            unknownPct: shouldUpdateStats
+            unknownPct: shouldUseNetworkStats && networkBook.unknownPct != null
                 ? networkBook.unknownPct
                 : existing.unknownPct,
-            statusDistribution: shouldUpdateStats
+            statusDistribution:
+                shouldUseNetworkStats && networkBook.statusDistribution != null
                 ? networkBook.statusDistribution
                 : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
+            lastStatsRefresh: shouldUseNetworkStats
+                ? DateTime.now().millisecondsSinceEpoch
+                : existing.lastStatsRefresh,
           );
         }
         return networkBook;
@@ -598,7 +590,11 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedArchived = archived.map((networkBook) {
         final existing = existingArchivedMap[networkBook.id];
         if (existing != null) {
-          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
+          final shouldUseNetworkStats =
+              networkBook.hasStats &&
+              (!existing.hasStats ||
+                  networkBook.distinctTerms != null ||
+                  networkBook.statusDistribution != null);
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -607,18 +603,23 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: shouldUpdateStats
+            distinctTerms:
+                shouldUseNetworkStats && networkBook.distinctTerms != null
                 ? networkBook.distinctTerms
                 : existing.distinctTerms,
-            unknownPct: shouldUpdateStats
+            unknownPct: shouldUseNetworkStats && networkBook.unknownPct != null
                 ? networkBook.unknownPct
                 : existing.unknownPct,
-            statusDistribution: shouldUpdateStats
+            statusDistribution:
+                shouldUseNetworkStats && networkBook.statusDistribution != null
                 ? networkBook.statusDistribution
                 : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
+            lastStatsRefresh: shouldUseNetworkStats
+                ? DateTime.now().millisecondsSinceEpoch
+                : existing.lastStatsRefresh,
           );
         }
         return networkBook;
@@ -769,7 +770,11 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedArchived = archived.map((networkBook) {
         final existing = existingArchivedMap[networkBook.id];
         if (existing != null) {
-          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
+          final shouldUseNetworkStats =
+              networkBook.hasStats &&
+              (!existing.hasStats ||
+                  networkBook.distinctTerms != null ||
+                  networkBook.statusDistribution != null);
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -778,18 +783,23 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: shouldUpdateStats
+            distinctTerms:
+                shouldUseNetworkStats && networkBook.distinctTerms != null
                 ? networkBook.distinctTerms
                 : existing.distinctTerms,
-            unknownPct: shouldUpdateStats
+            unknownPct: shouldUseNetworkStats && networkBook.unknownPct != null
                 ? networkBook.unknownPct
                 : existing.unknownPct,
-            statusDistribution: shouldUpdateStats
+            statusDistribution:
+                shouldUseNetworkStats && networkBook.statusDistribution != null
                 ? networkBook.statusDistribution
                 : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
+            lastStatsRefresh: shouldUseNetworkStats
+                ? DateTime.now().millisecondsSinceEpoch
+                : existing.lastStatsRefresh,
           );
         }
         return networkBook;
@@ -815,7 +825,11 @@ class BooksNotifier extends Notifier<BooksState> {
       final mergedActive = active.map((networkBook) {
         final existing = existingActiveMap[networkBook.id];
         if (existing != null) {
-          final shouldUpdateStats = !existing.hasStats && networkBook.hasStats;
+          final shouldUseNetworkStats =
+              networkBook.hasStats &&
+              (!existing.hasStats ||
+                  networkBook.distinctTerms != null ||
+                  networkBook.statusDistribution != null);
           return existing.copyWith(
             title: networkBook.title,
             language: networkBook.language,
@@ -824,18 +838,23 @@ class BooksNotifier extends Notifier<BooksState> {
             currentPage: networkBook.currentPage,
             percent: networkBook.percent,
             wordCount: networkBook.wordCount,
-            distinctTerms: shouldUpdateStats
+            distinctTerms:
+                shouldUseNetworkStats && networkBook.distinctTerms != null
                 ? networkBook.distinctTerms
                 : existing.distinctTerms,
-            unknownPct: shouldUpdateStats
+            unknownPct: shouldUseNetworkStats && networkBook.unknownPct != null
                 ? networkBook.unknownPct
                 : existing.unknownPct,
-            statusDistribution: shouldUpdateStats
+            statusDistribution:
+                shouldUseNetworkStats && networkBook.statusDistribution != null
                 ? networkBook.statusDistribution
                 : existing.statusDistribution,
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
+            lastStatsRefresh: shouldUseNetworkStats
+                ? DateTime.now().millisecondsSinceEpoch
+                : existing.lastStatsRefresh,
           );
         }
         return networkBook;
