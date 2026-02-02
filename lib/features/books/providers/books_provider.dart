@@ -84,10 +84,10 @@ class BooksNotifier extends Notifier<BooksState> {
       final activeFromCache = await _repository.getActiveBooksFromCache();
       final archivedFromCache = await _repository.getArchivedBooksFromCache();
 
-      if (activeFromCache != null || archivedFromCache != null) {
+      if (activeFromCache != null) {
         state = state.copyWith(
           isLoading: false,
-          activeBooks: activeFromCache ?? state.activeBooks,
+          activeBooks: activeFromCache,
           archivedBooks: archivedFromCache ?? state.archivedBooks,
         );
       } else {
@@ -238,7 +238,7 @@ class BooksNotifier extends Notifier<BooksState> {
   Future<void> _loadBooksFromNetwork() async {
     try {
       final active = await _repository.getActiveBooks();
-      final archived = await _repository.getArchivedBooks();
+      final archived = <Book>[];
 
       final existingActiveMap = {for (var b in state.activeBooks) b.id: b};
       final existingArchivedMap = {for (var b in state.archivedBooks) b.id: b};
@@ -272,6 +272,27 @@ class BooksNotifier extends Notifier<BooksState> {
         return networkBook;
       }).toList();
 
+      await _repository.saveBooksToCache(
+        activeBooks: mergedActive,
+        archivedBooks: state.archivedBooks,
+      );
+
+      state = state.copyWith(
+        isLoading: false,
+        activeBooks: mergedActive,
+        archivedBooks: state.archivedBooks,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> _loadArchivedBooksFromNetwork() async {
+    try {
+      final archived = await _repository.getArchivedBooks();
+      final existingArchivedMap = {for (var b in state.archivedBooks) b.id: b};
+
       final mergedArchived = archived.map((networkBook) {
         final existing = existingArchivedMap[networkBook.id];
         if (existing != null) {
@@ -302,18 +323,13 @@ class BooksNotifier extends Notifier<BooksState> {
       }).toList();
 
       await _repository.saveBooksToCache(
-        activeBooks: mergedActive,
+        activeBooks: state.activeBooks,
         archivedBooks: mergedArchived,
       );
 
-      state = state.copyWith(
-        isLoading: false,
-        activeBooks: mergedActive,
-        archivedBooks: mergedArchived,
-        errorMessage: null,
-      );
+      state = state.copyWith(archivedBooks: mergedArchived, errorMessage: null);
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      state = state.copyWith(errorMessage: e.toString());
     }
   }
 
@@ -418,7 +434,12 @@ class BooksNotifier extends Notifier<BooksState> {
   }
 
   void toggleArchivedFilter() {
-    state = state.copyWith(showArchived: !state.showArchived);
+    final newShowArchived = !state.showArchived;
+    state = state.copyWith(showArchived: newShowArchived);
+
+    if (newShowArchived && state.archivedBooks.isEmpty) {
+      _loadArchivedBooksFromNetwork();
+    }
   }
 
   void setSearchQuery(String query) {
