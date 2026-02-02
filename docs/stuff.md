@@ -11,34 +11,6 @@ done? Why does pressing "Start Server" cause a recheck of all the connection sta
 
 
 
-
-You're absolutely right!** There IS a `getBookStats(bookId)` endpoint at `/book/table_stats/$bookId` (api_service.dart:331-333).
-
-The problem is `_refreshBookWith500SampleSize()` is calling `getActiveBooks()` (fetching ALL 11 books) instead of `getBookStats(bookId)` (fetching just that one book's stats).
-
-**The fix:**
-In `books_provider.dart:179`, change:
-```dart
-final active = await _repository.getActiveBooks();
-```
-To:
-```dart
-final stats = await _repository.getBookStats(bookId);
-```
-
-Then update only that specific book in the state with the new stats, instead of replacing all books.
-
-This reduces the redundant calls and makes the batching actually efficient - each batch of 2 would only make 2 calls instead of fetching all 11 books.
-
-
-
-Add logging for all calls in api service
-
-
-02-01 17:50:49.685  9554  9554 I flutter : Error saving stats cache: HiveError: Cannot write, unknown type: StatsCacheEntry. Did you forget to register an adapter?
-02-01 17:50:51.100  9554  9554 I flutter : Error saving books to cache: HiveError: Cannot write, unknown type: Book. Did you forget to register an adapter?
-02
-
 Look at flutter logs and cleanup issues
 
 Hive cache affected by termuxurl and localurl usage?
@@ -83,7 +55,9 @@ The auto backups are triggering constantly instead of the server doing it on its
 - 
 
 # Books Screen
-- 
+- Remove the book details refresh setting from books nav settings. We aren't using it
+- Since we are properly clearing and refreshing book stats when we enter the booksscren (every 6 hours cooldown)  we don't need to have the book details card call another stats fetch, the data is already new enough and we can just read from the cache. 
+- When loading into bookscreen and doing the datatables/active fetch we can check the fetched books against the cache and if the title and bookid matches we can just throw out that data as it shouldn't be needed righ? The getbookstats that runs next should get the new stats and that should be the only thing at ever changes. 
 
 # Terms Screen
 -
