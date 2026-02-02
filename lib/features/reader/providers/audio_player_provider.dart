@@ -112,6 +112,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     List<double>? bookmarks,
     Duration? audioCurrentPos,
   }) async {
+    _reset();
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
       _bookId = bookId;
@@ -231,6 +232,18 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     _autoSaveTimer = Timer.periodic(Duration(seconds: 10), (timer) {
       _savePosition();
     });
+  }
+
+  void _reset() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = null;
+    _bookId = 0;
+    _page = 0;
+    stop();
+  }
+
+  void reset() {
+    _reset();
   }
 
   Future<void> playTTSAudio(BytesSource source) async {

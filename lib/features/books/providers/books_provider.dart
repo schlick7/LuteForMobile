@@ -212,6 +212,8 @@ class BooksNotifier extends Notifier<BooksState> {
         activeBooks: updatedActiveBooks,
         archivedBooks: state.archivedBooks,
       );
+
+      state = state.copyWith(activeBooks: updatedActiveBooks);
     } finally {
       if (_originalSampleSize != null) {
         try {

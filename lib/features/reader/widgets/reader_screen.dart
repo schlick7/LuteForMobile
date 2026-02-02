@@ -336,7 +336,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.read(readerProvider).pageData;
     final settings = ref.read(settingsProvider);
 
-    if (pageData == null || !settings.showAudioPlayer) return;
+    if (pageData == null || !settings.showAudioPlayer) {
+      ref.read(audioPlayerProvider.notifier).reset();
+      return;
+    }
+
+    ref.read(audioPlayerProvider.notifier).reset();
 
     if (pageData.hasAudio) {
       final audioUrl =
