@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 import '../models/book.dart';
@@ -142,19 +144,41 @@ class BooksNotifier extends Notifier<BooksState> {
 
     if (expiredBooks.isEmpty) return;
 
+    // Collect all updated books during the refresh process
+    final updatedActiveBooks = List<Book>.from(state.activeBooks);
+
     for (int i = 0; i < expiredBooks.length; i += 2) {
       final batch = <Future<void>>[];
       if (i < expiredBooks.length) {
-        batch.add(_refreshBookWith500SampleSize(expiredBooks[i].id));
+        batch.add(
+          _refreshBookWith500SampleSize(
+            expiredBooks[i].id,
+            updatedBooksList: updatedActiveBooks,
+          ),
+        );
       }
       if (i + 1 < expiredBooks.length) {
-        batch.add(_refreshBookWith500SampleSize(expiredBooks[i + 1].id));
+        batch.add(
+          _refreshBookWith500SampleSize(
+            expiredBooks[i + 1].id,
+            updatedBooksList: updatedActiveBooks,
+          ),
+        );
       }
       await Future.wait(batch);
     }
+
+    // Save all updated books to cache once after all refreshes are done
+    await _repository.saveBooksToCache(
+      activeBooks: updatedActiveBooks,
+      archivedBooks: state.archivedBooks,
+    );
   }
 
-  Future<void> _refreshBookWith500SampleSize(int bookId) async {
+  Future<void> _refreshBookWith500SampleSize(
+    int bookId, {
+    List<Book>? updatedBooksList,
+  }) async {
     if (_isRefreshingBook) {
       _refreshRequestedAfterNavigate = true;
       return;
@@ -176,8 +200,9 @@ class BooksNotifier extends Notifier<BooksState> {
       );
       await Future.delayed(const Duration(seconds: 1));
 
-      // Get the existing book from the current state to avoid fetching all books
-      final existingBook = state.activeBooks.firstWhere(
+      // Get the existing book from the provided list or from the current state
+      final booksList = updatedBooksList ?? state.activeBooks;
+      final existingBook = booksList.firstWhere(
         (book) => book.id == bookId,
         orElse: () =>
             throw Exception('Book with id $bookId not found in active books'),
@@ -190,10 +215,12 @@ class BooksNotifier extends Notifier<BooksState> {
         lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
       );
 
-      // Update only the specific book in the state
-      final updatedActiveBooks = state.activeBooks.map((book) {
-        if (book.id == bookId) {
-          return book.copyWith(
+      // Update only the specific book in the provided list or in the state
+      if (updatedBooksList != null) {
+        // Update the book in the provided list directly
+        final index = updatedBooksList.indexWhere((book) => book.id == bookId);
+        if (index != -1) {
+          updatedBooksList[index] = updatedBooksList[index].copyWith(
             title: updatedBookWithRefreshTime.title,
             language: updatedBookWithRefreshTime.language,
             langId: updatedBookWithRefreshTime.langId,
@@ -211,18 +238,49 @@ class BooksNotifier extends Notifier<BooksState> {
             audioFilename: updatedBookWithRefreshTime.audioFilename,
           );
         }
-        return book;
-      }).toList();
+      } else {
+        // Update the state normally (for non-batch updates)
+        final updatedActiveBooks = state.activeBooks.map((book) {
+          if (book.id == bookId) {
+            return book.copyWith(
+              title: updatedBookWithRefreshTime.title,
+              language: updatedBookWithRefreshTime.language,
+              langId: updatedBookWithRefreshTime.langId,
+              totalPages: updatedBookWithRefreshTime.totalPages,
+              currentPage: updatedBookWithRefreshTime.currentPage,
+              percent: updatedBookWithRefreshTime.percent,
+              wordCount: updatedBookWithRefreshTime.wordCount,
+              distinctTerms: updatedBookWithRefreshTime.distinctTerms,
+              unknownPct: updatedBookWithRefreshTime.unknownPct,
+              statusDistribution: updatedBookWithRefreshTime.statusDistribution,
+              tags: updatedBookWithRefreshTime.tags,
+              lastRead: updatedBookWithRefreshTime.lastRead,
+              isCompleted: updatedBookWithRefreshTime.isCompleted,
+              lastStatsRefresh: updatedBookWithRefreshTime.lastStatsRefresh,
+              audioFilename: updatedBookWithRefreshTime.audioFilename,
+            );
+          }
+          return book;
+        }).toList();
 
-      await _repository.saveBooksToCache(
-        activeBooks: updatedActiveBooks,
-        archivedBooks: state.archivedBooks,
-      );
+        state = state.copyWith(
+          activeBooks: updatedActiveBooks,
+          archivedBooks: state.archivedBooks,
+        );
 
-      state = state.copyWith(
-        activeBooks: updatedActiveBooks,
-        archivedBooks: state.archivedBooks,
-      );
+        // Save to cache asynchronously without waiting to avoid blocking the UI
+        // This reduces the frequency of cache writes while still persisting the changes
+        () async {
+          try {
+            await _repository.saveBooksToCache(
+              activeBooks: updatedActiveBooks,
+              archivedBooks: state.archivedBooks,
+            );
+          } catch (e) {
+            print('Cache save error: $e');
+          }
+        }();
+      }
     } finally {
       _isRefreshingBook = false;
       if (_originalSampleSize != null) {
