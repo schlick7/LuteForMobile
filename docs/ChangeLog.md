@@ -1,7 +1,7 @@
 # Bug Fixes
-- PENDINGStop autobackups from triggering constantly
+- PENDING - Stop autobackups from triggering constantly
 - Fixed some excessive Cache calls
-- Fixed some excessive Fetch calls
+- Fixed a bunch of excessive Fetch calls
 - Fixed some incorrect Rebuilds triggering
 
 # New Feature
