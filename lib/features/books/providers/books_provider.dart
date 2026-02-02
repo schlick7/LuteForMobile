@@ -67,6 +67,7 @@ class BooksNotifier extends Notifier<BooksState> {
   bool _isLoadingArchivedBooks = false;
   bool _isLoadingFromNetwork = false;
   bool _isLoadingBooks = false;
+  int? _lastBackgroundRefreshTime;
 
   @override
   BooksState build() {
@@ -74,13 +75,13 @@ class BooksNotifier extends Notifier<BooksState> {
     return const BooksState();
   }
 
-  Future<void> loadBooks() async {
+  Future<void> loadBooks({bool forceRefresh = false}) async {
     if (_isLoadingBooks) {
       print('DEBUG: loadBooks() skipped - already loading');
       return;
     }
 
-    print('DEBUG: loadBooks() called');
+    print('DEBUG: loadBooks() called, forceRefresh=$forceRefresh');
     _isLoadingBooks = true;
 
     if (!_repository.contentService.isConfigured) {
@@ -90,6 +91,10 @@ class BooksNotifier extends Notifier<BooksState> {
       );
       _isLoadingBooks = false;
       return;
+    }
+
+    if (forceRefresh) {
+      _lastBackgroundRefreshTime = null;
     }
 
     state = state.copyWith(isLoading: true, errorMessage: null);
@@ -147,6 +152,17 @@ class BooksNotifier extends Notifier<BooksState> {
   Future<void> _backgroundRefreshExpiredBooks() async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final ttl = Duration(hours: 48);
+    final cooldown = Duration(hours: 6);
+
+    if (_lastBackgroundRefreshTime != null) {
+      final timeSinceLastRefresh = now - _lastBackgroundRefreshTime!;
+      if (timeSinceLastRefresh < cooldown.inMilliseconds) {
+        print(
+          'DEBUG: Background refresh skipped - cooldown active (${(timeSinceLastRefresh / 1000 / 60).toStringAsFixed(0)} mins since last refresh)',
+        );
+        return;
+      }
+    }
 
     final expiredBooks = state.activeBooks.where((book) {
       if (book.lastStatsRefresh == null) return true;
@@ -154,7 +170,10 @@ class BooksNotifier extends Notifier<BooksState> {
       return age > ttl.inMilliseconds;
     }).toList();
 
-    if (expiredBooks.isEmpty) return;
+    if (expiredBooks.isEmpty) {
+      _lastBackgroundRefreshTime = now;
+      return;
+    }
 
     // Collect all updated books during the refresh process
     final updatedActiveBooks = List<Book>.from(state.activeBooks);
@@ -185,6 +204,8 @@ class BooksNotifier extends Notifier<BooksState> {
       activeBooks: updatedActiveBooks,
       archivedBooks: state.archivedBooks,
     );
+
+    _lastBackgroundRefreshTime = now;
   }
 
   Future<void> _refreshBookWith500SampleSize(
@@ -371,6 +392,7 @@ class BooksNotifier extends Notifier<BooksState> {
         archivedBooks: state.archivedBooks,
         errorMessage: null,
       );
+      _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     } finally {
@@ -484,6 +506,7 @@ class BooksNotifier extends Notifier<BooksState> {
       );
 
       state = state.copyWith(activeBooks: mergedActive, errorMessage: null);
+      _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     } finally {
@@ -588,6 +611,7 @@ class BooksNotifier extends Notifier<BooksState> {
       }
 
       state = state.copyWith(isLoading: false);
+      _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
