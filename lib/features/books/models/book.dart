@@ -122,8 +122,7 @@ class Book {
       id: json['BkID'] as int,
       title: json['BkTitle'] as String,
       language: json['LgName'] as String,
-      langId:
-          null, // Server doesn't return LgID - we enrich via _enrichBooksWithLanguageIds
+      langId: (json['LgID'] as num?)?.toInt(),
       totalPages: pageCount,
       currentPage: pageNum,
       percent: percent,

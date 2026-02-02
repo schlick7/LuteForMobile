@@ -63,6 +63,7 @@ class BooksNotifier extends Notifier<BooksState> {
   int? _originalSampleSize;
   bool _refreshRequestedAfterNavigate = false;
   bool _isLoadingArchivedBooks = false;
+  bool _isLoadingFromNetwork = false;
 
   @override
   BooksState build() {
@@ -99,7 +100,7 @@ class BooksNotifier extends Notifier<BooksState> {
       print('Error loading books from cache: $e');
     }
 
-    _loadBooksFromNetwork();
+    await _loadBooksFromNetwork();
     _backgroundRefreshExpiredBooks();
   }
 
@@ -238,6 +239,9 @@ class BooksNotifier extends Notifier<BooksState> {
   }
 
   Future<void> _loadBooksFromNetwork() async {
+    if (_isLoadingFromNetwork) return;
+    _isLoadingFromNetwork = true;
+
     try {
       final active = await _repository.getActiveBooks();
       final archived = <Book>[];
@@ -288,6 +292,8 @@ class BooksNotifier extends Notifier<BooksState> {
       );
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    } finally {
+      _isLoadingFromNetwork = false;
     }
   }
 
@@ -338,6 +344,10 @@ class BooksNotifier extends Notifier<BooksState> {
   }
 
   Future<void> refreshBooks() async {
+    if (_isLoadingFromNetwork) {
+      print('DEBUG: refreshBooks() skipped - already loading');
+      return;
+    }
     if (state.showArchived) {
       await _refreshArchived();
     } else {
@@ -346,6 +356,12 @@ class BooksNotifier extends Notifier<BooksState> {
   }
 
   Future<void> _refreshActive() async {
+    if (_isLoadingFromNetwork) {
+      print('DEBUG: _refreshActive() skipped - already loading');
+      return;
+    }
+    _isLoadingFromNetwork = true;
+
     try {
       final active = await _repository.getActiveBooks();
       final archived = state.archivedBooks;
@@ -389,10 +405,18 @@ class BooksNotifier extends Notifier<BooksState> {
       state = state.copyWith(activeBooks: mergedActive, errorMessage: null);
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
+    } finally {
+      _isLoadingFromNetwork = false;
     }
   }
 
   Future<void> _refreshArchived() async {
+    if (_isLoadingFromNetwork) {
+      print('DEBUG: _refreshArchived() skipped - already loading');
+      return;
+    }
+    _isLoadingFromNetwork = true;
+
     try {
       final archived = await _repository.getArchivedBooks();
       final active = state.activeBooks;
@@ -436,6 +460,8 @@ class BooksNotifier extends Notifier<BooksState> {
       state = state.copyWith(archivedBooks: mergedArchived, errorMessage: null);
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
+    } finally {
+      _isLoadingFromNetwork = false;
     }
   }
 

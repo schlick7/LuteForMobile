@@ -242,11 +242,16 @@ class ApiService {
       'search[regex]': 'false',
     };
 
-    return await _dio.post<String>(
+    print('DEBUG: API FETCH /book/datatables/active');
+    final response = await _dio.post<String>(
       '/book/datatables/active',
       data: data,
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );
+    print(
+      'DEBUG: API RESPONSE /book/datatables/active - status: ${response.statusCode}',
+    );
+    return response;
   }
 
   Future<Response<String>> getArchivedBooks({
@@ -311,11 +316,16 @@ class ApiService {
       'search[regex]': 'false',
     };
 
-    return await _dio.post<String>(
-      '/book/datatables/Archived',
+    print('DEBUG: API FETCH /book/datatables/archived');
+    final response = await _dio.post<String>(
+      '/book/datatables/archived',
       data: data,
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );
+    print(
+      'DEBUG: API RESPONSE /book/datatables/archived - status: ${response.statusCode}',
+    );
+    return response;
   }
 
   Future<Response<String>> getBookStats(int bookId) async {
