@@ -34,7 +34,7 @@ The core issue is that your current implementation uses `startService()` for Ter
 ### Phase 2: Enhancement Features
 
 **4. Keep-Alive Mechanism**
-- Periodic wake-up calls to prevent Android from suspending
+- Periodic wake-up calls to keep CPU awake during sleep
 - Adaptive heartbeat intervals based on Android version
 - Battery optimization settings
 
@@ -49,20 +49,6 @@ The core issue is that your current implementation uses `startService()` for Ter
 - User-configurable timeout settings
 - Auto-recovery notifications
 
-### 6. Battery optimization settings:
-- Adaptive power management based on device state
-- Battery level-based server behavior (e.g., reduce frequency when battery low)
-- Background execution limits customization
-
-### 6. Adaptive heartbeat intervals:
-- Dynamic adjustment of heartbeat frequency based on network conditions
-- Reduced polling when server is stable
-- Increased frequency during recovery attempts
-
-### 6. User-configurable timeout settings:
-- Per-app timeout customization
-- Different timeout profiles (battery saver, performance, balanced)
-- Smart timeout based on usage patterns
 
 ## Key Implementation Changes
 
@@ -110,8 +96,6 @@ After implementing these changes:
 
 **Phase 3 (Optimization):**
 1. Battery optimization settings
-2. Adaptive heartbeat intervals
-3. User-configurable timeout settings
 
 ## Files to Modify
 
@@ -143,16 +127,6 @@ After implementing these changes:
 - Breaking existing Termux integration
 - Changing service lifecycle management
 
-## Rollback Plan
-
-If issues arise, can revert to:
-1. Original `startService()` implementation
-2. Remove foreground service code
-3. Keep heartbeat monitoring as enhancement
-
-## Timeline
-
-Estimated 2-3 days for full implementation and testing of Phase 1 fixes.
 
 ---
 
