@@ -110,6 +110,37 @@ class TermuxBridge(private val context: Context) {
                     }
                 }
 
+                "isTermuxRunning" -> {
+                    scope.launch {
+                        try {
+                            val isRunning = TermuxLauncher.isTermuxServiceRunning(context)
+                            withContext(Dispatchers.Main) {
+                                result.success(isRunning)
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                result.success(false)
+                            }
+                        }
+                    }
+                }
+
+                "stealthLaunchTermux" -> {
+                    scope.launch {
+                        try {
+                            val success = TermuxLauncher.ensureTermuxRunning(context)
+                            withContext(Dispatchers.Main) {
+                                result.success(success)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("TermuxBridge", "stealthLaunchTermux failed: ${e.message}")
+                            withContext(Dispatchers.Main) {
+                                result.success(false)
+                            }
+                        }
+                    }
+                }
+
                 // Server control
                 "startServer" -> {
                     launchLute3ServerWithAutoShutdown(context)

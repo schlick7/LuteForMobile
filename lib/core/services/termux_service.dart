@@ -46,6 +46,32 @@ class TermuxService {
     return result as bool? ?? false;
   }
 
+  /// Checks if Termux service is running and responsive to commands.
+  /// This attempts to execute a simple echo command and checks if it succeeds.
+  static Future<bool> isTermuxRunning() async {
+    try {
+      final result = await _channel.invokeMethod('isTermuxRunning');
+      return result as bool? ?? false;
+    } on PlatformException catch (e) {
+      print('isTermuxRunning failed: ${e.message}');
+      return false;
+    }
+  }
+
+  /// Stealth launches Termux if it's not already running.
+  /// Briefly launches Termux main activity with invisible flags, then waits
+  /// for the service to become responsive (with one retry if needed).
+  /// Returns true if Termux is confirmed running after the operation.
+  static Future<bool> stealthLaunchTermux() async {
+    try {
+      final result = await _channel.invokeMethod('stealthLaunchTermux');
+      return result as bool? ?? false;
+    } on PlatformException catch (e) {
+      print('stealthLaunchTermux failed: ${e.message}');
+      return false;
+    }
+  }
+
   // Server control
   static Future<bool> startServer() async {
     final result = await _channel.invokeMethod('startServer');

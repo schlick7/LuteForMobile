@@ -26,6 +26,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _termuxInstalledConfirmed = false;
   bool _permissionGranted = false;
   bool _externalAppsEnabled = false;
+  bool _termuxRunning = false;
+  bool _checkingTermuxRunning = false;
   String _lute3Status = 'UNKNOWN';
   String? _lute3Version;
   bool _serverRunning = false;
@@ -38,6 +40,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _isRestoring = false;
   List<String>? _downloadFolderFiles;
   bool _isLoadingDownloadFiles = false;
+  bool _isLaunchingTermux = false;
 
   StreamSubscription? _progressSubscription;
   String _currentStep = '';
@@ -98,6 +101,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       _checkingExternalApps = true;
       _checkingLute3 = true;
       _checkingServer = true;
+      _checkingTermuxRunning = true;
     });
 
     try {
@@ -109,6 +113,13 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       });
 
       if (termuxInstalled) {
+        // Check if Termux service is running
+        final termuxRunning = await TermuxService.isTermuxRunning();
+        setState(() {
+          _checkingTermuxRunning = false;
+          _termuxRunning = termuxRunning;
+        });
+
         final permissionGranted =
             await TermuxService.isTermuxPermissionGranted();
         setState(() {
@@ -797,6 +808,15 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                   if (_termuxInstalled) ...[
                     const SizedBox(height: 8),
                     _buildStatusRow(
+                      'Termux Status',
+                      _termuxRunning,
+                      _checkingTermuxRunning,
+                      !_checkingTermuxRunning,
+                      _termuxRunning ? 'Running' : 'Not Running - Tap to start',
+                      onTap: _manualStealthLaunchTermux,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStatusRow(
                       'Permission',
                       _permissionGranted,
                       _checkingPermission,
@@ -834,6 +854,39 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       ),
                     ],
                   ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Auto-Launch Settings',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 16),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final settings = ref.watch(settingsProvider);
+                      return SwitchListTile(
+                        title: const Text('Auto-launch Termux when needed'),
+                        subtitle: const Text(
+                          'Automatically launch Termux in the background when the app starts if it\'s not already running',
+                        ),
+                        value: settings.termuxAutoLaunchEnabled,
+                        onChanged: (bool value) {
+                          ref
+                              .read(settingsProvider.notifier)
+                              .updateTermuxAutoLaunchEnabled(value);
+                        },
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -1534,6 +1587,89 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       const SnackBar(
         content: Text('Reinstall feature coming soon'),
         duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Future<void> _manualStealthLaunchTermux() async {
+    if (_isLaunchingTermux) return; // Prevent multiple launches
+
+    setState(() {
+      _isLaunchingTermux = true;
+    });
+
+    try {
+      // Show snackbar indicating initialization
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Initializing Termux...'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // Attempt to stealth launch Termux
+      final success = await TermuxService.stealthLaunchTermux();
+
+      if (mounted) {
+        if (success) {
+          // Refresh status after a brief delay
+          await Future.delayed(const Duration(seconds: 1));
+          _refreshStatus();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Termux initialized successfully'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          // Show error dialog if launch failed
+          _showLaunchFailedDialog();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        _showLaunchFailedDialog();
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLaunchingTermux = false;
+        });
+      }
+    }
+  }
+
+  void _showLaunchFailedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Termux Not Responding'),
+        content: const Text(
+          'Unable to start Termux automatically after retry. You can try again or open Termux manually.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _openTermuxApp(); // Open Termux manually
+            },
+            child: const Text('Open Termux'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _manualStealthLaunchTermux(); // Try again
+            },
+            child: const Text('Try Again'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context), // Cancel
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
   }

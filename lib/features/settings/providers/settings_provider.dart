@@ -41,6 +41,8 @@ class SettingsNotifier extends Notifier<Settings> {
       'enable_triple_tap_to_mark_known';
   static const String _keyTermuxIntegrationEnabled =
       'termux_integration_enabled';
+  static const String _keyTermuxAutoLaunchEnabled =
+      'termux_auto_launch_enabled';
 
   @override
   Settings build() {
@@ -87,6 +89,8 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getBool(_keyEnableTripleTapToMarkKnown) ?? false;
     final termuxIntegrationEnabled =
         prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
+    final termuxAutoLaunchEnabled =
+        prefs.getBool(_keyTermuxAutoLaunchEnabled) ?? false;
 
     state = state.copyWith(
       translationProvider: translationProvider,
@@ -107,6 +111,7 @@ class SettingsNotifier extends Notifier<Settings> {
       showPageNumbers: showPageNumbers,
       enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
       termuxIntegrationEnabled: termuxIntegrationEnabled,
+      termuxAutoLaunchEnabled: termuxAutoLaunchEnabled,
     );
   }
 
@@ -300,6 +305,12 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyTermuxIntegrationEnabled, enabled);
   }
 
+  Future<void> updateTermuxAutoLaunchEnabled(bool enabled) async {
+    state = state.copyWith(termuxAutoLaunchEnabled: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyTermuxAutoLaunchEnabled, enabled);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -331,6 +342,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyShowPageNumbers);
     await prefs.remove(_keyEnableTripleTapToMarkKnown);
     await prefs.remove(_keyTermuxIntegrationEnabled);
+    await prefs.remove(_keyTermuxAutoLaunchEnabled);
 
     state = Settings.defaultSettings();
   }
