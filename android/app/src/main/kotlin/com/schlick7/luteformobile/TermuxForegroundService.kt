@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.pm.ServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -77,7 +78,11 @@ class TermuxForegroundService : Service() {
             .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Server", stopPendingIntent)
             .build()
 
-        startForeground(NOTIFICATION_ID, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
 
         // Actually start the Lute3 server
         startLute3ServerInternal(port, idleTimeoutMinutes)

@@ -30,7 +30,8 @@ suspend fun executeCommandWithCompletion(
     commandId: String,
     timeoutSeconds: Int
 ): CommandResult {
-    val downloadsDir = android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
+    val downloadsDir =
+        android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
     val statusFile = "$downloadsDir/${commandId}_status.txt"
     val outputFile = "$downloadsDir/${commandId}_output.txt"
 
@@ -53,9 +54,11 @@ suspend fun executeCommandWithCompletion(
         setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
         action = TermuxConstants.TERMUX_ACTION
         putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf(
-            "-c", "rm -f '$statusFile' '$outputFile'"
-        ))
+        putExtra(
+            "com.termux.RUN_COMMAND_ARGUMENTS", arrayOf(
+                "-c", "rm -f '$statusFile' '$outputFile'"
+            )
+        )
         putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
     }
     context.startService(clearIntent)
@@ -108,9 +111,11 @@ suspend fun executeCommandWithCompletion(
                 status.contains(TermuxConstants.COMMAND_SUCCESS) -> {
                     CommandResult.Success(output)
                 }
+
                 status.contains(TermuxConstants.COMMAND_FAILED) -> {
                     CommandResult.Failed(status + "\n" + output)
                 }
+
                 else -> {
                     CommandResult.Failed("Unknown status: $status")
                 }
@@ -147,7 +152,7 @@ fun isTermuxPermissionGranted(context: Context): Boolean {
             context,
             "com.termux.permission.RUN_COMMAND"
         ) == PackageManager.PERMISSION_GRANTED
-        
+
         if (hasPermission) {
             // Verify that Termux package is actually queryable
             try {
@@ -162,7 +167,7 @@ fun isTermuxPermissionGranted(context: Context): Boolean {
                 return false
             }
         }
-        
+
         return false
     } catch (e: Exception) {
         return false
@@ -175,7 +180,7 @@ fun isTermuxVersionCompatible(context: Context): Boolean {
             TermuxConstants.TERMUX_PACKAGE,
             0
         )
-        
+
         // Termux 0.95 or higher is required for external apps
         val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
             packageInfo.longVersionCode.toInt()
@@ -183,7 +188,7 @@ fun isTermuxVersionCompatible(context: Context): Boolean {
             @Suppress("DEPRECATION")
             packageInfo.versionCode
         }
-        
+
         // Version 0.95 has version code around 95
         versionCode >= 95
     } catch (e: Exception) {
@@ -195,10 +200,10 @@ fun isLute3ServerRunning(context: Context): Boolean {
     return try {
         val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val runningProcesses = activityManager.runningAppProcesses
-        
+
         runningProcesses?.any { process ->
-            process.processName.contains("com.termux") && 
-            process.processName.contains("python")
+            process.processName.contains("com.termux") &&
+                    process.processName.contains("python")
         } ?: false
     } catch (e: Exception) {
         false
@@ -207,21 +212,30 @@ fun isLute3ServerRunning(context: Context): Boolean {
 
 suspend fun isLute3ServerRunningHttp(port: Int = TermuxConstants.LUTE3_DEFAULT_PORT): Boolean {
     return try {
-        val client = OkHttpClient()
+        val client = OkHttpClient.Builder()
+            .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .callTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+
         val request = Request.Builder()
             .url("http://localhost:$port")
-            .head()
+            .get()  // Changed from head() to get() to ensure we get a full response
             .build()
+
         val response = client.newCall(request).execute()
-        response.isSuccessful
+        val isSuccessful = response.isSuccessful
+        response.close() // Important to close the response to free resources
+        isSuccessful
     } catch (e: Exception) {
+        android.util.Log.d("TermuxStatus", "Server check failed: ${e.message}")
         false
     }
 }
 
 suspend fun isLute3Installed(context: Context): InstallationStatus {
     val checkFile = TermuxConstants.INSTALLATION_STATUS_FILE
-    
+
     return try {
         // Clean up old status file
         try {
@@ -229,7 +243,7 @@ suspend fun isLute3Installed(context: Context): InstallationStatus {
         } catch (e: Exception) {
             // Ignore
         }
-        
+
         // Simple script to check if lute3 is installed
         val script = """
             if pip show lute3 > /dev/null 2>&1; then
@@ -238,9 +252,9 @@ suspend fun isLute3Installed(context: Context): InstallationStatus {
                 echo "NOT_INSTALLED" > $checkFile
             fi
         """.trimIndent()
-        
+
         android.util.Log.d("TermuxStatus", "Checking lute3 installation, writing to: $checkFile")
-        
+
         val intent = Intent().apply {
             setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
             action = TermuxConstants.TERMUX_ACTION
@@ -248,27 +262,27 @@ suspend fun isLute3Installed(context: Context): InstallationStatus {
             putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
             putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
         }
-        
+
         try {
             context.startService(intent)
         } catch (e: Exception) {
             android.util.Log.e("TermuxStatus", "Failed to send command: ${e.message}")
             return InstallationStatus.UNKNOWN
         }
-        
+
         delay(TermuxConstants.INSTALLATION_CHECK_DELAY * 1000L)
-        
+
         val file = File(checkFile)
         android.util.Log.d("TermuxStatus", "Checking status file exists: ${file.exists()}, path: $checkFile")
-        
+
         if (!file.exists()) {
             android.util.Log.e("TermuxStatus", "Status file does not exist: $checkFile")
             return InstallationStatus.UNKNOWN
         }
-        
+
         val content = file.readText().trim()
         android.util.Log.d("TermuxStatus", "Status file content: '$content'")
-        
+
         when {
             content == "INSTALLED" -> InstallationStatus.INSTALLED
             content == "NOT_INSTALLED" -> InstallationStatus.NOT_INSTALLED

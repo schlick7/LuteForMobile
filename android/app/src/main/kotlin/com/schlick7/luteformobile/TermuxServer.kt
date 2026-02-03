@@ -40,23 +40,9 @@ fun launchLute3ServerWithAutoShutdown(
 }
 
 suspend fun touchHeartbeat(context: Context): Boolean {
-    val heartbeatFile = File(TermuxConstants.HEARTBEAT_FILE)
-    val lastModifiedBefore = if (heartbeatFile.exists()) heartbeatFile.lastModified() else 0L
-
-    val intent = Intent().apply {
-        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-        action = TermuxConstants.TERMUX_ACTION
-        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "touch ${TermuxConstants.HEARTBEAT_FILE}"))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-
+    // Instead of using file-based heartbeat, check if the server is responding
     return try {
-        context.startService(intent)
-        delay(500)
-
-        val lastModifiedAfter = if (heartbeatFile.exists()) heartbeatFile.lastModified() else 0L
-        val success = lastModifiedAfter > lastModifiedBefore
+        val success = isLute3ServerRunningHttp(TermuxConstants.LUTE3_DEFAULT_PORT)
         android.util.Log.d("TermuxServer", "Heartbeat test: ${if (success) "SUCCESS" else "FAILED"}")
         success
     } catch (e: Exception) {
@@ -74,6 +60,50 @@ fun stopLute3Server(context: Context) {
     } catch (e: Exception) {
         android.util.Log.e("TermuxServer", "Failed to stop foreground service: ${e.message}", e)
     }
+}
+
+suspend fun ensureLute3ServerRunning(
+    context: Context,
+    port: Int = TermuxConstants.LUTE3_DEFAULT_PORT,
+    idleTimeoutMinutes: Int = TermuxConstants.IDLE_TIMEOUT_MINUTES
+): Boolean {
+    // Check if server is running via HTTP request
+    if (isLute3ServerRunningHttp(port)) {
+        android.util.Log.d("TermuxServer", "Lute3 server is already running on port $port")
+        return true
+    }
+
+    android.util.Log.d("TermuxServer", "Lute3 server not responding on port $port, checking if Termux is running...")
+
+    // Check if Termux is running and responsive
+    val isTermuxRunning = TermuxLauncher.isTermuxServiceRunning(context)
+    if (!isTermuxRunning) {
+        android.util.Log.d("TermuxServer", "Termux is not running, attempting to ensure it's running...")
+        val termuxStarted = TermuxLauncher.ensureTermuxRunning(context)
+        if (!termuxStarted) {
+            android.util.Log.e("TermuxServer", "Failed to start Termux, cannot start Lute3 server")
+            return false
+        }
+        delay(2000) // Give Termux a moment to fully initialize
+    }
+
+    android.util.Log.d("TermuxServer", "Lute3 server not responding on port $port, restarting...")
+
+    // Stop any existing service first
+    stopLute3Server(context)
+    delay(2000) // Wait for the service to fully stop
+
+    // Start the server again
+    launchLute3ServerWithAutoShutdown(context, port, idleTimeoutMinutes)
+
+    // Wait a bit for the server to start
+    delay(5000)
+
+    // Check if it's now running
+    val isRunning = isLute3ServerRunningHttp(port)
+    android.util.Log.d("TermuxServer", "Lute3 server restart result: ${if (isRunning) "SUCCESS" else "FAILED"}")
+
+    return isRunning
 }
 
 enum class BackupType(val value: String) {
