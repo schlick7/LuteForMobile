@@ -55,8 +55,7 @@ The auto backups are triggering constantly instead of the server doing it on its
 - 
 
 # Books Screen
-- Since we are properly clearing and refreshing book stats when we enter the booksscren (every 6 hours cooldown)  we don't need to have the book details card call another stats fetch, the data is already new enough and we can just read from the cache. 
-- When loading into bookscreen and doing the datatables/active fetch we can check the fetched books against the cache and if the title and bookid matches we can just throw out that data as it shouldn't be needed righ? The getbookstats that runs next should get the new stats and that should be the only thing at ever changes. 
+-
 
 # Terms Screen
 -
