@@ -5,17 +5,15 @@
   
 Lets do a performance review of this app starting with the ReadScreen 
 
-using the exact file from the logs give me the command so i can run it manually in termux to see if that works. 
 
 done? Why does pressing "Start Server" cause a recheck of all the connection statuses?
 
-
+Fixed?? investigate why we are making the server do several auto backups a day. There seems to be one that runs literally everytime we open the app but the server is only supposed to be doing it once per day. Lets see what we're doing wrong
 
 Look at flutter logs and cleanup issues
 
 Hive cache affected by termuxurl and localurl usage?
 
-Reduce delay between detailed book fetch to 1 second. 
 
 ---
 
@@ -43,7 +41,7 @@ The auto backups are triggering constantly instead of the server doing it on its
 # Requests 
  
 # Reader
--
+- Can we make the tooltips appear instantly (after 100ms or ) and then make a doubleclick action (or really any action) close the tooltip so it doesn't get in the way? This would make the tooltips appear much faster and independent of the doubclick timeout. We just need to be careful that the tooltip displaying doesn't break the doubleclick
 
 # Sentence Reader
 -
