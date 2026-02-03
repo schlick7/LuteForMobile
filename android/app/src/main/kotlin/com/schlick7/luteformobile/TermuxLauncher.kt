@@ -56,17 +56,18 @@ object TermuxLauncher {
                 android.util.Log.d("TermuxLauncher", "Test file content: '$content'")
                 val isRunning = content == "RUNNING"
                 android.util.Log.d("TermuxLauncher", "Termux running status: $isRunning")
+
+                // DELETE THE FILE AFTER CONFIRMING IT'S RUNNING - forces fresh check next time
+                try {
+                    file.delete()
+                } catch (e: Exception) {
+                    android.util.Log.e("TermuxLauncher", "Failed to delete test file: ${e.message}")
+                }
+
                 isRunning
             } else {
                 android.util.Log.d("TermuxLauncher", "Test file does not exist, Termux not running")
                 false
-            }
-
-            // Cleanup
-            try {
-                file.delete()
-            } catch (e: Exception) {
-                // Ignore cleanup errors
             }
 
             result

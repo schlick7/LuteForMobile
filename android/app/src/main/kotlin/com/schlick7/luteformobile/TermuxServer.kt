@@ -22,13 +22,22 @@ enum class InstallationStep(val status: String, val maxWaitSeconds: Int) {
     FAILED("Installation failed", 0)
 }
 
-fun launchLute3ServerWithAutoShutdown(
+suspend fun launchLute3ServerWithAutoShutdown(
     context: Context,
     port: Int = TermuxConstants.LUTE3_DEFAULT_PORT,
     idleTimeoutMinutes: Int = TermuxConstants.IDLE_TIMEOUT_MINUTES
 ) {
     android.util.Log.d("TermuxServer", "=== Starting Lute3 server with foreground service ===")
     android.util.Log.d("TermuxServer", "Port: $port")
+
+    // Ensure Termux is running and responsive before starting the server
+    val termuxReady = TermuxLauncher.ensureTermuxRunning(context)
+    if (!termuxReady) {
+        android.util.Log.e("TermuxServer", "Termux is not ready, cannot start Lute3 server")
+        return
+    }
+
+    android.util.Log.d("TermuxServer", "Termux is running and responsive, starting foreground service")
 
     try {
         val intent = TermuxForegroundService.createStartIntent(context, port, idleTimeoutMinutes)
