@@ -31,6 +31,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
   - We for sure need to be able to trigger db backups and then be able to download/save the db to a local folder (like downloads) and to upload/restore/overwrite the db file to the termux install location. We can possibly just use the lute3 backup/restore functionality for this. 
   - Does the db file contain EVERYTHING that we need?
 - What happens if f-droid is not installed?
+  - add a shortcut to install it?
 - Cleanup External Apps popup
 - When we download backups can we rename them to add 'termux' to the front if they came from termux and 'localurl' if they came from the localurl server
 ---
