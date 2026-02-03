@@ -27,27 +27,15 @@ fun launchLute3ServerWithAutoShutdown(
     port: Int = TermuxConstants.LUTE3_DEFAULT_PORT,
     idleTimeoutMinutes: Int = TermuxConstants.IDLE_TIMEOUT_MINUTES
 ) {
-    android.util.Log.d("TermuxServer", "=== Starting Lute3 server ===")
+    android.util.Log.d("TermuxServer", "=== Starting Lute3 server with foreground service ===")
     android.util.Log.d("TermuxServer", "Port: $port")
 
-    val script = "python -m lute.main --port $port"
-
-    android.util.Log.d("TermuxServer", "Script: $script")
-
-    val intent = Intent().apply {
-        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-        action = TermuxConstants.TERMUX_ACTION
-        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-        putExtra("com.termux.RUN_COMMAND_WORKDIR", TermuxConstants.TERMUX_HOME)
-    }
-
     try {
-        context.startService(intent)
-        android.util.Log.d("TermuxServer", "Service started successfully")
+        val intent = TermuxForegroundService.createStartIntent(context, port, idleTimeoutMinutes)
+        context.startForegroundService(intent)
+        android.util.Log.d("TermuxServer", "Foreground service started successfully")
     } catch (e: Exception) {
-        android.util.Log.e("TermuxServer", "Failed to start service: ${e.message}", e)
+        android.util.Log.e("TermuxServer", "Failed to start foreground service: ${e.message}", e)
     }
 }
 
@@ -78,23 +66,14 @@ suspend fun touchHeartbeat(context: Context): Boolean {
 }
 
 fun stopLute3Server(context: Context) {
-    val intent = Intent().apply {
-        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-        action = TermuxConstants.TERMUX_ACTION
-        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "pkill -f \"python -m lute.main\" || true"))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+    // Stop the foreground service which will also stop the Lute3 server
+    val stopIntent = Intent(context, TermuxForegroundService::class.java)
+    try {
+        context.stopService(stopIntent)
+        android.util.Log.d("TermuxServer", "Foreground service stopped")
+    } catch (e: Exception) {
+        android.util.Log.e("TermuxServer", "Failed to stop foreground service: ${e.message}", e)
     }
-    context.startService(intent)
-
-    val cleanupIntent = Intent().apply {
-        setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-        action = TermuxConstants.TERMUX_ACTION
-        putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-        putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "rm -f ${TermuxConstants.HEARTBEAT_FILE}"))
-        putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-    }
-    context.startService(cleanupIntent)
 }
 
 enum class BackupType(val value: String) {
