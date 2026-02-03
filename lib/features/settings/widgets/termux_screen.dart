@@ -947,6 +947,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       displayText = status ? 'Granted' : 'Not granted';
     } else if (labelText == 'External Apps') {
       displayText = status ? 'Enabled' : 'Disabled';
+    } else if (labelText == 'Termux Status') {
+      displayText = status ? 'Running' : defaultText;
     } else if (labelText == 'Lute3' && statusText != null) {
       displayText = statusText;
     } else if (labelText == 'Version' && statusText != null) {

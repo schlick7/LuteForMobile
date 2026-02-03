@@ -50,8 +50,11 @@ class TermuxService {
   /// This attempts to execute a simple echo command and checks if it succeeds.
   static Future<bool> isTermuxRunning() async {
     try {
+      print('Checking if Termux is running...');
       final result = await _channel.invokeMethod('isTermuxRunning');
-      return result as bool? ?? false;
+      final status = result as bool? ?? false;
+      print('Termux running status: $status');
+      return status;
     } on PlatformException catch (e) {
       print('isTermuxRunning failed: ${e.message}');
       return false;
