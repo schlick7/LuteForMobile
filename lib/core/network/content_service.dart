@@ -24,6 +24,11 @@ class ContentService {
   final PageCacheService _pageCacheService;
   final TermCacheService _termCacheService;
 
+  // 5-second cache for languages to prevent redundant API calls
+  List<Language>? _cachedLanguages;
+  DateTime? _languagesCacheTime;
+  static const _languagesCacheTtl = Duration(seconds: 5);
+
   ContentService({required ApiService apiService, HtmlParser? htmlParser})
     : _apiService = apiService,
       parser = htmlParser ?? HtmlParser(),
@@ -455,9 +460,30 @@ class ContentService {
   }
 
   Future<List<Language>> getLanguagesWithIds() async {
+    // Check if we have a valid cached result (< 5 seconds old)
+    if (_cachedLanguages != null && _languagesCacheTime != null) {
+      final age = DateTime.now().difference(_languagesCacheTime!);
+      if (age < _languagesCacheTtl) {
+        print(
+          'DEBUG: getLanguagesWithIds() - returning cached result (age: ${age.inMilliseconds}ms)',
+        );
+        return _cachedLanguages!;
+      }
+    }
+
+    // Fetch from API and cache the result
+    print('DEBUG: getLanguagesWithIds() - fetching from API');
     final response = await _apiService.getLanguages();
     final htmlContent = response.data ?? '';
-    return parser.parseLanguagesWithIds(htmlContent);
+    final languages = parser.parseLanguagesWithIds(htmlContent);
+
+    _cachedLanguages = languages;
+    _languagesCacheTime = DateTime.now();
+    print(
+      'DEBUG: getLanguagesWithIds() - cached ${languages.length} languages',
+    );
+
+    return languages;
   }
 
   Future<Language?> getLanguageById(int languageId) async {
