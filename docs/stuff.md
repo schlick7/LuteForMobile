@@ -14,6 +14,10 @@ Look at flutter logs and cleanup issues
 
 Hive cache affected by termuxurl and localurl usage?
 
+Don't fucking increase timeout. That just makes launching the app take FOREVER
+
+I'm having an issue with our termux stealth launch. Sometimes when i open the app it opens up termux. other times it doesn't and goes straight to our app. Then it goes straight to our app I can see termux breifly in my notification drawer but then it disappears. Review what we are doing and make sure that we are using Termux and android systems correctly\
+
 
 ---
 
@@ -34,6 +38,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
   - add a shortcut to install it?
 - Cleanup External Apps popup
 - When we download backups can we rename them to add 'termux' to the front if they came from termux and 'localurl' if they came from the localurl server
+- When the Server Selection is set to termux we should gray out the text in teh LocalUrl textbox to make it clear that its not being used currently. We should also update the Current Settings card to make it clear that it is set to termux. 
 ---
 The auto backups are triggering constantly instead of the server doing it on its once a day setting
 ---
