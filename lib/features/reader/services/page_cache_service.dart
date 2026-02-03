@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:hive_ce/hive.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/page_cache_entry.dart';
+import '../../../core/cache/cache_logger.dart';
 
 class PageCacheService {
   static const String _boxName = 'page_cache';
@@ -15,10 +18,14 @@ class PageCacheService {
     if (_isInitialized) return;
 
     try {
+      final cacheDir = await getApplicationCacheDirectory();
+      await Hive.initFlutter(cacheDir.path);
+
       await Hive.openBox<PageCacheEntry>(_boxName);
       _isInitialized = true;
+      CacheLogger.log('initialized');
     } catch (e) {
-      print('Error initializing page cache: $e');
+      CacheLogger.logError('initialize', e);
       _isInitialized = true;
     }
   }
@@ -42,19 +49,24 @@ class PageCacheService {
       final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
       final entry = box.get(cacheKey);
 
-      if (entry == null) return null;
+      if (entry == null) {
+        CacheLogger.logMiss(_boxName, cacheKey.hashCode);
+        return null;
+      }
 
       final now = DateTime.now().millisecondsSinceEpoch;
       final age = now - entry.timestamp;
 
       if (age > _ttl.inMilliseconds) {
         await box.delete(cacheKey);
+        CacheLogger.logMiss(_boxName, cacheKey.hashCode);
         return null;
       }
 
+      CacheLogger.logHit(_boxName, cacheKey.hashCode);
       return entry;
     } catch (e) {
-      print('Error getting from page cache: $e');
+      CacheLogger.logError('getFromCache', e);
       return null;
     }
   }
@@ -83,8 +95,9 @@ class PageCacheService {
 
       await _enforceSizeLimit(box);
       await box.put(cacheKey, entry);
+      CacheLogger.logSave(_boxName, cacheKey.hashCode);
     } catch (e) {
-      print('Error saving to page cache: $e');
+      CacheLogger.logError('saveToCache', e);
     }
   }
 
@@ -101,9 +114,14 @@ class PageCacheService {
         }
       }
 
-      await box.deleteAll(keysToDelete);
+      if (keysToDelete.isNotEmpty) {
+        await box.deleteAll(keysToDelete);
+        CacheLogger.log(
+          'cleared ${keysToDelete.length} entries for book $bookId',
+        );
+      }
     } catch (e) {
-      print('Error clearing book page cache: $e');
+      CacheLogger.logError('clearBookCache', e);
     }
   }
 
@@ -111,8 +129,9 @@ class PageCacheService {
     try {
       final box = await _getBox();
       await box.clear();
+      CacheLogger.logClear(_boxName);
     } catch (e) {
-      print('Error clearing all page cache: $e');
+      CacheLogger.logError('clearAllCache', e);
     }
   }
 
@@ -180,7 +199,7 @@ class PageCacheService {
         entriesWithTimestamps.remove(oldestKey);
       }
     } catch (e) {
-      print('Error enforcing size limit: $e');
+      CacheLogger.logError('enforceSizeLimit', e);
     }
   }
 }

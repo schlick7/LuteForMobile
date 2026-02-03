@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class ApiService {
   final Dio _dio;
 
-  static bool enableLogging = true;
+  static bool enableLogging = kDebugMode;
 
   ApiService({required String baseUrl, Dio? dio})
     : _dio =

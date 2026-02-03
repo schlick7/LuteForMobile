@@ -3,6 +3,9 @@ import 'package:lute_for_mobile/core/network/content_service.dart';
 import 'package:lute_for_mobile/features/stats/models/stats_cache_entry.dart';
 import 'package:lute_for_mobile/features/stats/models/language_stats.dart';
 import 'package:lute_for_mobile/features/stats/models/stats_data.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:path_provider/path_provider.dart';
+import '../../../core/cache/cache_logger.dart';
 
 class StatsRepository {
   static const String _boxName = 'stats';
@@ -12,7 +15,11 @@ class StatsRepository {
 
   static Future<void> initialize() async {
     if (_box == null || !_box!.isOpen) {
+      final cacheDir = await getApplicationCacheDirectory();
+      await Hive.initFlutter(cacheDir.path);
+
       _box = await Hive.openBox<StatsCacheEntry>(_boxName);
+      CacheLogger.log('initialized');
     }
   }
 
@@ -27,9 +34,15 @@ class StatsRepository {
 
   static Future<StatsCacheEntry?> _getCachedStats() async {
     try {
-      return _getBox().get(_cacheKey);
+      final entry = _getBox().get(_cacheKey);
+      if (entry != null) {
+        CacheLogger.logHit(_boxName, _cacheKey.hashCode);
+      } else {
+        CacheLogger.logMiss(_boxName, _cacheKey.hashCode);
+      }
+      return entry;
     } catch (e) {
-      print('Error loading stats cache: $e');
+      CacheLogger.logError('getCachedStats', e);
       return null;
     }
   }
@@ -37,16 +50,18 @@ class StatsRepository {
   static Future<void> _saveToCache(StatsCacheEntry entry) async {
     try {
       await _getBox().put(_cacheKey, entry);
+      CacheLogger.logSave(_boxName, _cacheKey.hashCode);
     } catch (e) {
-      print('Error saving stats cache: $e');
+      CacheLogger.logError('saveToCache', e);
     }
   }
 
   static Future<void> clearCache() async {
     try {
       await _getBox().clear();
+      CacheLogger.logClear(_boxName);
     } catch (e) {
-      print('Error clearing stats cache: $e');
+      CacheLogger.logError('clearCache', e);
     }
   }
 

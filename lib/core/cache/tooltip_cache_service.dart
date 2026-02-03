@@ -2,19 +2,19 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:hive_ce/hive.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import 'models/tooltip_cache_entry.dart';
+import 'cache_logger.dart';
 
 class TooltipCacheService {
   static const String _boxName = 'tooltip_cache';
-  static const Duration _ttl = Duration(days: 14); // was 48 hours
-  static const int _maxCacheSizeBytes = 200 * 1024 * 1024; // 200MB limit
-  static const int _maxEntries =
-      10000; // Maximum number of entries to prevent unlimited growth
+  static const Duration _ttl = Duration(days: 14);
+  static const int _maxCacheSizeBytes = 200 * 1024 * 1024;
+  static const int _maxEntries = 10000;
 
   Box<TooltipCacheEntry>? _box;
   bool _isInitialized = false;
 
-  // Singleton instance
   static TooltipCacheService? _instance;
 
   static TooltipCacheService getInstance() {
@@ -28,29 +28,25 @@ class TooltipCacheService {
     return getInstance();
   }
 
-  /// Initialize the Hive box for tooltip caching
   Future<void> initialize() async {
     try {
       if (!_isInitialized) {
-        await Hive.initFlutter();
+        final cacheDir = await getApplicationCacheDirectory();
+        await Hive.initFlutter(cacheDir.path);
 
         _box = await Hive.openBox<TooltipCacheEntry>(_boxName);
 
-        // Clean up expired entries on initialization
         await _cleanupExpiredEntries();
 
-        _isInitialized = true; // Set initialization flag
-        print('Tooltip cache initialized successfully');
-      } else {
-        print('Tooltip cache already initialized');
+        _isInitialized = true;
+        CacheLogger.log('initialized (entries: ${_box!.length})');
       }
     } catch (e) {
-      print('Error initializing tooltip cache: $e');
+      CacheLogger.logError('initialize', e);
       rethrow;
     }
   }
 
-  /// Get a tooltip from cache if it exists and hasn't expired
   Future<TooltipCacheEntry?> getFromCache(int wordId) async {
     try {
       if (!_isInitialized) {
@@ -58,35 +54,35 @@ class TooltipCacheService {
       }
 
       if (_box == null) {
-        print('Warning: Tooltip cache not initialized');
+        CacheLogger.log('not initialized');
         return null;
       }
 
       final entry = _box!.get(wordId);
 
       if (entry == null) {
+        CacheLogger.logMiss(_boxName, wordId);
         return null;
       }
 
-      // Check if entry has expired
       final now = DateTime.now().millisecondsSinceEpoch;
       final age = now - entry.timestamp;
       final maxAge = _ttl.inMilliseconds;
 
       if (age > maxAge) {
-        // Remove expired entry
         await _box!.delete(wordId);
+        CacheLogger.logMiss(_boxName, wordId);
         return null;
       }
 
+      CacheLogger.logHit(_boxName, wordId);
       return entry;
     } catch (e) {
-      print('Error getting from tooltip cache: $e');
+      CacheLogger.logError('getFromCache', e);
       return null;
     }
   }
 
-  /// Save a tooltip to cache
   Future<bool> saveToCache(int wordId, String tooltipHtml) async {
     try {
       if (!_isInitialized) {
@@ -94,14 +90,12 @@ class TooltipCacheService {
       }
 
       if (_box == null) {
-        print('Warning: Tooltip cache not initialized');
+        CacheLogger.log('not initialized');
         return false;
       }
 
-      // Calculate size of the tooltip HTML in bytes
       final sizeInBytes = utf8.encode(tooltipHtml).length;
 
-      // Create new cache entry
       final entry = TooltipCacheEntry(
         wordId: wordId,
         tooltipHtml: tooltipHtml,
@@ -109,20 +103,18 @@ class TooltipCacheService {
         sizeInBytes: sizeInBytes,
       );
 
-      // Check if we need to enforce size limits before saving
       await _enforceSizeLimits();
 
-      // Save to box
       await _box!.put(wordId, entry);
 
+      CacheLogger.logSave(_boxName, wordId);
       return true;
     } catch (e) {
-      print('Error saving to tooltip cache: $e');
+      CacheLogger.logError('saveToCache', e);
       return false;
     }
   }
 
-  /// Bulk save multiple tooltips to cache
   Future<bool> bulkSaveToCache(Map<int, String> tooltips) async {
     try {
       if (!_isInitialized) {
@@ -130,14 +122,12 @@ class TooltipCacheService {
       }
 
       if (_box == null) {
-        print('Warning: Tooltip cache not initialized');
+        CacheLogger.log('not initialized');
         return false;
       }
 
-      // Check if we need to enforce size limits before saving
       await _enforceSizeLimits();
 
-      // Prepare entries
       final entries = <int, TooltipCacheEntry>{};
       for (final entry in tooltips.entries) {
         final sizeInBytes = utf8.encode(entry.value).length;
@@ -149,17 +139,16 @@ class TooltipCacheService {
         );
       }
 
-      // Batch put all entries
       await _box!.putAll(entries);
 
+      CacheLogger.log('bulk saved ${entries.length} entries');
       return true;
     } catch (e) {
-      print('Error bulk saving to tooltip cache: $e');
+      CacheLogger.logError('bulkSaveToCache', e);
       return false;
     }
   }
 
-  /// Remove a specific tooltip from cache
   Future<bool> removeFromCache(int wordId) async {
     try {
       if (!_isInitialized) {
@@ -167,19 +156,18 @@ class TooltipCacheService {
       }
 
       if (_box == null) {
-        print('Warning: Tooltip cache not initialized');
+        CacheLogger.log('not initialized');
         return false;
       }
 
       await _box!.delete(wordId);
       return true;
     } catch (e) {
-      print('Error removing from tooltip cache: $e');
+      CacheLogger.logError('removeFromCache', e);
       return false;
     }
   }
 
-  /// Clear all entries from the cache
   Future<bool> clearAllCache() async {
     try {
       if (!_isInitialized) {
@@ -187,20 +175,19 @@ class TooltipCacheService {
       }
 
       if (_box == null) {
-        print('Warning: Tooltip cache not initialized');
+        CacheLogger.log('not initialized');
         return false;
       }
 
       await _box!.clear();
-      print('Tooltip cache cleared successfully');
+      CacheLogger.logClear(_boxName);
       return true;
     } catch (e) {
-      print('Error clearing tooltip cache: $e');
+      CacheLogger.logError('clearAllCache', e);
       return false;
     }
   }
 
-  /// Get statistics about the cache
   Future<Map<String, dynamic>> getCacheStats() async {
     try {
       if (!_isInitialized) {
@@ -246,7 +233,6 @@ class TooltipCacheService {
     }
   }
 
-  /// Clean up expired entries
   Future<void> _cleanupExpiredEntries() async {
     try {
       if (_box == null) return;
@@ -255,7 +241,6 @@ class TooltipCacheService {
       final maxAge = _ttl.inMilliseconds;
       final expiredKeys = <int>[];
 
-      // Find expired entries
       for (final key in _box!.keys) {
         final entry = _box!.get(key)!;
         final age = now - entry.timestamp;
@@ -265,27 +250,23 @@ class TooltipCacheService {
         }
       }
 
-      // Remove expired entries
       if (expiredKeys.isNotEmpty) {
         await _box!.deleteAll(expiredKeys);
-        print('Cleaned up ${expiredKeys.length} expired entries');
+        CacheLogger.log('cleaned up ${expiredKeys.length} expired entries');
       }
     } catch (e) {
-      print('Error cleaning up expired entries: $e');
+      CacheLogger.logError('cleanupExpiredEntries', e);
     }
   }
 
-  /// Enforce size limits using LRU eviction
   Future<void> _enforceSizeLimits() async {
     try {
       if (_box == null) return;
 
-      // First, clean up expired entries
       await _cleanupExpiredEntries();
 
-      // Calculate current size
       int currentSize = 0;
-      final entriesWithTimestamps = <int, int>{}; // wordId -> timestamp
+      final entriesWithTimestamps = <int, int>{};
 
       for (final key in _box!.keys) {
         final entry = _box!.get(key)!;
@@ -293,9 +274,7 @@ class TooltipCacheService {
         entriesWithTimestamps[key] = entry.timestamp;
       }
 
-      // If we're over the size limit, evict LRU entries
       while (currentSize > _maxCacheSizeBytes || _box!.length > _maxEntries) {
-        // Find the oldest entry (LRU)
         final oldestKey = entriesWithTimestamps.keys.reduce(
           (a, b) =>
               entriesWithTimestamps[a]! < entriesWithTimestamps[b]! ? a : b,
@@ -309,22 +288,21 @@ class TooltipCacheService {
         await _box!.delete(oldestKey);
         entriesWithTimestamps.remove(oldestKey);
 
-        if (entriesWithTimestamps.isEmpty) break; // Safety check
+        if (entriesWithTimestamps.isEmpty) break;
       }
     } catch (e) {
-      print('Error enforcing size limits: $e');
+      CacheLogger.logError('enforceSizeLimits', e);
     }
   }
 
-  /// Close the cache box
   Future<void> close() async {
     try {
       if (_box != null && _box!.isOpen) {
         await _box!.close();
       }
-      _isInitialized = false; // Reset initialization state
+      _isInitialized = false;
     } catch (e) {
-      print('Error closing tooltip cache: $e');
+      CacheLogger.logError('close', e);
     }
   }
 }

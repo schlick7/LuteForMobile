@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:hive_ce/hive.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/sentence_cache_entry.dart';
 import '../utils/sentence_parser.dart';
+import '../../../core/cache/cache_logger.dart';
 
 class SentenceCacheService {
   static const String _boxName = 'sentence_cache';
@@ -16,10 +19,14 @@ class SentenceCacheService {
     if (_isInitialized) return;
 
     try {
+      final cacheDir = await getApplicationCacheDirectory();
+      await Hive.initFlutter(cacheDir.path);
+
       await Hive.openBox<SentenceCacheEntry>(_boxName);
       _isInitialized = true;
+      CacheLogger.log('initialized');
     } catch (e) {
-      print('Error initializing sentence cache: $e');
+      CacheLogger.logError('initialize', e);
       _isInitialized = true;
     }
   }
@@ -57,19 +64,24 @@ class SentenceCacheService {
       );
       final entry = box.get(cacheKey);
 
-      if (entry == null) return null;
+      if (entry == null) {
+        CacheLogger.logMiss(_boxName, cacheKey.hashCode);
+        return null;
+      }
 
       final now = DateTime.now().millisecondsSinceEpoch;
       final age = now - entry.timestamp;
 
       if (age > _ttl.inMilliseconds) {
         await box.delete(cacheKey);
+        CacheLogger.logMiss(_boxName, cacheKey.hashCode);
         return null;
       }
 
+      CacheLogger.logHit(_boxName, cacheKey.hashCode);
       return entry.sentences;
     } catch (e) {
-      print('Error getting from sentence cache: $e');
+      CacheLogger.logError('getFromCache', e);
       return null;
     }
   }
@@ -105,8 +117,9 @@ class SentenceCacheService {
 
       await _enforceSizeLimit(box);
       await box.put(cacheKey, entry);
+      CacheLogger.logSave(_boxName, cacheKey.hashCode);
     } catch (e) {
-      print('Error saving to sentence cache: $e');
+      CacheLogger.logError('saveToCache', e);
     }
   }
 
@@ -123,9 +136,14 @@ class SentenceCacheService {
         }
       }
 
-      await box.deleteAll(keysToDelete);
+      if (keysToDelete.isNotEmpty) {
+        await box.deleteAll(keysToDelete);
+        CacheLogger.log(
+          'cleared ${keysToDelete.length} entries for book $bookId',
+        );
+      }
     } catch (e) {
-      print('Error clearing book sentence cache: $e');
+      CacheLogger.logError('clearBookCache', e);
     }
   }
 
@@ -133,8 +151,9 @@ class SentenceCacheService {
     try {
       final box = await _getBox();
       await box.clear();
+      CacheLogger.logClear(_boxName);
     } catch (e) {
-      print('Error clearing all sentence cache: $e');
+      CacheLogger.logError('clearAllCache', e);
     }
   }
 
@@ -202,7 +221,7 @@ class SentenceCacheService {
         entriesWithTimestamps.remove(oldestKey);
       }
     } catch (e) {
-      print('Error enforcing size limit: $e');
+      CacheLogger.logError('enforceSizeLimit', e);
     }
   }
 }

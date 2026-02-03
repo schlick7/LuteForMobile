@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:hive_ce/hive.dart';
+import 'package:path_provider/path_provider.dart';
 import '../../features/books/models/book.dart';
 import '../../features/books/models/book_cache_entry.dart';
+import 'cache_logger.dart';
 
 class BooksCacheService {
   static const String _boxName = 'books_cache';
@@ -27,19 +30,18 @@ class BooksCacheService {
   Future<void> initialize() async {
     try {
       if (!_isInitialized) {
-        await Hive.initFlutter();
+        final cacheDir = await getApplicationCacheDirectory();
+        await Hive.initFlutter(cacheDir.path);
 
         _box = await Hive.openBox<BookCacheEntry>(_boxName);
 
         await _cleanupExpiredEntries();
 
         _isInitialized = true;
-        print('Books cache initialized successfully');
-      } else {
-        print('Books cache already initialized');
+        CacheLogger.log('initialized');
       }
     } catch (e) {
-      print('Error initializing books cache: $e');
+      CacheLogger.logError('initialize', e);
       rethrow;
     }
   }
@@ -51,23 +53,26 @@ class BooksCacheService {
       }
 
       if (_box == null) {
-        print('Warning: Books cache not initialized');
+        CacheLogger.log('not initialized');
         return null;
       }
 
       final entry = _box!.get('books_data');
       if (entry == null) {
+        CacheLogger.logMiss(_boxName, 'active_books'.hashCode);
         return null;
       }
 
       if (entry.isExpired(_activeBooksTtl)) {
         await _box!.delete('books_data');
+        CacheLogger.logMiss(_boxName, 'active_books'.hashCode);
         return null;
       }
 
+      CacheLogger.logHit(_boxName, 'active_books'.hashCode);
       return entry.activeBooks;
     } catch (e) {
-      print('Error getting active books from cache: $e');
+      CacheLogger.logError('getActiveBooks', e);
       return null;
     }
   }
@@ -79,23 +84,26 @@ class BooksCacheService {
       }
 
       if (_box == null) {
-        print('Warning: Books cache not initialized');
+        CacheLogger.log('not initialized');
         return null;
       }
 
       final entry = _box!.get('books_data');
       if (entry == null) {
+        CacheLogger.logMiss(_boxName, 'archived_books'.hashCode);
         return null;
       }
 
       if (entry.isExpired(_archivedBooksTtl)) {
         await _box!.delete('books_data');
+        CacheLogger.logMiss(_boxName, 'archived_books'.hashCode);
         return null;
       }
 
+      CacheLogger.logHit(_boxName, 'archived_books'.hashCode);
       return entry.archivedBooks;
     } catch (e) {
-      print('Error getting archived books from cache: $e');
+      CacheLogger.logError('getArchivedBooks', e);
       return null;
     }
   }
@@ -110,7 +118,7 @@ class BooksCacheService {
       }
 
       if (_box == null) {
-        print('Warning: Books cache not initialized');
+        CacheLogger.log('not initialized');
         return;
       }
 
@@ -121,11 +129,11 @@ class BooksCacheService {
       );
 
       await _box!.put('books_data', entry);
-      print(
-        'Saved ${activeBooks.length} active and ${archivedBooks.length} archived books to cache',
+      CacheLogger.log(
+        'saved ${activeBooks.length} active, ${archivedBooks.length} archived',
       );
     } catch (e) {
-      print('Error saving books to cache: $e');
+      CacheLogger.logError('saveBooks', e);
     }
   }
 
@@ -136,7 +144,7 @@ class BooksCacheService {
       }
 
       if (_box == null) {
-        print('Warning: Books cache not initialized');
+        CacheLogger.log('not initialized');
         return;
       }
 
@@ -161,10 +169,10 @@ class BooksCacheService {
           timestamp: DateTime.now().millisecondsSinceEpoch,
         );
         await _box!.put('books_data', newEntry);
-        print('Invalidated books for language: $langName');
+        CacheLogger.log('invalidated language: $langName');
       }
     } catch (e) {
-      print('Error invalidating language cache: $e');
+      CacheLogger.logError('invalidateLanguage', e);
     }
   }
 
@@ -175,14 +183,14 @@ class BooksCacheService {
       }
 
       if (_box == null) {
-        print('Warning: Books cache not initialized');
+        CacheLogger.log('not initialized');
         return;
       }
 
       await _box!.clear();
-      print('Books cache cleared successfully');
+      CacheLogger.logClear(_boxName);
     } catch (e) {
-      print('Error clearing books cache: $e');
+      CacheLogger.logError('clearAll', e);
     }
   }
 
@@ -238,10 +246,10 @@ class BooksCacheService {
 
       if (isActiveExpired && isArchivedExpired) {
         await _box!.delete('books_data');
-        print('Cleaned up expired books cache entry');
+        CacheLogger.log('cleaned up expired entry');
       }
     } catch (e) {
-      print('Error cleaning up expired entries: $e');
+      CacheLogger.logError('cleanupExpiredEntries', e);
     }
   }
 
@@ -252,7 +260,7 @@ class BooksCacheService {
       }
       _isInitialized = false;
     } catch (e) {
-      print('Error closing books cache: $e');
+      CacheLogger.logError('close', e);
     }
   }
 }
