@@ -519,52 +519,49 @@ class ContentService {
     await _apiService.deleteTerm(termId);
   }
 
-  Future<String> getSettingsPageHtml() async {
-    final response = await _apiService.getSettingsPage();
-    return response.data ?? '';
-  }
-
-  Future<int> getStatsSampleSize() async {
+  /// Fetches and parses all user settings from the settings page.
+  /// This makes a single API call and returns a map of all settings,
+  /// avoiding multiple redundant requests when different callers need
+  /// different settings values.
+  Future<Map<String, dynamic>> getUserSettings() async {
     try {
-      final html = await getSettingsPageHtml();
+      final response = await _apiService.getSettingsPage();
+      final html = response.data ?? '';
+
       final match = RegExp(
         r'LUTE_USER_SETTINGS\s*=\s*(\{.*?)(?=\n\s*const LUTE_USER_HOTKEYS)',
         dotAll: true,
       ).firstMatch(html);
+
       if (match != null && match.groupCount >= 1) {
         final jsonStr = match.group(1)!;
-        final Map<String, dynamic> settings = jsonDecode(jsonStr);
-        return int.tryParse(
-              settings['stats_calc_sample_size']?.toString() ?? '',
-            ) ??
-            5;
+        return jsonDecode(jsonStr) as Map<String, dynamic>;
       }
     } catch (e) {
-      print('Error parsing stats sample size: $e');
+      print('Error parsing user settings: $e');
     }
-    return 5;
+    return {};
+  }
+
+  /// Gets a single user setting value by key.
+  /// Consider using [getUserSettings()] if you need multiple values
+  /// to avoid redundant API calls.
+  Future<String?> getUserSetting(String key) async {
+    final settings = await getUserSettings();
+    return settings[key]?.toString();
+  }
+
+  /// Gets the stats sample size setting.
+  /// Consider using [getUserSettings()] if you need multiple values
+  /// to avoid redundant API calls.
+  Future<int> getStatsSampleSize() async {
+    final settings = await getUserSettings();
+    return int.tryParse(settings['stats_calc_sample_size']?.toString() ?? '') ??
+        5;
   }
 
   Future<void> setUserSetting(String key, String value) async {
     await _apiService.setUserSetting(key, value);
-  }
-
-  Future<String?> getUserSetting(String key) async {
-    try {
-      final html = await getSettingsPageHtml();
-      final match = RegExp(
-        r'LUTE_USER_SETTINGS\s*=\s*(\{.*?)(?=\n\s*const LUTE_USER_HOTKEYS)',
-        dotAll: true,
-      ).firstMatch(html);
-      if (match != null && match.groupCount >= 1) {
-        final jsonStr = match.group(1)!;
-        final Map<String, dynamic> settings = jsonDecode(jsonStr);
-        return settings[key]?.toString();
-      }
-    } catch (e) {
-      print('Error parsing user setting: $e');
-    }
-    return null;
   }
 
   Future<LanguageSentenceSettings> getLanguageSentenceSettings(

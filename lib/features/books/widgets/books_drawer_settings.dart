@@ -6,6 +6,12 @@ import '../../settings/providers/settings_provider.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../../shared/providers/language_data_provider.dart';
 
+// Provider to fetch all settings in a single API call
+final _userSettingsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final contentService = ref.read(contentServiceProvider);
+  return await contentService.getUserSettings();
+});
+
 class _MaxValueFormatter extends TextInputFormatter {
   final int maxValue;
 
@@ -137,85 +143,31 @@ class BooksDrawerSettings extends ConsumerWidget {
             ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-          FutureBuilder<int>(
-            future: ref.read(contentServiceProvider).getStatsSampleSize(),
-            builder: (context, snapshot) {
-              final controller = TextEditingController(
-                text: snapshot.data?.toString() ?? '15',
-              );
-              return TextField(
-                key: ValueKey('stats_pages_${snapshot.data}'),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Pages to Refresh',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+          Consumer(
+            builder: (context, ref, child) {
+              final asyncValue = ref.watch(_userSettingsProvider);
+              return asyncValue.when(
+                data: (settings) {
+                  final sampleSize =
+                      int.tryParse(
+                        settings['stats_calc_sample_size']?.toString() ?? '',
+                      ) ??
+                      5;
+                  return _StatsSettingTextField(
+                    initialValue: sampleSize.toString(),
+                    settingKey: 'stats_calc_sample_size',
+                  );
+                },
+                loading: () => const SizedBox(
+                  height: 48,
+                  child: Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 ),
-                controller: controller,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  _MaxValueFormatter(500),
-                ],
-                onChanged: (value) {
-                  final intValue = int.tryParse(value);
-                  if (intValue != null && intValue > 0 && intValue <= 500) {
-                    ref
-                        .read(contentServiceProvider)
-                        .setUserSetting(
-                          'stats_calc_sample_size',
-                          intValue.toString(),
-                        );
-                  }
-                },
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Book Details Refresh Settings',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          FutureBuilder<String?>(
-            future: ref
-                .read(contentServiceProvider)
-                .getUserSetting('details_calc_sample_size_override'),
-            builder: (context, snapshot) {
-              final controller = TextEditingController(
-                text: snapshot.data ?? '500',
-              );
-              return TextField(
-                key: ValueKey('details_pages_${snapshot.data ?? '500'}'),
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Pages to Refresh',
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
+                error: (_, __) => _StatsSettingTextField(
+                  initialValue: '15',
+                  settingKey: 'stats_calc_sample_size',
                 ),
-                controller: controller,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                  _MaxValueFormatter(500),
-                ],
-                onChanged: (value) {
-                  final intValue = int.tryParse(value);
-                  if (intValue != null && intValue > 0 && intValue <= 500) {
-                    ref
-                        .read(contentServiceProvider)
-                        .setUserSetting(
-                          'details_calc_sample_size_override',
-                          intValue.toString(),
-                        );
-                  }
-                },
               );
             },
           ),
@@ -250,6 +202,73 @@ class BooksDrawerSettings extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Stateful widget to hold TextEditingController and prevent recreation on rebuilds
+class _StatsSettingTextField extends ConsumerStatefulWidget {
+  final String initialValue;
+  final String settingKey;
+
+  const _StatsSettingTextField({
+    required this.initialValue,
+    required this.settingKey,
+  });
+
+  @override
+  ConsumerState<_StatsSettingTextField> createState() =>
+      _StatsSettingTextFieldState();
+}
+
+class _StatsSettingTextFieldState
+    extends ConsumerState<_StatsSettingTextField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void didUpdateWidget(_StatsSettingTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Only update controller text if the value actually changed externally
+    if (oldWidget.initialValue != widget.initialValue &&
+        _controller.text != widget.initialValue) {
+      _controller.text = widget.initialValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      keyboardType: TextInputType.number,
+      decoration: const InputDecoration(
+        labelText: 'Pages to Refresh',
+        border: OutlineInputBorder(),
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      ),
+      controller: _controller,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        _MaxValueFormatter(500),
+      ],
+      onChanged: (value) {
+        final intValue = int.tryParse(value);
+        if (intValue != null && intValue > 0 && intValue <= 500) {
+          ref
+              .read(contentServiceProvider)
+              .setUserSetting(widget.settingKey, intValue.toString());
+        }
+      },
     );
   }
 }

@@ -67,6 +67,7 @@ class BooksNotifier extends Notifier<BooksState> {
   bool _isLoadingArchivedBooks = false;
   bool _isLoadingFromNetwork = false;
   bool _isLoadingBooks = false;
+  bool _isBackgroundRefreshing = false;
   int? _lastBackgroundRefreshTime;
 
   @override
@@ -154,91 +155,102 @@ class BooksNotifier extends Notifier<BooksState> {
   }
 
   Future<void> _backgroundRefreshExpiredBooks() async {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final ttl = Duration(hours: 48);
-    final cooldown = Duration(hours: 6);
-
-    if (_lastBackgroundRefreshTime != null) {
-      final timeSinceLastRefresh = now - _lastBackgroundRefreshTime!;
-      if (timeSinceLastRefresh < cooldown.inMilliseconds) {
-        print(
-          'DEBUG: Background refresh skipped - cooldown active (${(timeSinceLastRefresh / 1000 / 60).toStringAsFixed(0)} mins since last refresh)',
-        );
-        return;
-      }
-    }
-
-    final expiredBooks = state.activeBooks.where((book) {
-      if (book.lastStatsRefresh == null) return true;
-      final age = now - book.lastStatsRefresh!;
-      return age > ttl.inMilliseconds;
-    }).toList();
-
-    print(
-      'DEBUG: _backgroundRefreshExpiredBooks - ${expiredBooks.length} expired books out of ${state.activeBooks.length} total, first book hasStats=${state.activeBooks.first.hasStats}, distinctTerms=${state.activeBooks.first.distinctTerms}',
-    );
-
-    if (expiredBooks.isEmpty) {
-      _lastBackgroundRefreshTime = now;
+    // Prevent concurrent background refresh calls
+    if (_isBackgroundRefreshing) {
+      print('DEBUG: Background refresh skipped - already running');
       return;
     }
+    _isBackgroundRefreshing = true;
 
     try {
-      await _repository.invalidateAllBookStatsCache();
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final ttl = Duration(hours: 48);
+      final cooldown = Duration(hours: 6);
 
-      _originalSampleSize ??= await _repository.contentService
-          .getStatsSampleSize();
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        '500',
-      );
-
-      final updatedActiveBooks = List<Book>.from(state.activeBooks);
-
-      for (int i = 0; i < expiredBooks.length; i += 2) {
-        final batch = <Future<void>>[];
-        if (i < expiredBooks.length) {
-          batch.add(
-            _refreshBookSimple(
-              expiredBooks[i].id,
-              updatedBooksList: updatedActiveBooks,
-            ),
+      if (_lastBackgroundRefreshTime != null) {
+        final timeSinceLastRefresh = now - _lastBackgroundRefreshTime!;
+        if (timeSinceLastRefresh < cooldown.inMilliseconds) {
+          print(
+            'DEBUG: Background refresh skipped - cooldown active (${(timeSinceLastRefresh / 1000 / 60).toStringAsFixed(0)} mins since last refresh)',
           );
+          return;
         }
-        if (i + 1 < expiredBooks.length) {
-          batch.add(
-            _refreshBookSimple(
-              expiredBooks[i + 1].id,
-              updatedBooksList: updatedActiveBooks,
-            ),
-          );
-        }
-        await Future.wait(batch);
       }
 
-      await _repository.saveBooksToCache(
-        activeBooks: updatedActiveBooks,
-        archivedBooks: state.archivedBooks,
-      );
+      final expiredBooks = state.activeBooks.where((book) {
+        if (book.lastStatsRefresh == null) return true;
+        final age = now - book.lastStatsRefresh!;
+        return age > ttl.inMilliseconds;
+      }).toList();
 
       print(
-        'DEBUG: Updating state with ${updatedActiveBooks.length} books, first book hasStats=${updatedActiveBooks.first.hasStats}, distinctTerms=${updatedActiveBooks.first.distinctTerms}',
+        'DEBUG: _backgroundRefreshExpiredBooks - ${expiredBooks.length} expired books out of ${state.activeBooks.length} total, first book hasStats=${state.activeBooks.first.hasStats}, distinctTerms=${state.activeBooks.first.distinctTerms}',
       );
-      state = state.copyWith(activeBooks: updatedActiveBooks);
-    } finally {
-      if (_originalSampleSize != null) {
-        try {
-          await _repository.contentService.setUserSetting(
-            'stats_calc_sample_size',
-            _originalSampleSize!.toString(),
-          );
-        } catch (e) {
-          print('Failed to restore sample size: $e');
+
+      if (expiredBooks.isEmpty) {
+        _lastBackgroundRefreshTime = now;
+        return;
+      }
+
+      try {
+        await _repository.invalidateAllBookStatsCache();
+
+        _originalSampleSize ??= await _repository.contentService
+            .getStatsSampleSize();
+        await _repository.contentService.setUserSetting(
+          'stats_calc_sample_size',
+          '500',
+        );
+
+        final updatedActiveBooks = List<Book>.from(state.activeBooks);
+
+        for (int i = 0; i < expiredBooks.length; i += 2) {
+          final batch = <Future<void>>[];
+          if (i < expiredBooks.length) {
+            batch.add(
+              _refreshBookSimple(
+                expiredBooks[i].id,
+                updatedBooksList: updatedActiveBooks,
+              ),
+            );
+          }
+          if (i + 1 < expiredBooks.length) {
+            batch.add(
+              _refreshBookSimple(
+                expiredBooks[i + 1].id,
+                updatedBooksList: updatedActiveBooks,
+              ),
+            );
+          }
+          await Future.wait(batch);
+        }
+
+        await _repository.saveBooksToCache(
+          activeBooks: updatedActiveBooks,
+          archivedBooks: state.archivedBooks,
+        );
+
+        print(
+          'DEBUG: Updating state with ${updatedActiveBooks.length} books, first book hasStats=${updatedActiveBooks.first.hasStats}, distinctTerms=${updatedActiveBooks.first.distinctTerms}',
+        );
+        state = state.copyWith(activeBooks: updatedActiveBooks);
+      } finally {
+        if (_originalSampleSize != null) {
+          try {
+            await _repository.contentService.setUserSetting(
+              'stats_calc_sample_size',
+              _originalSampleSize!.toString(),
+            );
+          } catch (e) {
+            print('Failed to restore sample size: $e');
+          }
         }
       }
-    }
 
-    _lastBackgroundRefreshTime = now;
+      _lastBackgroundRefreshTime = now;
+    } finally {
+      _isBackgroundRefreshing = false;
+    }
   }
 
   Future<void> _refreshBookSimple(
