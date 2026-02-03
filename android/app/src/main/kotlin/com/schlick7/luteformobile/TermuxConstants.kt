@@ -48,7 +48,7 @@ object TermuxConstants {
     const val SERVER_START_TIMEOUT = 30
     const val HEARTBEAT_CHECK_INTERVAL = 120  // 2 minutes
     const val IDLE_TIMEOUT_MINUTES = 30
-    const val TERMUX_STEALTH_LAUNCH_TIMEOUT = 1500L // milliseconds
+    const val TERMUX_STEALTH_LAUNCH_TIMEOUT = 3000L // milliseconds (increased for reliability)
 
     // Command timeout estimates (maximum seconds to wait)
     const val SETUP_STORAGE_TIMEOUT = 60

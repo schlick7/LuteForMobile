@@ -165,6 +165,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Key _pageKey = const ValueKey('page');
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
+  bool _checkServerPageInProgress = false;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -248,13 +249,20 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     if (state == AppLifecycleState.resumed) {
       // App has resumed from background/sleep
       // Check if the server's current page matches the reader's page
-      _checkServerPage();
+      if (!_checkServerPageInProgress) {
+        _checkServerPage();
+      }
     }
   }
 
   /// Checks if the server's current page matches the reader's page
   /// If they don't match, navigate to the server's page
   Future<void> _checkServerPage() async {
+    if (_checkServerPageInProgress) {
+      return;
+    }
+    _checkServerPageInProgress = true;
+
     final pageData = ref.read(readerProvider).pageData;
     if (pageData != null) {
       try {
@@ -279,6 +287,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         // Don't show error, just continue with current page
       }
     }
+
+    _checkServerPageInProgress = false;
   }
 
   void _handleScrollPosition() {

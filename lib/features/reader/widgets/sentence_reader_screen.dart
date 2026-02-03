@@ -166,6 +166,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _isNavigating = false;
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
+  bool _checkServerPageInProgress = false;
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -175,13 +176,20 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     if (state == AppLifecycleState.resumed) {
       // App has resumed from background/sleep
       // Check if the server's current page matches the reader's page
-      _checkServerPage();
+      if (!_checkServerPageInProgress) {
+        _checkServerPage();
+      }
     }
   }
 
   /// Checks if the server's current page matches the reader's page
   /// If they don't match, navigate to the server's page
   Future<void> _checkServerPage() async {
+    if (_checkServerPageInProgress) {
+      return;
+    }
+    _checkServerPageInProgress = true;
+
     final pageData = ref.read(readerProvider).pageData;
     if (pageData != null) {
       try {
@@ -206,6 +214,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         // Don't show error, just continue with current page
       }
     }
+
+    _checkServerPageInProgress = false;
   }
 
   @override

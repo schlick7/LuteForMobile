@@ -92,7 +92,9 @@ object TermuxLauncher {
                     Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
                     Intent.FLAG_ACTIVITY_NO_HISTORY or
                     Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT or
+                    Intent.FLAG_ACTIVITY_NO_USER_ACTION
         }
 
         try {

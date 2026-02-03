@@ -7,16 +7,28 @@ import io.flutter.embedding.engine.FlutterEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : FlutterActivity() {
     private var termuxBridge: TermuxBridge? = null
     private val mainScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
+    private var hasAutoLaunched = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Check if we should auto-launch Termux on app start
-        checkAndAutoLaunchTermux()
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        // Delay auto-launch to avoid conflicts with app initialization
+        if (!hasAutoLaunched) {
+            hasAutoLaunched = true
+            mainScope.launch {
+                delay(500) // Reduced delay to 500ms for faster startup
+                checkAndAutoLaunchTermux()
+            }
+        }
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
