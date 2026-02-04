@@ -206,10 +206,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       );
     }
 
-    final serverUrl = ref.read(settingsProvider).serverUrl;
-
     final cachedSentences = await _cacheService.getFromCache(
-      serverUrl,
       bookId,
       pageNum,
       langId,
@@ -330,7 +327,6 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
 
       print('DEBUG: Saving to cache...');
       await _cacheService.saveToCache(
-        serverUrl,
         bookId,
         pageNum,
         langId,
@@ -543,9 +539,8 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
 
     if (reader.pageData != null) {
       final bookId = reader.pageData!.bookId;
-      final serverUrl = ref.read(settingsProvider).serverUrl;
 
-      await _cacheService.clearBookCache(serverUrl, bookId);
+      await _cacheService.clearBookCache(bookId);
 
       state = state.copyWith(lastParsedBookId: null, lastParsedPageNum: null);
     }
@@ -556,9 +551,8 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
 
     if (reader.pageData != null) {
       final bookId = reader.pageData!.bookId;
-      final serverUrl = ref.read(settingsProvider).serverUrl;
 
-      await _cacheService.clearBookCache(serverUrl, bookId);
+      await _cacheService.clearBookCache(bookId);
 
       state = state.copyWith(lastParsedBookId: null, lastParsedPageNum: null);
     }
@@ -599,10 +593,9 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     final bookId = reader.pageData!.bookId;
     final pageNum = reader.pageData!.currentPage;
     final langId = _getLangIdFromPageData();
-    final serverUrl = ref.read(settingsProvider).serverUrl;
 
     print('DEBUG: triggerFlushAndRebuild: Clearing cache for bookId=$bookId');
-    await _cacheService.clearBookCache(serverUrl, bookId);
+    await _cacheService.clearBookCache(bookId);
 
     // Also clear tooltip cache for this book if needed
     final settings = ref.read(settingsProvider);

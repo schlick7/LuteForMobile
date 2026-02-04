@@ -748,9 +748,9 @@ class ReaderNotifier extends Notifier<ReaderState> {
     await _repository.markPageKnown(bookId, pageNum);
   }
 
-  Future<void> clearPageCacheForBook(String serverUrl, int bookId) async {
+  Future<void> clearPageCacheForBook(int bookId) async {
     final cacheService = PageCacheService();
-    await cacheService.clearBookCache(serverUrl, bookId);
+    await cacheService.clearBookCache(bookId);
   }
 
   Future<void> clearAllPageCache() async {

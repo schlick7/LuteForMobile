@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
 import '../../../core/providers/initial_providers.dart';
 import '../../../shared/theme/theme_definitions.dart';
+import '../../../core/cache/cache_manager.dart';
+import '../../../core/cache/current_book_cache_service.dart';
 
 typedef DrawerSettingsBuilder =
     Widget Function(BuildContext context, WidgetRef ref);
@@ -72,10 +74,6 @@ class SettingsNotifier extends Notifier<Settings> {
     final showLastRead = prefs.getBool(_keyShowLastRead) ?? true;
     final languageFilter = prefs.getString(_keyLanguageFilter);
     final showAudioPlayer = prefs.getBool(_keyShowAudioPlayer) ?? true;
-    final currentBookId = prefs.getInt(_keyCurrentBookId);
-    final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
-    final currentBookPage = prefs.getInt(_keyCurrentBookPage);
-    final currentBookSentenceIndex = prefs.getInt(_keyCurrentBookSentenceIndex);
     final combineShortSentences = prefs.getInt(_keyCombineShortSentences) ?? 3;
     final showKnownTermsInSentenceReader =
         prefs.getBool(_keyShowKnownTermsInSentenceReader) ?? true;
@@ -91,6 +89,13 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getBool(_keyTermuxAutoLaunchEnabled) ?? false;
     final termuxIntegrationEnabled =
         prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
+
+    final currentBookCache = CurrentBookCacheService.getInstance();
+    final currentBookId = await currentBookCache.getCurrentBookId();
+    final currentBookLangId = await currentBookCache.getCurrentBookLangId();
+    final currentBookPage = await currentBookCache.getCurrentBookPage();
+    final currentBookSentenceIndex = await currentBookCache
+        .getCurrentBookSentenceIndex();
 
     state = state.copyWith(
       translationProvider: translationProvider,
@@ -117,6 +122,7 @@ class SettingsNotifier extends Notifier<Settings> {
 
   Future<void> updateLocalUrl(String url) async {
     final prefs = await SharedPreferences.getInstance();
+    final previousServerUrl = state.serverUrl;
     await prefs.setString(_keyLocalUrl, url);
     final isValid = _isValidUrl(url);
     final serverUrl = prefs.getBool(_keyUseTermux) ?? false
@@ -127,10 +133,16 @@ class SettingsNotifier extends Notifier<Settings> {
       serverUrl: serverUrl,
       isUrlValid: isValid,
     );
+
+    if (previousServerUrl != state.serverUrl) {
+      await CacheManager().clearServerDependentCaches();
+      await clearCurrentBook();
+    }
   }
 
   Future<void> setServerSelection(bool useTermux) async {
     final prefs = await SharedPreferences.getInstance();
+    final previousServerUrl = state.serverUrl;
     await prefs.setBool(_keyUseTermux, useTermux);
 
     if (useTermux) {
@@ -139,6 +151,11 @@ class SettingsNotifier extends Notifier<Settings> {
       final localUrl = prefs.getString(_keyLocalUrl) ?? '';
       final isValid = _isValidUrl(localUrl);
       state = state.copyWith(serverUrl: localUrl, isUrlValid: isValid);
+    }
+
+    if (previousServerUrl != state.serverUrl) {
+      await CacheManager().clearServerDependentCaches();
+      await clearCurrentBook();
     }
   }
 
@@ -207,19 +224,13 @@ class SettingsNotifier extends Notifier<Settings> {
       currentBookSentenceIndex: null,
     );
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyCurrentBookId, bookId);
-    if (langId != null) {
-      await prefs.setInt(_keyCurrentBookLangId, langId!);
-    } else {
-      await prefs.remove(_keyCurrentBookLangId);
-    }
-    if (page != null) {
-      await prefs.setInt(_keyCurrentBookPage, page);
-    } else {
-      await prefs.remove(_keyCurrentBookPage);
-    }
-    await prefs.remove(_keyCurrentBookSentenceIndex);
+    final currentBookCache = CurrentBookCacheService.getInstance();
+    await currentBookCache.saveCurrentBook(
+      bookId: bookId,
+      langId: langId ?? 0,
+      page: page,
+      sentenceIndex: null,
+    );
   }
 
   Future<void> clearCurrentBook() async {
@@ -230,20 +241,27 @@ class SettingsNotifier extends Notifier<Settings> {
       currentBookSentenceIndex: null,
     );
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyCurrentBookId);
-    await prefs.remove(_keyCurrentBookLangId);
-    await prefs.remove(_keyCurrentBookPage);
-    await prefs.remove(_keyCurrentBookSentenceIndex);
+    final currentBookCache = CurrentBookCacheService.getInstance();
+    await currentBookCache.clearCurrentBook();
   }
 
   Future<void> updateCurrentBookSentenceIndex(int? sentenceIndex) async {
     state = state.copyWith(currentBookSentenceIndex: sentenceIndex);
-    final prefs = await SharedPreferences.getInstance();
+    final currentBookCache = CurrentBookCacheService.getInstance();
     if (sentenceIndex == null) {
-      await prefs.remove(_keyCurrentBookSentenceIndex);
+      await currentBookCache.clearCurrentBook();
     } else {
-      await prefs.setInt(_keyCurrentBookSentenceIndex, sentenceIndex);
+      final currentBookId = state.currentBookId;
+      final currentBookLangId = state.currentBookLangId;
+      final currentBookPage = state.currentBookPage;
+      if (currentBookId != null && currentBookLangId != null) {
+        await currentBookCache.saveCurrentBook(
+          bookId: currentBookId,
+          langId: currentBookLangId,
+          page: currentBookPage,
+          sentenceIndex: sentenceIndex,
+        );
+      }
     }
   }
 

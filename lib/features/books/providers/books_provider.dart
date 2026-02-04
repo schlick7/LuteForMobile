@@ -69,11 +69,28 @@ class BooksNotifier extends Notifier<BooksState> {
   bool _isLoadingBooks = false;
   bool _isBackgroundRefreshing = false;
   int? _lastBackgroundRefreshTime;
+  String? _previousServerUrl;
 
   @override
   BooksState build() {
     _repository = ref.watch(booksRepositoryProvider);
+    final settings = ref.watch(settingsProvider);
+    if (_previousServerUrl == null) {
+      _previousServerUrl = settings.serverUrl;
+    } else if (_previousServerUrl != settings.serverUrl) {
+      _previousServerUrl = settings.serverUrl;
+      Future.microtask(() => _onServerChanged());
+    }
     return const BooksState();
+  }
+
+  Future<void> _onServerChanged() async {
+    state = state.copyWith(
+      activeBooks: const [],
+      archivedBooks: const [],
+      errorMessage: null,
+    );
+    await loadBooks(forceRefresh: true);
   }
 
   Future<void> loadBooks({bool forceRefresh = false}) async {

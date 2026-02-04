@@ -36,18 +36,11 @@ class SentenceCacheService {
     return Hive.openBox<SentenceCacheEntry>(_boxName);
   }
 
-  String _getCacheKey(
-    String serverUrl,
-    int bookId,
-    int pageNum,
-    int langId,
-    int threshold,
-  ) {
-    return '$_cachePrefix${serverUrl.hashCode}_${bookId}_${pageNum}_${langId}_$threshold';
+  String _getCacheKey(int bookId, int pageNum, int langId, int threshold) {
+    return '$_cachePrefix${bookId}_${pageNum}_${langId}_$threshold';
   }
 
   Future<List<CustomSentence>?> getFromCache(
-    String serverUrl,
     int bookId,
     int pageNum,
     int langId,
@@ -55,13 +48,7 @@ class SentenceCacheService {
   ) async {
     try {
       final box = await _getBox();
-      final cacheKey = _getCacheKey(
-        serverUrl,
-        bookId,
-        pageNum,
-        langId,
-        threshold,
-      );
+      final cacheKey = _getCacheKey(bookId, pageNum, langId, threshold);
       final entry = box.get(cacheKey);
 
       if (entry == null) {
@@ -87,7 +74,6 @@ class SentenceCacheService {
   }
 
   Future<void> saveToCache(
-    String serverUrl,
     int bookId,
     int pageNum,
     int langId,
@@ -96,13 +82,7 @@ class SentenceCacheService {
   ) async {
     try {
       final box = await _getBox();
-      final cacheKey = _getCacheKey(
-        serverUrl,
-        bookId,
-        pageNum,
-        langId,
-        threshold,
-      );
+      final cacheKey = _getCacheKey(bookId, pageNum, langId, threshold);
 
       final sentencesJson = json.encode(
         sentences.map((s) => s.toJson()).toList(),
@@ -123,15 +103,14 @@ class SentenceCacheService {
     }
   }
 
-  Future<void> clearBookCache(String serverUrl, int bookId) async {
+  Future<void> clearBookCache(int bookId) async {
     try {
       final box = await _getBox();
-      final serverHash = serverUrl.hashCode;
       final keysToDelete = <String>[];
 
       for (final key in box.keys) {
         final keyStr = key as String;
-        if (keyStr.startsWith('$_cachePrefix${serverHash}_${bookId}_')) {
+        if (keyStr.startsWith('$_cachePrefix${bookId}_')) {
           keysToDelete.add(keyStr);
         }
       }

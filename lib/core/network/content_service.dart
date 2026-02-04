@@ -49,11 +49,7 @@ class ContentService {
 
     if (useCache && !forceRefresh) {
       // Cache-only mode: return cached data or null if not found
-      final cached = await _pageCacheService.getFromCache(
-        _apiService.baseUrl,
-        bookId,
-        pageNum ?? 1,
-      );
+      final cached = await _pageCacheService.getFromCache(bookId, pageNum ?? 1);
       if (cached != null) {
         pageMetadataHtml = cached.metadataHtml;
         pageTextHtml = cached.pageTextHtml;
@@ -71,7 +67,6 @@ class ContentService {
 
       // Always cache fresh data when we fetch it from server
       await _pageCacheService.saveToCache(
-        _apiService.baseUrl,
         bookId,
         actualPageNum,
         pageMetadataHtml,
@@ -141,11 +136,7 @@ class ContentService {
   /// This is used for precaching the next page for better UX.
   Future<void> preloadPage(int bookId, int pageNum) async {
     // Check if already cached - skip if it is
-    final cached = await _pageCacheService.getFromCache(
-      _apiService.baseUrl,
-      bookId,
-      pageNum,
-    );
+    final cached = await _pageCacheService.getFromCache(bookId, pageNum);
     if (cached != null) return;
 
     // Not cached - fetch and cache it
@@ -162,7 +153,6 @@ class ContentService {
 
       // Cache the fetched data
       await _pageCacheService.saveToCache(
-        _apiService.baseUrl,
         bookId,
         actualPageNum,
         pageMetadataHtml,

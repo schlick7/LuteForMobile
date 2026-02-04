@@ -35,18 +35,14 @@ class PageCacheService {
     return Hive.openBox<PageCacheEntry>(_boxName);
   }
 
-  String _getCacheKey(String serverUrl, int bookId, int pageNum) {
-    return '$_cachePrefix${serverUrl.hashCode}_${bookId}_$pageNum';
+  String _getCacheKey(int bookId, int pageNum) {
+    return '$_cachePrefix${bookId}_$pageNum';
   }
 
-  Future<PageCacheEntry?> getFromCache(
-    String serverUrl,
-    int bookId,
-    int pageNum,
-  ) async {
+  Future<PageCacheEntry?> getFromCache(int bookId, int pageNum) async {
     try {
       final box = await _getBox();
-      final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
+      final cacheKey = _getCacheKey(bookId, pageNum);
       final entry = box.get(cacheKey);
 
       if (entry == null) {
@@ -72,7 +68,6 @@ class PageCacheService {
   }
 
   Future<void> saveToCache(
-    String serverUrl,
     int bookId,
     int pageNum,
     String metadataHtml,
@@ -80,7 +75,7 @@ class PageCacheService {
   ) async {
     try {
       final box = await _getBox();
-      final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
+      final cacheKey = _getCacheKey(bookId, pageNum);
 
       final metadataBytes = utf8.encode(metadataHtml).length;
       final pageTextBytes = utf8.encode(pageTextHtml).length;
@@ -101,15 +96,14 @@ class PageCacheService {
     }
   }
 
-  Future<void> clearBookCache(String serverUrl, int bookId) async {
+  Future<void> clearBookCache(int bookId) async {
     try {
       final box = await _getBox();
-      final serverHash = serverUrl.hashCode;
       final keysToDelete = <String>[];
 
       for (final key in box.keys) {
         final keyStr = key as String;
-        if (keyStr.startsWith('$_cachePrefix${serverHash}_${bookId}_')) {
+        if (keyStr.startsWith('$_cachePrefix${bookId}_')) {
           keysToDelete.add(keyStr);
         }
       }

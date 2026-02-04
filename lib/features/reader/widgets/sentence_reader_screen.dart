@@ -1728,9 +1728,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     print(
       'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Clearing cache for bookId=$bookId',
     );
-    await ref
-        .read(sentenceCacheServiceProvider)
-        .clearBookCache(serverUrl, bookId);
+    await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
 
     _termTooltips.clear();
     _lastTooltipsBookId = null;
