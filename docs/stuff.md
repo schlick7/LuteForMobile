@@ -12,6 +12,7 @@ Look at flutter logs and cleanup issues
 Hive cache affected by termuxurl and localurl usage?
 
 
+i think we're trying to start a new server when its already running sometimes on app launch. can we make a quick api call and see if it reports a 200 status before trying to start the lute3server? This should ALWAYS happen when starting the lute3server no matter how its started. This test should result in an 200 respone or an error almost instantly correct?
 
 ---
 
@@ -25,14 +26,12 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 
 # Termux
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
-- What happens if f-droid is not installed?
-  - add a shortcut to install it?
 
 
 # Requests 
  
 # Reader
-- Can we make the tooltips appear instantly (after 100ms or ) and then make a doubleclick action (or really any action) close the tooltip so it doesn't get in the way? This would make the tooltips appear much faster and independent of the doubclick timeout. We just need to be careful that the tooltip displaying doesn't break the doubleclick
+-
 
 # Sentence Reader
 -
@@ -44,7 +43,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 - 
 
 # Books Screen
--
+- Why isn't the page number on the book cards updating?
 
 # Terms Screen
 -
