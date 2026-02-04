@@ -1015,6 +1015,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _handleDoubleTap(TextItem item) async {
+    TermTooltipClass.close();
+
     // Only handle double tap for terms from the server (items with wordId)
     if (item.wordId == null) return;
     if (item.langId == null) return;
@@ -1086,6 +1088,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _handleTripleTap(TextItem item) async {
+    TermTooltipClass.close();
+
     // Only handle triple tap for terms from the server (items with wordId)
     if (item.wordId == null) return;
     if (item.langId == null) return;

@@ -165,15 +165,16 @@ class _TextDisplayState extends State<TextDisplay> {
         _tripleTapTimer != null &&
         _tripleTapTimer!.isActive) {
       _singleTapTimer?.cancel();
-
       _tripleTapTimer?.cancel();
       widget.onTripleTap?.call(item);
+      TermTooltipClass.close();
       _tripleTapTimer = null;
       _singleTapTimer = null;
     } else if (_lastTappedItem == item &&
         _singleTapTimer != null &&
         _singleTapTimer!.isActive) {
       _singleTapTimer?.cancel();
+      TermTooltipClass.close();
 
       if (widget.enableTripleTap) {
         _tripleTapTimer = Timer(
@@ -199,7 +200,6 @@ class _TextDisplayState extends State<TextDisplay> {
         Duration(milliseconds: widget.doubleTapTimeout),
         () {
           _singleTapTimer = null;
-          TermTooltipClass.makeVisible();
         },
       );
     }

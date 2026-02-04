@@ -547,7 +547,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                 children: [
                   Expanded(
                     flex: 3,
-                    child: _buildTopSection(textSettings, currentSentence),
+                    child: _buildTopSection(
+                      textSettings,
+                      settings,
+                      currentSentence,
+                    ),
                   ),
                   Expanded(
                     flex: 7,
@@ -561,7 +565,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
               children: [
                 Expanded(
                   flex: 3,
-                  child: _buildTopSection(textSettings, currentSentence),
+                  child: _buildTopSection(
+                    textSettings,
+                    settings,
+                    currentSentence,
+                  ),
                 ),
                 Expanded(flex: 7, child: _buildBottomSection(currentSentence)),
               ],
@@ -578,6 +586,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   Widget _buildTopSection(
     dynamic textSettings,
+    dynamic settings,
     CustomSentence? currentSentence,
   ) {
     _topSectionBuildCount++;
@@ -641,6 +650,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             fontFamily: textSettings.fontFamily,
             fontWeight: textSettings.fontWeight,
             isItalic: textSettings.isItalic,
+            doubleTapTimeout: settings.doubleTapTimeout,
           ),
         ),
       ),
@@ -1307,6 +1317,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   void _handleDoubleTap(TextItem item) async {
+    TermTooltipClass.close();
+
     if (item.wordId == null) return;
     if (item.langId == null) return;
 

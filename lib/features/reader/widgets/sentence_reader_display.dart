@@ -16,6 +16,7 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
   final String fontFamily;
   final FontWeight fontWeight;
   final bool isItalic;
+  final int doubleTapTimeout;
 
   const SentenceReaderDisplay({
     super.key,
@@ -28,11 +29,13 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
     this.fontFamily = 'Roboto',
     this.fontWeight = FontWeight.normal,
     this.isItalic = false,
+    this.doubleTapTimeout = 300,
   });
 
   @override
-  ConsumerState<SentenceReaderDisplay> createState() =>
-      _SentenceReaderDisplayState();
+  ConsumerState<SentenceReaderDisplay> createState() {
+    return _SentenceReaderDisplayState();
+  }
 }
 
 class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
@@ -57,21 +60,23 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
         _doubleTapTimer != null &&
         _doubleTapTimer!.isActive) {
       _doubleTapTimer?.cancel();
+      TermTooltipClass.close();
       widget.onDoubleTap?.call(item);
       _doubleTapTimer = null;
       _lastTappedItem = null;
-      TermTooltipClass.close();
     } else {
       _lastTappedItem = item;
       _doubleTapTimer?.cancel();
 
       widget.onTap?.call(item, tapPosition);
 
-      _doubleTapTimer = Timer(const Duration(milliseconds: 300), () {
-        TermTooltipClass.makeVisible();
-        _doubleTapTimer = null;
-        _lastTappedItem = null;
-      });
+      _doubleTapTimer = Timer(
+        Duration(milliseconds: widget.doubleTapTimeout),
+        () {
+          _doubleTapTimer = null;
+          _lastTappedItem = null;
+        },
+      );
     }
   }
 

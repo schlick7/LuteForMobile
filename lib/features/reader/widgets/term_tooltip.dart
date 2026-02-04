@@ -38,8 +38,7 @@ class TermTooltipClass {
     _makeVisibleRequested = false;
 
     final screenSize = MediaQuery.of(context).size;
-    _isHidden = true;
-
+    _isHidden = false;
     _currentEntry = OverlayEntry(
       builder: (ctx) => Positioned(
         left: -9999,
