@@ -80,6 +80,7 @@ abstract class TTSService {
   void dispose();
   Stream<PlayerState> get playerStateStream;
   Future<Uint8List> getAudioBytes(String text);
+  bool get supportsBytesOutput;
 }
 
 class OnDeviceTTSService implements TTSService {
@@ -177,6 +178,9 @@ class OnDeviceTTSService implements TTSService {
   Future<Uint8List> getAudioBytes(String text) async {
     throw TTSException('On-device TTS does not support byte output');
   }
+
+  @override
+  bool get supportsBytesOutput => false;
 }
 
 class KokoroTTSService implements TTSService {
@@ -314,6 +318,9 @@ class KokoroTTSService implements TTSService {
     final audioBytes = response.data as List<int>;
     return Uint8List.fromList(audioBytes);
   }
+
+  @override
+  bool get supportsBytesOutput => true;
 }
 
 class OpenAITTSService implements TTSService {
@@ -427,6 +434,9 @@ class OpenAITTSService implements TTSService {
     final audioBytes = response.data as List<int>;
     return Uint8List.fromList(audioBytes);
   }
+
+  @override
+  bool get supportsBytesOutput => true;
 }
 
 class LocalOpenAITTSService implements TTSService {
@@ -548,6 +558,9 @@ class LocalOpenAITTSService implements TTSService {
     final audioBytes = response.data as List<int>;
     return Uint8List.fromList(audioBytes);
   }
+
+  @override
+  bool get supportsBytesOutput => true;
 }
 
 class NoTTSService implements TTSService {
@@ -587,6 +600,9 @@ class NoTTSService implements TTSService {
   Future<Uint8List> getAudioBytes(String text) async {
     throw TTSException('TTS is disabled');
   }
+
+  @override
+  bool get supportsBytesOutput => false;
 }
 
 class TTSException implements Exception {

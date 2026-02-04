@@ -22,7 +22,7 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
 
   static TTSSettings _defaultSettings() {
     return TTSSettings(
-      provider: TTSProvider.onDevice,
+      provider: TTSProvider.none,
       providerConfigs: {
         TTSProvider.onDevice: const TTSSettingsConfig(
           voice: null,
