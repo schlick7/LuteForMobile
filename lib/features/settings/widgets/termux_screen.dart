@@ -30,6 +30,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _checkingTermuxRunning = false;
   String _lute3Status = 'UNKNOWN';
   bool _serverRunning = false;
+  bool _isStartingServer = false;
+  bool _isStoppingServer = false;
   List<Map<String, dynamic>>? _backups;
   bool _isBackingUp = false;
   final Set<String> _downloadingBackups = {};
@@ -394,12 +396,19 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Future<void> _startServer() async {
+    setState(() {
+      _isStartingServer = true;
+    });
+
     try {
       final androidVersion = await TermuxService.getAndroidVersion();
       if (androidVersion != null && androidVersion >= 33) {
         final hasPermission = await TermuxService.hasNotificationPermission();
         if (!hasPermission) {
           await TermuxService.requestNotificationPermission();
+          setState(() {
+            _isStartingServer = false;
+          });
           return;
         }
       }
@@ -410,12 +419,24 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     await TermuxService.startServer();
     await Future.delayed(const Duration(seconds: 2));
     await _refreshServerStatus();
+
+    setState(() {
+      _isStartingServer = false;
+    });
   }
 
   Future<void> _stopServer() async {
+    setState(() {
+      _isStoppingServer = true;
+    });
+
     await TermuxService.stopServer();
     await Future.delayed(const Duration(seconds: 2));
     await _refreshServerStatus();
+
+    setState(() {
+      _isStoppingServer = false;
+    });
   }
 
   Future<void> _createBackup() async {
@@ -1083,17 +1104,43 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _serverRunning ? null : _startServer,
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Start Server'),
+                    onPressed: (_serverRunning || _isStartingServer)
+                        ? null
+                        : _startServer,
+                    icon: _isStartingServer
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.play_arrow),
+                    label: Text(
+                      _isStartingServer ? 'Starting...' : 'Start Server',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _serverRunning ? _stopServer : null,
-                    icon: const Icon(Icons.stop),
-                    label: const Text('Stop Server'),
+                    onPressed: (!_serverRunning || _isStoppingServer)
+                        ? null
+                        : _stopServer,
+                    icon: _isStoppingServer
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.stop),
+                    label: Text(
+                      _isStoppingServer ? 'Stopping...' : 'Stop Server',
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                     ),

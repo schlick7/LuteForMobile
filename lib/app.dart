@@ -183,6 +183,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       GlobalKey<State<StatefulWidget>>();
   final GlobalKey<State<StatefulWidget>> _helpKey =
       GlobalKey<State<StatefulWidget>>();
+  bool _needsDataRefresh = false;
 
   @override
   void initState() {
@@ -201,9 +202,18 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     final settings = ref.read(settingsProvider);
     if (settings.serverUrl == Settings.termuxUrl &&
         settings.termuxAutoLaunchEnabled) {
-      final isRunning = await TermuxService.isServerRunning();
-      if (!isRunning) {
-        await TermuxService.startServer();
+      for (int i = 0; i < 15; i++) {
+        final isRunning = await TermuxService.isServerRunning();
+        if (isRunning) {
+          if (_needsDataRefresh) {
+            print('DEBUG: Server ready, refreshing data...');
+            _needsDataRefresh = false;
+            ref.read(booksProvider.notifier).loadBooks(forceRefresh: true);
+            _loadLastReadBook();
+          }
+          break;
+        }
+        await Future.delayed(const Duration(milliseconds: 500));
       }
     }
   }
@@ -288,33 +298,53 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
 
   void _loadLastReadBook() async {
     final settings = ref.read(settingsProvider);
-    if (settings.currentBookId != null) {
-      print('DEBUG: Loading last read book: bookId=${settings.currentBookId}');
+    if (settings.currentBookId == null) {
+      return;
+    }
 
-      try {
-        final book = await ref
-            .read(booksProvider.notifier)
-            .getUpdatedBook(settings.currentBookId!);
+    print('DEBUG: Loading last read book: bookId=${settings.currentBookId}');
 
-        print(
-          'DEBUG: Loaded book from server: bookId=${book.id}, currentPage=${book.currentPage}',
+    final booksState = ref.read(booksProvider);
+    final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
+    Book? cachedBook;
+    try {
+      cachedBook = allBooks.firstWhere((b) => b.id == settings.currentBookId);
+    } catch (_) {
+      cachedBook = null;
+    }
+
+    if (cachedBook != null) {
+      ref.read(currentBookProvider.notifier).setBook(cachedBook);
+
+      if (_readerKey.currentState != null) {
+        _readerKey.currentState!.loadBook(
+          cachedBook.id,
+          cachedBook.currentPage,
         );
-
-        ref
-            .read(settingsProvider.notifier)
-            .updateCurrentBook(book.id, null, book.langId);
-
-        ref.read(currentBookProvider.notifier).setBook(book);
-
-        if (_readerKey.currentState != null) {
-          _readerKey.currentState!.loadBook(book.id, book.currentPage);
-        }
-      } catch (e) {
-        print('DEBUG: Failed to load book from server: $e');
-        if (_readerKey.currentState != null) {
-          _readerKey.currentState!.loadBook(settings.currentBookId!);
-        }
       }
+    }
+
+    try {
+      final book = await ref
+          .read(booksProvider.notifier)
+          .getUpdatedBook(settings.currentBookId!);
+
+      print(
+        'DEBUG: Loaded book from server: bookId=${book.id}, currentPage=${book.currentPage}',
+      );
+
+      ref
+          .read(settingsProvider.notifier)
+          .updateCurrentBook(book.id, null, book.langId);
+
+      ref.read(currentBookProvider.notifier).setBook(book);
+
+      if (_readerKey.currentState != null) {
+        _readerKey.currentState!.loadBook(book.id, book.currentPage);
+      }
+    } catch (e) {
+      print('DEBUG: Failed to refresh book from server: $e');
+      _needsDataRefresh = true;
     }
   }
 

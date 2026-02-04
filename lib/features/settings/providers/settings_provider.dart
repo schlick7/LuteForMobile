@@ -7,6 +7,7 @@ import '../../../shared/theme/theme_definitions.dart';
 import '../../../core/cache/cache_manager.dart';
 import '../../../core/cache/current_book_cache_service.dart';
 import '../../../features/reader/providers/reader_provider.dart';
+import '../../../core/services/termux_service.dart';
 
 typedef DrawerSettingsBuilder =
     Widget Function(BuildContext context, WidgetRef ref);
@@ -149,6 +150,7 @@ class SettingsNotifier extends Notifier<Settings> {
 
     if (useTermux) {
       state = state.copyWith(serverUrl: Settings.termuxUrl, isUrlValid: true);
+      await TermuxService.stealthLaunchTermux();
     } else {
       final localUrl = prefs.getString(_keyLocalUrl) ?? '';
       final isValid = _isValidUrl(localUrl);
