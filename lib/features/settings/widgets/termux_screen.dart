@@ -49,6 +49,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _checkingTermux = false;
   bool _checkingPermission = false;
   bool _checkingExternalApps = false;
+  bool _checkingStorageAccess = false;
+  bool _storageAccessGranted = false;
   bool _checkingLute3 = false;
   bool _checkingServer = false;
   bool _checkingBackups = false;
@@ -900,6 +902,15 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     ),
                     const SizedBox(height: 8),
                     _buildStatusRow(
+                      'Storage Access',
+                      _storageAccessGranted,
+                      _checkingStorageAccess,
+                      !_checkingStorageAccess,
+                      'Not granted',
+                      onTap: _showStorageAccessInstructions,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStatusRow(
                       'Lute3',
                       _lute3Status == 'INSTALLED',
                       _checkingLute3,
@@ -1561,6 +1572,91 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                 'Step 2: Open the Termux app, Paste Command press enter',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
+              const Text(
+                'Step 3: Return to LuteForMobile and refresh',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _openTermuxApp();
+            },
+            icon: const Icon(Icons.open_in_new),
+            label: const Text('Open Termux'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showStorageAccessInstructions() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Grant Storage Access'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Termux needs access to shared storage (Download folder) for file operations.',
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Step 1: Run this command in Termux:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade800,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'termux-setup-storage',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.copy),
+                    onPressed: () {
+                      Clipboard.setData(
+                        const ClipboardData(text: 'termux-setup-storage'),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Command copied to clipboard'),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Step 2: When prompted type y and then press enter',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
               const Text(
                 'Step 3: Return to LuteForMobile and refresh',
                 style: TextStyle(fontWeight: FontWeight.bold),

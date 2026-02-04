@@ -166,6 +166,28 @@ class TermuxBridge(private val context: Context) {
                     }
                 }
 
+                // Open Termux app main activity
+                "openTermuxApp" -> {
+                    scope.launch {
+                        try {
+                            val intent = Intent().apply {
+                                setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_MAIN_ACTIVITY)
+                                action = Intent.ACTION_MAIN
+                                addCategory(Intent.CATEGORY_LAUNCHER)
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            context.startActivity(intent)
+                            withContext(Dispatchers.Main) {
+                                result.success(true)
+                            }
+                        } catch (e: Exception) {
+                            withContext(Dispatchers.Main) {
+                                result.success(false)
+                            }
+                        }
+                    }
+                }
+
                 "getQuickInstallationStatus" -> {
                     scope.launch(Dispatchers.IO) {
                         try {
