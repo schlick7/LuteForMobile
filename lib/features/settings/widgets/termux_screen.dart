@@ -1473,14 +1473,10 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               const Text(
                 'Termux needs to be configured to accept commands from LuteForMobile.',
               ),
-              const SizedBox(height: 16),
-              const Text(
-                'Step 1: Open the Termux app',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+
               const SizedBox(height: 8),
               const Text(
-                'Step 2: Paste in this command and press enter:',
+                'Step 1: Copy this command into termux and press enter:',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -1508,6 +1504,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       ),
                     ),
                   ),
+
                   const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.copy),
@@ -1526,6 +1523,11 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     },
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Step 2: Open the Termux app, Paste Command press enter',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const Text(
                 'Step 3: Return to LuteForMobile and refresh',
