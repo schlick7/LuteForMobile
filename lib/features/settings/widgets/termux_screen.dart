@@ -1480,7 +1480,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Step 2: Run these commands one by one:',
+                'Step 2: Paste in this command and press enter:',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
@@ -1527,23 +1527,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
               const Text(
-                'You should see: allow-external-apps=true',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Step 3: Force-stop Termux',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const Text(
-                'Settings → Apps → Termux → Force Stop',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Step 4: Return to LuteForMobile and refresh',
+                'Step 3: Return to LuteForMobile and refresh',
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ],
