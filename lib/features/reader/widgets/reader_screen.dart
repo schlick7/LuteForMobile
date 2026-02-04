@@ -6,9 +6,11 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
 import '../../../features/settings/providers/settings_provider.dart';
+import '../../../features/settings/models/settings.dart';
 import '../../../features/terms/providers/terms_provider.dart';
 import '../../../features/stats/providers/stats_provider.dart';
 import '../../../features/stats/models/stats_data.dart';
+import '../../../core/services/termux_service.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../models/page_data.dart';
@@ -247,10 +249,20 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     _lastLifecycleState = state;
 
     if (state == AppLifecycleState.resumed) {
-      // App has resumed from background/sleep
-      // Check if the server's current page matches the reader's page
+      _checkAndStartLute3IfNeeded();
       if (!_checkServerPageInProgress) {
         _checkServerPage();
+      }
+    }
+  }
+
+  Future<void> _checkAndStartLute3IfNeeded() async {
+    final settings = ref.read(settingsProvider);
+    if (settings.serverUrl == Settings.termuxUrl &&
+        settings.termuxAutoLaunchEnabled) {
+      final isRunning = await TermuxService.isServerRunning();
+      if (!isRunning) {
+        await TermuxService.startServer();
       }
     }
   }

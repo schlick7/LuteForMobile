@@ -14,9 +14,11 @@ import 'package:lute_for_mobile/features/stats/widgets/stats_screen.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 import 'package:lute_for_mobile/shared/theme/theme_definitions.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
+import 'package:lute_for_mobile/features/settings/models/settings.dart';
 import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
 import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
+import 'package:lute_for_mobile/core/services/termux_service.dart';
 
 class RestartWidget extends StatefulWidget {
   final Widget child;
@@ -189,9 +191,21 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateDrawerSettings();
       _loadLastReadBook();
+      _checkAndStartLute3IfNeeded();
     });
     _navigationController.addReaderListener(_handleNavigateToReader);
     _navigationController.addScreenListener(_handleNavigateToScreen);
+  }
+
+  Future<void> _checkAndStartLute3IfNeeded() async {
+    final settings = ref.read(settingsProvider);
+    if (settings.serverUrl == Settings.termuxUrl &&
+        settings.termuxAutoLaunchEnabled) {
+      final isRunning = await TermuxService.isServerRunning();
+      if (!isRunning) {
+        await TermuxService.startServer();
+      }
+    }
   }
 
   @override
