@@ -96,6 +96,7 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
       final json = jsonDecode(configStr) as Map<String, dynamic>;
       return TTSSettingsConfig(
         voice: json['voice'] as String?,
+        voiceLocale: json['voiceLocale'] as String?,
         rate: (json['rate'] as num?)?.toDouble(),
         pitch: (json['pitch'] as num?)?.toDouble(),
         volume: (json['volume'] as num?)?.toDouble(),
@@ -157,6 +158,7 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
   ) async {
     final json = {
       if (config.voice != null) 'voice': config.voice,
+      if (config.voiceLocale != null) 'voiceLocale': config.voiceLocale,
       if (config.rate != null) 'rate': config.rate,
       if (config.pitch != null) 'pitch': config.pitch,
       if (config.volume != null) 'volume': config.volume,

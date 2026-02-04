@@ -88,6 +88,10 @@ class OnDeviceTTSService implements TTSService {
   AudioPlayer? _audioPlayer;
   final _playerStateController = StreamController<PlayerState>.broadcast();
 
+  OnDeviceTTSService() {
+    _flutterTts.awaitSpeakCompletion(true);
+  }
+
   @override
   Future<void> speak(String text) async {
     try {
@@ -122,8 +126,26 @@ class OnDeviceTTSService implements TTSService {
   @override
   Future<void> setSettings(TTSSettingsConfig config) async {
     try {
-      if (config.voice != null) {
-        await _flutterTts.setVoice({'name': config.voice!});
+      String? voiceName = config.voice;
+      String? voiceLocale = config.voiceLocale;
+
+      debugPrint(
+        'Applying on-device TTS settings: voice=$voiceName, locale=$voiceLocale, rate=${config.rate}, pitch=${config.pitch}, volume=${config.volume}',
+      );
+
+      if (voiceLocale != null && voiceLocale.isNotEmpty) {
+        await _flutterTts.setLanguage(voiceLocale);
+      }
+
+      if (voiceName != null && voiceName.isNotEmpty) {
+        if (voiceLocale != null && voiceLocale.isNotEmpty) {
+          await _flutterTts.setVoice({
+            'name': voiceName,
+            'locale': voiceLocale,
+          });
+        } else {
+          await _flutterTts.setVoice({'name': voiceName});
+        }
       }
       if (config.rate != null) {
         await _flutterTts.setSpeechRate(config.rate!);

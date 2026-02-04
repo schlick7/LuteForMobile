@@ -118,10 +118,13 @@ class _TTSSettingsSectionState extends ConsumerState<TTSSettingsSection> {
       children: [
         OnDeviceVoiceSelector(
           selectedVoice: config?.voice,
-          onVoiceChanged: (value) {
+          selectedVoiceLocale: config?.voiceLocale,
+          onVoiceChanged: (voiceName, voiceLocale) {
             ref
                 .read(ttsSettingsProvider.notifier)
-                .updateOnDeviceConfig(config!.copyWith(voice: value));
+                .updateOnDeviceConfig(
+                  config!.copyWith(voice: voiceName, voiceLocale: voiceLocale),
+                );
           },
         ),
         const SizedBox(height: 16),

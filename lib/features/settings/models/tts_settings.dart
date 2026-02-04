@@ -78,6 +78,7 @@ class KokoroVoiceWeight {
 @immutable
 class TTSSettingsConfig {
   final String? voice;
+  final String? voiceLocale;
   final double? rate;
   final double? pitch;
   final double? volume;
@@ -93,6 +94,7 @@ class TTSSettingsConfig {
 
   const TTSSettingsConfig({
     this.voice,
+    this.voiceLocale,
     this.rate,
     this.pitch,
     this.volume,
@@ -106,6 +108,7 @@ class TTSSettingsConfig {
 
   TTSSettingsConfig copyWith({
     String? voice,
+    String? voiceLocale,
     double? rate,
     double? pitch,
     double? volume,
@@ -118,6 +121,7 @@ class TTSSettingsConfig {
   }) {
     return TTSSettingsConfig(
       voice: voice ?? this.voice,
+      voiceLocale: voiceLocale ?? this.voiceLocale,
       rate: rate ?? this.rate,
       pitch: pitch ?? this.pitch,
       volume: volume ?? this.volume,
@@ -135,6 +139,7 @@ class TTSSettingsConfig {
     if (identical(this, other)) return true;
     return other is TTSSettingsConfig &&
         other.voice == voice &&
+        other.voiceLocale == voiceLocale &&
         other.rate == rate &&
         other.pitch == pitch &&
         other.volume == volume &&
@@ -149,6 +154,7 @@ class TTSSettingsConfig {
   @override
   int get hashCode => Object.hash(
     voice,
+    voiceLocale,
     rate,
     pitch,
     volume,
