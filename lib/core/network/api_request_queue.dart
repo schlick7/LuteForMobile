@@ -103,17 +103,6 @@ class ApiRequestQueue {
     );
   }
 
-  void _updatePollingInterval() {
-    _pollTimer?.cancel();
-    final interval = _isServerReachable
-        ? const Duration(seconds: 5)
-        : const Duration(milliseconds: 200);
-    print(
-      'DEBUG: ApiRequestQueue updating interval to ${interval.inMilliseconds}ms (reachable: $_isServerReachable)',
-    );
-    _pollTimer = Timer.periodic(interval, (_) => _processQueue);
-  }
-
   void dispose() {
     _pollTimer?.cancel();
     _pollTimer = null;
@@ -157,10 +146,6 @@ class ApiRequestQueue {
       'DEBUG: enqueue - ${options.uri}, isTableStats=$isStats, queueLength=${_queue.length}',
     );
 
-    if (!_isServerReachable) {
-      _updatePollingInterval();
-    }
-
     unawaited(_processQueue());
 
     return completer.future;
@@ -174,22 +159,6 @@ class ApiRequestQueue {
     if (_isProcessing) return;
 
     _isProcessing = true;
-
-    if (!_isServerReachable) {
-      final isReachable = await ServerHealthService.isReachable(_serverUrl!);
-      print(
-        'DEBUG: ApiRequestQueue poll - reachable: $isReachable, previous: $_isServerReachable',
-      );
-
-      if (isReachable != _isServerReachable) {
-        _isServerReachable = isReachable;
-        print(
-          'DEBUG: ApiRequestQueue calling ServerStatusManager.setReachable($isReachable)',
-        );
-        ServerStatusManager.setReachable(isReachable);
-        _updatePollingInterval();
-      }
-    }
 
     if (_isServerReachable && _queue.isNotEmpty) {
       final requestsToProcess = List<QueuedRequest>.from(_queue);
