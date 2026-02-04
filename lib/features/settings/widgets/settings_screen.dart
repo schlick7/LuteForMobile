@@ -188,7 +188,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _localUrlController,
-                      enabled: settings.serverUrl != 'http://localhost:5001',
                       decoration: InputDecoration(
                         labelText: 'Local URL',
                         hintText: 'http://192.168.1.100:5001',
@@ -236,6 +235,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 color: Theme.of(context).colorScheme.error,
                               ),
                       ),
+                      style: settings.serverUrl == 'http://localhost:5001'
+                          ? TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.5),
+                            )
+                          : null,
                       keyboardType: TextInputType.url,
                       onChanged: (_) {
                         _connectionTestPassed = false;

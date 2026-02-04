@@ -270,7 +270,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           'To run the Lute server, LuteForMobile needs permission to execute commands in Termux.\n\n'
           'Tap "Open Settings" \n'
           '"Permissions" → "Additional permissions" → "Run commands" → "Allow"\n'
-          'Press back until you return to LuteForMobile'
+          'Press back until you return to LuteForMobile\n'
           'Tap refresh icon in top right',
         ),
         actions: [
