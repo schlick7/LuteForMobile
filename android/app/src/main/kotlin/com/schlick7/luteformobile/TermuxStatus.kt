@@ -143,6 +143,15 @@ fun isTermuxInstalled(context: Context): Boolean {
     }
 }
 
+fun isFDroidInstalled(context: Context): Boolean {
+    return try {
+        context.packageManager.getApplicationInfo(TermuxConstants.FDROID_PACKAGE, 0)
+        true
+    } catch (e: PackageManager.NameNotFoundException) {
+        false
+    }
+}
+
 fun isTermuxPermissionGranted(context: Context): Boolean {
     try {
         // Check if the RUN_COMMAND permission is granted

@@ -3,6 +3,9 @@ package com.schlick7.luteformobile
 object TermuxConstants {
     // Termux package and service info
     const val TERMUX_PACKAGE = "com.termux"
+    
+    // F-Droid package info
+    const val FDROID_PACKAGE = "org.fdroid.fdroid"
     const val TERMUX_SERVICE = "com.termux.app.RunCommandService"
     const val TERMUX_MAIN_ACTIVITY = "com.termux.app.TermuxActivity"
     const val TERMUX_ACTION = "com.termux.RUN_COMMAND"

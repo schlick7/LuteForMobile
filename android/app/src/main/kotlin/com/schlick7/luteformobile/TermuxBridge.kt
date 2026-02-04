@@ -51,6 +51,10 @@ class TermuxBridge(private val context: Context) {
                     result.success(isTermuxInstalled(context))
                 }
 
+                "isFDroidInstalled" -> {
+                    result.success(isFDroidInstalled(context))
+                }
+
                 "isTermuxPermissionGranted" -> {
                     result.success(isTermuxPermissionGranted(context))
                 }

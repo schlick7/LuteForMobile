@@ -233,9 +233,36 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Future<void> _openFStore() async {
-    final url = Uri.parse('https://termux.com/');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
+    try {
+      final fdroidInstalled = await TermuxService.isFDroidInstalled();
+
+      if (fdroidInstalled) {
+        // Try to open F-Droid app directly
+        final fdroidUri = Uri.parse('fdroid.app:com.termux');
+        if (await canLaunchUrl(fdroidUri)) {
+          await launchUrl(fdroidUri);
+          return;
+        }
+
+        // Fallback: open F-Droid store URL
+        final fdroidWebUri = Uri.parse(
+          'https://f-droid.org/packages/com.termux/',
+        );
+        if (await canLaunchUrl(fdroidWebUri)) {
+          await launchUrl(fdroidWebUri);
+          return;
+        }
+      }
+
+      // Fallback to GitHub releases if F-Droid is not available
+      final githubUri = Uri.parse(
+        'https://github.com/termux/termux-app/releases/tag/v0.118.3',
+      );
+      if (await canLaunchUrl(githubUri)) {
+        await launchUrl(githubUri);
+      }
+    } catch (e) {
+      print('Failed to open store: $e');
     }
   }
 
@@ -944,7 +971,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               child: TextButton.icon(
                 onPressed: _openFStore,
                 icon: const Icon(Icons.open_in_new),
-                label: const Text('Get Termux from F-Droid'),
+                label: const Text('Install Termux'),
               ),
             ),
           ],

@@ -18,6 +18,11 @@ class TermuxService {
     return result as bool? ?? false;
   }
 
+  static Future<bool> isFDroidInstalled() async {
+    final result = await _channel.invokeMethod('isFDroidInstalled');
+    return result as bool? ?? false;
+  }
+
   static Future<bool> isTermuxPermissionGranted() async {
     final result = await _channel.invokeMethod('isTermuxPermissionGranted');
     return result as bool? ?? false;
