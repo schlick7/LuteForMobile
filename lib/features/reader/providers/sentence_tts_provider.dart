@@ -112,7 +112,6 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
 
   Future<void> speakSentence(String text, int sentenceId) async {
     final ttsService = ref.read(ttsServiceProvider);
-    final audioPlayer = ref.read(audioPlayerProvider.notifier);
 
     try {
       state = state.copyWith(
@@ -137,6 +136,7 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
           ttsAudioSource: bytesSource,
         );
 
+        final audioPlayer = ref.read(audioPlayerProvider.notifier);
         _setupPlayerStateListener();
 
         debugPrint('Starting TTS playback...');
@@ -144,6 +144,7 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
         debugPrint('TTS playback started');
       } else {
         debugPrint('Using direct speak for on-device TTS...');
+        await ref.read(ttsServiceProvider.notifier).ensureServiceReady();
         await ttsService.speak(text);
         state = state.copyWith(status: SentenceTTSStatus.playing);
       }

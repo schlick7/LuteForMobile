@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/settings/models/tts_settings.dart';
@@ -6,6 +7,7 @@ import 'package:lute_for_mobile/core/network/tts_service.dart';
 
 class TTSNotifier extends Notifier<TTSService> {
   TTSService? _currentService;
+  Completer<void>? _updateCompleter;
 
   @override
   TTSService build() {
@@ -14,13 +16,30 @@ class TTSNotifier extends Notifier<TTSService> {
     return _createService();
   }
 
-  void _updateService() {
+  Future<void> _updateService() {
+    if (_updateCompleter != null && !_updateCompleter!.isCompleted) {
+      _updateCompleter!.complete();
+    }
+    _updateCompleter = Completer();
+
     final newService = _createService();
     final oldService = _currentService;
     _currentService = newService;
     state = newService;
 
     oldService?.dispose();
+
+    Future.delayed(Duration.zero, () {
+      _updateCompleter?.complete();
+    });
+
+    return _updateCompleter!.future;
+  }
+
+  Future<void> ensureServiceReady() async {
+    if (_updateCompleter != null && !_updateCompleter!.isCompleted) {
+      await _updateCompleter!.future;
+    }
   }
 
   TTSService _createService() {

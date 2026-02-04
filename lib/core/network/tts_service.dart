@@ -90,6 +90,15 @@ class OnDeviceTTSService implements TTSService {
 
   OnDeviceTTSService() {
     _flutterTts.awaitSpeakCompletion(true);
+    _flutterTts.setStartHandler(() {
+      _playerStateController.add(PlayerState.playing);
+    });
+    _flutterTts.setCompletionHandler(() {
+      _playerStateController.add(PlayerState.completed);
+    });
+    _flutterTts.setErrorHandler((msg) {
+      _playerStateController.add(PlayerState.stopped);
+    });
   }
 
   @override
@@ -105,6 +114,7 @@ class OnDeviceTTSService implements TTSService {
   Future<void> stop() async {
     try {
       await _flutterTts.stop();
+      _playerStateController.add(PlayerState.stopped);
       if (_audioPlayer != null) {
         await _audioPlayer!.stop();
         await _audioPlayer!.release();
