@@ -316,16 +316,18 @@ class TermuxBridge(private val context: Context) {
 
                 "requestTermuxPermission" -> {
                     try {
-                        val intent = Intent().apply {
-                            setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-                            action = TermuxConstants.TERMUX_ACTION
-                            putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-                            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "echo 'Permission check'"))
-                            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+                        android.util.Log.d("TermuxBridge", "requestTermuxPermission: Opening app info page")
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        intent.data = android.net.Uri.parse("package:${context.packageName}")
+                        if (intent.resolveActivity(context.packageManager) != null) {
+                            context.startActivity(intent)
+                            android.util.Log.d("TermuxBridge", "requestTermuxPermission: App info page opened")
+                        } else {
+                            android.util.Log.e("TermuxBridge", "requestTermuxPermission: No activity found")
                         }
-                        context.startService(intent)
                         result.success(true)
                     } catch (e: Exception) {
+                        android.util.Log.e("TermuxBridge", "requestTermuxPermission: Failed - ${e.message}")
                         result.success(false)
                     }
                 }

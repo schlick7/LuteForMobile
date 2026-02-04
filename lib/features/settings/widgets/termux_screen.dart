@@ -267,8 +267,11 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Termux Permission Required'),
         content: const Text(
-          'LuteForMobile needs permission to run commands in Termux. '
-          'A permission dialog will appear in Termux - please grant it.',
+          'To run the Lute server, LuteForMobile needs permission to execute commands in Termux.\n\n'
+          'Tap "Open Settings" \n'
+          '"Permissions" → "Additional permissions" → "Run commands" → "Allow"\n'
+          'Press back until you return to LuteForMobile'
+          'Tap refresh icon in top right',
         ),
         actions: [
           TextButton(
@@ -276,11 +279,11 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.of(context).pop(true);
-              await TermuxService.requestTermuxPermission();
+              TermuxService.requestTermuxPermission();
             },
-            child: const Text('Grant Permission'),
+            child: const Text('Open Settings'),
           ),
         ],
       ),
