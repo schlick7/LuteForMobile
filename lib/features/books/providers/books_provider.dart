@@ -452,6 +452,7 @@ class BooksNotifier extends Notifier<BooksState> {
       );
       _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
     } catch (e) {
+      print('DEBUG: _loadBooksFromNetwork failed - preserving existing books');
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     } finally {
       _isLoadingFromNetwork = false;

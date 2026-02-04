@@ -1,9 +1,8 @@
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
+import 'package:lute_for_mobile/core/services/server_health_service.dart';
 
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
 
 class TermuxService {
   static const MethodChannel _channel = MethodChannel(
@@ -35,32 +34,14 @@ class TermuxService {
     return result as String? ?? 'UNKNOWN';
   }
 
-  static const int _kLute3DefaultPort = 5001;
-
   static Future<bool> isServerRunning() async {
     final startTime = DateTime.now();
-    try {
-      final client = http.Client();
-      final response = await client
-          .head(Uri.parse(Settings.termuxUrl), headers: {'Connection': 'close'})
-          .timeout(const Duration(milliseconds: 500));
-      client.close();
-      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
-      print('Dart isServerRunning: ${response.statusCode} in ${elapsed}ms');
-      return response.statusCode == 200;
-    } on TimeoutException {
-      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
-      print('Dart isServerRunning: TIMEOUT after ${elapsed}ms');
-      return false;
-    } on SocketException {
-      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
-      print('Dart isServerRunning: SOCKET_ERROR after ${elapsed}ms');
-      return false;
-    } on Exception {
-      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
-      print('Dart isServerRunning: EXCEPTION after ${elapsed}ms');
-      return false;
-    }
+    final isReachable = await ServerHealthService.isReachable(
+      Settings.termuxUrl,
+    );
+    final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+    print('Dart isServerRunning: $isReachable in ${elapsed}ms');
+    return isReachable;
   }
 
   static Future<String?> getTermuxVersion() async {

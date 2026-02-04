@@ -9,7 +9,7 @@ class HelpScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final serverReachable = ServerStatus.isReachable;
+    final serverReachable = ServerStatusManager.isReachable;
 
     return Scaffold(
       appBar: AppBar(

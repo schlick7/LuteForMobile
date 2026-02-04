@@ -231,7 +231,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     WidgetsBinding.instance.addObserver(this);
     _hasInitialized = true;
     _scrollController.addListener(_handleScrollPosition);
-    ServerStatus.addListener(_onServerStatusChanged);
+    ServerStatusManager.addListener(_onServerStatusChanged);
     Future.delayed(Duration.zero, _loadLanguageMapping);
     Future.delayed(Duration.zero, _loadStatsIfNeeded);
   }
@@ -239,14 +239,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   void _onServerStatusChanged() {
     if (mounted) {
       setState(() {
-        _serverReachable = ServerStatus.isReachable;
+        _serverReachable = ServerStatusManager.isReachable;
       });
     }
   }
 
   @override
   void dispose() {
-    ServerStatus.removeListener(_onServerStatusChanged);
+    ServerStatusManager.removeListener(_onServerStatusChanged);
     WidgetsBinding.instance.removeObserver(this);
     _hideUiTimer?.cancel();
     _glowTimer?.cancel();

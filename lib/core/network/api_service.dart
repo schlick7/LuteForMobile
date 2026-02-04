@@ -3,10 +3,13 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
+import 'queued_dio_interceptor.dart';
+import 'api_request_queue.dart';
 
 class ApiService {
   final Dio _dio;
   static bool enableLogging = kDebugMode;
+  static final ApiRequestQueue _requestQueue = ApiRequestQueue();
 
   ApiService({required String baseUrl, Dio? dio})
     : _dio =
@@ -22,6 +25,8 @@ class ApiService {
               validateStatus: (status) => status != null && status < 400,
             ),
           ) {
+    _requestQueue.initialize(baseUrl, _dio);
+    _dio.interceptors.add(QueuedDioInterceptor(_requestQueue));
     _addRetryInterceptor();
     _addLoggingInterceptor();
     _addStatusInterceptor();
@@ -31,11 +36,11 @@ class ApiService {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onResponse: (response, handler) {
-          ServerStatus.markSuccess();
+          ServerStatusManager.markSuccess();
           return handler.next(response);
         },
         onError: (error, handler) {
-          ServerStatus.markError();
+          ServerStatusManager.markError();
           return handler.next(error);
         },
       ),

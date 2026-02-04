@@ -174,7 +174,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    ServerStatus.addListener(_onServerStatusChanged);
+    ServerStatusManager.addListener(_onServerStatusChanged);
     Future.delayed(Duration.zero, _loadLanguageMapping);
     Future.delayed(Duration.zero, _loadStatsIfNeeded);
   }
@@ -182,14 +182,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   void _onServerStatusChanged() {
     if (mounted) {
       setState(() {
-        _serverReachable = ServerStatus.isReachable;
+        _serverReachable = ServerStatusManager.isReachable;
       });
     }
   }
 
   @override
   void dispose() {
-    ServerStatus.removeListener(_onServerStatusChanged);
+    ServerStatusManager.removeListener(_onServerStatusChanged);
     WidgetsBinding.instance.removeObserver(this);
     _ttsNotifier?.stop();
     super.dispose();

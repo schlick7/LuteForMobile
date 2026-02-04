@@ -30,20 +30,20 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
   @override
   void initState() {
     super.initState();
-    ServerStatus.addListener(_onServerStatusChanged);
+    ServerStatusManager.addListener(_onServerStatusChanged);
   }
 
   void _onServerStatusChanged() {
     if (mounted) {
       setState(() {
-        _serverReachable = ServerStatus.isReachable;
+        _serverReachable = ServerStatusManager.isReachable;
       });
     }
   }
 
   @override
   void dispose() {
-    ServerStatus.removeListener(_onServerStatusChanged);
+    ServerStatusManager.removeListener(_onServerStatusChanged);
     _searchController.dispose();
     super.dispose();
   }

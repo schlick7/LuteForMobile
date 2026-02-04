@@ -263,14 +263,21 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
       if (freshPage == null) {
         print('DEBUG: Background refresh failed after $maxRetries attempts');
-        // All retries exhausted - stop loading and show error
-        state = state.copyWith(
-          isBackgroundRefreshing: false,
-          isLoading: false,
-          errorMessage: lastError != null
-              ? 'Failed to load page: ${_formatError(lastError)}'
-              : 'Failed to load page',
-        );
+        final currentData = state.pageData;
+        if (currentData != null) {
+          state = state.copyWith(
+            isBackgroundRefreshing: false,
+            isLoading: false,
+          );
+        } else {
+          state = state.copyWith(
+            isBackgroundRefreshing: false,
+            isLoading: false,
+            errorMessage: lastError != null
+                ? 'Failed to load page: ${_formatError(lastError)}'
+                : 'Failed to load page',
+          );
+        }
         return;
       }
 

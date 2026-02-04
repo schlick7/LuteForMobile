@@ -51,7 +51,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    ServerStatus.addListener(_onServerStatusChanged);
+    ServerStatusManager.addListener(_onServerStatusChanged);
     SharedPreferences.getInstance().then((prefs) {
       final savedUrl = prefs.getString('local_url') ?? '';
       if (mounted) {
@@ -63,14 +63,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _onServerStatusChanged() {
     if (mounted) {
       setState(() {
-        _serverReachable = ServerStatus.isReachable;
+        _serverReachable = ServerStatusManager.isReachable;
       });
     }
   }
 
   @override
   void dispose() {
-    ServerStatus.removeListener(_onServerStatusChanged);
+    ServerStatusManager.removeListener(_onServerStatusChanged);
     _localUrlController.dispose();
     super.dispose();
   }

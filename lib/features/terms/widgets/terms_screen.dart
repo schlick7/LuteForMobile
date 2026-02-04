@@ -30,7 +30,7 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
-    ServerStatus.addListener(_onServerStatusChanged);
+    ServerStatusManager.addListener(_onServerStatusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(termsProvider.notifier).resetForNewNavigation();
       ref.read(termsProvider.notifier).loadTerms(reset: true);
@@ -40,14 +40,14 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
   void _onServerStatusChanged() {
     if (mounted) {
       setState(() {
-        _serverReachable = ServerStatus.isReachable;
+        _serverReachable = ServerStatusManager.isReachable;
       });
     }
   }
 
   @override
   void dispose() {
-    ServerStatus.removeListener(_onServerStatusChanged);
+    ServerStatusManager.removeListener(_onServerStatusChanged);
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     _searchController.dispose();
