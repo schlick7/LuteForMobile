@@ -7,7 +7,6 @@ import io.flutter.embedding.engine.FlutterEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class MainActivity : FlutterActivity() {
@@ -17,23 +16,24 @@ class MainActivity : FlutterActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-    }
-    
-    override fun onResume() {
-        super.onResume()
-        // Delay auto-launch to avoid conflicts with app initialization
+        android.util.Log.d("MainActivity", ">>> onCreate() <<<")
+        
         if (!hasAutoLaunched) {
             hasAutoLaunched = true
             mainScope.launch {
-                delay(500) // Reduced delay to 500ms for faster startup
                 checkAndAutoLaunchTermux()
             }
         }
     }
+    
+    override fun onResume() {
+        super.onResume()
+        android.util.Log.d("MainActivity", ">>> onResume() <<<")
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        // Register Termux bridge
+        android.util.Log.d("MainActivity", ">>> configureFlutterEngine() <<<")
         termuxBridge = TermuxBridge(this)
         termuxBridge?.registerMethodChannel(flutterEngine)
     }
@@ -46,6 +46,7 @@ class MainActivity : FlutterActivity() {
     /**
      * Checks if Termux auto-launch should be performed on app start.
      * This is called in onCreate() to ensure it runs early in the app lifecycle.
+     * Uses ContentProvider's cached server health check result when available.
      */
     private fun checkAndAutoLaunchTermux() {
         try {
@@ -58,6 +59,10 @@ class MainActivity : FlutterActivity() {
                 "MainActivity",
                 "checkAndAutoLaunchTermux: useTermux=$useTermux, autoLaunchEnabled=$autoLaunchEnabled"
             )
+
+            // Check ContentProvider for cached server health
+            val cachedRunning = ServerHealthProvider.isServerRunning
+            android.util.Log.d("MainActivity", "Cached server status from ContentProvider: $cachedRunning")
 
             if (useTermux && autoLaunchEnabled) {
                 // Perform auto-launch in a coroutine

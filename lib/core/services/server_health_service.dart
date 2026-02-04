@@ -1,6 +1,6 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:http/http.dart' as http;
+import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class ServerHealthService {
   static const Duration _kDefaultTimeout = Duration(milliseconds: 500);
@@ -12,15 +12,20 @@ class ServerHealthService {
     if (uri == null || !uri.hasScheme) return false;
 
     try {
-      final client = http.Client();
-      final response = await client
-          .head(uri, headers: {'Connection': 'close'})
-          .timeout(_kDefaultTimeout);
+      final client = Dio(
+        BaseOptions(
+          connectTimeout: _kDefaultTimeout,
+          receiveTimeout: _kDefaultTimeout,
+          sendTimeout: _kDefaultTimeout,
+        ),
+      );
+
+      final response = await client.headUri(uri);
       client.close();
       return response.statusCode == 200;
     } on TimeoutException {
       return false;
-    } on SocketException {
+    } on DioException {
       return false;
     } on Exception {
       return false;

@@ -29,9 +29,24 @@ suspend fun launchLute3ServerWithAutoShutdown(
 ) {
     android.util.Log.i("TermuxServer", ">>> LUTE3 SERVER START REQUESTED <<<")
 
-    // Check if server is already running first
-    val serverRunning = isLute3ServerRunningHttp(port)
-    android.util.Log.d("TermuxServer", "HTTP check: serverRunning=$serverRunning")
+    // First, check the cached server health from ContentProvider (instant, one-time use)
+    val cachedRunning = ServerHealthProvider.isServerRunning
+    android.util.Log.d("TermuxServer", "Cached server health from ContentProvider: $cachedRunning")
+    
+    // Clear the cache immediately after reading (one-time use only)
+    ServerHealthProvider.clearCache()
+
+    // If cached says running, skip further checks - server is already up
+    if (cachedRunning) {
+        android.util.Log.d("TermuxServer", "Server confirmed running via cached check, skipping HTTP checks")
+        return
+    }
+
+    android.util.Log.d("TermuxServer", "Cached check says not running, performing fresh HTTP check...")
+
+    // Cache said not running, do a fresh HTTP check to confirm
+    val serverRunning = isLute3ServerRunningHttpWithRetries(port, maxRetries = 3, retryDelayMs = 200)
+    android.util.Log.d("TermuxServer", "Fresh HTTP check: serverRunning=$serverRunning")
     if (serverRunning) {
         android.util.Log.d("TermuxServer", "Lute3 server is already running on port $port")
         return

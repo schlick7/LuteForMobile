@@ -66,6 +66,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <provider
+            android:name=".ServerHealthProvider"
+            android:authorities="com.schlick7.luteformobile.serverhealth"
+            android:exported="false"
+            android:enabled="true" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

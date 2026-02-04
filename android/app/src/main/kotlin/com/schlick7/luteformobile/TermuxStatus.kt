@@ -184,9 +184,11 @@ fun isTermuxPermissionGranted(context: Context): Boolean {
 }
 
 suspend fun isLute3ServerRunningHttp(port: Int = TermuxConstants.LUTE3_DEFAULT_PORT): Boolean {
-    val url = "http://127.0.0.1:$port"
-    android.util.Log.i("TermuxStatus", ">>> HTTP CHECK: $url <<<")
-    return try {
+    return isLute3ServerRunningHttpWithRetries(port)
+}
+
+private suspend fun checkHttpServer(url: String): Boolean = withContext(Dispatchers.IO) {
+    try {
         val client = OkHttpClient.Builder()
             .connectTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
             .readTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
@@ -199,19 +201,44 @@ suspend fun isLute3ServerRunningHttp(port: Int = TermuxConstants.LUTE3_DEFAULT_P
             .build()
 
         val startTime = System.currentTimeMillis()
-        val response = withContext(Dispatchers.IO) {
-            client.newCall(request).execute()
-        }
+        val response = client.newCall(request).execute()
         val elapsed = System.currentTimeMillis() - startTime
         val responseCode = response.code
         val isSuccessful = response.isSuccessful
-        android.util.Log.i("TermuxStatus", "HTTP $url -> $responseCode in ${elapsed}ms")
+        
+        android.util.Log.d("TermuxStatus", "HTTP $url -> $responseCode in ${elapsed}ms")
         response.close()
         isSuccessful
     } catch (e: Exception) {
-        android.util.Log.e("TermuxStatus", "HTTP $url FAILED: ${e.javaClass.simpleName}: ${e.message}")
+        android.util.Log.d("TermuxStatus", "HTTP $url FAILED: ${e.javaClass.simpleName}: ${e.message}")
         false
     }
+}
+
+suspend fun isLute3ServerRunningHttpWithRetries(
+    port: Int = TermuxConstants.LUTE3_DEFAULT_PORT,
+    maxRetries: Int = 3,
+    retryDelayMs: Long = 200
+): Boolean {
+    val url = "http://127.0.0.1:$port"
+    
+    for (attempt in 1..maxRetries) {
+        android.util.Log.d("TermuxStatus", "HTTP check attempt $attempt/$maxRetries: $url")
+        
+        val result = checkHttpServer(url)
+        if (result) {
+            android.util.Log.d("TermuxStatus", "HTTP check PASSED on attempt $attempt")
+            return true
+        }
+        
+        if (attempt < maxRetries) {
+            android.util.Log.d("TermuxStatus", "HTTP check failed, retrying in ${retryDelayMs}ms...")
+            delay(retryDelayMs)
+        }
+    }
+    
+    android.util.Log.d("TermuxStatus", "HTTP check FAILED after $maxRetries attempts")
+    return false
 }
 
 suspend fun isLute3InstalledFastCheck(context: Context): InstallationStatus {

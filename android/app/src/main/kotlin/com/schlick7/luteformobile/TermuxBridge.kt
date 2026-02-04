@@ -131,6 +131,13 @@ class TermuxBridge(private val context: Context) {
                     }
                 }
 
+                "getServerHealthCached" -> {
+                    // Return cached result from ContentProvider (instant, no network call)
+                    val cachedRunning = ServerHealthProvider.isServerRunning
+                    android.util.Log.d("TermuxBridge", "Cached server health: $cachedRunning")
+                    result.success(cachedRunning)
+                }
+
                 "stopServer" -> {
                     android.util.Log.i("TermuxBridge", ">>> FLUTTER STOP SERVER REQUEST <<<")
                     stopLute3Server(context)

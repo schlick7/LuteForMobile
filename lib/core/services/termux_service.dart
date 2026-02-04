@@ -44,6 +44,15 @@ class TermuxService {
     return isReachable;
   }
 
+  /// Returns cached server health from ContentProvider (instant, no network call)
+  /// Use this for quick checks during app startup
+  static Future<bool> getServerHealthCached() async {
+    final result = await _channel.invokeMethod('getServerHealthCached');
+    final cached = result as bool? ?? false;
+    print('Dart getServerHealthCached: $cached');
+    return cached;
+  }
+
   static Future<String?> getTermuxVersion() async {
     final result = await _channel.invokeMethod('getTermuxVersion');
     return result as String?;

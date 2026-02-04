@@ -34,11 +34,16 @@ class ApiRequestQueue {
 
   void initialize(String serverUrl, Dio dio) {
     _serverUrl = serverUrl;
+    _isServerReachable = ServerStatusManager.isReachable;
+    print(
+      'DEBUG: ApiRequestQueue initialized with URL: $serverUrl, initial reachable: $_isServerReachable',
+    );
     _startPolling();
   }
 
   void _startPolling() {
     _pollTimer?.cancel();
+    print('DEBUG: ApiRequestQueue starting timer (200ms)');
     _pollTimer = Timer.periodic(
       const Duration(milliseconds: 200),
       (_) => _processQueue,
@@ -50,6 +55,9 @@ class ApiRequestQueue {
     final interval = _isServerReachable
         ? const Duration(seconds: 5)
         : const Duration(milliseconds: 200);
+    print(
+      'DEBUG: ApiRequestQueue updating interval to ${interval.inMilliseconds}ms (reachable: $_isServerReachable)',
+    );
     _pollTimer = Timer.periodic(interval, (_) => _processQueue);
   }
 
@@ -105,9 +113,15 @@ class ApiRequestQueue {
     if (_serverUrl == null || _serverUrl!.isEmpty) return;
 
     final isReachable = await ServerHealthService.isReachable(_serverUrl!);
+    print(
+      'DEBUG: ApiRequestQueue poll - reachable: $isReachable, previous: $_isServerReachable',
+    );
 
     if (isReachable != _isServerReachable) {
       _isServerReachable = isReachable;
+      print(
+        'DEBUG: ApiRequestQueue calling ServerStatusManager.setReachable($isReachable)',
+      );
       ServerStatusManager.setReachable(isReachable);
       _updatePollingInterval();
     }
