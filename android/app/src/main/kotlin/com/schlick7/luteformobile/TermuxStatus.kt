@@ -195,66 +195,18 @@ suspend fun isLute3ServerRunningHttp(port: Int = TermuxConstants.LUTE3_DEFAULT_P
     }
 }
 
-suspend fun isLute3Installed(context: Context): InstallationStatus {
-    val checkFile = TermuxConstants.INSTALLATION_STATUS_FILE
-
+suspend fun isLute3InstalledFastCheck(context: Context): InstallationStatus {
     return try {
-        // Clean up old status file
-        try {
-            File(checkFile).delete()
-        } catch (e: Exception) {
-            // Ignore
-        }
-
-        // Simple script to check if lute3 is installed
-        val script = """
-            if pip show lute3 > /dev/null 2>&1; then
-                echo "INSTALLED" > $checkFile
-            else
-                echo "NOT_INSTALLED" > $checkFile
-            fi
-        """.trimIndent()
-
-        android.util.Log.d("TermuxStatus", "Checking lute3 installation, writing to: $checkFile")
-
-        val intent = Intent().apply {
-            setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-            action = TermuxConstants.TERMUX_ACTION
-            putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-        }
-
-        try {
-            context.startService(intent)
-        } catch (e: Exception) {
-            android.util.Log.e("TermuxStatus", "Failed to send command: ${e.message}")
-            return InstallationStatus.UNKNOWN
-        }
-
-        delay(TermuxConstants.INSTALLATION_CHECK_DELAY * 1000L)
-
-        val file = File(checkFile)
-        android.util.Log.d("TermuxStatus", "Checking status file exists: ${file.exists()}, path: $checkFile")
-
-        if (!file.exists()) {
-            android.util.Log.e("TermuxStatus", "Status file does not exist: $checkFile")
-            return InstallationStatus.UNKNOWN
-        }
-
-        val content = file.readText().trim()
-        android.util.Log.d("TermuxStatus", "Status file content: '$content'")
-
-        when {
-            content == "INSTALLED" -> InstallationStatus.INSTALLED
-            content == "NOT_INSTALLED" -> InstallationStatus.NOT_INSTALLED
-            else -> {
-                android.util.Log.e("TermuxStatus", "Unknown status content: '$content'")
-                InstallationStatus.UNKNOWN
-            }
+        val script = "pip show lute3 > /dev/null 2>&1 && echo 'INSTALLED' || echo 'NOT_INSTALLED'"
+        val success = RunCommandHelper.execute(context, script, timeoutMs = 2000)
+        
+        if (success) {
+            InstallationStatus.INSTALLED
+        } else {
+            InstallationStatus.NOT_INSTALLED
         }
     } catch (e: Exception) {
-        android.util.Log.e("TermuxStatus", "Installation check failed: ${e.message}")
+        android.util.Log.e("TermuxStatus", "Fast install check failed: ${e.message}")
         InstallationStatus.UNKNOWN
     }
 }

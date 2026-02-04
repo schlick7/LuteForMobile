@@ -220,9 +220,11 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     } catch (e) {
       print('Background status check failed: $e');
     } finally {
-      setState(() {
-        _isBackgroundChecking = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isBackgroundChecking = false;
+        });
+      }
     }
   }
 

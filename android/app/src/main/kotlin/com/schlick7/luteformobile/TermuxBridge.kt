@@ -54,7 +54,7 @@ class TermuxBridge(private val context: Context) {
                 "isLute3Installed" -> {
                     scope.launch {
                         try {
-                            val status = isLute3Installed(context)
+                            val status = isLute3InstalledFastCheck(context)
                             withContext(Dispatchers.Main) {
                                 result.success(status.name)
                             }
@@ -326,12 +326,12 @@ private suspend fun checkExternalAppsEnabled(context: Context): Boolean {
 
     android.util.Log.d("TermuxBridge", "Sending command to check external apps, writing to: $testFile")
 
-    val success = RunCommandHelper.execute(context, script)
+    val success = RunCommandHelper.execute(context, script, timeoutMs = 1500)
     if (!success) return false
 
     android.util.Log.d("TermuxBridge", "Command sent successfully")
 
-    delay(300)
+    delay(200)
 
     return try {
         val file = java.io.File(testFile)
@@ -356,7 +356,7 @@ private suspend fun checkExternalAppsEnabled(context: Context): Boolean {
     } catch (e: Exception) {
         android.util.Log.e("TermuxBridge", "File check failed: ${e.message}")
         false
-}
+    }
 }
 
 object RunCommandHelper {
@@ -610,6 +610,69 @@ suspend fun installLute3Chained(
         } catch (e: Exception) {
             android.util.Log.e("TermuxBridge", "Installation failed: ${e.message}")
             return@withContext "ERROR: ${e.message}"
+        }
+    }
+}
+
+class InstallationForegroundService : Service() {
+    companion object {
+        const val CHANNEL_ID = "lute_installation_channel"
+        const val NOTIFICATION_ID = 1001
+        const val ACTION_STOP = "com.schlick7.luteformobile.STOP_INSTALLATION"
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannel()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent?.action == ACTION_STOP) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0,
+            packageManager.getLaunchIntentForPackage(packageName),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val stopIntent = Intent(this, InstallationForegroundService::class.java).apply {
+            action = ACTION_STOP
+        }
+        val stopPendingIntent = PendingIntent.getService(
+            this, 0, stopIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Installing Lute3")
+            .setContentText("Installation in progress...")
+            .setSmallIcon(android.R.drawable.ic_menu_save)
+            .setOngoing(true)
+            .setContentIntent(pendingIntent)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancel", stopPendingIntent)
+            .build()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+        } else {
+            startForeground(NOTIFICATION_ID, notification)
+        }
+        return START_STICKY
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                CHANNEL_ID, "Installation", NotificationManager.IMPORTANCE_LOW
+            ).apply { description = "Lute3 installation progress" }
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(channel)
         }
     }
 }
