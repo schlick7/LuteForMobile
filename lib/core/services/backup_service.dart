@@ -113,8 +113,9 @@ class BackupService {
 
   static Future<String> downloadBackup(
     String serverUrl,
-    String filename,
-  ) async {
+    String filename, {
+    String serverType = 'termux',
+  }) async {
     try {
       final response = await http.get(
         Uri.parse('$serverUrl/backup/download/$filename'),
@@ -123,7 +124,9 @@ class BackupService {
       if (response.statusCode == 200) {
         final downloadsDir = Directory('/storage/emulated/0/Download');
         await downloadsDir.create(recursive: true);
-        final file = File('${downloadsDir.path}/$filename');
+        final prefix = serverType == 'termux' ? 'termux' : 'localurl';
+        final renamedFilename = '$prefix\_$filename';
+        final file = File('${downloadsDir.path}/$renamedFilename');
         await file.writeAsBytes(response.bodyBytes);
         return file.path;
       } else {

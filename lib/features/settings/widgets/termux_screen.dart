@@ -438,6 +438,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       final result = await BackupService.downloadBackup(
         Settings.termuxUrl,
         filename,
+        serverType: 'termux',
       );
 
       setState(() {
@@ -517,7 +518,11 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
 
     try {
       final localUrl = ref.read(settingsProvider).localUrl;
-      final result = await BackupService.downloadBackup(localUrl, filename);
+      final result = await BackupService.downloadBackup(
+        localUrl,
+        filename,
+        serverType: 'localurl',
+      );
 
       setState(() {
         _downloadingLocalBackups.remove(filename);
