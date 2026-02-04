@@ -265,6 +265,9 @@ class _StatsSettingTextFieldState
         final intValue = int.tryParse(value);
         if (intValue != null && intValue > 0 && intValue <= 500) {
           ref
+              .read(settingsProvider.notifier)
+              .updateStatsCalcSampleSize(intValue);
+          ref
               .read(contentServiceProvider)
               .setUserSetting(widget.settingKey, intValue.toString());
         }

@@ -62,7 +62,6 @@ class BooksState {
 class BooksNotifier extends Notifier<BooksState> {
   late BooksRepository _repository;
   bool _isRefreshingBook = false;
-  int? _originalSampleSize;
   bool _refreshRequestedAfterNavigate = false;
   bool _isLoadingArchivedBooks = false;
   bool _isLoadingFromNetwork = false;
@@ -212,8 +211,6 @@ class BooksNotifier extends Notifier<BooksState> {
       try {
         await _repository.invalidateAllBookStatsCache();
 
-        _originalSampleSize ??= await _repository.contentService
-            .getStatsSampleSize();
         await _repository.contentService.setUserSetting(
           'stats_calc_sample_size',
           '500',
@@ -252,15 +249,14 @@ class BooksNotifier extends Notifier<BooksState> {
         );
         state = state.copyWith(activeBooks: updatedActiveBooks);
       } finally {
-        if (_originalSampleSize != null) {
-          try {
-            await _repository.contentService.setUserSetting(
-              'stats_calc_sample_size',
-              _originalSampleSize!.toString(),
-            );
-          } catch (e) {
-            print('Failed to restore sample size: $e');
-          }
+        try {
+          final settings = ref.read(settingsProvider);
+          await _repository.contentService.setUserSetting(
+            'stats_calc_sample_size',
+            settings.statsCalcSampleSize.toString(),
+          );
+        } catch (e) {
+          print('Failed to restore sample size: $e');
         }
       }
 
@@ -316,8 +312,6 @@ class BooksNotifier extends Notifier<BooksState> {
     _refreshRequestedAfterNavigate = false;
 
     try {
-      _originalSampleSize ??= await _repository.contentService
-          .getStatsSampleSize();
       await _repository.contentService.setUserSetting(
         'stats_calc_sample_size',
         '500',
@@ -397,16 +391,14 @@ class BooksNotifier extends Notifier<BooksState> {
       }
     } finally {
       _isRefreshingBook = false;
-      if (_originalSampleSize != null) {
-        try {
-          await _repository.contentService.setUserSetting(
-            'stats_calc_sample_size',
-            _originalSampleSize!.toString(),
-          );
-        } catch (e) {
-          print('Failed to restore sample size: $e');
-        }
-        _originalSampleSize = null;
+      try {
+        final settings = ref.read(settingsProvider);
+        await _repository.contentService.setUserSetting(
+          'stats_calc_sample_size',
+          settings.statsCalcSampleSize.toString(),
+        );
+      } catch (e) {
+        print('Failed to restore sample size: $e');
       }
       if (_refreshRequestedAfterNavigate) {
         _refreshRequestedAfterNavigate = false;
@@ -619,8 +611,6 @@ class BooksNotifier extends Notifier<BooksState> {
     try {
       await _repository.invalidateAllBookStatsCache();
 
-      _originalSampleSize ??= await _repository.contentService
-          .getStatsSampleSize();
       await _repository.contentService.setUserSetting(
         'stats_calc_sample_size',
         '500',
@@ -662,15 +652,17 @@ class BooksNotifier extends Notifier<BooksState> {
       );
       _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
 
+      final settings = ref.read(settingsProvider);
       await _repository.contentService.setUserSetting(
         'stats_calc_sample_size',
-        '100',
+        settings.statsCalcSampleSize.toString(),
       );
     } catch (e) {
       try {
+        final settings = ref.read(settingsProvider);
         await _repository.contentService.setUserSetting(
           'stats_calc_sample_size',
-          '100',
+          settings.statsCalcSampleSize.toString(),
         );
       } catch (err) {
         print('Failed to restore sample size: $err');

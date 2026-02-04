@@ -31,6 +31,7 @@ class Settings {
   final bool enableTripleTapToMarkKnown;
   final bool termuxIntegrationEnabled;
   final bool termuxAutoLaunchEnabled;
+  final int statsCalcSampleSize;
 
   static const String termuxUrl = 'http://127.0.0.1:5001';
 
@@ -61,6 +62,7 @@ class Settings {
     this.enableTripleTapToMarkKnown = false,
     this.termuxIntegrationEnabled = false,
     this.termuxAutoLaunchEnabled = false,
+    this.statsCalcSampleSize = 5,
   });
 
   Settings copyWith({
@@ -92,6 +94,7 @@ class Settings {
     bool? enableTripleTapToMarkKnown,
     bool? termuxIntegrationEnabled,
     bool? termuxAutoLaunchEnabled,
+    int? statsCalcSampleSize,
   }) {
     return Settings(
       localUrl: localUrl ?? this.localUrl,
@@ -134,6 +137,7 @@ class Settings {
           termuxIntegrationEnabled ?? this.termuxIntegrationEnabled,
       termuxAutoLaunchEnabled:
           termuxAutoLaunchEnabled ?? this.termuxAutoLaunchEnabled,
+      statsCalcSampleSize: statsCalcSampleSize ?? this.statsCalcSampleSize,
     );
   }
 
@@ -165,6 +169,7 @@ class Settings {
       enableTripleTapToMarkKnown: false,
       termuxIntegrationEnabled: false,
       termuxAutoLaunchEnabled: false,
+      statsCalcSampleSize: 5,
     );
   }
 
@@ -198,7 +203,8 @@ class Settings {
         other.aiProvider == aiProvider &&
         other.enableTripleTapToMarkKnown == enableTripleTapToMarkKnown &&
         other.termuxIntegrationEnabled == termuxIntegrationEnabled &&
-        other.termuxAutoLaunchEnabled == termuxAutoLaunchEnabled;
+        other.termuxAutoLaunchEnabled == termuxAutoLaunchEnabled &&
+        other.statsCalcSampleSize == statsCalcSampleSize;
   }
 
   @override
@@ -229,6 +235,7 @@ class Settings {
     enableTripleTapToMarkKnown,
     termuxIntegrationEnabled,
     termuxAutoLaunchEnabled,
+    statsCalcSampleSize,
   ]);
 
   bool isValidServerUrl(String url) {

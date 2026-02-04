@@ -49,6 +49,7 @@ class SettingsNotifier extends Notifier<Settings> {
       'termux_integration_enabled';
   static const String _keyTermuxAutoLaunchEnabled =
       'termux_auto_launch_enabled';
+  static const String _keyStatsCalcSampleSize = 'stats_calc_sample_size';
 
   @override
   Settings build() {
@@ -93,6 +94,7 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getBool(_keyTermuxAutoLaunchEnabled) ?? false;
     final termuxIntegrationEnabled =
         prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
+    final statsCalcSampleSize = prefs.getInt(_keyStatsCalcSampleSize) ?? 5;
 
     final currentBookCache = CurrentBookCacheService.getInstance();
     final currentBookId = await currentBookCache.getCurrentBookId();
@@ -121,6 +123,7 @@ class SettingsNotifier extends Notifier<Settings> {
       enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
       termuxAutoLaunchEnabled: termuxAutoLaunchEnabled,
       termuxIntegrationEnabled: termuxIntegrationEnabled,
+      statsCalcSampleSize: statsCalcSampleSize,
     );
   }
 
@@ -339,6 +342,12 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyTermuxIntegrationEnabled, enabled);
   }
 
+  Future<void> updateStatsCalcSampleSize(int value) async {
+    state = state.copyWith(statsCalcSampleSize: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyStatsCalcSampleSize, value);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -370,6 +379,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyShowPageNumbers);
     await prefs.remove(_keyEnableTripleTapToMarkKnown);
     await prefs.remove(_keyTermuxAutoLaunchEnabled);
+    await prefs.remove(_keyStatsCalcSampleSize);
 
     state = Settings.defaultSettings();
   }
