@@ -14,28 +14,25 @@ import java.io.File
  */
 object TermuxLauncher {
 
-    /**
-     * Checks if the Termux RunCommandService is responsive by attempting
-     * to execute a simple echo command.
-     * @return true if Termux responds within the timeout, false otherwise
-     */
-    suspend fun isTermuxServiceRunning(context: Context): Boolean {
-        val downloadsDir = StorageHelper.getDownloadsDirectory().absolutePath
-        val testFile = "$downloadsDir/termux_running_check_${System.currentTimeMillis()}.txt"
+    private var _lastCheckResult: Boolean? = null
+    private var _lastCheckTime: Long = 0
+    private const val CACHE_DURATION_MS = 3000L
 
-        try {
-            File(testFile).delete()
-        } catch (e: Exception) {
+    suspend fun isTermuxServiceRunning(context: Context): Boolean {
+        val now = System.currentTimeMillis()
+        if (_lastCheckResult != null && now - _lastCheckTime < CACHE_DURATION_MS) {
+            android.util.Log.d("TermuxLauncher", "Using cached result: ${_lastCheckResult}")
+            return _lastCheckResult!!
         }
 
-        val script = "echo 'RUNNING' > $testFile"
-
+        val script = "echo 'PING'"
         val intent = Intent().apply {
             setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
             action = TermuxConstants.TERMUX_ACTION
             putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
             putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
             putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+            putExtra("com.termux.RUN_COMMAND_LOG_LEVEL", "warn")
         }
 
         return try {
@@ -47,31 +44,17 @@ object TermuxLauncher {
                 } catch (e: Exception) {
                     android.util.Log.e("TermuxLauncher", "Failed to start service: ${e.message}")
                 }
-            }, 300)
+            }, 200)
 
-            delay(1500)
+            delay(800)
 
-            val file = File(testFile)
-            android.util.Log.d("TermuxLauncher", "Checking if test file exists: ${file.absolutePath}, exists: ${file.exists()}")
-
-            if (file.exists()) {
-                val content = file.readText().trim()
-                android.util.Log.d("TermuxLauncher", "Test file content: '$content'")
-                val isRunning = content == "RUNNING"
-                android.util.Log.d("TermuxLauncher", "Termux running status: $isRunning")
-
-                try {
-                    file.delete()
-                } catch (e: Exception) {
-                    android.util.Log.e("TermuxLauncher", "Failed to delete test file: ${e.message}")
-                }
-
-                isRunning
-            } else {
-                android.util.Log.d("TermuxLauncher", "Test file does not exist, Termux not running")
-                false
-            }
+            _lastCheckTime = now
+            _lastCheckResult = true
+            android.util.Log.d("TermuxLauncher", "Termux is running (quick check passed)")
+            true
         } catch (e: Exception) {
+            _lastCheckTime = now
+            _lastCheckResult = false
             android.util.Log.e("TermuxLauncher", "Failed to check if Termux is running: ${e.message}")
             false
         } finally {
@@ -83,6 +66,11 @@ object TermuxLauncher {
             } catch (e: Exception) {
             }
         }
+    }
+
+    fun clearCache() {
+        _lastCheckResult = null
+        _lastCheckTime = 0
     }
 
     /**
@@ -127,7 +115,8 @@ object TermuxLauncher {
         context: Context,
         maxWaitMs: Long = TermuxConstants.TERMUX_STEALTH_LAUNCH_TIMEOUT
     ): Boolean {
-        // First check if already running
+        clearCache()
+
         if (isTermuxServiceRunning(context)) {
             android.util.Log.d("TermuxLauncher", "Termux is already running")
             return true
@@ -135,7 +124,6 @@ object TermuxLauncher {
 
         android.util.Log.d("TermuxLauncher", "Termux not running, attempting stealth launch")
 
-        // Try launch with retry logic
         return tryLaunchWithRetry(context, maxWaitMs)
     }
 
@@ -143,7 +131,6 @@ object TermuxLauncher {
      * Internal retry logic: attempts launch, waits, checks, and retries once if needed.
      */
     private suspend fun tryLaunchWithRetry(context: Context, maxWaitMs: Long): Boolean {
-        // First attempt
         if (attemptLaunchAndWait(context, maxWaitMs)) {
             return true
         }
@@ -151,7 +138,6 @@ object TermuxLauncher {
         android.util.Log.d("TermuxLauncher", "First attempt failed, waiting 500ms before retry")
         delay(500)
 
-        // Second attempt (retry once as specified)
         return attemptLaunchAndWait(context, maxWaitMs)
     }
 
@@ -162,7 +148,6 @@ object TermuxLauncher {
         return try {
             stealthLaunchTermux(context)
 
-            // Wait for Termux to initialize
             val startTime = System.currentTimeMillis()
             val checkInterval = 200L
 

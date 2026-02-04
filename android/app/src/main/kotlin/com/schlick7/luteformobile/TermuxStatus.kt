@@ -175,19 +175,19 @@ fun isTermuxPermissionGranted(context: Context): Boolean {
 suspend fun isLute3ServerRunningHttp(port: Int = TermuxConstants.LUTE3_DEFAULT_PORT): Boolean {
     return try {
         val client = OkHttpClient.Builder()
-            .connectTimeout(5, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
-            .callTimeout(10, java.util.concurrent.TimeUnit.SECONDS)
+            .connectTimeout(2, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
+            .callTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
             .build()
 
         val request = Request.Builder()
             .url("http://localhost:$port")
-            .get()  // Changed from head() to get() to ensure we get a full response
+            .head()
             .build()
 
         val response = client.newCall(request).execute()
         val isSuccessful = response.isSuccessful
-        response.close() // Important to close the response to free resources
+        response.close()
         isSuccessful
     } catch (e: Exception) {
         android.util.Log.d("TermuxStatus", "Server check failed: ${e.message}")

@@ -66,21 +66,6 @@ class TermuxBridge(private val context: Context) {
                     }
                 }
 
-                "isServerRunning" -> {
-                    scope.launch {
-                        try {
-                            val running = isLute3ServerRunningHttp(TermuxConstants.LUTE3_DEFAULT_PORT)
-                            withContext(Dispatchers.Main) {
-                                result.success(running)
-                            }
-                        } catch (e: Exception) {
-                            withContext(Dispatchers.Main) {
-                                result.success(false)
-                            }
-                        }
-                    }
-                }
-
                 "checkExternalAppsEnabled" -> {
                     scope.launch {
                         try {

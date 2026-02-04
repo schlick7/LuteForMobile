@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 
 class TermuxService {
   static const MethodChannel _channel = MethodChannel(
@@ -26,9 +28,26 @@ class TermuxService {
     return result as String? ?? 'UNKNOWN';
   }
 
+  static const int _kLute3DefaultPort = 5001;
+
   static Future<bool> isServerRunning() async {
-    final result = await _channel.invokeMethod('isServerRunning');
-    return result as bool? ?? false;
+    try {
+      final client = http.Client();
+      final response = await client
+          .head(
+            Uri.parse('http://localhost:$_kLute3DefaultPort'),
+            headers: {'Connection': 'close'},
+          )
+          .timeout(const Duration(seconds: 2));
+      client.close();
+      return response.statusCode == 200;
+    } on TimeoutException {
+      return false;
+    } on SocketException {
+      return false;
+    } on Exception {
+      return false;
+    }
   }
 
   static Future<String?> getTermuxVersion() async {
