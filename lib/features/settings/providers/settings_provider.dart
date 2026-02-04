@@ -6,6 +6,7 @@ import '../../../core/providers/initial_providers.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../core/cache/cache_manager.dart';
 import '../../../core/cache/current_book_cache_service.dart';
+import '../../../features/reader/providers/reader_provider.dart';
 
 typedef DrawerSettingsBuilder =
     Widget Function(BuildContext context, WidgetRef ref);
@@ -137,6 +138,7 @@ class SettingsNotifier extends Notifier<Settings> {
     if (previousServerUrl != state.serverUrl) {
       await CacheManager().clearServerDependentCaches();
       await clearCurrentBook();
+      ref.read(readerProvider.notifier).clearPageData();
     }
   }
 
@@ -156,6 +158,7 @@ class SettingsNotifier extends Notifier<Settings> {
     if (previousServerUrl != state.serverUrl) {
       await CacheManager().clearServerDependentCaches();
       await clearCurrentBook();
+      ref.read(readerProvider.notifier).clearPageData();
     }
   }
 

@@ -69,6 +69,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
   ReaderRepository get _repository => ref.read(readerRepositoryProvider);
 
+  void clearPageData() {
+    state = const ReaderState();
+  }
+
   String _getRequestKey(int bookId, int? pageNum) {
     return '${bookId}_${pageNum ?? 0}';
   }
