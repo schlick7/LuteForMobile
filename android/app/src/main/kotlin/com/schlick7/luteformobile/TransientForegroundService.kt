@@ -30,10 +30,12 @@ class TransientForegroundService : Service() {
         }
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Processing")
-            .setContentText("Running command...")
+            .setContentTitle("LuteForMobile")
+            .setContentText("Processing...")
             .setSmallIcon(android.R.drawable.ic_menu_preferences)
             .setOngoing(true)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -49,7 +51,10 @@ class TransientForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID, "Transient Operations", NotificationManager.IMPORTANCE_LOW
-            ).apply { description = "Transient foreground operations" }
+            ).apply { 
+                description = "Transient foreground operations"
+                setShowBadge(false)
+            }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
         }

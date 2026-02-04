@@ -89,13 +89,14 @@ class TermuxForegroundService : Service() {
         )
 
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("LuteForMobile Server")
-            .setContentText("Server running on port $port (tap to open app)")
+            .setContentTitle("LuteForMobile")
+            .setContentText("Server running")
             .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setOngoing(true)
+            .setSilent(true)
             .setContentIntent(pendingIntent)
-            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop Server", stopPendingIntent)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Stop", stopPendingIntent)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
 
         Log.d("TermuxForegroundService", "Notification built, about to call startForeground()")
@@ -175,14 +176,14 @@ class TermuxForegroundService : Service() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID, "Lute3 Server", NotificationManager.IMPORTANCE_DEFAULT
+                CHANNEL_ID, "Lute3 Server", NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Lute3 server running in foreground"
-                setShowBadge(true)
+                description = "Lute3 server running in background"
+                setShowBadge(false)
             }
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(channel)
-            Log.d("TermuxForegroundService", "Notification channel created with IMPORTANCE_DEFAULT")
+            Log.d("TermuxForegroundService", "Notification channel created with IMPORTANCE_LOW")
         }
     }
 
