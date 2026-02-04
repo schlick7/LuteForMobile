@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../services/server_health_service.dart';
 import '../../shared/providers/server_status_provider.dart';
@@ -32,7 +31,15 @@ class ApiRequestQueue {
   bool _isServerReachable = true;
   String? _serverUrl;
 
+  bool get isServerReachable => _isServerReachable;
+
   void initialize(String serverUrl, Dio dio) {
+    if (_serverUrl != null && _serverUrl == serverUrl) {
+      print(
+        'DEBUG: ApiRequestQueue already initialized with same URL, skipping',
+      );
+      return;
+    }
     _serverUrl = serverUrl;
     _isServerReachable = ServerStatusManager.isReachable;
     print(
@@ -112,25 +119,29 @@ class ApiRequestQueue {
   Future<void> _processQueue() async {
     if (_serverUrl == null || _serverUrl!.isEmpty) return;
 
-    final isReachable = await ServerHealthService.isReachable(_serverUrl!);
-    print(
-      'DEBUG: ApiRequestQueue poll - reachable: $isReachable, previous: $_isServerReachable',
-    );
+    if (_queue.isEmpty) return;
 
-    if (isReachable != _isServerReachable) {
-      _isServerReachable = isReachable;
-      print(
-        'DEBUG: ApiRequestQueue calling ServerStatusManager.setReachable($isReachable)',
-      );
-      ServerStatusManager.setReachable(isReachable);
-      _updatePollingInterval();
-    }
-
-    if (_isProcessing || _queue.isEmpty) return;
+    if (_isProcessing) return;
 
     _isProcessing = true;
 
-    if (isReachable) {
+    if (!_isServerReachable) {
+      final isReachable = await ServerHealthService.isReachable(_serverUrl!);
+      print(
+        'DEBUG: ApiRequestQueue poll - reachable: $isReachable, previous: $_isServerReachable',
+      );
+
+      if (isReachable != _isServerReachable) {
+        _isServerReachable = isReachable;
+        print(
+          'DEBUG: ApiRequestQueue calling ServerStatusManager.setReachable($isReachable)',
+        );
+        ServerStatusManager.setReachable(isReachable);
+        _updatePollingInterval();
+      }
+    }
+
+    if (_isServerReachable && _queue.isNotEmpty) {
       final requestsToProcess = List<QueuedRequest>.from(_queue);
       _queue.clear();
 

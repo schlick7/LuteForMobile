@@ -13,9 +13,7 @@ class QueuedDioInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    final isReachable = await ServerHealthService.isReachable(options.baseUrl);
-
-    if (isReachable) {
+    if (_queue.isServerReachable) {
       handler.next(options);
     } else {
       unawaited(
