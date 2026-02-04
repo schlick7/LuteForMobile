@@ -8,6 +8,8 @@ import '../../../core/cache/cache_manager.dart';
 import '../../../core/cache/current_book_cache_service.dart';
 import '../../../features/reader/providers/reader_provider.dart';
 import '../../../core/services/termux_service.dart';
+import '../../../core/services/server_health_service.dart';
+import '../../../shared/providers/server_status_provider.dart';
 
 typedef DrawerSettingsBuilder =
     Widget Function(BuildContext context, WidgetRef ref);
@@ -162,6 +164,9 @@ class SettingsNotifier extends Notifier<Settings> {
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
     }
+
+    final isReachable = await ServerHealthService.isReachable(state.serverUrl);
+    ServerStatusManager.setReachable(isReachable);
   }
 
   Future<void> updateTranslationProvider(String provider) async {

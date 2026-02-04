@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:crypto/crypto.dart';
 import '../services/server_health_service.dart';
+import '../../shared/providers/server_status_provider.dart';
 
 class QueuedRequest {
   final String signature;
@@ -29,12 +29,11 @@ class ApiRequestQueue {
   final Map<String, Completer<Response>> _pendingSignatures = {};
   Timer? _pollTimer;
   bool _isProcessing = false;
+  bool _isServerReachable = true;
   String? _serverUrl;
-  Dio? _dio;
 
   void initialize(String serverUrl, Dio dio) {
     _serverUrl = serverUrl;
-    _dio = dio;
     _startPolling();
   }
 
@@ -44,6 +43,14 @@ class ApiRequestQueue {
       const Duration(milliseconds: 200),
       (_) => _processQueue,
     );
+  }
+
+  void _updatePollingInterval() {
+    _pollTimer?.cancel();
+    final interval = _isServerReachable
+        ? const Duration(seconds: 5)
+        : const Duration(milliseconds: 200);
+    _pollTimer = Timer.periodic(interval, (_) => _processQueue);
   }
 
   void dispose() {
@@ -61,8 +68,7 @@ class ApiRequestQueue {
     final method = options.method;
     final url = options.uri.toString();
     final body = options.data?.toString() ?? '';
-    final input = '$method:$url:$body';
-    return md5.convert(utf8.encode(input)).toString();
+    return '$method:$url:$body';
   }
 
   Future<Response> enqueue(Dio dio, RequestOptions options) async {
@@ -86,18 +92,29 @@ class ApiRequestQueue {
 
     _queue.add(queuedRequest);
 
+    if (!_isServerReachable) {
+      _updatePollingInterval();
+    }
+
     unawaited(_processQueue());
 
     return completer.future;
   }
 
   Future<void> _processQueue() async {
-    if (_isProcessing || _queue.isEmpty) return;
     if (_serverUrl == null || _serverUrl!.isEmpty) return;
 
-    _isProcessing = true;
-
     final isReachable = await ServerHealthService.isReachable(_serverUrl!);
+
+    if (isReachable != _isServerReachable) {
+      _isServerReachable = isReachable;
+      ServerStatusManager.setReachable(isReachable);
+      _updatePollingInterval();
+    }
+
+    if (_isProcessing || _queue.isEmpty) return;
+
+    _isProcessing = true;
 
     if (isReachable) {
       final requestsToProcess = List<QueuedRequest>.from(_queue);
