@@ -122,15 +122,17 @@ class TermuxBridge(private val context: Context) {
 
                 // Server control
                 "startServer" -> {
+                    android.util.Log.i("TermuxBridge", ">>> FLUTTER START SERVER REQUEST <<<")
                     scope.launch {
-                        val success = ensureLute3ServerRunning(context)
+                        launchLute3ServerWithAutoShutdown(context)
                         withContext(Dispatchers.Main) {
-                            result.success(success)
+                            result.success(true)
                         }
                     }
                 }
 
                 "stopServer" -> {
+                    android.util.Log.i("TermuxBridge", ">>> FLUTTER STOP SERVER REQUEST <<<")
                     stopLute3Server(context)
                     result.success(true)
                 }

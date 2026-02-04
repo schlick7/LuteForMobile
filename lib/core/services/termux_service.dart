@@ -1,3 +1,5 @@
+import 'package:lute_for_mobile/features/settings/models/settings.dart';
+
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/services.dart';
@@ -36,21 +38,27 @@ class TermuxService {
   static const int _kLute3DefaultPort = 5001;
 
   static Future<bool> isServerRunning() async {
+    final startTime = DateTime.now();
     try {
       final client = http.Client();
       final response = await client
-          .head(
-            Uri.parse('http://localhost:$_kLute3DefaultPort'),
-            headers: {'Connection': 'close'},
-          )
-          .timeout(const Duration(seconds: 2));
+          .head(Uri.parse(Settings.termuxUrl), headers: {'Connection': 'close'})
+          .timeout(const Duration(milliseconds: 500));
       client.close();
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+      print('Dart isServerRunning: ${response.statusCode} in ${elapsed}ms');
       return response.statusCode == 200;
     } on TimeoutException {
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+      print('Dart isServerRunning: TIMEOUT after ${elapsed}ms');
       return false;
     } on SocketException {
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+      print('Dart isServerRunning: SOCKET_ERROR after ${elapsed}ms');
       return false;
     } on Exception {
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+      print('Dart isServerRunning: EXCEPTION after ${elapsed}ms');
       return false;
     }
   }
@@ -96,6 +104,12 @@ class TermuxService {
 
   // Server control
   static Future<bool> startServer() async {
+    // Check if server is already running first - this is fast from Flutter
+    final isAlreadyRunning = await isServerRunning();
+    if (isAlreadyRunning) {
+      print('startServer: Server already running, skipping...');
+      return true;
+    }
     final result = await _channel.invokeMethod('startServer');
     return result as bool? ?? false;
   }

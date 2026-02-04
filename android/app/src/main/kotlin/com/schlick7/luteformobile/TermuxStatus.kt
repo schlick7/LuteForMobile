@@ -4,7 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
@@ -182,24 +184,32 @@ fun isTermuxPermissionGranted(context: Context): Boolean {
 }
 
 suspend fun isLute3ServerRunningHttp(port: Int = TermuxConstants.LUTE3_DEFAULT_PORT): Boolean {
+    val url = "http://127.0.0.1:$port"
+    android.util.Log.i("TermuxStatus", ">>> HTTP CHECK: $url <<<")
     return try {
         val client = OkHttpClient.Builder()
-            .connectTimeout(2, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
-            .callTimeout(3, java.util.concurrent.TimeUnit.SECONDS)
+            .connectTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .readTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
+            .callTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
             .build()
 
         val request = Request.Builder()
-            .url("http://localhost:$port")
+            .url(url)
             .head()
             .build()
 
-        val response = client.newCall(request).execute()
+        val startTime = System.currentTimeMillis()
+        val response = withContext(Dispatchers.IO) {
+            client.newCall(request).execute()
+        }
+        val elapsed = System.currentTimeMillis() - startTime
+        val responseCode = response.code
         val isSuccessful = response.isSuccessful
+        android.util.Log.i("TermuxStatus", "HTTP $url -> $responseCode in ${elapsed}ms")
         response.close()
         isSuccessful
     } catch (e: Exception) {
-        android.util.Log.d("TermuxStatus", "Server check failed: ${e.message}")
+        android.util.Log.e("TermuxStatus", "HTTP $url FAILED: ${e.javaClass.simpleName}: ${e.message}")
         false
     }
 }

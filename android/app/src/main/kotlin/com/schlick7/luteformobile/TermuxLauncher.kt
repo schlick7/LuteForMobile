@@ -81,6 +81,7 @@ object TermuxLauncher {
      * - NEW_TASK | CLEAR_TOP: Clean start without creating multiple instances
      */
     fun stealthLaunchTermux(context: Context) {
+        android.util.Log.i("TermuxLauncher", ">>> TERMUX START REQUESTED <<<")
         val intent = Intent().apply {
             setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_MAIN_ACTIVITY)
             action = "android.intent.action.MAIN"
@@ -116,6 +117,7 @@ object TermuxLauncher {
         maxWaitMs: Long = TermuxConstants.TERMUX_STEALTH_LAUNCH_TIMEOUT
     ): Boolean {
         clearCache()
+        android.util.Log.i("TermuxLauncher", ">>> ENSURE TERMUX RUNNING <<<")
 
         if (isTermuxServiceRunning(context)) {
             android.util.Log.d("TermuxLauncher", "Termux is already running")

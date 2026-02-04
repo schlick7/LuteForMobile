@@ -63,27 +63,11 @@ class MainActivity : FlutterActivity() {
                 // Perform auto-launch in a coroutine
                 mainScope.launch {
                     try {
-                        val isRunning = TermuxLauncher.isTermuxServiceRunning(this@MainActivity)
-                        var termuxLaunchedSuccessfully = isRunning
-
-                        if (!isRunning) {
-                            android.util.Log.d("MainActivity", "Auto-launching Termux...")
-                            termuxLaunchedSuccessfully = TermuxLauncher.ensureTermuxRunning(this@MainActivity)
-                        } else {
-                            android.util.Log.d("MainActivity", "Termux is already running")
-                        }
-
-                        // If Termux is running (either was already running or was successfully launched),
-                        // start the server directly without checking if Lute3 is installed
-                        if (termuxLaunchedSuccessfully) {
-                            android.util.Log.d(
-                                "MainActivity",
-                                "Attempting to start Lute3 server after Termux auto-launch..."
-                            )
-                            launchLute3ServerWithAutoShutdown(this@MainActivity)
-                        } else {
-                            android.util.Log.d("MainActivity", "Cannot start server: Termux is not running")
-                        }
+                        android.util.Log.d(
+                            "MainActivity",
+                            "Auto-launching Lute3 server..."
+                        )
+                        launchLute3ServerWithAutoShutdown(this@MainActivity)
                     } catch (e: Exception) {
                         android.util.Log.e("MainActivity", "Auto-launch failed: ${e.message}")
                     }

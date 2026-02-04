@@ -52,6 +52,7 @@ class TermuxForegroundService : Service() {
         Log.d("TermuxForegroundService", "Intent action: ${intent?.action}")
 
         if (intent?.action == "STOP_SERVICE") {
+            android.util.Log.i("TermuxForegroundService", ">>> STOP SERVICE ACTION RECEIVED <<<")
             Log.d("TermuxForegroundService", "Received STOP_SERVICE action")
             stopSelf()
             return START_NOT_STICKY
@@ -121,6 +122,7 @@ class TermuxForegroundService : Service() {
     }
 
     private fun startLute3ServerInternal(port: Int, idleTimeoutMinutes: Int) {
+        android.util.Log.i("TermuxForegroundService", ">>> STARTING LUTE3 SERVER INTERNALLY <<<")
         val script = "python -m lute.main --port $port"
 
         Log.d("TermuxForegroundService", "Preparing to run: $script")
@@ -147,6 +149,7 @@ class TermuxForegroundService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        android.util.Log.i("TermuxForegroundService", ">>> FOREGROUND SERVICE ON DESTROY <<<")
         Log.d("TermuxForegroundService", "Foreground service destroyed")
 
         // Stop the Lute3 server when the service is destroyed
@@ -154,6 +157,7 @@ class TermuxForegroundService : Service() {
     }
 
     private fun stopLute3ServerInternal() {
+        android.util.Log.i("TermuxForegroundService", ">>> STOPPING LUTE3 SERVER INTERNALLY <<<")
         val intent = Intent().apply {
             setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
             action = TermuxConstants.TERMUX_ACTION

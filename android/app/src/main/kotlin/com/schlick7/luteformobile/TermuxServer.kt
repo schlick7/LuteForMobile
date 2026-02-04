@@ -27,8 +27,17 @@ suspend fun launchLute3ServerWithAutoShutdown(
     port: Int = TermuxConstants.LUTE3_DEFAULT_PORT,
     idleTimeoutMinutes: Int = TermuxConstants.IDLE_TIMEOUT_MINUTES
 ) {
-    android.util.Log.d("TermuxServer", "=== Starting Lute3 server with foreground service ===")
-    android.util.Log.d("TermuxServer", "Port: $port")
+    android.util.Log.i("TermuxServer", ">>> LUTE3 SERVER START REQUESTED <<<")
+
+    // Check if server is already running first
+    val serverRunning = isLute3ServerRunningHttp(port)
+    android.util.Log.d("TermuxServer", "HTTP check: serverRunning=$serverRunning")
+    if (serverRunning) {
+        android.util.Log.d("TermuxServer", "Lute3 server is already running on port $port")
+        return
+    }
+
+    android.util.Log.d("TermuxServer", "Lute3 server not running, starting...")
 
     // Ensure Termux is running and responsive before starting the server
     val termuxReady = TermuxLauncher.ensureTermuxRunning(context)
@@ -61,6 +70,7 @@ suspend fun touchHeartbeat(context: Context): Boolean {
 }
 
 fun stopLute3Server(context: Context) {
+    android.util.Log.i("TermuxServer", ">>> LUTE3 SERVER STOP REQUESTED <<<")
     // Stop the foreground service which will also stop the Lute3 server
     val stopIntent = Intent(context, TermuxForegroundService::class.java)
     try {
@@ -76,6 +86,7 @@ suspend fun ensureLute3ServerRunning(
     port: Int = TermuxConstants.LUTE3_DEFAULT_PORT,
     idleTimeoutMinutes: Int = TermuxConstants.IDLE_TIMEOUT_MINUTES
 ): Boolean {
+    android.util.Log.i("TermuxServer", ">>> ENSURE LUTE3 SERVER RUNNING <<<")
     // Check if server is running via HTTP request
     if (isLute3ServerRunningHttp(port)) {
         android.util.Log.d("TermuxServer", "Lute3 server is already running on port $port")
@@ -105,7 +116,7 @@ suspend fun ensureLute3ServerRunning(
     // Start the server again
     launchLute3ServerWithAutoShutdown(context, port, idleTimeoutMinutes)
 
-    // Wait a bit for the server to start
+    // Wait for the server to fully initialize before checking
     delay(5000)
 
     // Check if it's now running

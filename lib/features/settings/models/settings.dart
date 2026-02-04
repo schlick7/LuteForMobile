@@ -32,7 +32,7 @@ class Settings {
   final bool termuxIntegrationEnabled;
   final bool termuxAutoLaunchEnabled;
 
-  static const String termuxUrl = 'http://localhost:5001';
+  static const String termuxUrl = 'http://127.0.0.1:5001';
 
   const Settings({
     required this.localUrl,

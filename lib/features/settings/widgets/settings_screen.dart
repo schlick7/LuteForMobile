@@ -8,6 +8,7 @@ import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../models/settings.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../app.dart';
 import 'theme_selector_screen.dart';
@@ -211,8 +212,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         hintText: 'http://192.168.1.100:5001',
                         labelStyle: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
-                              color:
-                                  settings.serverUrl == 'http://localhost:5001'
+                              color: settings.serverUrl == Settings.termuxUrl
                                   ? Theme.of(context).colorScheme.onSurface
                                         .withValues(alpha: 0.4)
                                   : context.customColors.accentLabelColor,
@@ -253,7 +253,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 color: Theme.of(context).colorScheme.error,
                               ),
                       ),
-                      style: settings.serverUrl == 'http://localhost:5001'
+                      style: settings.serverUrl == Settings.termuxUrl
                           ? TextStyle(
                               color: Theme.of(
                                 context,
@@ -443,8 +443,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           Transform.scale(
                             scale: 0.8,
                             child: Switch(
-                              value:
-                                  settings.serverUrl == 'http://localhost:5001',
+                              value: settings.serverUrl == Settings.termuxUrl,
                               onChanged: (value) {
                                 ref
                                     .read(settingsProvider.notifier)
@@ -517,7 +516,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildSettingRow('Server URL', settings.serverUrl),
-                    if (settings.serverUrl == 'http://localhost:5001')
+                    if (settings.serverUrl == Settings.termuxUrl)
                       Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: Container(
