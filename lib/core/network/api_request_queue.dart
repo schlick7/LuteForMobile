@@ -31,7 +31,53 @@ class ApiRequestQueue {
   bool _isServerReachable = true;
   String? _serverUrl;
 
+  static const int _kMaxTableStatsConcurrent = 2;
+  int _tableStatsActive = 0;
+  final List<Completer<void>> _tableStatsWaiters = [];
+
   bool get isServerReachable => _isServerReachable;
+
+  bool _isTableStatsRequest(RequestOptions options) {
+    return options.uri.path.contains('/book/table_stats/');
+  }
+
+  Future<void> _acquireTableStatsSlot() async {
+    print(
+      'DEBUG: _acquireTableStatsSlot - active=$_tableStatsActive, waiters=${_tableStatsWaiters.length}',
+    );
+    if (_tableStatsActive < _kMaxTableStatsConcurrent) {
+      _tableStatsActive++;
+      print(
+        'DEBUG: _acquireTableStatsSlot - acquired slot, active=$_tableStatsActive',
+      );
+      return;
+    }
+    final completer = Completer<void>();
+    _tableStatsWaiters.add(completer);
+    print(
+      'DEBUG: _acquireTableStatsSlot - queued, total waiters=${_tableStatsWaiters.length}',
+    );
+    await completer.future;
+    print('DEBUG: _acquireTableStatsSlot - slot released, proceeding');
+  }
+
+  void _releaseTableStatsSlot() {
+    print(
+      'DEBUG: _releaseTableStatsSlot - active=$_tableStatsActive, waiters=${_tableStatsWaiters.length}',
+    );
+    if (_tableStatsWaiters.isNotEmpty) {
+      final nextCompleter = _tableStatsWaiters.removeAt(0);
+      nextCompleter.complete();
+      print(
+        'DEBUG: _releaseTableStatsSlot - released to waiter, remaining waiters=${_tableStatsWaiters.length}',
+      );
+    } else {
+      _tableStatsActive--;
+      print(
+        'DEBUG: _releaseTableStatsSlot - decremented active to $_tableStatsActive',
+      );
+    }
+  }
 
   void initialize(String serverUrl, Dio dio) {
     if (_serverUrl != null && _serverUrl == serverUrl) {
@@ -43,7 +89,7 @@ class ApiRequestQueue {
     _serverUrl = serverUrl;
     _isServerReachable = ServerStatusManager.isReachable;
     print(
-      'DEBUG: ApiRequestQueue initialized with URL: $serverUrl, initial reachable: $_isServerReachable',
+      'DEBUG: ApiRequestQueue initialized with URL: $serverUrl, initial reachable: $_isServerReachable, tableStatsActive=$_tableStatsActive',
     );
     _startPolling();
   }
@@ -106,6 +152,10 @@ class ApiRequestQueue {
     );
 
     _queue.add(queuedRequest);
+    final isStats = _isTableStatsRequest(options);
+    print(
+      'DEBUG: enqueue - ${options.uri}, isTableStats=$isStats, queueLength=${_queue.length}',
+    );
 
     if (!_isServerReachable) {
       _updatePollingInterval();
@@ -144,14 +194,30 @@ class ApiRequestQueue {
     if (_isServerReachable && _queue.isNotEmpty) {
       final requestsToProcess = List<QueuedRequest>.from(_queue);
       _queue.clear();
+      print(
+        'DEBUG: _processQueue - processing ${requestsToProcess.length} requests',
+      );
 
       for (final request in requestsToProcess) {
         _pendingSignatures.remove(request.signature);
+        final isStats = _isTableStatsRequest(request.options);
+        print(
+          'DEBUG: _processQueue - request: ${request.options.uri}, isTableStats=$isStats',
+        );
+
+        if (isStats) {
+          await _acquireTableStatsSlot();
+        }
+
         try {
           final response = await request.dio.fetch(request.options);
           request.completer.complete(response);
         } catch (e) {
           request.completer.completeError(e);
+        } finally {
+          if (isStats) {
+            _releaseTableStatsSlot();
+          }
         }
       }
     }
