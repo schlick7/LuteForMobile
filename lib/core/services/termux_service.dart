@@ -163,6 +163,33 @@ class TermuxService {
     return result as int?;
   }
 
+  static Future<bool> hasNotificationPermission() async {
+    final result = await _channel.invokeMethod('hasNotificationPermission');
+    return result as bool? ?? false;
+  }
+
+  static Future<bool> requestNotificationPermission() async {
+    try {
+      final result = await _channel.invokeMethod(
+        'requestNotificationPermission',
+      );
+      return result as bool? ?? false;
+    } on PlatformException catch (e) {
+      print('requestNotificationPermission failed: ${e.message}');
+      return false;
+    }
+  }
+
+  static Future<bool> requestTermuxPermission() async {
+    try {
+      final result = await _channel.invokeMethod('requestTermuxPermission');
+      return result as bool? ?? false;
+    } on PlatformException catch (e) {
+      print('requestTermuxPermission failed: ${e.message}');
+      return false;
+    }
+  }
+
   // tmux-related methods
   static Future<String> getTmuxStatus() async {
     final result = await _channel.invokeMethod('getTmuxStatus');

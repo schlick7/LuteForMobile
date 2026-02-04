@@ -4,12 +4,16 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.Manifest
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
@@ -283,6 +287,47 @@ class TermuxBridge(private val context: Context) {
                 "getAndroidVersion" -> {
                     val androidVersion = android.os.Build.VERSION.SDK_INT
                     result.success(androidVersion)
+                }
+
+                "hasNotificationPermission" -> {
+                    val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        PackageManager.PERMISSION_GRANTED ==
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        true
+                    }
+                    result.success(hasPermission)
+                }
+
+                "requestNotificationPermission" -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        val activity = findActivity(context)
+                        if (activity != null) {
+                            val permissions = arrayOf(Manifest.permission.POST_NOTIFICATIONS)
+                            ActivityCompat.requestPermissions(activity, permissions, 2001)
+                            result.success(true)
+                        } else {
+                            result.success(false)
+                        }
+                    } else {
+                        result.success(true)
+                    }
+                }
+
+                "requestTermuxPermission" -> {
+                    try {
+                        val intent = Intent().apply {
+                            setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+                            action = TermuxConstants.TERMUX_ACTION
+                            putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+                            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "echo 'Permission check'"))
+                            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+                        }
+                        context.startService(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
                 }
 
                 else -> result.notImplemented()
@@ -729,4 +774,15 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
             false
         }
     }
+}
+
+private fun findActivity(context: Context): android.app.Activity? {
+    var context = context
+    while (context is android.content.ContextWrapper) {
+        if (context is android.app.Activity) {
+            return context
+        }
+        context = context.baseContext
+    }
+    return null
 }

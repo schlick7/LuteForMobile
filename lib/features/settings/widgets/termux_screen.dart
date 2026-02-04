@@ -261,6 +261,32 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     AppSettings.openAppSettings(type: AppSettingsType.settings);
   }
 
+  Future<void> _requestTermuxPermission() async {
+    await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Termux Permission Required'),
+        content: const Text(
+          'LuteForMobile needs permission to run commands in Termux. '
+          'A permission dialog will appear in Termux - please grant it.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop(true);
+              await TermuxService.requestTermuxPermission();
+            },
+            child: const Text('Grant Permission'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _installLute3() async {
     await _installLute3Chained();
   }
@@ -336,6 +362,19 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Future<void> _startServer() async {
+    try {
+      final androidVersion = await TermuxService.getAndroidVersion();
+      if (androidVersion != null && androidVersion >= 33) {
+        final hasPermission = await TermuxService.hasNotificationPermission();
+        if (!hasPermission) {
+          await TermuxService.requestNotificationPermission();
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('Notification permission check failed: $e');
+    }
+
     await TermuxService.startServer();
     await Future.delayed(const Duration(seconds: 2));
     await _refreshServerStatus();
@@ -813,7 +852,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       _checkingPermission,
                       !_checkingPermission,
                       'Not granted',
-                      onTap: _openAppSettings,
+                      onTap: _requestTermuxPermission,
                     ),
                     const SizedBox(height: 8),
                     _buildStatusRow(

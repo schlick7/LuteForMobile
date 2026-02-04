@@ -87,10 +87,10 @@ class SettingsNotifier extends Notifier<Settings> {
     final showPageNumbers = prefs.getBool(_keyShowPageNumbers) ?? true;
     final enableTripleTapToMarkKnown =
         prefs.getBool(_keyEnableTripleTapToMarkKnown) ?? false;
-    final termuxIntegrationEnabled =
-        prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
     final termuxAutoLaunchEnabled =
         prefs.getBool(_keyTermuxAutoLaunchEnabled) ?? false;
+    final termuxIntegrationEnabled =
+        prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
 
     state = state.copyWith(
       translationProvider: translationProvider,
@@ -110,8 +110,8 @@ class SettingsNotifier extends Notifier<Settings> {
       showStatsBar: showStatsBar,
       showPageNumbers: showPageNumbers,
       enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
-      termuxIntegrationEnabled: termuxIntegrationEnabled,
       termuxAutoLaunchEnabled: termuxAutoLaunchEnabled,
+      termuxIntegrationEnabled: termuxIntegrationEnabled,
     );
   }
 
@@ -299,16 +299,16 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyEnableTripleTapToMarkKnown, enabled);
   }
 
-  Future<void> updateTermuxIntegrationEnabled(bool enabled) async {
-    state = state.copyWith(termuxIntegrationEnabled: enabled);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyTermuxIntegrationEnabled, enabled);
-  }
-
   Future<void> updateTermuxAutoLaunchEnabled(bool enabled) async {
     state = state.copyWith(termuxAutoLaunchEnabled: enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyTermuxAutoLaunchEnabled, enabled);
+  }
+
+  Future<void> updateTermuxIntegrationEnabled(bool enabled) async {
+    state = state.copyWith(termuxIntegrationEnabled: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyTermuxIntegrationEnabled, enabled);
   }
 
   bool _isValidUrl(String url) {
@@ -341,7 +341,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyShowStatsBar);
     await prefs.remove(_keyShowPageNumbers);
     await prefs.remove(_keyEnableTripleTapToMarkKnown);
-    await prefs.remove(_keyTermuxIntegrationEnabled);
     await prefs.remove(_keyTermuxAutoLaunchEnabled);
 
     state = Settings.defaultSettings();
