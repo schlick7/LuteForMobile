@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/providers/server_status_provider.dart';
 import '../providers/stats_provider.dart';
 import 'summary_cards.dart';
 import 'period_filter_widget.dart';
@@ -20,12 +21,29 @@ class StatsScreen extends ConsumerStatefulWidget {
 }
 
 class _StatsScreenState extends ConsumerState<StatsScreen> {
+  bool _serverReachable = true;
+
   @override
   void initState() {
     super.initState();
+    ServerStatus.addListener(_onServerStatusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(statsProvider.notifier).loadStats();
     });
+  }
+
+  void _onServerStatusChanged() {
+    if (mounted) {
+      setState(() {
+        _serverReachable = ServerStatus.isReachable;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    ServerStatus.removeListener(_onServerStatusChanged);
+    super.dispose();
   }
 
   @override
@@ -35,17 +53,22 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
+          builder: (context) {
+            return IconButton(
+              icon: Icon(
+                _serverReachable ? Icons.menu : Icons.warning,
+                color: _serverReachable ? null : Colors.red,
+              ),
+              onPressed: () {
+                if (widget.scaffoldKey != null &&
+                    widget.scaffoldKey!.currentState != null) {
+                  widget.scaffoldKey!.currentState!.openDrawer();
+                } else {
+                  Scaffold.of(context).openDrawer();
+                }
+              },
+            );
+          },
         ),
         title: const Text('Stats'),
         actions: [

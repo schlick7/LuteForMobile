@@ -11,6 +11,7 @@ import '../../../features/terms/providers/terms_provider.dart';
 import '../../../features/stats/providers/stats_provider.dart';
 import '../../../features/stats/models/stats_data.dart';
 import '../../../core/services/termux_service.dart';
+import '../../../shared/providers/server_status_provider.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../models/page_data.dart';
@@ -168,6 +169,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
   bool _checkServerPageInProgress = false;
+  bool _serverReachable = true;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -229,12 +231,22 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     WidgetsBinding.instance.addObserver(this);
     _hasInitialized = true;
     _scrollController.addListener(_handleScrollPosition);
+    ServerStatus.addListener(_onServerStatusChanged);
     Future.delayed(Duration.zero, _loadLanguageMapping);
     Future.delayed(Duration.zero, _loadStatsIfNeeded);
   }
 
+  void _onServerStatusChanged() {
+    if (mounted) {
+      setState(() {
+        _serverReachable = ServerStatus.isReachable;
+      });
+    }
+  }
+
   @override
   void dispose() {
+    ServerStatus.removeListener(_onServerStatusChanged);
     WidgetsBinding.instance.removeObserver(this);
     _hideUiTimer?.cancel();
     _glowTimer?.cancel();
@@ -528,17 +540,22 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           height: _isUiVisible ? kToolbarHeight + topPadding : 0,
           child: AppBar(
             leading: Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () {
-                  if (widget.scaffoldKey != null &&
-                      widget.scaffoldKey!.currentState != null) {
-                    widget.scaffoldKey!.currentState!.openDrawer();
-                  } else {
-                    Scaffold.of(context).openDrawer();
-                  }
-                },
-              ),
+              builder: (context) {
+                return IconButton(
+                  icon: Icon(
+                    _serverReachable ? Icons.menu : Icons.warning,
+                    color: _serverReachable ? null : Colors.red,
+                  ),
+                  onPressed: () {
+                    if (widget.scaffoldKey != null &&
+                        widget.scaffoldKey!.currentState != null) {
+                      widget.scaffoldKey!.currentState!.openDrawer();
+                    } else {
+                      Scaffold.of(context).openDrawer();
+                    }
+                  },
+                );
+              },
             ),
             title: Text(pageData?.title ?? 'Reader'),
             actions: [
@@ -587,17 +604,22 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     return AppBar(
       leading: Builder(
-        builder: (context) => IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {
-            if (widget.scaffoldKey != null &&
-                widget.scaffoldKey!.currentState != null) {
-              widget.scaffoldKey!.currentState!.openDrawer();
-            } else {
-              Scaffold.of(context).openDrawer();
-            }
-          },
-        ),
+        builder: (context) {
+          return IconButton(
+            icon: Icon(
+              _serverReachable ? Icons.menu : Icons.warning,
+              color: _serverReachable ? null : Colors.red,
+            ),
+            onPressed: () {
+              if (widget.scaffoldKey != null &&
+                  widget.scaffoldKey!.currentState != null) {
+                widget.scaffoldKey!.currentState!.openDrawer();
+              } else {
+                Scaffold.of(context).openDrawer();
+              }
+            },
+          );
+        },
       ),
       title: Text(pageData?.title ?? 'Reader'),
       actions: [

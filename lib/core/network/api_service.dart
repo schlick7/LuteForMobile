@@ -1,10 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
 
 class ApiService {
   final Dio _dio;
-
   static bool enableLogging = kDebugMode;
 
   ApiService({required String baseUrl, Dio? dio})
@@ -23,6 +24,22 @@ class ApiService {
           ) {
     _addRetryInterceptor();
     _addLoggingInterceptor();
+    _addStatusInterceptor();
+  }
+
+  void _addStatusInterceptor() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onResponse: (response, handler) {
+          ServerStatus.markSuccess();
+          return handler.next(response);
+        },
+        onError: (error, handler) {
+          ServerStatus.markError();
+          return handler.next(error);
+        },
+      ),
+    );
   }
 
   void _addRetryInterceptor() {
@@ -107,7 +124,6 @@ class ApiService {
       return true;
     }
     if (error.type == DioExceptionType.cancel) {
-      // Sometimes requests get cancelled during app transitions
       return true;
     }
     return false;

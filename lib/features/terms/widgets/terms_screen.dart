@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/providers/language_data_provider.dart';
+import '../../../shared/providers/server_status_provider.dart';
 import '../../../shared/models/language.dart';
 import '../providers/terms_provider.dart';
 import '../models/term.dart';
@@ -23,19 +24,30 @@ class TermsScreen extends ConsumerStatefulWidget {
 class _TermsScreenState extends ConsumerState<TermsScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  bool _serverReachable = true;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
+    ServerStatus.addListener(_onServerStatusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(termsProvider.notifier).resetForNewNavigation();
       ref.read(termsProvider.notifier).loadTerms(reset: true);
     });
   }
 
+  void _onServerStatusChanged() {
+    if (mounted) {
+      setState(() {
+        _serverReachable = ServerStatus.isReachable;
+      });
+    }
+  }
+
   @override
   void dispose() {
+    ServerStatus.removeListener(_onServerStatusChanged);
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     _searchController.dispose();
@@ -56,17 +68,22 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
+          builder: (context) {
+            return IconButton(
+              icon: Icon(
+                _serverReachable ? Icons.menu : Icons.warning,
+                color: _serverReachable ? null : Colors.red,
+              ),
+              onPressed: () {
+                if (widget.scaffoldKey != null &&
+                    widget.scaffoldKey!.currentState != null) {
+                  widget.scaffoldKey!.currentState!.openDrawer();
+                } else {
+                  Scaffold.of(context).openDrawer();
+                }
+              },
+            );
+          },
         ),
         title: const Text('Terms'),
         actions: [

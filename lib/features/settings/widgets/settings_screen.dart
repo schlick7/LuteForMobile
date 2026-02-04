@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
+import '../../../shared/providers/server_status_provider.dart';
 import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
@@ -30,6 +31,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isTesting = false;
   String? _connectionStatus;
   bool _connectionTestPassed = false;
+  bool _serverReachable = true;
 
   static const List<Color> _accentColorOptions = [
     Color(0xFF1976D2), // Blue
@@ -48,6 +50,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    ServerStatus.addListener(_onServerStatusChanged);
     SharedPreferences.getInstance().then((prefs) {
       final savedUrl = prefs.getString('local_url') ?? '';
       if (mounted) {
@@ -56,8 +59,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
   }
 
+  void _onServerStatusChanged() {
+    if (mounted) {
+      setState(() {
+        _serverReachable = ServerStatus.isReachable;
+      });
+    }
+  }
+
   @override
   void dispose() {
+    ServerStatus.removeListener(_onServerStatusChanged);
     _localUrlController.dispose();
     super.dispose();
   }
@@ -155,17 +167,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
+          builder: (context) {
+            return IconButton(
+              icon: Icon(
+                _serverReachable ? Icons.menu : Icons.warning,
+                color: _serverReachable ? null : Colors.red,
+              ),
+              onPressed: () {
+                if (widget.scaffoldKey != null &&
+                    widget.scaffoldKey!.currentState != null) {
+                  widget.scaffoldKey!.currentState!.openDrawer();
+                } else {
+                  Scaffold.of(context).openDrawer();
+                }
+              },
+            );
+          },
         ),
         title: const Text('Settings'),
         elevation: 2,

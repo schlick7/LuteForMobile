@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/providers/server_status_provider.dart';
 import '../providers/books_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../settings/models/settings.dart';
@@ -24,14 +25,25 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
   final TextEditingController _searchController = TextEditingController();
   Settings? _lastSettings;
   bool _hasTriggeredLoad = false;
+  bool _serverReachable = true;
 
   @override
   void initState() {
     super.initState();
+    ServerStatus.addListener(_onServerStatusChanged);
+  }
+
+  void _onServerStatusChanged() {
+    if (mounted) {
+      setState(() {
+        _serverReachable = ServerStatus.isReachable;
+      });
+    }
   }
 
   @override
   void dispose() {
+    ServerStatus.removeListener(_onServerStatusChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -64,17 +76,22 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
+          builder: (context) {
+            return IconButton(
+              icon: Icon(
+                _serverReachable ? Icons.menu : Icons.warning,
+                color: _serverReachable ? null : Colors.red,
+              ),
+              onPressed: () {
+                if (widget.scaffoldKey != null &&
+                    widget.scaffoldKey!.currentState != null) {
+                  widget.scaffoldKey!.currentState!.openDrawer();
+                } else {
+                  Scaffold.of(context).openDrawer();
+                }
+              },
+            );
+          },
         ),
         title: const Text('Books'),
         actions: [

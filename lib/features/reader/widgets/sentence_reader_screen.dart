@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/providers/server_status_provider.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
@@ -167,69 +168,31 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
   bool _checkServerPageInProgress = false;
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    _lastLifecycleState = state;
-
-    if (state == AppLifecycleState.resumed) {
-      // App has resumed from background/sleep
-      // Check if the server's current page matches the reader's page
-      if (!_checkServerPageInProgress) {
-        _checkServerPage();
-      }
-    }
-  }
-
-  /// Checks if the server's current page matches the reader's page
-  /// If they don't match, navigate to the server's page
-  Future<void> _checkServerPage() async {
-    if (_checkServerPageInProgress) {
-      return;
-    }
-    _checkServerPageInProgress = true;
-
-    final pageData = ref.read(readerProvider).pageData;
-    if (pageData != null) {
-      try {
-        final serverPage = await ref
-            .read(readerProvider.notifier)
-            .getCurrentPageForBook(pageData.bookId);
-
-        // If we got a valid page number from server and it's different from current page
-        if (serverPage != -1 && serverPage != pageData.currentPage) {
-          // Navigate to the server's page
-          ref
-              .read(readerProvider.notifier)
-              .loadPage(
-                bookId: pageData.bookId,
-                pageNum: serverPage,
-                showFullPageError:
-                    false, // Don't show full page error for navigation
-              );
-        }
-      } catch (e) {
-        print('Error checking server page: $e');
-        // Don't show error, just continue with current page
-      }
-    }
-
-    _checkServerPageInProgress = false;
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _ttsNotifier?.stop();
-    super.dispose();
-  }
+  bool _serverReachable = true;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    ServerStatus.addListener(_onServerStatusChanged);
     Future.delayed(Duration.zero, _loadLanguageMapping);
     Future.delayed(Duration.zero, _loadStatsIfNeeded);
+  }
+
+  void _onServerStatusChanged() {
+    if (mounted) {
+      setState(() {
+        _serverReachable = ServerStatus.isReachable;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    ServerStatus.removeListener(_onServerStatusChanged);
+    WidgetsBinding.instance.removeObserver(this);
+    _ttsNotifier?.stop();
+    super.dispose();
   }
 
   void _loadStatsIfNeeded() {
@@ -266,6 +229,48 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       return reader.pageData!.paragraphs[0].textItems.first.langId ?? 0;
     }
     return 0;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    _lastLifecycleState = state;
+
+    if (state == AppLifecycleState.resumed) {
+      if (!_checkServerPageInProgress) {
+        _checkServerPage();
+      }
+    }
+  }
+
+  Future<void> _checkServerPage() async {
+    if (_checkServerPageInProgress) {
+      return;
+    }
+    _checkServerPageInProgress = true;
+
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData != null) {
+      try {
+        final serverPage = await ref
+            .read(readerProvider.notifier)
+            .getCurrentPageForBook(pageData.bookId);
+
+        if (serverPage != -1 && serverPage != pageData.currentPage) {
+          ref
+              .read(readerProvider.notifier)
+              .loadPage(
+                bookId: pageData.bookId,
+                pageNum: serverPage,
+                showFullPageError: false,
+              );
+        }
+      } catch (e) {
+        print('Error checking server page: $e');
+      }
+    }
+
+    _checkServerPageInProgress = false;
   }
 
   @override
@@ -517,17 +522,22 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
+          builder: (context) {
+            return IconButton(
+              icon: Icon(
+                _serverReachable ? Icons.menu : Icons.warning,
+                color: _serverReachable ? null : Colors.red,
+              ),
+              onPressed: () {
+                if (widget.scaffoldKey != null &&
+                    widget.scaffoldKey!.currentState != null) {
+                  widget.scaffoldKey!.currentState!.openDrawer();
+                } else {
+                  Scaffold.of(context).openDrawer();
+                }
+              },
+            );
+          },
         ),
         title: Text(pageTitle ?? 'Sentence Reader'),
         actions: [

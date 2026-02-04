@@ -1,25 +1,34 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../shared/providers/server_status_provider.dart';
 
-class HelpScreen extends StatelessWidget {
+class HelpScreen extends ConsumerWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
 
   const HelpScreen({super.key, this.scaffoldKey});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final serverReachable = ServerStatus.isReachable;
+
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (scaffoldKey != null && scaffoldKey!.currentState != null) {
-                scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
+          builder: (context) {
+            return IconButton(
+              icon: Icon(
+                serverReachable ? Icons.menu : Icons.warning,
+                color: serverReachable ? null : Colors.red,
+              ),
+              onPressed: () {
+                if (scaffoldKey != null && scaffoldKey!.currentState != null) {
+                  scaffoldKey!.currentState!.openDrawer();
+                } else {
+                  Scaffold.of(context).openDrawer();
+                }
+              },
+            );
+          },
         ),
         title: const Text('Help'),
         elevation: 2,
