@@ -29,7 +29,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _termuxRunning = false;
   bool _checkingTermuxRunning = false;
   String _lute3Status = 'UNKNOWN';
-  String? _lute3Version;
   bool _serverRunning = false;
   List<Map<String, dynamic>>? _backups;
   bool _isBackingUp = false;
@@ -52,7 +51,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _checkingExternalApps = false;
   bool _checkingLute3 = false;
   bool _checkingServer = false;
-  bool _checkingVersion = false;
   bool _checkingBackups = false;
   bool _checkingLocalBackups = false;
 
@@ -174,15 +172,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         });
 
         if (lute3Status == 'INSTALLED') {
-          setState(() {
-            _checkingVersion = true;
-          });
-          final lute3Version = await TermuxService.getLute3Version();
-          setState(() {
-            _checkingVersion = false;
-            _lute3Version = lute3Version;
-          });
-
           if (serverRunning) {
             setState(() {
               _checkingBackups = true;
@@ -308,7 +297,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       },
     );
 
-    final result = await TermuxService.installLute3Chained();
+    final result = await TermuxService.installLute3();
 
     await _progressSubscription?.cancel();
     _progressSubscription = null;
@@ -844,14 +833,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     ),
                     if (_lute3Status == 'INSTALLED') ...[
                       const SizedBox(height: 8),
-                      _buildStatusRow(
-                        'Version',
-                        _lute3Version != null,
-                        _checkingVersion,
-                        !_checkingVersion,
-                        'Unknown',
-                        statusText: _lute3Version ?? 'Checking...',
-                      ),
                     ],
                   ],
                 ],

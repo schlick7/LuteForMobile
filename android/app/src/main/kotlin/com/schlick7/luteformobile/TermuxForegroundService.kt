@@ -8,7 +8,9 @@ import android.content.pm.ServiceInfo
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import android.util.Log
 
@@ -95,21 +97,22 @@ class TermuxForegroundService : Service() {
 
         Log.d("TermuxForegroundService", "Starting Lute3 server with script: $script")
 
-        val intent = Intent().apply {
-            setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
-            action = TermuxConstants.TERMUX_ACTION
-            putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
-            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
-            putExtra("com.termux.RUN_COMMAND_WORKDIR", TermuxConstants.TERMUX_HOME)
-        }
-
-        try {
-            startService(intent)
-            Log.d("TermuxForegroundService", "Lute3 server started successfully")
-        } catch (e: Exception) {
-            Log.e("TermuxForegroundService", "Failed to start Lute3 server: ${e.message}", e)
-        }
+        Handler(Looper.getMainLooper()).postDelayed({
+            val intent = Intent().apply {
+                setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+                action = TermuxConstants.TERMUX_ACTION
+                putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+                putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", script))
+                putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+                putExtra("com.termux.RUN_COMMAND_WORKDIR", TermuxConstants.TERMUX_HOME)
+            }
+            try {
+                startService(intent)
+                Log.d("TermuxForegroundService", "Lute3 server started successfully")
+            } catch (e: Exception) {
+                Log.e("TermuxForegroundService", "Failed to start Lute3 server: ${e.message}", e)
+            }
+        }, 300)
     }
 
     override fun onDestroy() {

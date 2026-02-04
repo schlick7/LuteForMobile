@@ -2,6 +2,8 @@ package com.schlick7.luteformobile
 
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import kotlinx.coroutines.delay
 import java.io.File
 
@@ -21,11 +23,9 @@ object TermuxLauncher {
         val downloadsDir = StorageHelper.getDownloadsDirectory().absolutePath
         val testFile = "$downloadsDir/termux_running_check_${System.currentTimeMillis()}.txt"
 
-        // Clean up any old test files
         try {
             File(testFile).delete()
         } catch (e: Exception) {
-            // Ignore cleanup errors
         }
 
         val script = "echo 'RUNNING' > $testFile"
@@ -39,25 +39,27 @@ object TermuxLauncher {
         }
 
         return try {
-            context.startService(intent)
+            val serviceIntent = Intent(context, TransientForegroundService::class.java)
+            context.startForegroundService(serviceIntent)
+            Handler(Looper.getMainLooper()).postDelayed({
+                try {
+                    context.startService(intent)
+                } catch (e: Exception) {
+                    android.util.Log.e("TermuxLauncher", "Failed to start service: ${e.message}")
+                }
+            }, 300)
 
-            // Wait for command to execute (give Termux more time to respond)
-            delay(1000)
+            delay(1500)
 
-            // Check if file was created
             val file = File(testFile)
-            android.util.Log.d(
-                "TermuxLauncher",
-                "Checking if test file exists: ${file.absolutePath}, exists: ${file.exists()}"
-            )
+            android.util.Log.d("TermuxLauncher", "Checking if test file exists: ${file.absolutePath}, exists: ${file.exists()}")
 
-            val result = if (file.exists()) {
+            if (file.exists()) {
                 val content = file.readText().trim()
                 android.util.Log.d("TermuxLauncher", "Test file content: '$content'")
                 val isRunning = content == "RUNNING"
                 android.util.Log.d("TermuxLauncher", "Termux running status: $isRunning")
 
-                // DELETE THE FILE AFTER CONFIRMING IT'S RUNNING - forces fresh check next time
                 try {
                     file.delete()
                 } catch (e: Exception) {
@@ -69,11 +71,17 @@ object TermuxLauncher {
                 android.util.Log.d("TermuxLauncher", "Test file does not exist, Termux not running")
                 false
             }
-
-            result
         } catch (e: Exception) {
             android.util.Log.e("TermuxLauncher", "Failed to check if Termux is running: ${e.message}")
             false
+        } finally {
+            try {
+                val stopIntent = Intent(context, TransientForegroundService::class.java).apply {
+                    action = "STOP"
+                }
+                context.startService(stopIntent)
+            } catch (e: Exception) {
+            }
         }
     }
 

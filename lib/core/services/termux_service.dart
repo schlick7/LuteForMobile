@@ -31,11 +31,6 @@ class TermuxService {
     return result as bool? ?? false;
   }
 
-  static Future<String?> getLute3Version() async {
-    final result = await _channel.invokeMethod('getLute3Version');
-    return result as String?;
-  }
-
   static Future<String?> getTermuxVersion() async {
     final result = await _channel.invokeMethod('getTermuxVersion');
     return result as String?;
@@ -93,11 +88,6 @@ class TermuxService {
 
   // Installation
   static Future<String> installLute3() async {
-    final result = await _channel.invokeMethod('installLute3');
-    return result as String? ?? 'FAILED';
-  }
-
-  static Future<String> installLute3Chained() async {
     final result = await _channel.invokeMethod('installLute3Chained');
     return result as String? ?? 'FAILED';
   }

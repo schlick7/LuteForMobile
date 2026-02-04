@@ -3,13 +3,11 @@ package com.schlick7.luteformobile
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.app.ActivityManager
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.File
-import java.io.IOException
 
 sealed class CommandResult {
     data class Success(val output: String) : CommandResult()
@@ -171,42 +169,6 @@ fun isTermuxPermissionGranted(context: Context): Boolean {
         return false
     } catch (e: Exception) {
         return false
-    }
-}
-
-fun isTermuxVersionCompatible(context: Context): Boolean {
-    return try {
-        val packageInfo = context.packageManager.getPackageInfo(
-            TermuxConstants.TERMUX_PACKAGE,
-            0
-        )
-
-        // Termux 0.95 or higher is required for external apps
-        val versionCode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            packageInfo.longVersionCode.toInt()
-        } else {
-            @Suppress("DEPRECATION")
-            packageInfo.versionCode
-        }
-
-        // Version 0.95 has version code around 95
-        versionCode >= 95
-    } catch (e: Exception) {
-        false
-    }
-}
-
-fun isLute3ServerRunning(context: Context): Boolean {
-    return try {
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        val runningProcesses = activityManager.runningAppProcesses
-
-        runningProcesses?.any { process ->
-            process.processName.contains("com.termux") &&
-                    process.processName.contains("python")
-        } ?: false
-    } catch (e: Exception) {
-        false
     }
 }
 
