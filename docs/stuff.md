@@ -33,7 +33,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 # Requests 
  
 # Reader
--
+- Disable swipe navigation by default. 
 
 # Sentence Reader
 -
@@ -51,7 +51,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 -
 
 # Statistics Screen  
-- 
+- Default language to that of currentbook
 
 # Help Screen
 - 
