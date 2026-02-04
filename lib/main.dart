@@ -10,6 +10,7 @@ import 'package:lute_for_mobile/core/cache/term_cache_service.dart';
 import 'package:lute_for_mobile/features/stats/repositories/stats_repository.dart';
 import 'package:lute_for_mobile/core/network/api_service.dart';
 import 'package:lute_for_mobile/core/services/server_health_service.dart';
+import 'package:lute_for_mobile/core/services/termux_service.dart';
 import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
 import 'package:lute_for_mobile/hive_registrar.g.dart';
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
@@ -31,9 +32,22 @@ void main() async {
 
   ServerStatusManager.setConnecting();
 
+  // Get cached server health from ContentProvider (instant, one-time use)
+  final cachedHealth = useTermux
+      ? await TermuxService.getServerHealthCached()
+      : false;
+  print('main.dart: Cached server health from ContentProvider: $cachedHealth');
+
+  // Use cached health if available, otherwise do fresh check
   if (serverUrl.isNotEmpty) {
-    final isServerReachable = await ServerHealthService.isReachable(serverUrl);
-    ServerStatusManager.setReachable(isServerReachable);
+    if (cachedHealth) {
+      ServerStatusManager.setReachable(true);
+    } else {
+      final isServerReachable = await ServerHealthService.isReachable(
+        serverUrl,
+      );
+      ServerStatusManager.setReachable(isServerReachable);
+    }
   } else {
     ServerStatusManager.setReachable(false);
   }
@@ -41,7 +55,10 @@ void main() async {
   ServerStatusManager.setInitialCheckComplete(true);
 
   if (serverUrl.isNotEmpty) {
-    final apiService = ApiService(baseUrl: serverUrl);
+    final apiService = ApiService(
+      baseUrl: serverUrl,
+      cachedServerHealth: cachedHealth,
+    );
     apiService.triggerAutoBackup();
   }
 

@@ -16,7 +16,11 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
   @override
   Future<StatsState> build() async {
     final ref = this.ref;
-    final apiService = ref.watch(apiServiceProvider);
+    final apiServiceAsync = ref.watch(apiServiceProvider);
+    final apiService = apiServiceAsync.value;
+    if (apiService == null) {
+      throw Exception('ApiService not initialized');
+    }
     _contentService = ContentService(apiService: apiService);
     return const StatsState();
   }

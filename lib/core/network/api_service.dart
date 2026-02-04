@@ -11,7 +11,7 @@ class ApiService {
   static bool enableLogging = kDebugMode;
   static final ApiRequestQueue _requestQueue = ApiRequestQueue();
 
-  ApiService({required String baseUrl, Dio? dio})
+  ApiService({required String baseUrl, Dio? dio, bool? cachedServerHealth})
     : _dio =
           dio ??
           Dio(
@@ -25,7 +25,11 @@ class ApiService {
               validateStatus: (status) => status != null && status < 400,
             ),
           ) {
-    _requestQueue.initialize(baseUrl, _dio);
+    _requestQueue.initialize(
+      baseUrl,
+      _dio,
+      initialReachable: cachedServerHealth,
+    );
     _dio.interceptors.add(QueuedDioInterceptor(_requestQueue));
     _addRetryInterceptor();
     _addLoggingInterceptor();

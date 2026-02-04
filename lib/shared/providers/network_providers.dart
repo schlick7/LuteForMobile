@@ -3,16 +3,25 @@ import '../../features/settings/providers/settings_provider.dart';
 import '../../core/network/api_service.dart';
 import '../../core/network/content_service.dart';
 import '../../core/network/dictionary_service.dart';
+import '../../core/services/termux_service.dart';
 
 // API service provider using serverUrl from settings
-final apiServiceProvider = Provider<ApiService>((ref) {
+// Uses cached server health from ContentProvider for instant initialization
+final apiServiceProvider = FutureProvider<ApiService>((ref) async {
   final settings = ref.watch(settingsProvider);
-  return ApiService(baseUrl: settings.serverUrl);
+  final cachedHealth = await TermuxService.getServerHealthCached();
+  return ApiService(
+    baseUrl: settings.serverUrl,
+    cachedServerHealth: cachedHealth,
+  );
 });
 
 // Content service provider
 final contentServiceProvider = Provider<ContentService>((ref) {
-  final apiService = ref.watch(apiServiceProvider);
+  final apiService = ref.watch(apiServiceProvider).value;
+  if (apiService == null) {
+    throw Exception('ApiService not initialized yet');
+  }
   return ContentService(apiService: apiService);
 });
 

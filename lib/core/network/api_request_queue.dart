@@ -32,9 +32,9 @@ class ApiRequestQueue {
   bool _isServerReachable = true;
   String? _serverUrl;
 
-  void initialize(String serverUrl, Dio dio) {
+  void initialize(String serverUrl, Dio dio, {bool? initialReachable}) {
     _serverUrl = serverUrl;
-    _isServerReachable = ServerStatusManager.isReachable;
+    _isServerReachable = initialReachable ?? ServerStatusManager.isReachable;
     print(
       'DEBUG: ApiRequestQueue initialized with URL: $serverUrl, initial reachable: $_isServerReachable',
     );
