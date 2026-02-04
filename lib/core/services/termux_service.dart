@@ -34,11 +34,9 @@ class TermuxService {
     return result as String? ?? 'UNKNOWN';
   }
 
-  static Future<bool> isServerRunning() async {
+  static Future<bool> isServerRunning(String url) async {
     final startTime = DateTime.now();
-    final isReachable = await ServerHealthService.isReachable(
-      Settings.termuxUrl,
-    );
+    final isReachable = await ServerHealthService.isReachable(url);
     final elapsed = DateTime.now().difference(startTime).inMilliseconds;
     print('Dart isServerRunning: $isReachable in ${elapsed}ms');
     return isReachable;
@@ -95,7 +93,7 @@ class TermuxService {
   // Server control
   static Future<bool> startServer() async {
     // Check if server is already running first - this is fast from Flutter
-    final isAlreadyRunning = await isServerRunning();
+    final isAlreadyRunning = await isServerRunning(Settings.termuxUrl);
     if (isAlreadyRunning) {
       print('startServer: Server already running, skipping...');
       return true;

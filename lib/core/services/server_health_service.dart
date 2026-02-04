@@ -1,33 +1,54 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 
 class ServerHealthService {
   static const Duration _kDefaultTimeout = Duration(milliseconds: 500);
 
+  static final Dio _dio = Dio(
+    BaseOptions(
+      connectTimeout: _kDefaultTimeout,
+      receiveTimeout: _kDefaultTimeout,
+      sendTimeout: _kDefaultTimeout,
+    ),
+  );
+
   static Future<bool> isReachable(String url) async {
-    if (url.isEmpty) return false;
+    if (url.isEmpty) {
+      print('ServerHealthService: URL is empty, returning false');
+      return false;
+    }
 
     final uri = Uri.tryParse(url);
-    if (uri == null || !uri.hasScheme) return false;
+    if (uri == null || !uri.hasScheme) {
+      print('ServerHealthService: Invalid URI "$url", returning false');
+      return false;
+    }
 
     try {
-      final client = Dio(
-        BaseOptions(
-          connectTimeout: _kDefaultTimeout,
-          receiveTimeout: _kDefaultTimeout,
-          sendTimeout: _kDefaultTimeout,
-        ),
-      );
+      // Use /info endpoint for health check (designed for this purpose)
+      final healthUri = uri.replace(path: '/info');
+      print('ServerHealthService: Sending HEAD request to $healthUri');
 
-      final response = await client.headUri(uri);
-      client.close();
+      final startTime = DateTime.now();
+      final response = await _dio.headUri(healthUri);
+      final elapsed = DateTime.now().difference(startTime).inMilliseconds;
+
+      print(
+        'ServerHealthService: HEAD $healthUri -> ${response.statusCode} in ${elapsed}ms',
+      );
       return response.statusCode == 200;
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
+      print('ServerHealthService: HEAD $url TIMEOUT - ${e.duration}');
       return false;
-    } on DioException {
+    } on DioException catch (e) {
+      print('ServerHealthService: HEAD $url DIO ERROR');
+      print('  - type: ${e.type}');
+      print('  - message: ${e.message}');
+      print('  - error: ${e.error}');
+      print('  - stack trace: ${e.stackTrace}');
       return false;
-    } on Exception {
+    } on Exception catch (e) {
+      print('ServerHealthService: HEAD $url EXCEPTION - ${e.runtimeType}: $e');
       return false;
     }
   }

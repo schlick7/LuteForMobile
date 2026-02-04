@@ -169,7 +169,10 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           _lute3Status = lute3Status;
         });
 
-        final serverRunning = await TermuxService.isServerRunning();
+        final settings = ref.read(settingsProvider);
+        final serverRunning = await TermuxService.isServerRunning(
+          settings.serverUrl,
+        );
         setState(() {
           _checkingServer = false;
           _serverRunning = serverRunning;
@@ -389,7 +392,10 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Future<void> _refreshServerStatus() async {
-    final serverRunning = await TermuxService.isServerRunning();
+    final settings = ref.read(settingsProvider);
+    final serverRunning = await TermuxService.isServerRunning(
+      settings.serverUrl,
+    );
     setState(() {
       _serverRunning = serverRunning;
     });

@@ -272,7 +272,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final settings = ref.read(settingsProvider);
     if (settings.serverUrl == Settings.termuxUrl &&
         settings.termuxAutoLaunchEnabled) {
-      final isRunning = await TermuxService.isServerRunning();
+      final isRunning = await TermuxService.isServerRunning(settings.serverUrl);
       if (!isRunning) {
         await TermuxService.startServer();
       }

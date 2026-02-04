@@ -32,7 +32,9 @@ void main() async {
   ServerStatusManager.setConnecting();
 
   if (serverUrl.isNotEmpty) {
+    print('main.dart: Checking server health at $serverUrl');
     final isServerReachable = await ServerHealthService.isReachable(serverUrl);
+    print('main.dart: Server health check result: $isServerReachable');
     ServerStatusManager.setReachable(isServerReachable);
   } else {
     ServerStatusManager.setReachable(false);

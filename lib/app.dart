@@ -203,7 +203,9 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     if (settings.serverUrl == Settings.termuxUrl &&
         settings.termuxAutoLaunchEnabled) {
       for (int i = 0; i < 15; i++) {
-        final isRunning = await TermuxService.isServerRunning();
+        final isRunning = await TermuxService.isServerRunning(
+          settings.serverUrl,
+        );
         if (isRunning) {
           if (_needsDataRefresh) {
             print('DEBUG: Server ready, refreshing data...');
