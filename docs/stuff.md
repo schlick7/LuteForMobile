@@ -3,18 +3,11 @@
 - source myenv/bin/activate
   - python3 -m lute.main
   
+  
 Lets do a performance review of this app starting with the ReadScreen 
-
-
 
 Look at flutter logs and cleanup issues
 
-Hive cache affected by termuxurl and localurl usage?
-
-
-i think we're trying to start a new server when its already running sometimes on app launch. can we make a quick api call and see if it reports a 200 status before trying to start the lute3server? This should ALWAYS happen when starting the lute3server no matter how its started. This test should result in an 200 respone or an error almost instantly correct?
-
-Can we somehow pause or hold all api requests in a queue if the server test fails? We would also need to add a server check for when the localurl is active. If the server test fails we should keep retrying every 200ms until successful and then resume or release the api requests. This means that we should run the server test as early in the app launch as we possibly can. 
 
 ---
 
