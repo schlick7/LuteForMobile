@@ -188,12 +188,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _localUrlController,
+                      enabled: settings.serverUrl != 'http://localhost:5001',
                       decoration: InputDecoration(
                         labelText: 'Local URL',
                         hintText: 'http://192.168.1.100:5001',
                         labelStyle: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
-                              color: context.customColors.accentLabelColor,
+                              color:
+                                  settings.serverUrl == 'http://localhost:5001'
+                                  ? Theme.of(context).colorScheme.onSurface
+                                        .withValues(alpha: 0.4)
+                                  : context.customColors.accentLabelColor,
                             ),
                         border: const OutlineInputBorder(),
                         errorText: settings.isUrlValid
@@ -488,6 +493,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildSettingRow('Server URL', settings.serverUrl),
+                    if (settings.serverUrl == 'http://localhost:5001')
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Using Termux (localhost)',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimaryContainer,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
