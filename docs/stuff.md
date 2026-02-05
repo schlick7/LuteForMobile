@@ -25,6 +25,9 @@ When we prefetch tooltips why does it rebuild the textdisplay everysingle time??
 02-04 20:12:59.345 27200 27200 I flutter : DEBUG: TextDisplay rebuild #174 (paragraphs: 42)
 
 
+Are we preloading pages on the readscreen without the readscreen being the active screen? if so can we stop that?
+
+
 ---
 
 https://wiki.termux.com/wiki/Main_Page
