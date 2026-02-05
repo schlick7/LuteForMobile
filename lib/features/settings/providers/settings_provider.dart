@@ -8,6 +8,9 @@ import '../../../core/cache/cache_manager.dart';
 import '../../../features/reader/providers/reader_provider.dart';
 import '../../../core/services/termux_service.dart';
 import '../../../core/services/server_health_service.dart';
+import '../../books/providers/books_provider.dart';
+import '../../stats/providers/stats_provider.dart';
+import '../../terms/providers/terms_provider.dart';
 import '../../../shared/providers/server_status_provider.dart';
 
 typedef DrawerSettingsBuilder =
@@ -178,6 +181,11 @@ class SettingsNotifier extends Notifier<Settings> {
       await CacheManager().clearServerDependentCaches();
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
+
+      // Refresh all data that depends on the server
+      await ref.read(booksProvider.notifier).refreshBooks();
+      await ref.read(statsProvider.notifier).refreshStats();
+      await ref.read(termsProvider.notifier).refreshTerms();
     }
 
     final isReachable = await ServerHealthService.isReachable(state.serverUrl);
