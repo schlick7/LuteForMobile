@@ -817,7 +817,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: 16),
                     _buildNumberField(
                       context,
-                      '500 Sample Size',
+                      'Full Refresh Sample Size',
                       settings.stats500SampleSize.toString(),
                       '1-500',
                       1,
