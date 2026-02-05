@@ -720,8 +720,12 @@ class BooksNotifier extends Notifier<BooksState> {
 
     await _repository.refreshBookStats(bookId);
     final statsBook = await _repository.contentService.getBookStats(bookId);
+    final currentPage = await _repository.contentService.getCurrentPageForBook(
+      bookId,
+    );
 
     final updatedBook = existingBook.copyWith(
+      currentPage: currentPage,
       distinctTerms: statsBook.distinctTerms,
       unknownPct: statsBook.unknownPct,
       statusDistribution: statsBook.statusDistribution,
