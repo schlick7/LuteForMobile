@@ -455,6 +455,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       }
 
       _loadAudioIfNeeded();
+
+      // Force rebuild to ensure UI reflects loaded book content
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e, stackTrace) {
       print('ERROR: loadBook failed: $e');
       print('Stack trace: $stackTrace');

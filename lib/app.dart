@@ -191,8 +191,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     _navigationController = ref.read(navigationProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateDrawerSettings();
-      _loadLastReadBook();
       _checkAndStartLute3IfNeeded();
+      _loadLastReadBook();
     });
     _navigationController.addReaderListener(_handleNavigateToReader);
     _navigationController.addScreenListener(_handleNavigateToScreen);
@@ -303,55 +303,11 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   }
 
   void _loadLastReadBook() async {
-    const maxRetries = 10;
-    const retryDelay = Duration(milliseconds: 100);
-
     final settings = ref.read(settingsProvider);
-    if (settings.currentBookId == null) {
-      return;
-    }
+    if (settings.currentBookId == null) return;
 
-    for (int attempt = 1; attempt <= maxRetries; attempt++) {
-      final booksState = ref.read(booksProvider);
-      final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
-      Book? cachedBook;
-      try {
-        cachedBook = allBooks.firstWhere((b) => b.id == settings.currentBookId);
-      } catch (_) {
-        cachedBook = null;
-      }
-
-      if (cachedBook != null) {
-        ref.read(currentBookProvider.notifier).setBook(cachedBook);
-
-        if (_readerKey.currentState != null) {
-          _readerKey.currentState!.loadBook(
-            cachedBook.id!,
-            cachedBook.currentPage,
-          );
-        }
-        return;
-      }
-
-      await Future.delayed(retryDelay);
-    }
-
-    try {
-      final book = await ref
-          .read(booksProvider.notifier)
-          .getUpdatedBook(settings.currentBookId!);
-
-      ref
-          .read(settingsProvider.notifier)
-          .updateCurrentBook(book.id, null, book.langId);
-
-      ref.read(currentBookProvider.notifier).setBook(book);
-
-      if (_readerKey.currentState != null) {
-        _readerKey.currentState!.loadBook(book.id, null);
-      }
-    } catch (e) {
-      _needsDataRefresh = true;
+    if (_readerKey.currentState != null) {
+      await _readerKey.currentState!.loadBook(settings.currentBookId!);
     }
   }
 
