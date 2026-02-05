@@ -130,12 +130,11 @@ class BooksNotifier extends Notifier<BooksState> {
           activeBooks: activeFromCache,
           archivedBooks: archivedFromCache ?? state.archivedBooks,
         );
-        _backgroundRefreshExpiredBooks();
       } else {
         state = state.copyWith(isLoading: false);
-        await _loadBooksFromNetwork();
-        _backgroundRefreshExpiredBooks();
       }
+      await _loadBooksFromNetwork();
+      _backgroundRefreshExpiredBooks();
     } catch (e) {
       state = state.copyWith(isLoading: false);
       print('Error loading books from cache: $e');
@@ -427,16 +426,35 @@ class BooksNotifier extends Notifier<BooksState> {
         'DEBUG: _loadBooksFromNetwork - got ${networkBooks.length} books from network, first book hasStats=${networkBooks.first.hasStats}, distinctTerms=${networkBooks.first.distinctTerms}',
       );
 
-      final existingBookIds = {for (var b in state.activeBooks) b.id};
+      final networkBooksMap = {for (var b in networkBooks) b.id: b};
+      final updatedActiveBooks = state.activeBooks.map((existing) {
+        final network = networkBooksMap[existing.id];
+        if (network != null) {
+          return existing.copyWith(
+            title: network.title,
+            language: network.language,
+            langId: network.langId ?? existing.langId,
+            totalPages: network.totalPages,
+            currentPage: network.currentPage,
+            percent: network.percent,
+            wordCount: network.wordCount,
+            tags: network.tags ?? existing.tags,
+            lastRead: network.lastRead ?? existing.lastRead,
+            isCompleted: network.isCompleted,
+            audioFilename: network.audioFilename ?? existing.audioFilename,
+            distinctTerms: existing.distinctTerms,
+            unknownPct: existing.unknownPct,
+            statusDistribution: existing.statusDistribution,
+          );
+        }
+        return existing;
+      }).toList();
+
       final newBooks = networkBooks
-          .where((b) => !existingBookIds.contains(b.id))
+          .where((b) => !networkBooksMap.containsKey(b.id))
           .toList();
 
-      print(
-        'DEBUG: _loadBooksFromNetwork - ${newBooks.length} new books (out of ${networkBooks.length}), ${existingBookIds.length} existing books',
-      );
-
-      final finalActiveBooks = [...state.activeBooks, ...newBooks];
+      final finalActiveBooks = [...updatedActiveBooks, ...newBooks];
 
       await _repository.saveBooksToCache(
         activeBooks: finalActiveBooks,
