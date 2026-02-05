@@ -232,6 +232,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     _hasInitialized = true;
     _scrollController.addListener(_handleScrollPosition);
     ServerStatusManager.addListener(_onServerStatusChanged);
+
     Future.delayed(Duration.zero, _loadLanguageMapping);
     Future.delayed(Duration.zero, _loadStatsIfNeeded);
   }

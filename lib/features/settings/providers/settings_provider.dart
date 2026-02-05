@@ -5,7 +5,6 @@ import '../models/settings.dart';
 import '../../../core/providers/initial_providers.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../core/cache/cache_manager.dart';
-import '../../../core/cache/current_book_cache_service.dart';
 import '../../../features/reader/providers/reader_provider.dart';
 import '../../../core/services/termux_service.dart';
 import '../../../core/services/server_health_service.dart';
@@ -104,12 +103,14 @@ class SettingsNotifier extends Notifier<Settings> {
     final statsRefreshCooldownHours =
         prefs.getInt(_keyStatsRefreshCooldownHours) ?? 48;
 
-    final currentBookCache = CurrentBookCacheService.getInstance();
-    final currentBookId = await currentBookCache.getCurrentBookId();
-    final currentBookLangId = await currentBookCache.getCurrentBookLangId();
-    final currentBookPage = await currentBookCache.getCurrentBookPage();
-    final currentBookSentenceIndex = await currentBookCache
-        .getCurrentBookSentenceIndex();
+    final currentBookId = prefs.getInt(_keyCurrentBookId);
+    final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
+    final currentBookPage = prefs.getInt(_keyCurrentBookPage);
+    final currentBookSentenceIndex = prefs.getInt(_keyCurrentBookSentenceIndex);
+
+    print(
+      'DEBUG: _loadOtherSettings - SharedPreferences currentBookId=$currentBookId, page=$currentBookPage, langId=$currentBookLangId',
+    );
 
     state = state.copyWith(
       translationProvider: translationProvider,
@@ -241,6 +242,9 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> updateCurrentBook(int bookId, [int? page, int? langId]) async {
+    print(
+      'DEBUG: updateCurrentBook - saving bookId=$bookId, page=$page, langId=$langId',
+    );
     state = state.copyWith(
       currentBookId: bookId,
       currentBookLangId: langId,
@@ -248,16 +252,22 @@ class SettingsNotifier extends Notifier<Settings> {
       currentBookSentenceIndex: null,
     );
 
-    final currentBookCache = CurrentBookCacheService.getInstance();
-    await currentBookCache.saveCurrentBook(
-      bookId: bookId,
-      langId: langId ?? 0,
-      page: page,
-      sentenceIndex: null,
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyCurrentBookId, bookId);
+    if (langId != null) {
+      await prefs.setInt(_keyCurrentBookLangId, langId);
+    }
+    if (page != null) {
+      await prefs.setInt(_keyCurrentBookPage, page);
+    }
+    await prefs.remove(_keyCurrentBookSentenceIndex);
+    print(
+      'DEBUG: updateCurrentBook - saved to SharedPreferences: bookId=$bookId, page=$page, langId=$langId',
     );
   }
 
   Future<void> clearCurrentBook() async {
+    print('DEBUG: clearCurrentBook - clearing current book data');
     state = state.copyWith(
       currentBookId: null,
       currentBookLangId: null,
@@ -265,27 +275,21 @@ class SettingsNotifier extends Notifier<Settings> {
       currentBookSentenceIndex: null,
     );
 
-    final currentBookCache = CurrentBookCacheService.getInstance();
-    await currentBookCache.clearCurrentBook();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyCurrentBookId);
+    await prefs.remove(_keyCurrentBookLangId);
+    await prefs.remove(_keyCurrentBookPage);
+    await prefs.remove(_keyCurrentBookSentenceIndex);
+    print('DEBUG: clearCurrentBook - cleared from SharedPreferences');
   }
 
   Future<void> updateCurrentBookSentenceIndex(int? sentenceIndex) async {
     state = state.copyWith(currentBookSentenceIndex: sentenceIndex);
-    final currentBookCache = CurrentBookCacheService.getInstance();
+    final prefs = await SharedPreferences.getInstance();
     if (sentenceIndex == null) {
-      await currentBookCache.clearCurrentBook();
+      await prefs.remove(_keyCurrentBookSentenceIndex);
     } else {
-      final currentBookId = state.currentBookId;
-      final currentBookLangId = state.currentBookLangId;
-      final currentBookPage = state.currentBookPage;
-      if (currentBookId != null && currentBookLangId != null) {
-        await currentBookCache.saveCurrentBook(
-          bookId: currentBookId,
-          langId: currentBookLangId,
-          page: currentBookPage,
-          sentenceIndex: sentenceIndex,
-        );
-      }
+      await prefs.setInt(_keyCurrentBookSentenceIndex, sentenceIndex);
     }
   }
 
