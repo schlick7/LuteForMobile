@@ -9,6 +9,22 @@ Lets do a performance review of this app starting with the ReadScreen
 Look at flutter logs and cleanup issues
 
 
+Are we still doing http request to homepage on app launch after the server is confirmed connected? we need to do this so the server backups can trigger correctly. 
+
+If i change the seversecltion to termux the server only stats temporarily and then shuts down. I think this is because the silent notification is never created maybe? but it works no problem if i go over to the termux integration and press the start server button. Whats is happening different? isn't all of the server launch supposed to be the same process??? Research this please. 
+
+When we prefetch tooltips why does it rebuild the textdisplay everysingle time?? And why is it make 2 fetches of the exact samething? seems like we have a duplicate issues. logs: 02-04 20:12:59.339 27200 27200 I flutter : API RESPONSE: GET http://192.168.1.152:5001/read/termpopup/23793 - 200
+02-04 20:12:59.339 27200 27200 I flutter : API RESPONSE: GET http://192.168.1.152:5001/read/termpopup/23793 - 200
+02-04 20:12:59.339 27200 27200 I flutter : HTML Parser: Paragraph innerHtml: "to come, come over"
+02-04 20:12:59.339 27200 27200 I flutter : HTML Parser: Final translation: "to come, come over"
+02-04 20:12:59.340 27200 27200 I flutter : HTML Parser: Paragraph innerHtml: "to come, come over"
+02-04 20:12:59.340 27200 27200 I flutter : HTML Parser: Final translation: "to come, come over"
+02-04 20:12:59.340 27200 27200 I flutter : API REQUEST: GET http://192.168.1.152:5001/read/termpopup/23793
+02-04 20:12:59.340 27200 27200 I flutter : API REQUEST: GET http://192.168.1.152:5001/read/termpopup/23793
+02-04 20:12:59.345 27200 27200 I flutter : DEBUG: ReaderScreen.build - pageData=54
+02-04 20:12:59.345 27200 27200 I flutter : DEBUG: TextDisplay rebuild #174 (paragraphs: 42)
+
+
 ---
 
 https://wiki.termux.com/wiki/Main_Page
@@ -42,7 +58,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 - Add a settings toggle to "Always Refresh for Book Details" default to on. Then we need to hook up the code so that it always triggers that bookstats500pagesample
 
 # Terms Screen
--
+- Default to currentbook languages. Used to do this?
 
 # Statistics Screen  
 - Default language to that of currentbook
