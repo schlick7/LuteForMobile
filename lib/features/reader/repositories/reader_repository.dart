@@ -39,6 +39,20 @@ class ReaderRepository {
     }
   }
 
+  /// Fetches a term tooltip and returns both the parsed object and raw HTML.
+  /// This is more efficient than calling getTermTooltip and getRawTermTooltipHtml
+  /// separately, as it only makes one API request.
+  Future<(TermTooltip tooltip, String html)?> getTermTooltipWithHtml(
+    int termId,
+  ) async {
+    try {
+      return await contentService.getTermTooltipWithHtml(termId);
+    } catch (e) {
+      print('Failed to load term tooltip with HTML: $e');
+      return null;
+    }
+  }
+
   Future<LanguageSentenceSettings> getLanguageSentenceSettings(
     int langId,
   ) async {

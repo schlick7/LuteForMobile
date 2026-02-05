@@ -187,6 +187,19 @@ class ContentService {
     return parser.parseTermTooltip(htmlContent);
   }
 
+  /// Fetches a term tooltip and returns both the parsed TermTooltip object
+  /// and the raw HTML string in a single API request.
+  /// This is more efficient than calling getTermTooltip and getRawTermTooltipHtml
+  /// separately when both are needed (e.g., during prefetching).
+  Future<(TermTooltip tooltip, String html)> getTermTooltipWithHtml(
+    int termId,
+  ) async {
+    final response = await _apiService.getTermTooltip(termId);
+    final htmlContent = response.data ?? '';
+    final tooltip = parser.parseTermTooltip(htmlContent);
+    return (tooltip, htmlContent);
+  }
+
   Future<String?> getRawTermTooltipHtml(int termId) async {
     try {
       final htmlContent = await _apiService.getRawTermTooltipHtml(termId);

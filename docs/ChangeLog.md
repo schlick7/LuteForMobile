@@ -1,8 +1,9 @@
 # Bug Fixes
 - Stop autobackups from triggering constantly
 - Fixed some excessive Cache calls
-- Fixed a bunch of excessive Fetch calls
+- Fixed a BUNCH of excessive Fetch calls
 - Fixed some incorrect Rebuilds triggering
+- Fixed ondevice TTS
 
 # New Feature
 - Termux Integration (Android APK only)
@@ -12,3 +13,4 @@
   - Trigger Db backups and Download Db backups
 
 # Other Changes
+- Make tooltips open instantly

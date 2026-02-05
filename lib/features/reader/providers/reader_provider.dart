@@ -62,9 +62,25 @@ class ReaderNotifier extends Notifier<ReaderState> {
   // Track the current page request to ignore stale responses
   String _currentRequestKey = '';
 
+  // Sequential prefetch queue - ensures tooltip preloads happen in order
+  // and don't overlap (prevents duplicate fetches for shared terms)
+  Future<void>? _prefetchQueue;
+
   @override
   ReaderState build() {
     return const ReaderState();
+  }
+
+  /// Adds a prefetch task to the sequential queue.
+  /// Ensures that prefetch operations don't overlap and cause duplicate fetches.
+  Future<void> _enqueuePrefetch(Future<void> Function() task) async {
+    print(
+      'DEBUG: Enqueueing prefetch task (queue active: ${_prefetchQueue != null})',
+    );
+    final future =
+        _prefetchQueue?.then((_) => task()).catchError((_) => task()) ?? task();
+    _prefetchQueue = future;
+    return future;
   }
 
   ReaderRepository get _repository => ref.read(readerRepositoryProvider);
@@ -189,16 +205,16 @@ class ReaderNotifier extends Notifier<ReaderState> {
           // Cache hit: update state with cached data
           state = state.copyWith(isLoading: false, pageData: pageData);
 
-          // Refresh current page statuses in background first
+          // Refresh current page statuses in background first (can run in parallel)
           _backgroundRefreshStatuses(bookId, pageNum, requestKey);
 
-          // Then load current page tooltips
-          preloadTooltipsForCurrentPage();
+          // Queue up prefetch operations sequentially to avoid duplicate fetches
+          // Current page tooltips first, then next page, then next page tooltips
+          _enqueuePrefetch(() => preloadTooltipsForCurrentPage());
 
-          // Preload next page AFTER everything else is done
           if (pageData.currentPage < pageData.pageCount) {
-            preloadNextPage();
-            preloadTooltipsForNextPage(); // Preload tooltips for the next page
+            _enqueuePrefetch(() => preloadNextPage());
+            _enqueuePrefetch(() => preloadTooltipsForNextPage());
           }
         } else {
           // Cache miss: stay in loading state and trigger background refresh
@@ -367,40 +383,61 @@ class ReaderNotifier extends Notifier<ReaderState> {
     final currentPageData = state.pageData;
     if (currentPageData == null) return;
 
-    try {
-      // Extract unique term IDs from the current page
-      final termIds = <int>{};
-      for (final paragraph in currentPageData.paragraphs) {
-        for (final item in paragraph.textItems) {
-          if (item.wordId != null && item.wordId! > 0) {
-            termIds.add(item.wordId!);
-          }
+    // Extract unique term IDs from the current page
+    final termIds = <int>{};
+    for (final paragraph in currentPageData.paragraphs) {
+      for (final item in paragraph.textItems) {
+        if (item.wordId != null && item.wordId! > 0) {
+          termIds.add(item.wordId!);
         }
+      }
+    }
+
+    await _preloadTooltipsForTerms(termIds, 'current');
+  }
+
+  /// Helper method to preload tooltips for a set of term IDs
+  /// Uses single API call per term (fetches and caches in one request)
+  Future<void> _preloadTooltipsForTerms(
+    Set<int> termIds,
+    String pageLabel,
+  ) async {
+    if (termIds.isEmpty) return;
+
+    final settings = ref.read(settingsProvider);
+    if (!settings.enableTooltipCaching) return;
+
+    final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
+    int fetchedCount = 0;
+    int cachedCount = 0;
+
+    for (final termId in termIds) {
+      // Check if tooltip is already cached
+      final cachedEntry = await tooltipCacheService.getFromCache(termId);
+      if (cachedEntry != null) {
+        cachedCount++;
+        continue;
       }
 
-      // Preload tooltips for these terms
-      final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
-      for (final termId in termIds) {
-        // Check if tooltip is already cached
-        final cachedEntry = await tooltipCacheService.getFromCache(termId);
-        if (cachedEntry == null) {
-          // Fetch and cache the tooltip
-          try {
-            final tooltip = await _repository.getTermTooltip(termId);
-            if (tooltip != null) {
-              final rawHtml = await _repository.contentService
-                  .getRawTermTooltipHtml(termId);
-              if (rawHtml != null) {
-                await tooltipCacheService.saveToCache(termId, rawHtml);
-              }
-            }
-          } catch (e) {
-            print('Error preloading tooltip for term $termId: $e');
+      // Fetch and cache the tooltip in a single API call
+      try {
+        final result = await _repository.getTermTooltipWithHtml(termId);
+        if (result != null) {
+          final (tooltip, html) = result;
+          if (html.isNotEmpty) {
+            await tooltipCacheService.saveToCache(termId, html);
+            fetchedCount++;
           }
         }
+      } catch (e) {
+        print('Error preloading tooltip for term $termId: $e');
       }
-    } catch (e) {
-      print('Error preloading tooltips for current page: $e');
+    }
+
+    if (fetchedCount > 0 || cachedCount > 0) {
+      print(
+        'DEBUG: Preloaded $pageLabel page tooltips - fetched: $fetchedCount, cached: $cachedCount',
+      );
     }
   }
 
@@ -424,10 +461,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
         forceRefresh: false,
       );
 
-      // Extract unique term IDs from the next page
-      final termIds = <int>{};
       if (nextPageData == null) return;
 
+      // Extract unique term IDs from the next page
+      final termIds = <int>{};
       for (final paragraph in nextPageData.paragraphs) {
         for (final item in paragraph.textItems) {
           if (item.wordId != null && item.wordId! > 0) {
@@ -436,27 +473,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
         }
       }
 
-      // Preload tooltips for these terms
-      final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
-      for (final termId in termIds) {
-        // Check if tooltip is already cached
-        final cachedEntry = await tooltipCacheService.getFromCache(termId);
-        if (cachedEntry == null) {
-          // Fetch and cache the tooltip
-          try {
-            final tooltip = await _repository.getTermTooltip(termId);
-            if (tooltip != null) {
-              final rawHtml = await _repository.contentService
-                  .getRawTermTooltipHtml(termId);
-              if (rawHtml != null) {
-                await tooltipCacheService.saveToCache(termId, rawHtml);
-              }
-            }
-          } catch (e) {
-            print('Error preloading tooltip for term $termId: $e');
-          }
-        }
-      }
+      await _preloadTooltipsForTerms(termIds, 'next');
     } catch (e) {
       print('Error preloading tooltips for next page: $e');
     }
