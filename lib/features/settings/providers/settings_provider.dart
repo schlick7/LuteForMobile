@@ -50,6 +50,10 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyTermuxAutoLaunchEnabled =
       'termux_auto_launch_enabled';
   static const String _keyStatsCalcSampleSize = 'stats_calc_sample_size';
+  static const String _keyStats500SampleSize = 'stats_500_sample_size';
+  static const String _keyStatsRefreshBatchSize = 'stats_refresh_batch_size';
+  static const String _keyStatsRefreshCooldownHours =
+      'stats_refresh_cooldown_hours';
 
   @override
   Settings build() {
@@ -95,6 +99,10 @@ class SettingsNotifier extends Notifier<Settings> {
     final termuxIntegrationEnabled =
         prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
     final statsCalcSampleSize = prefs.getInt(_keyStatsCalcSampleSize) ?? 5;
+    final stats500SampleSize = prefs.getInt(_keyStats500SampleSize) ?? 500;
+    final statsRefreshBatchSize = prefs.getInt(_keyStatsRefreshBatchSize) ?? 2;
+    final statsRefreshCooldownHours =
+        prefs.getInt(_keyStatsRefreshCooldownHours) ?? 48;
 
     final currentBookCache = CurrentBookCacheService.getInstance();
     final currentBookId = await currentBookCache.getCurrentBookId();
@@ -124,6 +132,9 @@ class SettingsNotifier extends Notifier<Settings> {
       termuxAutoLaunchEnabled: termuxAutoLaunchEnabled,
       termuxIntegrationEnabled: termuxIntegrationEnabled,
       statsCalcSampleSize: statsCalcSampleSize,
+      stats500SampleSize: stats500SampleSize,
+      statsRefreshBatchSize: statsRefreshBatchSize,
+      statsRefreshCooldownHours: statsRefreshCooldownHours,
     );
   }
 
@@ -348,6 +359,24 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setInt(_keyStatsCalcSampleSize, value);
   }
 
+  Future<void> updateStats500SampleSize(int value) async {
+    state = state.copyWith(stats500SampleSize: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyStats500SampleSize, value);
+  }
+
+  Future<void> updateStatsRefreshBatchSize(int value) async {
+    state = state.copyWith(statsRefreshBatchSize: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyStatsRefreshBatchSize, value);
+  }
+
+  Future<void> updateStatsRefreshCooldownHours(int value) async {
+    state = state.copyWith(statsRefreshCooldownHours: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyStatsRefreshCooldownHours, value);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -380,6 +409,8 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyEnableTripleTapToMarkKnown);
     await prefs.remove(_keyTermuxAutoLaunchEnabled);
     await prefs.remove(_keyStatsCalcSampleSize);
+    await prefs.remove(_keyStatsRefreshBatchSize);
+    await prefs.remove(_keyStatsRefreshCooldownHours);
 
     state = Settings.defaultSettings();
   }

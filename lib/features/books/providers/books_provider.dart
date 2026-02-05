@@ -179,9 +179,10 @@ class BooksNotifier extends Notifier<BooksState> {
     _isBackgroundRefreshing = true;
 
     try {
+      final settings = ref.read(settingsProvider);
       final now = DateTime.now().millisecondsSinceEpoch;
-      final ttl = Duration(hours: 48);
-      final cooldown = Duration(hours: 6);
+      final ttl = Duration(hours: 336);
+      final cooldown = Duration(hours: settings.statsRefreshCooldownHours);
 
       if (_lastBackgroundRefreshTime != null) {
         final timeSinceLastRefresh = now - _lastBackgroundRefreshTime!;
@@ -218,7 +219,11 @@ class BooksNotifier extends Notifier<BooksState> {
 
         final updatedActiveBooks = List<Book>.from(state.activeBooks);
 
-        for (int i = 0; i < expiredBooks.length; i += 2) {
+        for (
+          int i = 0;
+          i < expiredBooks.length;
+          i += settings.statsRefreshBatchSize
+        ) {
           final batch = <Future<void>>[];
           if (i < expiredBooks.length) {
             batch.add(
@@ -311,10 +316,12 @@ class BooksNotifier extends Notifier<BooksState> {
     _isRefreshingBook = true;
     _refreshRequestedAfterNavigate = false;
 
+    final settings = ref.read(settingsProvider);
+
     try {
       await _repository.contentService.setUserSetting(
         'stats_calc_sample_size',
-        '500',
+        settings.stats500SampleSize.toString(),
       );
       await _repository.refreshBookStats(
         bookId,

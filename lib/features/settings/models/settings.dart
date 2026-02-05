@@ -32,6 +32,9 @@ class Settings {
   final bool termuxIntegrationEnabled;
   final bool termuxAutoLaunchEnabled;
   final int statsCalcSampleSize;
+  final int stats500SampleSize;
+  final int statsRefreshBatchSize;
+  final int statsRefreshCooldownHours;
 
   static const String termuxUrl = 'http://127.0.0.1:5001';
 
@@ -63,6 +66,9 @@ class Settings {
     this.termuxIntegrationEnabled = false,
     this.termuxAutoLaunchEnabled = false,
     this.statsCalcSampleSize = 5,
+    this.stats500SampleSize = 500,
+    this.statsRefreshBatchSize = 2,
+    this.statsRefreshCooldownHours = 48,
   });
 
   Settings copyWith({
@@ -95,6 +101,9 @@ class Settings {
     bool? termuxIntegrationEnabled,
     bool? termuxAutoLaunchEnabled,
     int? statsCalcSampleSize,
+    int? stats500SampleSize,
+    int? statsRefreshBatchSize,
+    int? statsRefreshCooldownHours,
   }) {
     return Settings(
       localUrl: localUrl ?? this.localUrl,
@@ -138,6 +147,11 @@ class Settings {
       termuxAutoLaunchEnabled:
           termuxAutoLaunchEnabled ?? this.termuxAutoLaunchEnabled,
       statsCalcSampleSize: statsCalcSampleSize ?? this.statsCalcSampleSize,
+      stats500SampleSize: stats500SampleSize ?? this.stats500SampleSize,
+      statsRefreshBatchSize:
+          statsRefreshBatchSize ?? this.statsRefreshBatchSize,
+      statsRefreshCooldownHours:
+          statsRefreshCooldownHours ?? this.statsRefreshCooldownHours,
     );
   }
 
@@ -170,6 +184,9 @@ class Settings {
       termuxIntegrationEnabled: false,
       termuxAutoLaunchEnabled: false,
       statsCalcSampleSize: 5,
+      stats500SampleSize: 500,
+      statsRefreshBatchSize: 2,
+      statsRefreshCooldownHours: 48,
     );
   }
 
@@ -204,7 +221,9 @@ class Settings {
         other.enableTripleTapToMarkKnown == enableTripleTapToMarkKnown &&
         other.termuxIntegrationEnabled == termuxIntegrationEnabled &&
         other.termuxAutoLaunchEnabled == termuxAutoLaunchEnabled &&
-        other.statsCalcSampleSize == statsCalcSampleSize;
+        other.statsCalcSampleSize == statsCalcSampleSize &&
+        other.statsRefreshBatchSize == statsRefreshBatchSize &&
+        other.statsRefreshCooldownHours == statsRefreshCooldownHours;
   }
 
   @override
@@ -236,6 +255,8 @@ class Settings {
     termuxIntegrationEnabled,
     termuxAutoLaunchEnabled,
     statsCalcSampleSize,
+    statsRefreshBatchSize,
+    statsRefreshCooldownHours,
   ]);
 
   bool isValidServerUrl(String url) {
