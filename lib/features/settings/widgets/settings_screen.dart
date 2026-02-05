@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -132,7 +133,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final oldUrl = prefs.getString('local_url') ?? '';
 
     if (oldUrl != newUrl) {
-      // Clear current book BEFORE updating URL to prevent race conditions
       await ref.read(settingsProvider.notifier).clearCurrentBook();
       await ref.read(settingsProvider.notifier).updateLocalUrl(newUrl);
 
@@ -144,7 +144,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       RestartWidget.restartApp(context);
     } else {
-      // Update URL without changing (no book clearing needed)
       await ref.read(settingsProvider.notifier).updateLocalUrl(newUrl);
 
       if (mounted) {
@@ -795,6 +794,90 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
+                      'Book Stats Settings',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildNumberField(
+                      context,
+                      'Calc Sample Size',
+                      settings.statsCalcSampleSize.toString(),
+                      '1-500',
+                      1,
+                      500,
+                      (value) {
+                        final intValue = int.tryParse(value);
+                        if (intValue != null) {
+                          ref
+                              .read(settingsProvider.notifier)
+                              .updateStatsCalcSampleSize(intValue);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildNumberField(
+                      context,
+                      '500 Sample Size',
+                      settings.stats500SampleSize.toString(),
+                      '1-500',
+                      1,
+                      500,
+                      (value) {
+                        final intValue = int.tryParse(value);
+                        if (intValue != null) {
+                          ref
+                              .read(settingsProvider.notifier)
+                              .updateStats500SampleSize(intValue);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildNumberField(
+                      context,
+                      'Books to Process at Once',
+                      settings.statsRefreshBatchSize.toString(),
+                      '1-5',
+                      1,
+                      5,
+                      (value) {
+                        final intValue = int.tryParse(value);
+                        if (intValue != null) {
+                          ref
+                              .read(settingsProvider.notifier)
+                              .updateStatsRefreshBatchSize(intValue);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _buildNumberField(
+                      context,
+                      'Cooldown Before Refresh (hours)',
+                      settings.statsRefreshCooldownHours.toString(),
+                      '1-336 (14 days)',
+                      1,
+                      336,
+                      (value) {
+                        final intValue = int.tryParse(value);
+                        if (intValue != null) {
+                          ref
+                              .read(settingsProvider.notifier)
+                              .updateStatsRefreshCooldownHours(intValue);
+                        }
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
                       'Accent Colors',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
@@ -969,6 +1052,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildNumberField(
+    BuildContext context,
+    String label,
+    String initialValue,
+    String hint,
+    int minValue,
+    int maxValue,
+    Function(String) onChanged,
+  ) {
+    final controller = TextEditingController(text: initialValue);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+            hintText: hint,
+          ),
+          controller: controller,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          onChanged: (value) {
+            final intValue = int.tryParse(value);
+            if (intValue != null &&
+                intValue >= minValue &&
+                intValue <= maxValue) {
+              onChanged(value);
+            }
+          },
+        ),
+      ],
     );
   }
 
