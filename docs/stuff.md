@@ -39,6 +39,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 
 # Books Screen
 - Why isn't the page number on the book cards updating?
+- Add a settings toggle to "Always Refresh for Book Details" default to on. Then we need to hook up the code so that it always triggers that bookstats500pagesample
 
 # Terms Screen
 -
