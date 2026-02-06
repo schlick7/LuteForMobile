@@ -607,7 +607,11 @@ class ApiService {
 
   Future<void> triggerAutoBackup() async {
     try {
-      await _dio.get('/');
+      final response = await _dio.get('/');
+      // If server redirects, follow to /backup/backup
+      if (response.statusCode == 302 || response.statusCode == 301) {
+        await _dio.get('/backup/backup');
+      }
     } catch (e) {
       // Silently fail on backup errors - don't block app launch
     }
