@@ -18,4 +18,4 @@
 - Make tooltips open instantly
 
 # Changes from PreRelease
--
+- Change backup directory on backup restores so backuping up between devices works seemlessly.
