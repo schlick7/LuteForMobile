@@ -4,18 +4,22 @@
   - python3 -m lute.main
   
   
+  
+  
+  
 Lets do a performance review of this app starting with the ReadScreen 
 
 Look at flutter logs and cleanup issues
 
-
-Are we still doing http request to homepage on app launch after the server is confirmed connected? we need to do this so the server backups can trigger correctly. 
 
 If i change the severselection to termux the server only starts temporarily and then shuts down. I think this is because the silent notification is never created maybe? but it works no problem if i go over to the termux integration and press the start server button. Whats is happening different? isn't all of the server launch supposed to be the same process??? Research this please. 
 
 
 Are we preloading pages on the readscreen without the readscreen being the active screen? if so can we stop that?
 
+
+fix backup location after restore
+/data/data/com.termux/files/home/.local/share/Lute3/backups
 
 ---
 
@@ -38,7 +42,8 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 - Make Reader card collapsible
 
 # Reader
-- Disable swipe navigation by default. 
+- Could we switch to this for the reader screen tooltips? https://pub.dev/packages/flutter_popup/versions/3.3.9
+  - Or atleast get the term tooltips aligned better. maybe add a tail?
 
 # Sentence Reader
 -
