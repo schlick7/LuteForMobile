@@ -19,3 +19,4 @@
 
 # Changes from PreRelease
 - Change backup directory on backup restores so backuping up between devices works seemlessly.
+- Change how autobackup works again
