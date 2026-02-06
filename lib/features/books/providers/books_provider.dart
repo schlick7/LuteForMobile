@@ -10,6 +10,7 @@ import '../../settings/providers/settings_provider.dart';
 @immutable
 class BooksState {
   final bool isLoading;
+  final bool isRefreshing;
   final List<Book> activeBooks;
   final List<Book> archivedBooks;
   final bool showArchived;
@@ -19,6 +20,7 @@ class BooksState {
 
   const BooksState({
     this.isLoading = false,
+    this.isRefreshing = false,
     this.activeBooks = const [],
     this.archivedBooks = const [],
     this.showArchived = false,
@@ -40,6 +42,7 @@ class BooksState {
 
   BooksState copyWith({
     bool? isLoading,
+    bool? isRefreshing,
     List<Book>? activeBooks,
     List<Book>? archivedBooks,
     bool? showArchived,
@@ -49,6 +52,7 @@ class BooksState {
   }) {
     return BooksState(
       isLoading: isLoading ?? this.isLoading,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
       activeBooks: activeBooks ?? this.activeBooks,
       archivedBooks: archivedBooks ?? this.archivedBooks,
       showArchived: showArchived ?? this.showArchived,
@@ -634,11 +638,12 @@ class BooksNotifier extends Notifier<BooksState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
+      final settings = ref.read(settingsProvider);
       await _repository.invalidateAllBookStatsCache();
 
       await _repository.contentService.setUserSetting(
         'stats_calc_sample_size',
-        '500',
+        settings.stats500SampleSize.toString(),
       );
 
       final activeBooksToRefresh = state.activeBooks;
@@ -677,7 +682,6 @@ class BooksNotifier extends Notifier<BooksState> {
       );
       _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
 
-      final settings = ref.read(settingsProvider);
       await _repository.contentService.setUserSetting(
         'stats_calc_sample_size',
         settings.statsCalcSampleSize.toString(),
@@ -693,6 +697,72 @@ class BooksNotifier extends Notifier<BooksState> {
         print('Failed to restore sample size: $err');
       }
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
+    }
+  }
+
+  Future<void> refreshAllStatsInBackground() async {
+    state = state.copyWith(isRefreshing: true, errorMessage: null);
+
+    try {
+      final settings = ref.read(settingsProvider);
+      await _repository.invalidateAllBookStatsCache();
+
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        settings.stats500SampleSize.toString(),
+      );
+
+      final activeBooksToRefresh = state.activeBooks;
+      final updatedActiveBooks = List<Book>.from(state.activeBooks);
+
+      for (int i = 0; i < activeBooksToRefresh.length; i += 2) {
+        final batch = <Future<void>>[];
+        if (i < activeBooksToRefresh.length) {
+          batch.add(
+            _refreshBookSimple(
+              activeBooksToRefresh[i].id,
+              updatedBooksList: updatedActiveBooks,
+            ),
+          );
+        }
+        if (i + 1 < activeBooksToRefresh.length) {
+          batch.add(
+            _refreshBookSimple(
+              activeBooksToRefresh[i + 1].id,
+              updatedBooksList: updatedActiveBooks,
+            ),
+          );
+        }
+        await Future.wait(batch);
+      }
+
+      await _repository.saveBooksToCache(
+        activeBooks: updatedActiveBooks,
+        archivedBooks: state.archivedBooks,
+      );
+
+      state = state.copyWith(
+        isRefreshing: false,
+        activeBooks: updatedActiveBooks,
+        archivedBooks: state.archivedBooks,
+      );
+      _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
+
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        settings.statsCalcSampleSize.toString(),
+      );
+    } catch (e) {
+      try {
+        final settings = ref.read(settingsProvider);
+        await _repository.contentService.setUserSetting(
+          'stats_calc_sample_size',
+          settings.statsCalcSampleSize.toString(),
+        );
+      } catch (err) {
+        print('Failed to restore sample size: $err');
+      }
+      state = state.copyWith(isRefreshing: false, errorMessage: e.toString());
     }
   }
 

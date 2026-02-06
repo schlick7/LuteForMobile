@@ -216,7 +216,9 @@ class BooksDrawerSettings extends ConsumerWidget {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () async {
-                await ref.read(booksProvider.notifier).refreshAllStats();
+                await ref
+                    .read(booksProvider.notifier)
+                    .refreshAllStatsInBackground();
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

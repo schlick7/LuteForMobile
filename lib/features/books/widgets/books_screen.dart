@@ -93,7 +93,19 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
             );
           },
         ),
-        title: const Text('Books'),
+        title: Row(
+          children: [
+            const Text('Books'),
+            if (state.isRefreshing) ...[
+              const SizedBox(width: 12),
+              const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ],
+          ],
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -108,7 +120,8 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(booksProvider.notifier).refreshBooks(),
+        onRefresh: () =>
+            ref.read(booksProvider.notifier).refreshAllStatsInBackground(),
         child: Column(
           children: [
             Padding(
