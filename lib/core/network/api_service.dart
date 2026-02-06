@@ -607,9 +607,31 @@ class ApiService {
 
   Future<void> triggerAutoBackup() async {
     try {
-      final response = await _dio.get('/');
-      // If server redirects, follow to /backup/backup
-      if (response.statusCode == 302 || response.statusCode == 301) {
+      final response = await _dio.get('/settings/index');
+      if (response.statusCode != 200) return;
+
+      final html = response.data as String;
+
+      final autoBackupEnabled = html.contains('name="backup_auto" checked');
+
+      final lastBackupRegex = RegExp(r'name="lastbackup"\s+value="([^"]*)"');
+      final match = lastBackupRegex.firstMatch(html);
+
+      int? lastBackupTimestamp;
+      if (match != null) {
+        final dateStr = match.group(1);
+        if (dateStr != null && dateStr.isNotEmpty) {
+          lastBackupTimestamp =
+              DateTime.parse(dateStr).millisecondsSinceEpoch ~/ 1000;
+        }
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final twentyFourHoursAgo = now - (24 * 60 * 60);
+
+      if (autoBackupEnabled &&
+          (lastBackupTimestamp == null ||
+              lastBackupTimestamp < twentyFourHoursAgo)) {
         await _dio.get('/backup/backup');
       }
     } catch (e) {
