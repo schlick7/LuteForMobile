@@ -1,5 +1,7 @@
+# Requires Uninstalling Version v0.8.2 or earlier first
+
 # Bug Fixes
-- Stop autobackups from triggering constantly
+- Stop autobackups from triggering every app launch
 - Fixed some excessive Cache calls
 - Fixed a BUNCH of excessive Fetch calls
 - Fixed some incorrect Rebuilds triggering
@@ -14,3 +16,6 @@
 
 # Other Changes
 - Make tooltips open instantly
+
+# Changes from PreRelease
+-
