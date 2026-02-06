@@ -34,6 +34,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   String? _connectionStatus;
   bool _connectionTestPassed = false;
   bool _serverReachable = true;
+  bool _bookStatsExpanded = false;
+  bool _readerExpanded = false;
 
   static const List<Color> _accentColorOptions = [
     Color(0xFF1976D2), // Blue
@@ -548,237 +550,264 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 16),
             Card(
               elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Reading',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Sentence Combining in Sentence Reader '),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Text('Combine sentences with'),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${settings.combineShortSentences ?? 3} terms or less',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Slider(
-                      value: (settings.combineShortSentences ?? 3).toDouble(),
-                      min: 1,
-                      max: 10,
-                      divisions: 9,
-                      label: (settings.combineShortSentences ?? 3).toString(),
-                      onChanged: (value) {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .updateCombineShortSentences(value.toInt());
-                      },
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Sentences with this many terms or fewer will be combined to handle fragmentation from PDF/EPUB sources.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Double Tap Timeout'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Text('Timeout duration'),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${settings.doubleTapTimeout}ms',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Slider(
-                      value: settings.doubleTapTimeout.toDouble(),
-                      min: 200,
-                      max: 400,
-                      divisions: 8,
-                      label: '${settings.doubleTapTimeout}ms',
-                      onChanged: (value) {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .updateDoubleTapTimeout(value.toInt());
-                      },
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'The lower the value the faster the tooltip opens and the harder it is to open the Term Form',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Page Navigation'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Text('Enable swipe navigation'),
-                        const Spacer(),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: textSettings.swipeNavigationEnabled,
-                            onChanged: (value) {
-                              ref
-                                  .read(textFormattingSettingsProvider.notifier)
-                                  .updateSwipeNavigationEnabled(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Text('Mark pages as read when swiping'),
-                        const Spacer(),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: textSettings.swipeMarksRead,
-                            onChanged: (value) {
-                              ref
-                                  .read(textFormattingSettingsProvider.notifier)
-                                  .updateSwipeMarksRead(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Page Turn Animations'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Text('Enable page turn animations'),
-                        const Spacer(),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: settings.pageTurnAnimations,
-                            onChanged: (value) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updatePageTurnAnimations(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Tooltip Caching'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Enable tooltip caching',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                'Cache tooltips for faster loading (48 hour expiry)',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: settings.enableTooltipCaching,
-                            onChanged: (value) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updateEnableTooltipCaching(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        const Text('Show stats bar in reader'),
-                        const Spacer(),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: settings.showStatsBar,
-                            onChanged: (value) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updateShowStatsBar(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Triple-tap to mark as known',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                'Quickly mark words as known by tapping three times',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: settings.enableTripleTapToMarkKnown,
-                            onChanged: (value) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updateEnableTripleTapToMarkKnown(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+              child: ExpansionTile(
+                title: const Text(
+                  'Reading',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+                initiallyExpanded: _readerExpanded,
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    _readerExpanded = expanded;
+                  });
+                },
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Sentence Combining in Sentence Reader '),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Text('Combine sentences with'),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${settings.combineShortSentences ?? 3} terms or less',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Slider(
+                          value: (settings.combineShortSentences ?? 3)
+                              .toDouble(),
+                          min: 1,
+                          max: 10,
+                          divisions: 9,
+                          label: (settings.combineShortSentences ?? 3)
+                              .toString(),
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateCombineShortSentences(value.toInt());
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Sentences with this many terms or fewer will be combined to handle fragmentation from PDF/EPUB sources.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Double Tap Timeout'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Text('Timeout duration'),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${settings.doubleTapTimeout}ms',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Slider(
+                          value: settings.doubleTapTimeout.toDouble(),
+                          min: 200,
+                          max: 400,
+                          divisions: 8,
+                          label: '${settings.doubleTapTimeout}ms',
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateDoubleTapTimeout(value.toInt());
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'The lower the value the faster the tooltip opens and the harder it is to open the Term Form',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Page Navigation'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Text('Enable swipe navigation'),
+                            const Spacer(),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: textSettings.swipeNavigationEnabled,
+                                onChanged: (value) {
+                                  ref
+                                      .read(
+                                        textFormattingSettingsProvider.notifier,
+                                      )
+                                      .updateSwipeNavigationEnabled(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Text('Mark pages as read when swiping'),
+                            const Spacer(),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: textSettings.swipeMarksRead,
+                                onChanged: (value) {
+                                  ref
+                                      .read(
+                                        textFormattingSettingsProvider.notifier,
+                                      )
+                                      .updateSwipeMarksRead(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Page Turn Animations'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Text('Enable page turn animations'),
+                            const Spacer(),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.pageTurnAnimations,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updatePageTurnAnimations(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Tooltip Caching'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Enable tooltip caching',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Cache tooltips for faster loading (48 hour expiry)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.enableTooltipCaching,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updateEnableTooltipCaching(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            const Text('Show stats bar in reader'),
+                            const Spacer(),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.showStatsBar,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updateShowStatsBar(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Triple-tap to mark as known',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Quickly mark words as known by tapping three times',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.enableTripleTapToMarkKnown,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updateEnableTripleTapToMarkKnown(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -788,85 +817,94 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 16),
             Card(
               elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Book Stats Settings',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildNumberField(
-                      context,
-                      'Calc Sample Size',
-                      settings.statsCalcSampleSize.toString(),
-                      '1-500',
-                      1,
-                      500,
-                      (value) {
-                        final intValue = int.tryParse(value);
-                        if (intValue != null) {
-                          ref
-                              .read(settingsProvider.notifier)
-                              .updateStatsCalcSampleSize(intValue);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildNumberField(
-                      context,
-                      'Full Refresh Sample Size',
-                      settings.stats500SampleSize.toString(),
-                      '1-500',
-                      1,
-                      500,
-                      (value) {
-                        final intValue = int.tryParse(value);
-                        if (intValue != null) {
-                          ref
-                              .read(settingsProvider.notifier)
-                              .updateStats500SampleSize(intValue);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildNumberField(
-                      context,
-                      'Books to Process at Once',
-                      settings.statsRefreshBatchSize.toString(),
-                      '1-5',
-                      1,
-                      5,
-                      (value) {
-                        final intValue = int.tryParse(value);
-                        if (intValue != null) {
-                          ref
-                              .read(settingsProvider.notifier)
-                              .updateStatsRefreshBatchSize(intValue);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    _buildNumberField(
-                      context,
-                      'Cooldown Before Refresh (hours)',
-                      settings.statsRefreshCooldownHours.toString(),
-                      '1-336 (14 days)',
-                      1,
-                      336,
-                      (value) {
-                        final intValue = int.tryParse(value);
-                        if (intValue != null) {
-                          ref
-                              .read(settingsProvider.notifier)
-                              .updateStatsRefreshCooldownHours(intValue);
-                        }
-                      },
-                    ),
-                  ],
+              child: ExpansionTile(
+                title: const Text(
+                  'Book Stats Settings',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+                initiallyExpanded: _bookStatsExpanded,
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    _bookStatsExpanded = expanded;
+                  });
+                },
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildNumberField(
+                          context,
+                          'Calc Sample Size',
+                          settings.statsCalcSampleSize.toString(),
+                          '1-500',
+                          1,
+                          500,
+                          (value) {
+                            final intValue = int.tryParse(value);
+                            if (intValue != null) {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .updateStatsCalcSampleSize(intValue);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _buildNumberField(
+                          context,
+                          'Full Refresh Sample Size',
+                          settings.stats500SampleSize.toString(),
+                          '1-500',
+                          1,
+                          500,
+                          (value) {
+                            final intValue = int.tryParse(value);
+                            if (intValue != null) {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .updateStats500SampleSize(intValue);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _buildNumberField(
+                          context,
+                          'Books to Process at Once',
+                          settings.statsRefreshBatchSize.toString(),
+                          '1-5',
+                          1,
+                          5,
+                          (value) {
+                            final intValue = int.tryParse(value);
+                            if (intValue != null) {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .updateStatsRefreshBatchSize(intValue);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        _buildNumberField(
+                          context,
+                          'Cooldown Before Refresh (hours)',
+                          settings.statsRefreshCooldownHours.toString(),
+                          '1-336 (14 days)',
+                          1,
+                          336,
+                          (value) {
+                            final intValue = int.tryParse(value);
+                            if (intValue != null) {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .updateStatsRefreshCooldownHours(intValue);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
