@@ -660,6 +660,26 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     });
 
     try {
+      String? originalBackupDir;
+      try {
+        originalBackupDir = await BackupService.getBackupDir(
+          Settings.termuxUrl,
+        );
+        debugPrint('Original termux backup_dir: $originalBackupDir');
+      } catch (e) {
+        debugPrint('Failed to get original backup_dir: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Warning: Could not save current backup directory setting',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+
       if (createBackupFirst) {
         debugPrint('Creating backup via server...');
         final backupResult = await BackupService.createBackup(
@@ -704,6 +724,28 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           );
         }
         return;
+      }
+
+      if (originalBackupDir != null && originalBackupDir.isNotEmpty) {
+        try {
+          await BackupService.updateBackupDir(
+            Settings.termuxUrl,
+            originalBackupDir,
+          );
+          debugPrint('Restored backup_dir to: $originalBackupDir');
+        } catch (e) {
+          debugPrint('Failed to restore backup_dir: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Failed to restore backup directory setting. You may need to manually update it in Settings > Backup.',
+                ),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
       }
 
       if (mounted) {

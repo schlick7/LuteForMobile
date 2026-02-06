@@ -165,4 +165,41 @@ class BackupService {
       throw Exception('Failed to restore backup: $e');
     }
   }
+
+  static Future<String> getBackupDir(String serverUrl) async {
+    try {
+      final response = await http.get(Uri.parse('$serverUrl/settings/index'));
+
+      if (response.statusCode == 200) {
+        final html = response.body;
+        final regex = RegExp(r'name="backup_dir"\s+value="([^"]*)"');
+        final match = regex.firstMatch(html);
+        if (match != null) {
+          return match.group(1) ?? '';
+        }
+        throw Exception('backup_dir field not found in settings page');
+      } else {
+        throw Exception('Failed to load settings: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to get backup_dir: $e');
+    }
+  }
+
+  static Future<void> updateBackupDir(String serverUrl, String newPath) async {
+    try {
+      final encodedPath = Uri.encodeComponent(newPath);
+      final response = await http.post(
+        Uri.parse('$serverUrl/settings/set/backup_dir/$encodedPath'),
+      );
+
+      if (response.statusCode == 200) {
+        return;
+      } else {
+        throw Exception('Failed to update backup_dir: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to update backup_dir: $e');
+    }
+  }
 }
