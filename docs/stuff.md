@@ -32,7 +32,11 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 
 
 # Requests 
- 
+
+# Settings
+- Make Book Stats card collapsible (default to collapsed)
+- Make Reader card collapsible
+
 # Reader
 - Disable swipe navigation by default. 
 
@@ -49,10 +53,10 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 - Add a settings toggle to "Always Refresh for Book Details" default to on. Then we need to hook up the code so that it always triggers that bookstats500pagesample
 
 # Terms Screen
-- Default to currentbook language. Used to do this?
+- 
 
 # Statistics Screen  
-- Default language to that of currentbook
+- In the stats screen we should make the drop down Default language to that of currentbook (similar to what we do in termscreen i think)
 
 # Help Screen
 - 
