@@ -38,8 +38,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 # Requests 
 
 # Settings
-- Make Book Stats card collapsible (default to collapsed)
-- Make Reader card collapsible
+- 
 
 # Reader
 - Could we switch to this for the reader screen tooltips? https://pub.dev/packages/flutter_popup/versions/3.3.9
@@ -55,13 +54,13 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 - 
 
 # Books Screen
-- Add a settings toggle to "Always Refresh for Book Details" default to on. Then we need to hook up the code so that it always triggers that bookstats500pagesample
+- Add a settings toggle to "Always Refresh for Book Details" default to on. Then we need to hook up the code so that it always triggers that stats500samplesize, it will need to do the same thing that makes the server recaluctlate the book. The Book details should load from chache first and then refresh when the new data is ready
 
 # Terms Screen
 - 
 
 # Statistics Screen  
-- In the stats screen we should make the drop down Default language to that of currentbook (similar to what we do in termscreen i think)
+- PENDING - In the stats screen we should make the drop down Default language to that of currentbook (similar to what we do in termscreen i think)
 
 # Help Screen
 - 
