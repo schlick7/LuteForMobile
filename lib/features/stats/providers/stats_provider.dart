@@ -14,13 +14,27 @@ enum StatsFilter { all, activeLanguages }
 
 class StatsNotifier extends AsyncNotifier<StatsState> {
   late final ContentService _contentService;
+  String? _previousServerUrl;
 
   @override
   Future<StatsState> build() async {
     final ref = this.ref;
     final apiService = ref.watch(apiServiceProvider);
     _contentService = ContentService(apiService: apiService);
+
+    final settings = ref.watch(settingsProvider);
+    if (_previousServerUrl == null) {
+      _previousServerUrl = settings.serverUrl;
+    } else if (_previousServerUrl != settings.serverUrl) {
+      _previousServerUrl = settings.serverUrl;
+      Future.microtask(() => _onServerChanged());
+    }
+
     return const StatsState();
+  }
+
+  Future<void> _onServerChanged() async {
+    await loadStats();
   }
 
   Future<void> loadStats() async {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import '../../../core/network/content_service.dart';
 import 'reader_provider.dart';
+import '../../../features/settings/providers/settings_provider.dart';
 
 class AudioPlayerState {
   final AudioPlayer audioPlayer;
@@ -60,6 +61,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   int _bookId = 0;
   int _page = 0;
   late ContentService _contentService;
+  String? _previousServerUrl;
 
   @override
   AudioPlayerState build() {
@@ -71,6 +73,15 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     _audioPlayer = AudioPlayer();
     _audioPlayer.setReleaseMode(ReleaseMode.stop);
     _contentService = ref.read(readerRepositoryProvider).contentService;
+
+    final settings = ref.watch(settingsProvider);
+    if (_previousServerUrl == null) {
+      _previousServerUrl = settings.serverUrl;
+    } else if (_previousServerUrl != settings.serverUrl) {
+      _previousServerUrl = settings.serverUrl;
+      _contentService = ref.read(readerRepositoryProvider).contentService;
+    }
+
     _setupPlayerListeners();
     return AudioPlayerState(
       audioPlayer: _audioPlayer,
