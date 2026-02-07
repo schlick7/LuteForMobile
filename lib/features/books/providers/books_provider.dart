@@ -73,13 +73,21 @@ class BooksNotifier extends Notifier<BooksState> {
   bool _isBackgroundRefreshing = false;
   int? _lastBackgroundRefreshTime;
   String? _previousServerUrl;
+  bool _isInitialized = false;
 
   @override
   BooksState build() {
     _repository = ref.watch(booksRepositoryProvider);
     final settings = ref.watch(settingsProvider);
 
-    if (_previousServerUrl == null) {
+    // Reset loading flags on each build to prevent stuck states
+    _isLoadingBooks = false;
+    _isLoadingFromNetwork = false;
+    _isBackgroundRefreshing = false;
+
+    // Always initialize on first build of this notifier instance
+    if (!_isInitialized) {
+      _isInitialized = true;
       _previousServerUrl = settings.serverUrl;
       Future.microtask(() => loadBooks(forceRefresh: true));
     } else if (_previousServerUrl != settings.serverUrl) {
@@ -128,11 +136,13 @@ class BooksNotifier extends Notifier<BooksState> {
       final activeFromCache = await _repository.getActiveBooksFromCache();
       final archivedFromCache = await _repository.getArchivedBooksFromCache();
 
+      final hasCachedBooks =
+          activeFromCache != null && activeFromCache.isNotEmpty;
       print(
-        'DEBUG: loadBooks() - cache activeFromCache=${activeFromCache != null}, first book hasStats=${activeFromCache?.first.hasStats ?? "N/A"}, count=${activeFromCache?.length ?? 0}',
+        'DEBUG: loadBooks() - cache hasCachedBooks=$hasCachedBooks, count=${activeFromCache?.length ?? 0}',
       );
 
-      if (activeFromCache != null) {
+      if (hasCachedBooks) {
         state = state.copyWith(
           isLoading: false,
           activeBooks: activeFromCache,
@@ -208,7 +218,7 @@ class BooksNotifier extends Notifier<BooksState> {
       }).toList();
 
       print(
-        'DEBUG: _backgroundRefreshExpiredBooks - ${expiredBooks.length} expired books out of ${state.activeBooks.length} total, first book hasStats=${state.activeBooks.first.hasStats}, distinctTerms=${state.activeBooks.first.distinctTerms}',
+        'DEBUG: _backgroundRefreshExpiredBooks - ${expiredBooks.length} expired books out of ${state.activeBooks.length} total',
       );
 
       if (expiredBooks.isEmpty) {
@@ -256,9 +266,7 @@ class BooksNotifier extends Notifier<BooksState> {
           archivedBooks: state.archivedBooks,
         );
 
-        print(
-          'DEBUG: Updating state with ${updatedActiveBooks.length} books, first book hasStats=${updatedActiveBooks.first.hasStats}, distinctTerms=${updatedActiveBooks.first.distinctTerms}',
-        );
+        print('DEBUG: Updating state with ${updatedActiveBooks.length} books');
         state = state.copyWith(activeBooks: updatedActiveBooks);
       } finally {
         try {
@@ -431,10 +439,11 @@ class BooksNotifier extends Notifier<BooksState> {
     try {
       final networkBooks = await _repository.getActiveBooks();
       print(
-        'DEBUG: _loadBooksFromNetwork - got ${networkBooks.length} books from network, first book hasStats=${networkBooks.first.hasStats}, distinctTerms=${networkBooks.first.distinctTerms}',
+        'DEBUG: _loadBooksFromNetwork - got ${networkBooks.length} books from network',
       );
 
       final networkBooksMap = {for (var b in networkBooks) b.id: b};
+      final existingBookIds = {for (var b in state.activeBooks) b.id};
       final updatedActiveBooks = state.activeBooks.map((existing) {
         final network = networkBooksMap[existing.id];
         if (network != null) {
@@ -459,7 +468,7 @@ class BooksNotifier extends Notifier<BooksState> {
       }).toList();
 
       final newBooks = networkBooks
-          .where((b) => !networkBooksMap.containsKey(b.id))
+          .where((b) => !existingBookIds.contains(b.id))
           .toList();
 
       final finalActiveBooks = [...updatedActiveBooks, ...newBooks];
