@@ -170,7 +170,7 @@ class SettingsNotifier extends Notifier<Settings> {
 
     if (useTermux) {
       state = state.copyWith(serverUrl: Settings.termuxUrl, isUrlValid: true);
-      await TermuxService.stealthLaunchTermux();
+      await TermuxService.startServer();
     } else {
       final localUrl = prefs.getString(_keyLocalUrl) ?? '';
       final isValid = _isValidUrl(localUrl);
