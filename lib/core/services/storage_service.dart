@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:lute_for_mobile/core/services/termux_service.dart';
 
@@ -45,23 +44,6 @@ class StorageService {
     return version ?? 30;
   }
 
-  static Future<String?> selectBackupFile() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['db', 'gz'],
-      );
-
-      if (result != null && result.files.single.path != null) {
-        return result.files.single.path;
-      }
-      return null;
-    } catch (e) {
-      debugPrint('Error selecting backup file: $e');
-      return null;
-    }
-  }
-
   static Future<List<String>> getBackupFilesInDownloads() async {
     try {
       final downloadsDir = Directory('/storage/emulated/0/Download');
@@ -90,42 +72,6 @@ class StorageService {
       debugPrint('Error getting backup files: $e');
       return [];
     }
-  }
-
-  static Future<String?> saveBackupFile(
-    String filename,
-    List<int> bytes,
-  ) async {
-    try {
-      final directory = await getDownloadsDirectory();
-      if (directory == null) return null;
-
-      final file = File('${directory.path}/$filename');
-      await file.writeAsBytes(bytes);
-      return file.path;
-    } catch (e) {
-      debugPrint('Error saving backup file: $e');
-      return null;
-    }
-  }
-
-  static Future<Directory?> getDownloadsDirectory() async {
-    try {
-      final result = await FilePicker.platform.getDirectoryPath();
-      if (result != null) {
-        return Directory(result);
-      }
-
-      final String? path = await _getDownloadsPath();
-      return path != null ? Directory(path) : null;
-    } catch (e) {
-      debugPrint('Error getting downloads directory: $e');
-      return null;
-    }
-  }
-
-  static Future<String?> _getDownloadsPath() async {
-    return '/storage/emulated/0/Download';
   }
 
   static Future<bool> requestStoragePermissions() async {
