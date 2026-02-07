@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
-import '../../../core/providers/initial_providers.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../core/cache/cache_manager.dart';
 import '../../../features/reader/providers/reader_provider.dart';
@@ -11,6 +10,7 @@ import '../../../core/services/server_health_service.dart';
 import '../../books/providers/books_provider.dart';
 import '../../stats/providers/stats_provider.dart';
 import '../../terms/providers/terms_provider.dart';
+import '../../terms/repositories/terms_repository.dart';
 import '../../../shared/providers/server_status_provider.dart';
 
 typedef DrawerSettingsBuilder =
@@ -160,6 +160,9 @@ class SettingsNotifier extends Notifier<Settings> {
       await CacheManager().clearServerDependentCaches();
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
+
+      ref.refresh(booksRepositoryProvider);
+      ref.refresh(termsRepositoryProvider);
     }
   }
 
@@ -182,7 +185,9 @@ class SettingsNotifier extends Notifier<Settings> {
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
 
-      // Refresh all data that depends on the server
+      ref.refresh(booksRepositoryProvider);
+      ref.refresh(termsRepositoryProvider);
+
       await ref.read(booksProvider.notifier).refreshBooks();
       await ref.read(statsProvider.notifier).refreshStats();
       await ref.read(termsProvider.notifier).refreshTerms();

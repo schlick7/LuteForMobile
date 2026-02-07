@@ -10,6 +10,10 @@ class BooksRepository {
   BooksRepository({required this.contentService})
     : _cacheService = BooksCacheService.getInstance();
 
+  void resetLanguageMap() {
+    _languageNameToIdMap = null;
+  }
+
   Future<List<Book>> getActiveBooks() async {
     try {
       await _loadLanguageMapping();

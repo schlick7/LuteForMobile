@@ -5,7 +5,6 @@ import '../../../shared/widgets/error_display.dart';
 import '../../../shared/providers/server_status_provider.dart';
 import '../providers/books_provider.dart';
 import '../../settings/providers/settings_provider.dart';
-import '../../settings/models/settings.dart';
 import '../models/book.dart';
 import 'book_card.dart';
 import 'book_details_dialog.dart';
@@ -23,8 +22,6 @@ class BooksScreen extends ConsumerStatefulWidget {
 
 class _BooksScreenState extends ConsumerState<BooksScreen> {
   final TextEditingController _searchController = TextEditingController();
-  Settings? _lastSettings;
-  bool _hasTriggeredLoad = false;
   bool _serverReachable = true;
 
   @override
@@ -52,26 +49,6 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(booksProvider);
     final settings = ref.watch(settingsProvider);
-
-    if (_lastSettings == null &&
-        settings.serverUrl.isNotEmpty &&
-        !_hasTriggeredLoad) {
-      _lastSettings = settings;
-      _hasTriggeredLoad = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(booksProvider.notifier).loadBooks();
-      });
-    }
-    if (_lastSettings != null &&
-        _lastSettings!.serverUrl.isEmpty &&
-        settings.serverUrl.isNotEmpty &&
-        !_hasTriggeredLoad) {
-      _lastSettings = settings;
-      _hasTriggeredLoad = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(booksProvider.notifier).loadBooks();
-      });
-    }
 
     return Scaffold(
       appBar: AppBar(

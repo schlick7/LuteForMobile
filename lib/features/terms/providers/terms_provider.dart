@@ -62,11 +62,28 @@ class TermsNotifier extends Notifier<TermsState> {
   late TermsRepository _repository;
   final int _pageSize = 50;
   bool _isLoadingMore = false;
+  String? _previousServerUrl;
 
   @override
   TermsState build() {
     _repository = ref.watch(termsRepositoryProvider);
+    final settings = ref.watch(settingsProvider);
+    if (_previousServerUrl == null) {
+      _previousServerUrl = settings.serverUrl;
+    } else if (_previousServerUrl != settings.serverUrl) {
+      _previousServerUrl = settings.serverUrl;
+      Future.microtask(() => _onServerChanged());
+    }
     return const TermsState();
+  }
+
+  Future<void> _onServerChanged() async {
+    state = state.copyWith(
+      terms: const [],
+      isInitialized: false,
+      errorMessage: null,
+    );
+    await loadTerms(reset: true);
   }
 
   void resetForNewNavigation() {

@@ -93,6 +93,7 @@ class BooksNotifier extends Notifier<BooksState> {
       archivedBooks: const [],
       errorMessage: null,
     );
+    _repository.resetLanguageMap();
     await loadBooks(forceRefresh: true);
   }
 
