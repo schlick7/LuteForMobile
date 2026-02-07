@@ -917,8 +917,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         return;
       }
 
-      print(
-
       final futures = termsToFetch.map((term) async {
         if (term.wordId == null) return null;
         try {
@@ -1047,7 +1045,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     _preloadInProgress = true;
 
     try {
-
       final futures = termsToFetch.map((term) async {
         if (term.wordId == null) return null;
         try {
@@ -1086,7 +1083,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           _termTooltips.addAll(newTooltips);
         });
       }
-
     } finally {
       _preloadInProgress = false;
     }
@@ -1698,23 +1694,17 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final langId = _getLangId(reader);
     final serverUrl = ref.read(settingsProvider).serverUrl;
 
-    print(
-    );
     await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
 
     _termTooltips.clear();
     _lastTooltipsBookId = null;
 
-    print(
-    );
     await ref
         .read(readerProvider.notifier)
         .loadPage(bookId: bookId, pageNum: pageNum, updateReaderState: true);
 
     final freshReader = ref.read(readerProvider);
     if (freshReader.pageData != null) {
-      print(
-      );
       await ref
           .read(sentenceReaderProvider.notifier)
           .parseSentencesForPage(langId, initialIndex: 0);

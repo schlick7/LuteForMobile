@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart' show DioException, DioExceptionType;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
+import '../../../core/logger/api_logger.dart';
 import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
@@ -74,8 +75,9 @@ class ReaderNotifier extends Notifier<ReaderState> {
   /// Adds a prefetch task to the sequential queue.
   /// Ensures that prefetch operations don't overlap and cause duplicate fetches.
   Future<void> _enqueuePrefetch(Future<void> Function() task) async {
-    print(
-      'DEBUG: Enqueueing prefetch task (queue active: ${_prefetchQueue != null})',
+    ApiLogger.logRequest(
+      '_enqueuePrefetch',
+      details: 'queueActive=${_prefetchQueue != null}',
     );
     final future =
         _prefetchQueue?.then((_) => task()).catchError((_) => task()) ?? task();
@@ -151,8 +153,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
     final requestKey = _getRequestKey(bookId, pageNum);
     _currentRequestKey = requestKey;
 
-    print(
-      'DEBUG: loadPage() requestKey=$requestKey, useCache=$useCache, refreshStatuses=$refreshStatuses',
+    ApiLogger.logRequest(
+      'loadPage',
+      details:
+          'requestKey=$requestKey, useCache=$useCache, refreshStatuses=$refreshStatuses',
     );
 
     if (updateReaderState && !refreshStatuses) {
@@ -164,7 +168,6 @@ class ReaderNotifier extends Notifier<ReaderState> {
     if (updateReaderState && !refreshStatuses) {
       safetyTimeout = Timer(const Duration(seconds: 15), () {
         if (state.isLoading) {
-          print('DEBUG: Safety timeout triggered - forcing isLoading=false');
           state = state.copyWith(
             isLoading: false,
             errorMessage: 'Loading timed out. Please try again.',
@@ -180,8 +183,6 @@ class ReaderNotifier extends Notifier<ReaderState> {
         useCache: useCache && !refreshStatuses,
         forceRefresh: false,
       );
-
-      print('DEBUG: loadPage() cache result - pageData=${pageData != null}');
 
       if (updateReaderState) {
         if (refreshStatuses) {
@@ -229,7 +230,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
           errorMessage: _formatError(e),
         );
       } else if (updateReaderState) {
-        print('Navigation error (not showing full screen): $e');
+        ApiLogger.logError('loadPageNavigation', e);
         state = state.copyWith(isLoading: false, isBackgroundRefreshing: false);
       }
     } finally {
@@ -258,27 +259,31 @@ class ReaderNotifier extends Notifier<ReaderState> {
         } catch (e) {
           attempt++;
           lastError = e;
-          print('Background refresh attempt $attempt failed: $e');
+          ApiLogger.logBackground(
+            'statusRefresh',
+            details: 'attempt=$attempt failed',
+          );
           if (attempt < maxRetries) {
             await Future.delayed(Duration(milliseconds: 500 * attempt));
           }
         }
       }
 
-      print(
-        'DEBUG: Background refresh complete for $requestKey, current=$_currentRequestKey, freshPage=${freshPage != null}',
+      ApiLogger.logBackground(
+        'statusRefreshComplete',
+        details: 'requestKey=$requestKey, freshPage=${freshPage != null}',
       );
 
       // Check if this response is still valid (user hasn't navigated to a different page)
       if (requestKey != _currentRequestKey) {
-        print(
-          'Background refresh response IGNORED - page changed from $requestKey to $_currentRequestKey',
+        ApiLogger.logBackground(
+          'statusRefreshIgnored',
+          details: 'pageChanged from $requestKey to $_currentRequestKey',
         );
         return;
       }
 
       if (freshPage == null) {
-        print('DEBUG: Background refresh failed after $maxRetries attempts');
         final currentData = state.pageData;
         if (currentData != null) {
           state = state.copyWith(
@@ -298,18 +303,12 @@ class ReaderNotifier extends Notifier<ReaderState> {
       }
 
       final currentData = state.pageData;
-      print(
-        'DEBUG: currentData=${currentData != null}, updating state with fresh page ${freshPage.currentPage}',
-      );
       if (currentData == null) {
         // No cached data, use fresh data directly and stop loading
         state = state.copyWith(
           isBackgroundRefreshing: false,
           isLoading: false,
           pageData: freshPage,
-        );
-        print(
-          'DEBUG: State updated - isLoading=false, page=${freshPage.currentPage}',
         );
       } else if (currentData.currentPage == freshPage.currentPage) {
         // Same page - merge statuses with existing data
@@ -319,7 +318,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
           isLoading: false,
           pageData: mergedData,
         );
-        print('DEBUG: State updated (merge) - page=${mergedData.currentPage}');
+        ApiLogger.logBackground(
+          'statusRefresh',
+          details: 'failedAfter=$maxRetries attempts',
+        );
       } else {
         // Different page - use fresh data directly
         state = state.copyWith(
@@ -327,7 +329,6 @@ class ReaderNotifier extends Notifier<ReaderState> {
           isLoading: false,
           pageData: freshPage,
         );
-        print('DEBUG: State updated (replace) - page=${freshPage.currentPage}');
       }
     });
   }
@@ -430,13 +431,14 @@ class ReaderNotifier extends Notifier<ReaderState> {
           }
         }
       } catch (e) {
-        print('Error preloading tooltip for term $termId: $e');
+        ApiLogger.logError('preloadTooltip', e, details: 'termId=$termId');
       }
     }
 
     if (fetchedCount > 0 || cachedCount > 0) {
-      print(
-        'DEBUG: Preloaded $pageLabel page tooltips - fetched: $fetchedCount, cached: $cachedCount',
+      ApiLogger.logCache(
+        'preloadTooltipsComplete',
+        details: '$pageLabel: fetched=$fetchedCount, cached=$cachedCount',
       );
     }
   }
@@ -504,7 +506,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
         pageData: mergedData,
       );
     } catch (e) {
-      print('Background refresh error: $e');
+      ApiLogger.logError('backgroundRefresh', e);
       state = state.copyWith(isBackgroundRefreshing: false);
     }
   }
@@ -545,8 +547,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
           return tooltip;
         }
       } catch (e) {
-        print('Error getting tooltip from cache: $e');
-        // Continue to fetch from network if cache fails
+        ApiLogger.logError('getTooltipFromCache', e, details: 'termId=$termId');
       }
     }
 
@@ -567,7 +568,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
             await tooltipCacheService.saveToCache(termId, rawHtml);
           }
         } catch (e) {
-          print('Error saving tooltip to cache: $e');
+          ApiLogger.logError(
+            'saveTooltipToCache',
+            e,
+            details: 'termId=$termId',
+          );
         }
       }
 
@@ -626,7 +631,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
           // Note: We don't have the termId here, so we can't invalidate the specific cache entry
           // The cache will be refreshed on next fetch
         } catch (e) {
-          print('Error invalidating tooltip cache after save: $e');
+          ApiLogger.logError('invalidateTooltipCache', e);
         }
       }
 
@@ -647,7 +652,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
           final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
           await tooltipCacheService.removeFromCache(termId);
         } catch (e) {
-          print('Error invalidating tooltip cache after edit: $e');
+          ApiLogger.logError(
+            'invalidateTooltipCache',
+            e,
+            details: 'termId=$termId',
+          );
         }
       }
 
@@ -699,7 +708,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
               }
             }
           } catch (e) {
-            print('Error invalidating tooltip cache after saveTerm: $e');
+            ApiLogger.logError('invalidateTooltipCache', e);
           }
         }
       } else {
@@ -750,7 +759,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
           final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
           await tooltipCacheService.removeFromCache(termId);
         } catch (e) {
-          print('Error invalidating tooltip cache after updateTermStatus: $e');
+          ApiLogger.logError('invalidateTooltipCache', e);
         }
       }
     }
@@ -762,8 +771,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
     try {
       return await _repository.getCurrentPageForBook(bookId);
     } catch (e) {
-      print('Error getting current page for book $bookId: $e');
-      // Return -1 to indicate error
+      ApiLogger.logError('getCurrentPageForBook', e, details: 'bookId=$bookId');
       return -1;
     }
   }

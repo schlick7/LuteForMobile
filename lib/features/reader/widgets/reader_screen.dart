@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/logger/widget_logger.dart';
+import '../../../core/logger/api_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
@@ -215,7 +216,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         _languageIdToName = {for (var lang in languages) lang.id: lang.name};
       });
     } catch (e) {
-      print('DEBUG: Failed to load language mapping: $e');
+      ApiLogger.logError('loadLanguageMapping', e);
     }
   }
 
@@ -309,7 +310,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               );
         }
       } catch (e) {
-        print('Error checking server page: $e');
+        ApiLogger.logError('checkServerPage', e);
         // Don't show error, just continue with current page
       }
     }
@@ -425,7 +426,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Future<void> loadBook(int bookId, [int? pageNum]) async {
-    print('DEBUG: loadBook called with bookId=$bookId, pageNum=$pageNum');
+    ApiLogger.logLoading('loadBook', details: 'bookId=$bookId, page=$pageNum');
     setState(() {
       _pageKey = ValueKey('$bookId-${pageNum ?? 1}');
       _isLastPageMarkedDone = false;
@@ -462,8 +463,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         setState(() {});
       }
     } catch (e, stackTrace) {
-      print('ERROR: loadBook failed: $e');
-      print('Stack trace: $stackTrace');
+      ApiLogger.logError('loadBook', e, stackTrace: stackTrace);
 
       final settings = ref.read(settingsProvider);
       if (settings.currentBookId == bookId) {
@@ -1073,8 +1073,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     _highlightedParagraphId = null;
     _highlightedOrder = null;
 
-    print(
-      '_handleDoubleTap: text="${item.text}", wordId=${item.wordId}, langId=${item.langId}',
+    ApiLogger.logState(
+      '_handleDoubleTap',
+      details: 'wordId=${item.wordId}, langId=${item.langId}',
     );
 
     try {
@@ -1082,13 +1083,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           .read(readerProvider.notifier)
           .fetchTermFormById(item.wordId!);
       if (termForm != null && mounted) {
-        print(
-          'Got termForm: term="${termForm.term}", termId=${termForm.termId}',
+        ApiLogger.logState(
+          '_handleDoubleTap',
+          details: 'termId=${termForm.termId}',
         );
         _showTermForm(termForm);
       }
     } catch (e) {
-      print('_handleDoubleTap error: $e');
+      ApiLogger.logError('_handleDoubleTap', e);
       return;
     }
   }
@@ -1182,7 +1184,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         throw Exception('Could not fetch term form');
       }
     } catch (e) {
-      print('Error marking term as known: $e');
+      ApiLogger.logError('markTermAsKnown', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1520,7 +1522,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             .read(readerProvider.notifier)
             .markPageRead(pageData.bookId, pageData.currentPage);
       } catch (e) {
-        print('Error marking page as read: $e');
+        ApiLogger.logError('markPageRead', e);
       }
     }
 
@@ -1768,7 +1770,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             );
       }
     } catch (e) {
-      print('Error marking page as known: $e');
+      ApiLogger.logError('markPageAsKnown', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1817,7 +1819,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       }
       ref.read(statsProvider.notifier).loadStats();
     } catch (e) {
-      print('Error marking page as done: $e');
+      ApiLogger.logError('markPageAsDone', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

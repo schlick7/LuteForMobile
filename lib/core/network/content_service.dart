@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as html;
+import '../../core/logger/api_logger.dart';
 import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
@@ -161,8 +162,7 @@ class ContentService {
         pageTextHtml,
       );
     } catch (e) {
-      // Silently fail - preloading is best effort
-      print('Preload error for page $pageNum: $e');
+      ApiLogger.logError('preloadPage', e, details: 'pageNum=$pageNum');
     }
   }
 
@@ -205,7 +205,7 @@ class ContentService {
       final htmlContent = await _apiService.getRawTermTooltipHtml(termId);
       return htmlContent;
     } catch (e) {
-      print('Error getting raw term tooltip HTML: $e');
+      ApiLogger.logError('getRawTermTooltipHtml', e, details: 'termId=$termId');
       return null;
     }
   }
@@ -310,7 +310,7 @@ class ContentService {
 
       return null;
     } catch (e) {
-      print('Error creating term: $e');
+      ApiLogger.logError('createTerm', e);
       return null;
     }
   }
@@ -394,7 +394,7 @@ class ContentService {
         try {
           statusDistMap = json.decode(jsonData['status_distribution']);
         } catch (e) {
-          print('Error parsing status_distribution: $e');
+          ApiLogger.logError('parseStatusDistribution', e);
         }
       }
 
@@ -436,8 +436,7 @@ class ContentService {
         lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
       );
     } catch (e) {
-      print('ERROR parsing getBookStats response: $e');
-      print('Raw response: $jsonString');
+      ApiLogger.logError('getBookStats', e);
       rethrow;
     }
   }
@@ -469,24 +468,17 @@ class ContentService {
     if (_cachedLanguages != null && _languagesCacheTime != null) {
       final age = DateTime.now().difference(_languagesCacheTime!);
       if (age < _languagesCacheTtl) {
-        print(
-          'DEBUG: getLanguagesWithIds() - returning cached result (age: ${age.inMilliseconds}ms)',
-        );
         return _cachedLanguages!;
       }
     }
 
     // Fetch from API and cache the result
-    print('DEBUG: getLanguagesWithIds() - fetching from API');
     final response = await _apiService.getLanguages();
     final htmlContent = response.data ?? '';
     final languages = parser.parseLanguagesWithIds(htmlContent);
 
     _cachedLanguages = languages;
     _languagesCacheTime = DateTime.now();
-    print(
-      'DEBUG: getLanguagesWithIds() - cached ${languages.length} languages',
-    );
 
     return languages;
   }
@@ -543,7 +535,7 @@ class ContentService {
         return jsonDecode(jsonStr) as Map<String, dynamic>;
       }
     } catch (e) {
-      print('Error parsing user settings: $e');
+      ApiLogger.logError('getUserSettings', e);
     }
     return {};
   }
@@ -633,7 +625,7 @@ class ContentService {
       }
       return 1; // Default to page 1 if parsing fails
     } catch (e) {
-      print('Error getting current page for book $bookId: $e');
+      ApiLogger.logError('getCurrentPageForBook', e, details: 'bookId=$bookId');
       return 1; // Default to page 1 on error
     }
   }
@@ -679,9 +671,9 @@ class ContentService {
         }
       }
 
-      print('Term cache warmed with $start terms');
+      ApiLogger.logCache('TermCacheWarmed', details: '$start terms');
     } catch (e) {
-      print('Error warming term cache: $e');
+      ApiLogger.logError('warmTermCache', e);
     }
   }
 
@@ -690,7 +682,7 @@ class ContentService {
       await _termCacheService.initialize();
       return await _termCacheService.getAllTerms();
     } catch (e) {
-      print('Error getting cached terms: $e');
+      ApiLogger.logError('getCachedTerms', e);
       return [];
     }
   }
@@ -700,7 +692,7 @@ class ContentService {
       await _termCacheService.initialize();
       return await _termCacheService.searchTerms(query);
     } catch (e) {
-      print('Error searching cached terms: $e');
+      ApiLogger.logError('searchCachedTerms', e, details: 'query=$query');
       return [];
     }
   }
@@ -710,7 +702,7 @@ class ContentService {
       await _termCacheService.initialize();
       return await _termCacheService.getTerm(termId);
     } catch (e) {
-      print('Error getting cached term: $e');
+      ApiLogger.logError('getCachedTerm', e, details: 'termId=$termId');
       return null;
     }
   }
@@ -724,10 +716,6 @@ class ContentService {
     int pageNum,
     PageData pageData,
   ) async {
-    // This method is deprecated - caching is now handled in getPageContent
-    // Kept for backward compatibility but should not be called
-    print(
-      'Warning: savePageToCache called - caching should be handled in getPageContent',
-    );
+    ApiLogger.logState('savePageToCache', details: 'deprecated method called');
   }
 }

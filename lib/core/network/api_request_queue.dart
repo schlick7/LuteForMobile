@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import '../../shared/providers/server_status_provider.dart';
+import '../../core/logger/api_logger.dart';
 
 class QueuedRequest {
   final String signature;
@@ -41,48 +42,35 @@ class ApiRequestQueue {
   }
 
   Future<void> _acquireTableStatsSlot() async {
-    print(
-      'DEBUG: _acquireTableStatsSlot - active=$_tableStatsActive, waiters=${_tableStatsWaiters.length}',
+    ApiLogger.logRequest(
+      '_acquireTableStatsSlot',
+      details:
+          'active=$_tableStatsActive, waiters=${_tableStatsWaiters.length}',
     );
     if (_tableStatsActive < _kMaxTableStatsConcurrent) {
       _tableStatsActive++;
-      print(
-        'DEBUG: _acquireTableStatsSlot - acquired slot, active=$_tableStatsActive',
+      ApiLogger.logRequest(
+        '_acquireTableStatsSlot',
+        details: 'acquired slot, active=$_tableStatsActive',
       );
       return;
     }
     final completer = Completer<void>();
     _tableStatsWaiters.add(completer);
-    print(
-      'DEBUG: _acquireTableStatsSlot - queued, total waiters=${_tableStatsWaiters.length}',
-    );
     await completer.future;
-    print('DEBUG: _acquireTableStatsSlot - slot released, proceeding');
   }
 
   void _releaseTableStatsSlot() {
-    print(
-      'DEBUG: _releaseTableStatsSlot - active=$_tableStatsActive, waiters=${_tableStatsWaiters.length}',
-    );
     if (_tableStatsWaiters.isNotEmpty) {
       final nextCompleter = _tableStatsWaiters.removeAt(0);
       nextCompleter.complete();
-      print(
-        'DEBUG: _releaseTableStatsSlot - released to waiter, remaining waiters=${_tableStatsWaiters.length}',
-      );
     } else {
       _tableStatsActive--;
-      print(
-        'DEBUG: _releaseTableStatsSlot - decremented active to $_tableStatsActive',
-      );
     }
   }
 
   void initialize(String serverUrl, Dio dio) {
     if (_serverUrl != null && _serverUrl == serverUrl) {
-      print(
-        'DEBUG: ApiRequestQueue already initialized with same URL, skipping',
-      );
       return;
     }
 
@@ -91,26 +79,19 @@ class ApiRequestQueue {
 
     ServerStatusManager.addListener(_onServerStatusChanged);
 
-    print(
-      'DEBUG: ApiRequestQueue initialized with URL: $serverUrl, initial reachable: $_isServerReachable, tableStatsActive=$_tableStatsActive',
-    );
     _startPolling();
   }
 
   void _onServerStatusChanged() {
     _isServerReachable = ServerStatusManager.isReachable;
-    print(
-      'DEBUG: Server status changed → $_isServerReachable, triggering queue',
-    );
     unawaited(_processQueue());
   }
 
   void _startPolling() {
     _pollTimer?.cancel();
-    print('DEBUG: ApiRequestQueue starting timer (200ms)');
     _pollTimer = Timer.periodic(
       const Duration(milliseconds: 200),
-      (_) => _processQueue,
+      (_) => _processQueue(),
     );
   }
 
@@ -154,8 +135,10 @@ class ApiRequestQueue {
 
     _queue.add(queuedRequest);
     final isStats = _isTableStatsRequest(options);
-    print(
-      'DEBUG: enqueue - ${options.uri}, isTableStats=$isStats, queueLength=${_queue.length}',
+    ApiLogger.logRequest(
+      'enqueue',
+      details:
+          '${options.uri}, isTableStats=$isStats, queueLength=${_queue.length}',
     );
 
     unawaited(_processQueue());
@@ -175,15 +158,18 @@ class ApiRequestQueue {
     if (_isServerReachable && _queue.isNotEmpty) {
       final requestsToProcess = List<QueuedRequest>.from(_queue);
       _queue.clear();
-      print(
-        'DEBUG: _processQueue - processing ${requestsToProcess.length} requests',
+
+      ApiLogger.logRequest(
+        '_processQueue',
+        details: 'processing ${requestsToProcess.length} requests',
       );
 
       for (final request in requestsToProcess) {
         _pendingSignatures.remove(request.signature);
         final isStats = _isTableStatsRequest(request.options);
-        print(
-          'DEBUG: _processQueue - request: ${request.options.uri}, isTableStats=$isStats',
+        ApiLogger.logRequest(
+          '_processQueue',
+          details: '${request.options.uri}, isTableStats=$isStats',
         );
 
         if (isStats) {

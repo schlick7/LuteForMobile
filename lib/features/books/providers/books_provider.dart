@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
+import '../../../core/logger/api_logger.dart';
 import '../models/book.dart';
 import '../repositories/books_repository.dart';
 import '../../../shared/providers/network_providers.dart';
@@ -110,11 +111,9 @@ class BooksNotifier extends Notifier<BooksState> {
 
   Future<void> loadBooks({bool forceRefresh = false}) async {
     if (_isLoadingBooks) {
-      print('DEBUG: loadBooks() skipped - already loading');
       return;
     }
 
-    print('DEBUG: loadBooks() called, forceRefresh=$forceRefresh');
     _isLoadingBooks = true;
 
     if (!_repository.contentService.isConfigured) {
@@ -138,8 +137,10 @@ class BooksNotifier extends Notifier<BooksState> {
 
       final hasCachedBooks =
           activeFromCache != null && activeFromCache.isNotEmpty;
-      print(
-        'DEBUG: loadBooks() - cache hasCachedBooks=$hasCachedBooks, count=${activeFromCache?.length ?? 0}',
+      ApiLogger.logCache(
+        'loadBooks',
+        details:
+            'hasCachedBooks=$hasCachedBooks, count=${activeFromCache?.length ?? 0}',
       );
 
       if (hasCachedBooks) {
@@ -155,7 +156,7 @@ class BooksNotifier extends Notifier<BooksState> {
       _backgroundRefreshExpiredBooks();
     } catch (e) {
       state = state.copyWith(isLoading: false);
-      print('Error loading books from cache: $e');
+      ApiLogger.logError('loadBooksFromCache', e);
     } finally {
       _isLoadingBooks = false;
     }
@@ -190,7 +191,6 @@ class BooksNotifier extends Notifier<BooksState> {
   Future<void> _backgroundRefreshExpiredBooks() async {
     // Prevent concurrent background refresh calls
     if (_isBackgroundRefreshing) {
-      print('DEBUG: Background refresh skipped - already running');
       return;
     }
     _isBackgroundRefreshing = true;
@@ -204,9 +204,6 @@ class BooksNotifier extends Notifier<BooksState> {
       if (_lastBackgroundRefreshTime != null) {
         final timeSinceLastRefresh = now - _lastBackgroundRefreshTime!;
         if (timeSinceLastRefresh < cooldown.inMilliseconds) {
-          print(
-            'DEBUG: Background refresh skipped - cooldown active (${(timeSinceLastRefresh / 1000 / 60).toStringAsFixed(0)} mins since last refresh)',
-          );
           return;
         }
       }
@@ -217,8 +214,10 @@ class BooksNotifier extends Notifier<BooksState> {
         return age > ttl.inMilliseconds;
       }).toList();
 
-      print(
-        'DEBUG: _backgroundRefreshExpiredBooks - ${expiredBooks.length} expired books out of ${state.activeBooks.length} total',
+      ApiLogger.logCache(
+        'backgroundRefreshExpired',
+        details:
+            '${expiredBooks.length} expired out of ${state.activeBooks.length}',
       );
 
       if (expiredBooks.isEmpty) {
@@ -266,7 +265,6 @@ class BooksNotifier extends Notifier<BooksState> {
           archivedBooks: state.archivedBooks,
         );
 
-        print('DEBUG: Updating state with ${updatedActiveBooks.length} books');
         state = state.copyWith(activeBooks: updatedActiveBooks);
       } finally {
         try {
@@ -276,7 +274,7 @@ class BooksNotifier extends Notifier<BooksState> {
             settings.statsCalcSampleSize.toString(),
           );
         } catch (e) {
-          print('Failed to restore sample size: $e');
+          ApiLogger.logError('restoreSampleSize', e);
         }
       }
 
@@ -290,9 +288,7 @@ class BooksNotifier extends Notifier<BooksState> {
     int bookId, {
     List<Book>? updatedBooksList,
   }) async {
-    print(
-      'DEBUG: _refreshBookSimple called for bookId=$bookId at ${DateTime.now().millisecondsSinceEpoch}',
-    );
+    ApiLogger.logRequest('_refreshBookSimple', details: 'bookId=$bookId');
 
     final booksList = updatedBooksList ?? state.activeBooks;
     final existingBook = booksList.firstWhere(
@@ -301,8 +297,9 @@ class BooksNotifier extends Notifier<BooksState> {
           throw Exception('Book with id $bookId not found in active books'),
     );
     final statsBook = await _repository.contentService.getBookStats(bookId);
-    print(
-      'DEBUG: Refresh stats for book $bookId - distinctTerms: ${statsBook.distinctTerms}, unknownPct: ${statsBook.unknownPct}, statusDistribution: ${statsBook.statusDistribution}',
+    ApiLogger.logRequest(
+      '_refreshBookSimple',
+      details: 'bookId=$bookId, distinctTerms=${statsBook.distinctTerms}',
     );
     final updatedBook = existingBook.copyWith(
       distinctTerms: statsBook.distinctTerms,
@@ -406,7 +403,7 @@ class BooksNotifier extends Notifier<BooksState> {
                 archivedBooks: state.archivedBooks,
               );
             } catch (e) {
-              print('Cache save error: $e');
+              ApiLogger.logError('saveBooksToCache', e);
             }
           }();
         }
@@ -420,7 +417,7 @@ class BooksNotifier extends Notifier<BooksState> {
           settings.statsCalcSampleSize.toString(),
         );
       } catch (e) {
-        print('Failed to restore sample size: $e');
+        ApiLogger.logError('restoreSampleSize', e);
       }
       if (_refreshRequestedAfterNavigate) {
         _refreshRequestedAfterNavigate = false;
@@ -438,8 +435,9 @@ class BooksNotifier extends Notifier<BooksState> {
 
     try {
       final networkBooks = await _repository.getActiveBooks();
-      print(
-        'DEBUG: _loadBooksFromNetwork - got ${networkBooks.length} books from network',
+      ApiLogger.logRequest(
+        '_loadBooksFromNetwork',
+        details: 'got ${networkBooks.length} books',
       );
 
       final networkBooksMap = {for (var b in networkBooks) b.id: b};
@@ -486,7 +484,6 @@ class BooksNotifier extends Notifier<BooksState> {
       );
       _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
     } catch (e) {
-      print('DEBUG: _loadBooksFromNetwork failed - preserving existing books');
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     } finally {
       _isLoadingFromNetwork = false;
@@ -549,7 +546,6 @@ class BooksNotifier extends Notifier<BooksState> {
 
   Future<void> refreshBooks() async {
     if (_isLoadingFromNetwork) {
-      print('DEBUG: refreshBooks() skipped - already loading');
       return;
     }
     if (state.showArchived) {
@@ -561,7 +557,6 @@ class BooksNotifier extends Notifier<BooksState> {
 
   Future<void> _refreshActive() async {
     if (_isLoadingFromNetwork) {
-      print('DEBUG: _refreshActive() skipped - already loading');
       return;
     }
     _isLoadingFromNetwork = true;
@@ -593,7 +588,6 @@ class BooksNotifier extends Notifier<BooksState> {
 
   Future<void> _refreshArchived() async {
     if (_isLoadingFromNetwork) {
-      print('DEBUG: _refreshArchived() skipped - already loading');
       return;
     }
     _isLoadingFromNetwork = true;
@@ -707,7 +701,7 @@ class BooksNotifier extends Notifier<BooksState> {
           settings.statsCalcSampleSize.toString(),
         );
       } catch (err) {
-        print('Failed to restore sample size: $err');
+        ApiLogger.logError('restoreSampleSize', err);
       }
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
@@ -773,7 +767,7 @@ class BooksNotifier extends Notifier<BooksState> {
           settings.statsCalcSampleSize.toString(),
         );
       } catch (err) {
-        print('Failed to restore sample size: $err');
+        ApiLogger.logError('restoreSampleSize', err);
       }
       state = state.copyWith(isRefreshing: false, errorMessage: e.toString());
     }

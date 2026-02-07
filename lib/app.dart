@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lute_for_mobile/core/logger/api_logger.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.dart';
 import 'package:lute_for_mobile/features/reader/widgets/sentence_reader_screen.dart';
@@ -91,8 +92,9 @@ class NavigationController {
   }
 
   void navigateToReader(int bookId, [int? pageNum]) {
-    print(
-      'DEBUG: NavigationController.navigateToReader called with bookId=$bookId, pageNum=$pageNum',
+    ApiLogger.logRequest(
+      'NavigationController.navigateToReader',
+      details: 'bookId=$bookId, pageNum=$pageNum',
     );
     try {
       for (final listener in _readerListeners) {
@@ -100,23 +102,21 @@ class NavigationController {
       }
       navigateToScreen('reader');
     } catch (e, stackTrace) {
-      print('ERROR: navigateToReader failed: $e');
-      print('Stack trace: $stackTrace');
+      ApiLogger.logError('navigateToReader', e, stackTrace: stackTrace);
     }
   }
 
   void navigateToScreen(String route) {
-    print(
-      'DEBUG: NavigationController.navigateToScreen called with route=$route, listeners count=${_screenListeners.length}',
-    );
     try {
       for (final listener in _screenListeners) {
-        print('DEBUG: Calling screen listener with route=$route');
         listener(route);
       }
     } catch (e, stackTrace) {
-      print('ERROR: navigateToScreen failed: $e');
-      print('Stack trace: $stackTrace');
+      ApiLogger.logError(
+        'NavigationController.navigateToScreen',
+        e,
+        stackTrace: stackTrace,
+      );
     }
   }
 }
@@ -127,8 +127,6 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeSettings = ref.watch(themeSettingsProvider);
-    print(
-    );
 
     ThemeMode themeMode;
     switch (themeSettings.themeType) {
@@ -204,7 +202,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     final settings = ref.read(settingsProvider);
     if (settings.serverUrl.isEmpty) return;
 
-    print('MainNavigation: Running Dart health check');
+    ApiLogger.logRequest('ServerHealthCheck');
     final isReachable = await ServerHealthService.isReachable(
       settings.serverUrl,
     );
@@ -221,7 +219,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         );
         if (isRunning) {
           if (_needsDataRefresh) {
-            print('DEBUG: Server ready, refreshing data...');
             _needsDataRefresh = false;
             ref.read(booksProvider.notifier).loadBooks(forceRefresh: true);
             _loadLastReadBook();
@@ -241,11 +238,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   }
 
   void _handleNavigateToReader(int bookId, [int? pageNum]) {
-    print(
-      'DEBUG: _handleNavigateToReader called with bookId=$bookId, pageNum=$pageNum',
-    );
-    print('DEBUG: _readerKey.currentState=${_readerKey.currentState}');
-
     final booksState = ref.read(booksProvider);
     final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
     final book = allBooks.firstWhere(
@@ -266,13 +258,9 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       ),
     );
 
-    print(
-      'DEBUG: _handleNavigateToReader - calling updateCurrentBook($bookId, $pageNum, ${book.langId})',
-    );
     ref
         .read(settingsProvider.notifier)
         .updateCurrentBook(bookId, pageNum, book.langId);
-    print('DEBUG: _handleNavigateToReader - updateCurrentBook completed');
 
     ref.read(currentBookProvider.notifier).setBook(book);
     ref.read(booksProvider.notifier).setCurrentBook(bookId);
@@ -284,13 +272,15 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     if (_readerKey.currentState != null) {
       _readerKey.currentState!.loadBook(bookId, pageNum);
     } else {
-      print('ERROR: _readerKey.currentState is null!');
+      ApiLogger.logError(
+        '_handleNavigateToReader',
+        Exception('Reader not ready'),
+      );
     }
     _updateDrawerSettings();
   }
 
   void _handleNavigateToScreen(String route) {
-    print('DEBUG: _handleNavigateToScreen called with route=$route');
     final routeToIndex = {
       'reader': 0,
       'books': 1,
@@ -307,7 +297,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     });
 
     if (route == 'books') {
-      print('DEBUG: _handleNavigateToScreen calling loadBooks()');
       ref.read(booksProvider.notifier).loadBooks();
     }
 

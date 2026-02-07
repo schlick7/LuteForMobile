@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
+import '../../../core/logger/api_logger.dart';
 import '../models/term.dart';
 import '../models/term_stats.dart';
 import '../repositories/terms_repository.dart';
@@ -87,7 +88,6 @@ class TermsNotifier extends Notifier<TermsState> {
   }
 
   void resetForNewNavigation() {
-    print('DEBUG resetForNewNavigation: called');
     state = state.copyWith(isInitialized: false);
   }
 
@@ -138,8 +138,6 @@ class TermsNotifier extends Notifier<TermsState> {
         selectedStatuses: filteredStatuses.isEmpty ? null : filteredStatuses,
       );
 
-      print('DEBUG loadTerms: loaded ${newTerms.length} terms');
-
       state = state.copyWith(
         isLoading: false,
         terms: reset ? newTerms : [...state.terms, ...newTerms],
@@ -152,7 +150,7 @@ class TermsNotifier extends Notifier<TermsState> {
         loadStats(langId);
       }
     } catch (e) {
-      print('DEBUG loadTerms: error $e');
+      ApiLogger.logError('loadTerms', e);
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
@@ -170,7 +168,6 @@ class TermsNotifier extends Notifier<TermsState> {
   }
 
   void setLanguageFilter(int? langId) {
-    print('DEBUG setLanguageFilter: $langId');
     state = state.copyWith(selectedLangId: langId);
     loadTerms(reset: true);
     if (langId != null) {
@@ -183,14 +180,11 @@ class TermsNotifier extends Notifier<TermsState> {
       final stats = await _repository.getTermStats(langId);
       state = state.copyWith(stats: stats);
     } catch (e) {
-      print('DEBUG loadStats: error $e');
+      ApiLogger.logError('loadStats', e);
     }
   }
 
   void setStatusFilter(String? status) {
-    print(
-      'DEBUG setStatusFilter: $status, current selectedStatuses: ${state.selectedStatuses}',
-    );
     final newStatuses = Set<String?>.from(state.selectedStatuses);
     if (status == null) {
       final allDefaultSelected = {

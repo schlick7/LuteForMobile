@@ -280,7 +280,6 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> clearCurrentBook() async {
-    print('DEBUG: clearCurrentBook - clearing current book data');
     state = state.copyWith(
       currentBookId: null,
       currentBookLangId: null,
@@ -293,7 +292,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyCurrentBookLangId);
     await prefs.remove(_keyCurrentBookPage);
     await prefs.remove(_keyCurrentBookSentenceIndex);
-    print('DEBUG: clearCurrentBook - cleared from SharedPreferences');
   }
 
   Future<void> updateCurrentBookSentenceIndex(int? sentenceIndex) async {
@@ -836,23 +834,18 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
   }
 
   Future<void> updateAccentLabelColor(Color color) async {
-    print('DEBUG: updateAccentLabelColor called with color: $color');
     state = state.copyWith(accentLabelColor: color);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentLabelColor, color.value);
-    print('DEBUG: Saved accentLabelColor.value = ${color.value}');
   }
 
   Future<void> updateAccentButtonColor(Color color) async {
-    print('DEBUG: updateAccentButtonColor called with color: $color');
     state = state.copyWith(accentButtonColor: color);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentButtonColor, color.value);
-    print('DEBUG: Saved accentButtonColor.value = ${color.value}');
   }
 
   Future<void> updateCustomAccentLabelColor(Color color) async {
-    print('DEBUG: updateCustomAccentLabelColor called with color: $color');
     state = state.copyWith(
       customAccentLabelColor: color,
       accentLabelColor: color,
@@ -860,11 +853,9 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyCustomAccentLabelColor, color.value);
     await prefs.setInt(_keyAccentLabelColor, color.value);
-    print('DEBUG: Saved customAccentLabelColor.value = ${color.value}');
   }
 
   Future<void> updateCustomAccentButtonColor(Color color) async {
-    print('DEBUG: updateCustomAccentButtonColor called with color: $color');
     state = state.copyWith(
       customAccentButtonColor: color,
       accentButtonColor: color,
@@ -872,7 +863,6 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyCustomAccentButtonColor, color.value);
     await prefs.setInt(_keyAccentButtonColor, color.value);
-    print('DEBUG: Saved customAccentButtonColor.value = ${color.value}');
   }
 
   Future<void> updateThemeType(ThemeType themeType) async {
