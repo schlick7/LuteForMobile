@@ -169,28 +169,17 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
   bool _checkServerPageInProgress = false;
-  bool _serverReachable = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    ServerStatusManager.addListener(_onServerStatusChanged);
     Future.delayed(Duration.zero, _loadLanguageMapping);
     Future.delayed(Duration.zero, _loadStatsIfNeeded);
   }
 
-  void _onServerStatusChanged() {
-    if (mounted) {
-      setState(() {
-        _serverReachable = ServerStatusManager.isReachable;
-      });
-    }
-  }
-
   @override
   void dispose() {
-    ServerStatusManager.removeListener(_onServerStatusChanged);
     WidgetsBinding.instance.removeObserver(this);
     _ttsNotifier?.stop();
     super.dispose();
@@ -499,8 +488,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           builder: (context) {
             return IconButton(
               icon: Icon(
-                _serverReachable ? Icons.menu : Icons.warning,
-                color: _serverReachable ? null : Colors.red,
+                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
+                color: ServerStatusManager.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (widget.scaffoldKey != null &&

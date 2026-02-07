@@ -367,26 +367,32 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           _ => 0,
         },
         children: [
-          RepaintBoundary(
-            child: ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
+          Consumer(
+            builder: (context, ref, child) =>
+                ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
           ),
-          RepaintBoundary(
-            child: BooksScreen(key: _booksKey, scaffoldKey: _scaffoldKey),
+          Consumer(
+            builder: (context, ref, child) =>
+                BooksScreen(key: _booksKey, scaffoldKey: _scaffoldKey),
           ),
-          RepaintBoundary(
-            child: TermsScreen(key: _termsKey, scaffoldKey: _scaffoldKey),
+          Consumer(
+            builder: (context, ref, child) =>
+                TermsScreen(key: _termsKey, scaffoldKey: _scaffoldKey),
           ),
-          RepaintBoundary(
-            child: StatsScreen(key: _statsKey, scaffoldKey: _scaffoldKey),
+          Consumer(
+            builder: (context, ref, child) =>
+                StatsScreen(key: _statsKey, scaffoldKey: _scaffoldKey),
           ),
-          RepaintBoundary(
-            child: HelpScreen(key: _helpKey, scaffoldKey: _scaffoldKey),
+          Consumer(
+            builder: (context, ref, child) =>
+                HelpScreen(key: _helpKey, scaffoldKey: _scaffoldKey),
           ),
-          RepaintBoundary(
-            child: SettingsScreen(key: _settingsKey, scaffoldKey: _scaffoldKey),
+          Consumer(
+            builder: (context, ref, child) =>
+                SettingsScreen(key: _settingsKey, scaffoldKey: _scaffoldKey),
           ),
-          RepaintBoundary(
-            child: SentenceReaderScreen(
+          Consumer(
+            builder: (context, ref, child) => SentenceReaderScreen(
               key: _sentenceReaderKey,
               scaffoldKey: _scaffoldKey,
             ),

@@ -31,6 +31,10 @@ class ServerStatusNotifier extends Notifier<ServerStatus> {
   @override
   ServerStatus build() => const ServerStatus();
 
+  void updateFromManager(bool isReachable, bool isConnecting) {
+    state = ServerStatus(isReachable: isReachable, isConnecting: isConnecting);
+  }
+
   void markOnline() {
     state = state.copyWith(isReachable: true, isConnecting: false);
   }

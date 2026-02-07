@@ -25,31 +25,20 @@ class TermsScreen extends ConsumerStatefulWidget {
 class _TermsScreenState extends ConsumerState<TermsScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
-  bool _serverReachable = true;
   int _buildCount = 0;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
-    ServerStatusManager.addListener(_onServerStatusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(termsProvider.notifier).resetForNewNavigation();
       ref.read(termsProvider.notifier).loadTerms(reset: true);
     });
   }
 
-  void _onServerStatusChanged() {
-    if (mounted) {
-      setState(() {
-        _serverReachable = ServerStatusManager.isReachable;
-      });
-    }
-  }
-
   @override
   void dispose() {
-    ServerStatusManager.removeListener(_onServerStatusChanged);
     _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     _searchController.dispose();
@@ -76,8 +65,8 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
           builder: (context) {
             return IconButton(
               icon: Icon(
-                _serverReachable ? Icons.menu : Icons.warning,
-                color: _serverReachable ? null : Colors.red,
+                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
+                color: ServerStatusManager.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (widget.scaffoldKey != null &&

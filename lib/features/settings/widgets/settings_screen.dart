@@ -35,7 +35,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isTesting = false;
   String? _connectionStatus;
   bool _connectionTestPassed = false;
-  bool _serverReachable = true;
   bool _bookStatsExpanded = false;
   bool _readerExpanded = false;
 
@@ -56,7 +55,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    ServerStatusManager.addListener(_onServerStatusChanged);
     SharedPreferences.getInstance().then((prefs) {
       final savedUrl = prefs.getString('local_url') ?? '';
       if (mounted) {
@@ -65,17 +63,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
   }
 
-  void _onServerStatusChanged() {
-    if (mounted) {
-      setState(() {
-        _serverReachable = ServerStatusManager.isReachable;
-      });
-    }
-  }
-
   @override
   void dispose() {
-    ServerStatusManager.removeListener(_onServerStatusChanged);
     _localUrlController.dispose();
     super.dispose();
   }
@@ -177,8 +166,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           builder: (context) {
             return IconButton(
               icon: Icon(
-                _serverReachable ? Icons.menu : Icons.warning,
-                color: _serverReachable ? null : Colors.red,
+                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
+                color: ServerStatusManager.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (widget.scaffoldKey != null &&

@@ -171,7 +171,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
   bool _checkServerPageInProgress = false;
-  bool _serverReachable = true;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -233,23 +232,13 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     WidgetsBinding.instance.addObserver(this);
     _hasInitialized = true;
     _scrollController.addListener(_handleScrollPosition);
-    ServerStatusManager.addListener(_onServerStatusChanged);
 
     Future.delayed(Duration.zero, _loadLanguageMapping);
     Future.delayed(Duration.zero, _loadStatsIfNeeded);
   }
 
-  void _onServerStatusChanged() {
-    if (mounted) {
-      setState(() {
-        _serverReachable = ServerStatusManager.isReachable;
-      });
-    }
-  }
-
   @override
   void dispose() {
-    ServerStatusManager.removeListener(_onServerStatusChanged);
     WidgetsBinding.instance.removeObserver(this);
     _hideUiTimer?.cancel();
     _glowTimer?.cancel();
@@ -499,7 +488,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final statsState = ref.watch(statsProvider);
 
     return Scaffold(
-      appBar: _buildAppBar(context, pageData, textSettings.fullscreenMode),
+      appBar: _buildAppBar(
+        context,
+        pageData,
+        textSettings.fullscreenMode,
+        ServerStatusManager.isReachable,
+      ),
       body: Stack(
         children: [
           Column(
@@ -533,6 +527,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     BuildContext context,
     PageData? pageData,
     bool fullscreenMode,
+    bool serverReachable,
   ) {
     final settings = ref.read(settingsProvider);
 
@@ -551,8 +546,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               builder: (context) {
                 return IconButton(
                   icon: Icon(
-                    _serverReachable ? Icons.menu : Icons.warning,
-                    color: _serverReachable ? null : Colors.red,
+                    serverReachable ? Icons.menu : Icons.warning,
+                    color: serverReachable ? null : Colors.red,
                   ),
                   onPressed: () {
                     if (widget.scaffoldKey != null &&
@@ -615,8 +610,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         builder: (context) {
           return IconButton(
             icon: Icon(
-              _serverReachable ? Icons.menu : Icons.warning,
-              color: _serverReachable ? null : Colors.red,
+              serverReachable ? Icons.menu : Icons.warning,
+              color: serverReachable ? null : Colors.red,
             ),
             onPressed: () {
               if (widget.scaffoldKey != null &&

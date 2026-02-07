@@ -22,29 +22,18 @@ class StatsScreen extends ConsumerStatefulWidget {
 }
 
 class _StatsScreenState extends ConsumerState<StatsScreen> {
-  bool _serverReachable = true;
   int _buildCount = 0;
 
   @override
   void initState() {
     super.initState();
-    ServerStatusManager.addListener(_onServerStatusChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(statsProvider.notifier).loadStats();
     });
   }
 
-  void _onServerStatusChanged() {
-    if (mounted) {
-      setState(() {
-        _serverReachable = ServerStatusManager.isReachable;
-      });
-    }
-  }
-
   @override
   void dispose() {
-    ServerStatusManager.removeListener(_onServerStatusChanged);
     super.dispose();
   }
 
@@ -61,8 +50,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           builder: (context) {
             return IconButton(
               icon: Icon(
-                _serverReachable ? Icons.menu : Icons.warning,
-                color: _serverReachable ? null : Colors.red,
+                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
+                color: ServerStatusManager.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (widget.scaffoldKey != null &&

@@ -10,7 +10,6 @@ import '../models/book.dart';
 import 'book_card.dart';
 import 'book_details_dialog.dart';
 import 'package:lute_for_mobile/app.dart';
-import '../../../core/providers/initial_providers.dart';
 
 class BooksScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -23,26 +22,10 @@ class BooksScreen extends ConsumerStatefulWidget {
 
 class _BooksScreenState extends ConsumerState<BooksScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool _serverReachable = true;
   int _buildCount = 0;
 
   @override
-  void initState() {
-    super.initState();
-    ServerStatusManager.addListener(_onServerStatusChanged);
-  }
-
-  void _onServerStatusChanged() {
-    if (mounted) {
-      setState(() {
-        _serverReachable = ServerStatusManager.isReachable;
-      });
-    }
-  }
-
-  @override
   void dispose() {
-    ServerStatusManager.removeListener(_onServerStatusChanged);
     _searchController.dispose();
     super.dispose();
   }
@@ -61,8 +44,8 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
           builder: (context) {
             return IconButton(
               icon: Icon(
-                _serverReachable ? Icons.menu : Icons.warning,
-                color: _serverReachable ? null : Colors.red,
+                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
+                color: ServerStatusManager.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (widget.scaffoldKey != null &&
