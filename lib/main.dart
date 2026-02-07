@@ -10,6 +10,7 @@ import 'package:lute_for_mobile/core/cache/term_cache_service.dart';
 import 'package:lute_for_mobile/features/stats/repositories/stats_repository.dart';
 import 'package:lute_for_mobile/core/network/api_service.dart';
 import 'package:lute_for_mobile/core/services/server_health_service.dart';
+import 'package:lute_for_mobile/core/services/termux_service.dart';
 import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
 import 'package:lute_for_mobile/hive_registrar.g.dart';
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
@@ -24,15 +25,25 @@ void main() async {
 
   Hive.registerAdapters();
 
-  await TooltipCacheService.getInstance().initialize();
-  await BooksCacheService.getInstance().initialize();
-  await StatsRepository.initialize();
-  await TermCacheService.getInstance().initialize();
-
   ServerStatusManager.setConnecting();
 
-  if (serverUrl.isNotEmpty) {
-    print('main.dart: Checking server health at $serverUrl');
+  Future<bool>? androidHealthCheck;
+  if (useTermux && serverUrl == Settings.termuxUrl) {
+    androidHealthCheck = TermuxService.isServerRunning(serverUrl);
+  }
+
+  await Future.wait([
+    TooltipCacheService.getInstance().initialize(),
+    BooksCacheService.getInstance().initialize(),
+    StatsRepository.initialize(),
+    TermCacheService.getInstance().initialize(),
+  ]);
+
+  if (androidHealthCheck != null) {
+    final isRunning = await androidHealthCheck;
+    print('main.dart: Android server check: $isRunning');
+    ServerStatusManager.setReachable(isRunning);
+  } else if (serverUrl.isNotEmpty) {
     final isServerReachable = await ServerHealthService.isReachable(serverUrl);
     print('main.dart: Server health check result: $isServerReachable');
     ServerStatusManager.setReachable(isServerReachable);

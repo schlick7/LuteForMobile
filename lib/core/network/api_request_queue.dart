@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
-import '../services/server_health_service.dart';
 import '../../shared/providers/server_status_provider.dart';
 
 class QueuedRequest {
@@ -86,12 +85,24 @@ class ApiRequestQueue {
       );
       return;
     }
+
     _serverUrl = serverUrl;
     _isServerReachable = ServerStatusManager.isReachable;
+
+    ServerStatusManager.addListener(_onServerStatusChanged);
+
     print(
       'DEBUG: ApiRequestQueue initialized with URL: $serverUrl, initial reachable: $_isServerReachable, tableStatsActive=$_tableStatsActive',
     );
     _startPolling();
+  }
+
+  void _onServerStatusChanged() {
+    _isServerReachable = ServerStatusManager.isReachable;
+    print(
+      'DEBUG: Server status changed → $_isServerReachable, triggering queue',
+    );
+    unawaited(_processQueue());
   }
 
   void _startPolling() {
@@ -104,6 +115,7 @@ class ApiRequestQueue {
   }
 
   void dispose() {
+    ServerStatusManager.removeListener(_onServerStatusChanged);
     _pollTimer?.cancel();
     _pollTimer = null;
     for (final request in _queue) {

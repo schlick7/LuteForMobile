@@ -19,6 +19,8 @@ import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
 import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
 import 'package:lute_for_mobile/core/services/termux_service.dart';
+import 'package:lute_for_mobile/core/services/server_health_service.dart';
+import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
 
 class RestartWidget extends StatefulWidget {
   final Widget child;
@@ -191,11 +193,23 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     _navigationController = ref.read(navigationProvider);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _updateDrawerSettings();
+      _checkServerHealth();
       _checkAndStartLute3IfNeeded();
       _loadLastReadBook();
     });
     _navigationController.addReaderListener(_handleNavigateToReader);
     _navigationController.addScreenListener(_handleNavigateToScreen);
+  }
+
+  Future<void> _checkServerHealth() async {
+    final settings = ref.read(settingsProvider);
+    if (settings.serverUrl.isEmpty) return;
+
+    print('MainNavigation: Running Dart health check');
+    final isReachable = await ServerHealthService.isReachable(
+      settings.serverUrl,
+    );
+    ServerStatusManager.setReachable(isReachable);
   }
 
   Future<void> _checkAndStartLute3IfNeeded() async {
