@@ -62,9 +62,6 @@ class BooksRepository {
     try {
       final languages = await contentService.getLanguagesWithIds();
       _languageNameToIdMap = {for (var lang in languages) lang.name: lang.id};
-      print(
-        'DEBUG: Loaded ${languages.length} languages: $_languageNameToIdMap',
-      );
     } catch (e) {
       print('Failed to load language mapping: $e');
       _languageNameToIdMap = {};
@@ -77,9 +74,6 @@ class BooksRepository {
     return books.map((book) {
       if (book.langId != null) return book;
       final langId = _languageNameToIdMap![book.language];
-      print(
-        'DEBUG: Enriching book "${book.title}" (language: ${book.language}) with langId: $langId',
-      );
       return book.copyWith(langId: langId ?? 0);
     }).toList();
   }
