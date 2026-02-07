@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
@@ -139,13 +140,13 @@ class _PageTransitionState extends State<_PageTransition>
 
 class ReaderScreenState extends ConsumerState<ReaderScreen>
     with WidgetsBindingObserver {
+  int _buildCount = 0;
   double _tempTextSize = 18.0;
   double _tempLineSpacing = 1.5;
   String? _tempFont;
   double _tempFontWeight = 2.0;
   bool? _tempIsItalic;
   TermForm? _currentTermForm;
-  int _buildCount = 0;
   bool _isDictionaryOpen = false;
   AppLifecycleState? _lastLifecycleState;
   bool _hasInitialized = false;
@@ -473,6 +474,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    WidgetLogger.logRebuild('ReaderScreen', _buildCount);
+
     final isLoading = ref.watch(readerProvider.select((s) => s.isLoading));
     final errorMessage = ref.watch(
       readerProvider.select((s) => s.errorMessage),
@@ -493,8 +497,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     final statsState = ref.watch(statsProvider);
-
-    _buildCount++;
 
     return Scaffold(
       appBar: _buildAppBar(context, pageData, textSettings.fullscreenMode),

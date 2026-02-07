@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../models/text_item.dart';
 import '../models/paragraph.dart';
 import '../../../shared/theme/theme_extensions.dart';
@@ -218,8 +219,10 @@ class _TextDisplayState extends State<TextDisplay> {
   @override
   Widget build(BuildContext context) {
     _buildCount++;
-    print(
-      'DEBUG: TextDisplay rebuild #$_buildCount (paragraphs: ${widget.paragraphs.length})',
+    WidgetLogger.logRebuild(
+      'TextDisplay',
+      _buildCount,
+      'paragraphs: ${widget.paragraphs.length}',
     );
     return RepaintBoundary(
       child: SingleChildScrollView(

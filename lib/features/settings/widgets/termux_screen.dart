@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/logger/widget_logger.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:app_settings/app_settings.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -20,6 +21,7 @@ class TermuxScreen extends ConsumerStatefulWidget {
 }
 
 class _TermuxScreenState extends ConsumerState<TermuxScreen> {
+  int _buildCount = 0;
   bool _isLoading = true;
   bool _isBackgroundChecking = false;
   bool _termuxInstalled = false;
@@ -854,6 +856,9 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    WidgetLogger.logRebuild('TermuxScreen', _buildCount);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Termux Integration'),

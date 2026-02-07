@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/providers/language_data_provider.dart';
@@ -25,6 +26,7 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   bool _serverReachable = true;
+  int _buildCount = 0;
 
   @override
   void initState() {
@@ -63,6 +65,9 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    WidgetLogger.logRebuild('TermsScreen', _buildCount);
+
     final state = ref.watch(termsProvider);
 
     return Scaffold(

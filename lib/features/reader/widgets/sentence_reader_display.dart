@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../models/text_item.dart';
 import '../utils/sentence_parser.dart';
 import 'text_display.dart';
@@ -46,7 +47,7 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
   @override
   void initState() {
     super.initState();
-    print('DEBUG: SentenceReaderDisplay initialized');
+    WidgetLogger.logInit('SentenceReaderDisplay');
   }
 
   @override
@@ -83,8 +84,10 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
   @override
   Widget build(BuildContext context) {
     _buildCount++;
-    print(
-      'DEBUG: SentenceReaderDisplay rebuild #$_buildCount (sentence ${widget.sentence?.id ?? "null"})',
+    WidgetLogger.logRebuild(
+      'SentenceReaderDisplay',
+      _buildCount,
+      'sentence ${widget.sentence?.id ?? "null"}',
     );
     if (widget.sentence == null) return const SizedBox.shrink();
 

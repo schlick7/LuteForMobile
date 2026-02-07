@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../../../shared/providers/server_status_provider.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
@@ -210,7 +211,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         _languageIdToName = {for (var lang in languages) lang.id: lang.name};
       });
     } catch (e) {
-      print('DEBUG: Failed to load language mapping: $e');
+      // Failed to load language mapping
     }
   }
 
@@ -283,9 +284,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     }
 
     _mainBuildCount++;
-
-    print(
-      'DEBUG: SentenceReaderScreen build #$_mainBuildCount, isVisible=$isVisible, _hasInitialized=$_hasInitialized',
+    WidgetLogger.logRebuild(
+      'SentenceReaderScreen',
+      _mainBuildCount,
+      'isVisible=$isVisible',
     );
 
     final statsState = ref.watch(statsProvider);
@@ -310,9 +312,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
       if (_lastInitializedBookId != bookId ||
           _lastInitializedPageNum != pageNum) {
-        print(
-          'DEBUG: Page changed from bookId=$_lastInitializedBookId, pageNum=$_lastInitializedPageNum to bookId=$bookId, pageNum=$pageNum - forcing reinitialization',
-        );
+        // Page changed - forcing reinitialization
         _hasInitialized = false;
         _lastInitializedBookId = bookId;
         _lastInitializedPageNum = pageNum;
@@ -321,36 +321,25 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
       if (!_hasInitialized) {
         final langId = _getLangId(readerState);
-        print(
-          'DEBUG: SentenceReaderScreen: Initializing sentence parsing for bookId=$bookId, pageNum=$pageNum, langId=$langId',
-        );
 
         if (_lastTooltipsBookId != bookId) {
           _termTooltips.clear();
           _lastTooltipsBookId = bookId;
         }
 
-        if (_isParsing) {
-          print('DEBUG: Already parsing, skipping duplicate call');
-        } else {
+        if (!_isParsing) {
           final sentenceReader = ref.read(sentenceReaderProvider);
           final reader = ref.read(readerProvider);
 
           if (sentenceReader.lastParsedBookId == bookId &&
               sentenceReader.lastParsedPageNum == pageNum &&
               sentenceReader.customSentences.isNotEmpty) {
-            print(
-              'DEBUG: Sentences already loaded for this page, skipping initialization',
-            );
             ref.read(sentenceReaderProvider.notifier).syncStatusFromPageData();
             _hasInitialized = true;
             _initializationFailed = false;
             ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
             _loadTooltipsForCurrentSentence();
           } else {
-            print(
-              'DEBUG: reader.languageSentenceSettings=${reader.languageSentenceSettings != null}, langId=$langId',
-            );
             _isParsing = true;
             Future(() {
               ref
@@ -360,21 +349,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                     if (mounted) {
                       _isParsing = false;
                       final sentenceReader = ref.read(sentenceReaderProvider);
-                      print(
-                        'DEBUG: Sentences loaded: ${sentenceReader.customSentences.length}',
-                      );
+
                       if (sentenceReader.customSentences.isNotEmpty) {
                         _hasInitialized = true;
                         _initializationFailed = false;
-                        print(
-                          'DEBUG: Initialization successful, _hasInitialized=$_hasInitialized',
-                        );
                       } else {
                         _hasInitialized = false;
                         _initializationFailed = true;
-                        print(
-                          'DEBUG: Initialization failed - no sentences loaded',
-                        );
                       }
                       ref
                           .read(sentenceReaderProvider.notifier)
@@ -383,8 +364,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                     }
                   })
                   .catchError((e, stackTrace) {
-                    print('DEBUG: Error during parsing: $e');
-                    print('DEBUG: Stack trace: $stackTrace');
                     if (mounted) {
                       _isParsing = false;
                       _hasInitialized = false;
@@ -398,12 +377,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     }
 
     if (isVisible && _hasInitialized && !_settingsListenerSetup) {
-      print('DEBUG: About to setup settings listener');
       _setupSettingsListener();
     }
 
     if (isVisible && _initializationFailed && !_isParsing) {
-      print('DEBUG: Retrying failed initialization...');
       _hasInitialized = false;
       _initializationFailed = false;
     }
@@ -412,9 +389,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         _hasInitialized &&
         currentSentence != null &&
         currentSentence.id != _currentSentenceId) {
-      print(
-        'DEBUG: Build method detected sentence change: $_currentSentenceId -> ${currentSentence.id}',
-      );
       _currentSentenceId = currentSentence.id;
       _loadTooltipsForCurrentSentence();
     }
@@ -600,6 +574,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     CustomSentence? currentSentence,
   ) {
     _topSectionBuildCount++;
+    WidgetLogger.logRebuild(
+      'SentenceReaderScreen._buildTopSection',
+      _topSectionBuildCount,
+    );
 
     if (currentSentence == null) {
       return const Center(child: Text('No sentence available'));
@@ -669,6 +647,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   Widget _buildBottomSection(CustomSentence? currentSentence) {
     _bottomSectionBuildCount++;
+    WidgetLogger.logRebuild(
+      'SentenceReaderScreen._buildBottomSection',
+      _bottomSectionBuildCount,
+    );
 
     final settings = ref.watch(settingsProvider);
 
@@ -897,7 +879,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       settingsProvider.select((s) => s.showKnownTermsInSentenceReader),
       (previous, next) {
         if (previous != next) {
-          print('DEBUG: Show known terms toggle changed: $previous -> $next');
           _loadTooltipsForCurrentSentence();
         }
       },
@@ -918,11 +899,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       showKnownTerms: settings.showKnownTermsInSentenceReader,
     );
 
-    print('DEBUG: Loading tooltips for sentence ID: ${currentSentence.id}');
-    print(
-      'DEBUG: Terms needing tooltips: ${termsNeedingTooltips.length} (out of ${currentSentence.uniqueTerms.length} total)',
-    );
-
     _tooltipsLoadInProgress = true;
 
     try {
@@ -934,7 +910,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           .toList();
 
       if (termsToFetch.isEmpty) {
-        print('DEBUG: All tooltips already cached');
         _tooltipsLoadInProgress = false;
         if (_canPreload()) {
           _preloadNextSentence();
@@ -943,8 +918,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       }
 
       print(
-        'DEBUG: Concurrently fetching ${termsToFetch.length} tooltips for sentence ID: ${currentSentence.id}',
-      );
 
       final futures = termsToFetch.map((term) async {
         if (term.wordId == null) return null;
@@ -954,7 +927,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
               .fetchTermTooltip(term.wordId!);
           return termTooltip;
         } catch (e) {
-          print('DEBUG: Failed to fetch tooltip for wordId=${term.wordId}: $e');
           return null;
         }
       }).toList();
@@ -1023,7 +995,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   Future<void> _preloadNextSentence() async {
     if (_preloadInProgress) {
-      print('DEBUG: Preload already in progress, skipping');
       return;
     }
 
@@ -1032,13 +1003,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final settings = ref.read(settingsProvider);
 
     if (!sentenceReaderNotifier.canGoNext) {
-      print('DEBUG: No next sentence to preload');
       return;
     }
 
     final nextIndex = sentenceReaderState.currentSentenceIndex + 1;
     if (nextIndex >= sentenceReaderState.customSentences.length) {
-      print('DEBUG: Next index out of bounds');
       return;
     }
 
@@ -1068,25 +1037,21 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         .toList();
 
     if (termsToFetch.isEmpty) {
-      print('DEBUG: All next sentence tooltips already cached');
       return;
     }
 
     if (!_canPreload()) {
-      print('DEBUG: Stopping preload - not visible');
       return;
     }
 
     _preloadInProgress = true;
 
     try {
-      print('DEBUG: Concurrently preloading ${termsToFetch.length} tooltips');
 
       final futures = termsToFetch.map((term) async {
         if (term.wordId == null) return null;
         try {
           if (!_canPreload()) {
-            print('DEBUG: Canceling preload - not visible');
             return null;
           }
           final termTooltip = await ref
@@ -1122,7 +1087,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         });
       }
 
-      print('DEBUG: Finished preloading next sentence');
     } finally {
       _preloadInProgress = false;
     }
@@ -1201,7 +1165,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   Future<void> _goNext() async {
-    print('DEBUG: _goNext called');
     setState(() {
       _isNavigatingForward = true;
       _isNavigating = true;
@@ -1225,7 +1188,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
     if (currentSentence != null) {
       final newKey = ValueKey('sentence-${currentSentence.id}');
-      print('DEBUG: Updating _sentenceKey from $_sentenceKey to $newKey');
       setState(() {
         _sentenceKey = newKey;
       });
@@ -1241,7 +1203,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   Future<void> _goPrevious() async {
-    print('DEBUG: _goPrevious called');
     setState(() {
       _isNavigatingForward = false;
       _isNavigating = true;
@@ -1252,7 +1213,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final currentSentence = ref.read(sentenceReaderProvider).currentSentence;
     if (currentSentence != null) {
       final newKey = ValueKey('sentence-${currentSentence.id}');
-      print('DEBUG: Updating _sentenceKey from $_sentenceKey to $newKey');
       setState(() {
         _sentenceKey = newKey;
       });
@@ -1739,7 +1699,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final serverUrl = ref.read(settingsProvider).serverUrl;
 
     print(
-      'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Clearing cache for bookId=$bookId',
     );
     await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
 
@@ -1747,7 +1706,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     _lastTooltipsBookId = null;
 
     print(
-      'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Reloading page bookId=$bookId, pageNum=$pageNum',
     );
     await ref
         .read(readerProvider.notifier)
@@ -1756,7 +1714,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final freshReader = ref.read(readerProvider);
     if (freshReader.pageData != null) {
       print(
-        'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Parsing sentences for langId=$langId',
       );
       await ref
           .read(sentenceReaderProvider.notifier)

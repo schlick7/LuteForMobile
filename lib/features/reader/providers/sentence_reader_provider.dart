@@ -594,7 +594,6 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     final pageNum = reader.pageData!.currentPage;
     final langId = _getLangIdFromPageData();
 
-    print('DEBUG: triggerFlushAndRebuild: Clearing cache for bookId=$bookId');
     await _cacheService.clearBookCache(bookId);
 
     // Also clear tooltip cache for this book if needed
@@ -603,14 +602,12 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       try {
         final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
         // We don't have a direct way to clear tooltips by book, so we'll just log this
-        print('DEBUG: triggerFlushAndRebuild: Consider clearing tooltip cache');
       } catch (e) {
         print('Error clearing tooltip cache: $e');
       }
     }
 
     print(
-      'DEBUG: triggerFlushAndRebuild: Reloading page bookId=$bookId, pageNum=$pageNum',
     );
     await ref
         .read(readerProvider.notifier)
@@ -625,7 +622,6 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     final freshReader = ref.read(readerProvider);
     if (freshReader.pageData != null) {
       print(
-        'DEBUG: triggerFlushAndRebuild: Parsing sentences for langId=$langId',
       );
       await parseSentencesForPage(langId, initialIndex: 0);
       await loadSavedPosition();

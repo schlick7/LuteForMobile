@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/providers/server_status_provider.dart';
@@ -23,6 +24,7 @@ class BooksScreen extends ConsumerStatefulWidget {
 class _BooksScreenState extends ConsumerState<BooksScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _serverReachable = true;
+  int _buildCount = 0;
 
   @override
   void initState() {
@@ -47,6 +49,9 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    WidgetLogger.logRebuild('BooksScreen', _buildCount);
+
     final state = ref.watch(booksProvider);
     final settings = ref.watch(settingsProvider);
 

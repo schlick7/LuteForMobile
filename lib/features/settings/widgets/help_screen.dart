@@ -1,14 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../../../shared/providers/server_status_provider.dart';
 
 class HelpScreen extends ConsumerWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
+  static int _buildCount = 0;
 
   const HelpScreen({super.key, this.scaffoldKey});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    _buildCount++;
+    WidgetLogger.logRebuild('HelpScreen', _buildCount);
+
     final serverReachable = ServerStatusManager.isReachable;
 
     return Scaffold(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
+import '../../../core/logger/widget_logger.dart';
 
 class TermuxStorageAccessScreen extends StatefulWidget {
   const TermuxStorageAccessScreen({super.key});
@@ -11,6 +12,7 @@ class TermuxStorageAccessScreen extends StatefulWidget {
 }
 
 class _TermuxStorageAccessScreenState extends State<TermuxStorageAccessScreen> {
+  int _buildCount = 0;
   bool _isLaunchingTermux = false;
 
   Future<void> _grantStorageAccess() async {
@@ -170,6 +172,9 @@ class _TermuxStorageAccessScreenState extends State<TermuxStorageAccessScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    WidgetLogger.logRebuild('TermuxStorageAccessScreen', _buildCount);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Storage Access'),

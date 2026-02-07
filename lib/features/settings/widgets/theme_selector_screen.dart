@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../providers/settings_provider.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../shared/theme/app_theme.dart';
 
 class ThemeSelectorScreen extends ConsumerWidget {
+  static int _buildCount = 0;
+
   const ThemeSelectorScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    _buildCount++;
+    WidgetLogger.logRebuild('ThemeSelectorScreen', _buildCount);
+
     final themeSettings = ref.watch(themeSettingsProvider);
     final currentThemeType = themeSettings.themeType;
 
