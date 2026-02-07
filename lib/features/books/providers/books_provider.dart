@@ -78,12 +78,15 @@ class BooksNotifier extends Notifier<BooksState> {
   BooksState build() {
     _repository = ref.watch(booksRepositoryProvider);
     final settings = ref.watch(settingsProvider);
+
     if (_previousServerUrl == null) {
       _previousServerUrl = settings.serverUrl;
+      Future.microtask(() => loadBooks(forceRefresh: true));
     } else if (_previousServerUrl != settings.serverUrl) {
       _previousServerUrl = settings.serverUrl;
       Future.microtask(() => _onServerChanged());
     }
+
     return const BooksState();
   }
 
