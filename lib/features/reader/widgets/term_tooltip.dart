@@ -32,7 +32,7 @@ class TermTooltipClass {
   static void show(
     BuildContext context,
     TermTooltip termTooltip,
-    Offset position,
+    Rect termRect,
   ) {
     close();
     _makeVisibleRequested = false;
@@ -150,17 +150,20 @@ class TermTooltipClass {
         final tooltipWidth = tooltipSize.width;
         final tooltipHeight = tooltipSize.height;
 
-        double top = position.dy - tooltipHeight - 12;
-        double left = position.dx - tooltipWidth / 2;
+        const verticalOffset = 12.0;
+        const horizontalMargin = 8.0;
 
-        if (top < 0) {
-          top = position.dy + 30;
+        double left = termRect.center.dx - tooltipWidth / 2;
+        double top = termRect.top - tooltipHeight - verticalOffset;
+
+        if (left < horizontalMargin) {
+          left = horizontalMargin;
+        } else if (left + tooltipWidth > screenSize.width - horizontalMargin) {
+          left = screenSize.width - tooltipWidth - horizontalMargin;
         }
 
-        if (left < 0) {
-          left = 8;
-        } else if (left + tooltipWidth > screenSize.width) {
-          left = screenSize.width - tooltipWidth - 8;
+        if (top < 0) {
+          top = termRect.bottom + verticalOffset;
         }
 
         _currentEntry?.remove();

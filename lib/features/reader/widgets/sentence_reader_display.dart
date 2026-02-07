@@ -8,7 +8,7 @@ import 'term_tooltip.dart';
 
 class SentenceReaderDisplay extends ConsumerStatefulWidget {
   final CustomSentence? sentence;
-  final void Function(TextItem, Offset)? onTap;
+  final void Function(TextItem, BuildContext)? onTap;
   final void Function(TextItem)? onDoubleTap;
   final void Function(TextItem)? onLongPress;
   final double textSize;
@@ -55,7 +55,7 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
     super.dispose();
   }
 
-  void _handleTap(TextItem item, Offset tapPosition) {
+  void _handleTap(TextItem item, BuildContext context) {
     if (_lastTappedItem == item &&
         _doubleTapTimer != null &&
         _doubleTapTimer!.isActive) {
@@ -68,7 +68,7 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
       _lastTappedItem = item;
       _doubleTapTimer?.cancel();
 
-      widget.onTap?.call(item, tapPosition);
+      widget.onTap?.call(item, context);
 
       _doubleTapTimer = Timer(
         Duration(milliseconds: widget.doubleTapTimeout),
@@ -109,7 +109,7 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
       fontFamily: widget.fontFamily,
       fontWeight: widget.fontWeight,
       isItalic: widget.isItalic,
-      onTap: (item, position) => _handleTap(item, position),
+      onTap: (item, context) => _handleTap(item, context),
       onDoubleTap: (item) => widget.onDoubleTap?.call(item),
       onLongPress: (item) => widget.onLongPress?.call(item),
     );

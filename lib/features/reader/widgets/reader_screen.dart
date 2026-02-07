@@ -934,8 +934,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           : 0.0,
       bottomPadding: hasGestureNav ? 128 : 0,
       bottomControlWidget: _buildPageControls(context, pageData),
-      onTap: (item, position) {
-        _handleTap(item, position);
+      onTap: (item, context) {
+        _handleTap(item, context);
       },
       onDoubleTap: (item) {
         _handleDoubleTap(item);
@@ -1035,7 +1035,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  void _handleTap(TextItem item, Offset position) async {
+  void _handleTap(TextItem item, BuildContext context) async {
     if (item.isSpace) return;
 
     TermTooltipClass.close();
@@ -1043,11 +1043,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     try {
       if (item.wordId == null) return;
 
+      final renderBox = context.findRenderObject() as RenderBox;
+      final termRect = renderBox.localToGlobal(Offset.zero) & renderBox.size;
+
       final termTooltip = await ref
           .read(readerProvider.notifier)
           .fetchTermTooltip(item.wordId!);
       if (termTooltip != null && termTooltip.hasData && mounted) {
-        TermTooltipClass.show(context, termTooltip, position);
+        TermTooltipClass.show(context, termTooltip, termRect);
       }
     } catch (e) {
       return;

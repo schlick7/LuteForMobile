@@ -56,7 +56,7 @@ List<TextItem> extractUniqueTerms(
 
 class TermListDisplay extends StatelessWidget {
   final CustomSentence? sentence;
-  final void Function(TextItem, Offset)? onTermTap;
+  final void Function(TextItem, BuildContext)? onTermTap;
   final void Function(TextItem)? onTermDoubleTap;
   final Map<int, TermTooltip> tooltips;
   final bool showKnownTerms;
@@ -211,15 +211,17 @@ class TermListDisplay extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (details) => onTermTap?.call(term, details.globalPosition),
-          onDoubleTap: () => onTermDoubleTap?.call(term),
-          child: Chip(
-            backgroundColor: backgroundColor,
-            label: Row(mainAxisSize: MainAxisSize.min, children: children),
-            visualDensity: VisualDensity.compact,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: Builder(
+          builder: (context) => GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onTermTap?.call(term, context),
+            onDoubleTap: () => onTermDoubleTap?.call(term),
+            child: Chip(
+              backgroundColor: backgroundColor,
+              label: Row(mainAxisSize: MainAxisSize.min, children: children),
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            ),
           ),
         ),
       ),

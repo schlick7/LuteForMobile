@@ -652,7 +652,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           ),
           child: SentenceReaderDisplay(
             sentence: currentSentence,
-            onTap: (item, position) => _handleTap(item, position),
+            onTap: (item, context) => _handleTap(item, context),
             onDoubleTap: (item) => _handleDoubleTap(item),
             onLongPress: (item) => _handleLongPress(item),
             textSize: textSettings.textSize,
@@ -745,7 +745,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             child: TermListDisplay(
               sentence: currentSentence,
               tooltips: _termTooltips,
-              onTermTap: (item, position) => _handleTap(item, position),
+              onTermTap: (item, context) => _handleTap(item, context),
               onTermDoubleTap: (item) => _handleDoubleTap(item),
               showKnownTerms: settings.showKnownTermsInSentenceReader,
             ),
@@ -1308,18 +1308,21 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     }
   }
 
-  void _handleTap(TextItem item, Offset position) async {
+  void _handleTap(TextItem item, BuildContext context) async {
     if (item.isSpace) return;
     TermTooltipClass.close();
 
     try {
       if (item.wordId == null) return;
 
+      final renderBox = context.findRenderObject() as RenderBox;
+      final termRect = renderBox.localToGlobal(Offset.zero) & renderBox.size;
+
       final termTooltip = await ref
           .read(readerProvider.notifier)
           .fetchTermTooltip(item.wordId!);
       if (termTooltip != null && termTooltip.hasData && mounted) {
-        TermTooltipClass.show(context, termTooltip, position);
+        TermTooltipClass.show(context, termTooltip, termRect);
       }
     } catch (e) {
       return;
