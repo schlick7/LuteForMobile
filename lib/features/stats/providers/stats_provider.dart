@@ -5,6 +5,8 @@ import 'package:lute_for_mobile/features/stats/models/stats_cache_entry.dart';
 import 'package:lute_for_mobile/features/stats/models/language_stats.dart';
 import 'package:lute_for_mobile/core/network/content_service.dart';
 import 'package:lute_for_mobile/shared/providers/network_providers.dart';
+import 'package:lute_for_mobile/shared/providers/language_data_provider.dart';
+import '../../../features/settings/providers/settings_provider.dart';
 
 enum StatsPeriod { week, month, quarter, year, all }
 
@@ -28,11 +30,28 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
         contentService: _contentService,
       );
       final languages = cacheEntry.stats.values.toList();
+
+      LanguageReadingStats? selectedLanguage;
+      final currentBookLangId = ref.read(settingsProvider).currentBookLangId;
+      if (currentBookLangId != null) {
+        final languageList = await ref.read(languageListProvider.future);
+        try {
+          final currentBookLanguage = languageList.firstWhere(
+            (lang) => lang.id == currentBookLangId,
+          );
+          selectedLanguage = languages.firstWhere(
+            (lang) => lang.language == currentBookLanguage.name,
+          );
+        } catch (e) {
+          // Language or stats not found, keep selectedLanguage as null
+        }
+      }
+
       return StatsState(
         isLoading: false,
         cacheEntry: cacheEntry,
         languages: languages,
-        selectedLanguage: null,
+        selectedLanguage: selectedLanguage,
         selectedPeriod: StatsPeriod.all,
         selectedFilter: StatsFilter.all,
       );
