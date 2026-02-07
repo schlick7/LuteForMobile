@@ -54,7 +54,8 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 - 
 
 # Books Screen
-- Add a settings toggle to "Always Refresh for Book Details" default to on. Then we need to hook up the code so that it always triggers that stats500samplesize, it will need to do the same thing that makes the server recaluctlate the book. The Book details should load from chache first and then refresh when the new data is ready
+- Add a settings toggle to "Always Refresh for Book Details" default to on. Then we need to hook up the code so that it always triggers that stats500samplesize, it will need to do the same thing that makes the server recalculate the book. The Book details should load from chache first and then refresh when the new data is ready
+- Why is enriching books running every time? is the langid not saving? We only want to run this when a langid is empty/null/0
 
 # Terms Screen
 - 
