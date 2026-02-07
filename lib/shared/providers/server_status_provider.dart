@@ -60,6 +60,7 @@ class ServerStatusManager {
   static bool get initialCheckComplete => _initialCheckComplete;
 
   static void setReachable(bool value) {
+    if (_isReachable == value && !_isConnecting) return;
     _isReachable = value;
     _isConnecting = false;
     _notifyListeners();
@@ -76,11 +77,13 @@ class ServerStatusManager {
   }
 
   static void markError() {
+    if (!_isReachable) return;
     _isReachable = false;
     _notifyListeners();
   }
 
   static void markSuccess() {
+    if (_isReachable && !_isConnecting) return;
     _isReachable = true;
     _isConnecting = false;
     _notifyListeners();
