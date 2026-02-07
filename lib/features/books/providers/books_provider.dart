@@ -450,7 +450,7 @@ class BooksNotifier extends Notifier<BooksState> {
           return existing.copyWith(
             title: network.title,
             language: network.language,
-            langId: network.langId ?? existing.langId,
+            langId: existing.langId ?? network.langId,
             totalPages: network.totalPages,
             currentPage: network.currentPage,
             percent: network.percent,
