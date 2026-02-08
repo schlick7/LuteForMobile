@@ -957,57 +957,68 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     return Stack(
       children: [
-        GestureDetector(
-          onTapDown: (_) => TermTooltipClass.close(),
-          onTap: () {
-            if (textSettings.fullscreenMode) {
-              if (!_isUiVisible) {
-                _showUi();
-              } else {
-                _resetHideTimer();
+        NotificationListener<ScrollNotification>(
+          onNotification: (scrollNotification) {
+            if (scrollNotification is ScrollUpdateNotification) {
+              if (scrollNotification.scrollDelta != null &&
+                  scrollNotification.scrollDelta!.abs() > 5) {
+                TermTooltipClass.close();
               }
             }
+            return false;
           },
-          onHorizontalDragEnd: (details) async {
-            if (pageData!.pageCount <= 1) return;
-
-            final currentTextSettings = ref.read(
-              textFormattingSettingsProvider,
-            );
-
-            if (!currentTextSettings.swipeNavigationEnabled) return;
-
-            final velocity = details.primaryVelocity ?? 0;
-            const minSwipeVelocity = 300.0;
-
-            if (velocity.abs() < minSwipeVelocity) return;
-
-            if (velocity > 0) {
-              if (pageData!.currentPage > 1) {
-                _loadPageWithoutMarkingRead(pageData!.currentPage - 1);
-              }
-            } else if (velocity < 0) {
-              if (pageData!.currentPage < pageData!.pageCount) {
-                final currentTextSettings = ref.read(
-                  textFormattingSettingsProvider,
-                );
-
-                if (currentTextSettings.swipeMarksRead) {
-                  ref
-                      .read(readerProvider.notifier)
-                      .markPageRead(pageData!.bookId, pageData!.currentPage);
+          child: GestureDetector(
+            onTapDown: (_) => TermTooltipClass.close(),
+            onTap: () {
+              if (textSettings.fullscreenMode) {
+                if (!_isUiVisible) {
+                  _showUi();
+                } else {
+                  _resetHideTimer();
                 }
-
-                _loadPageWithoutMarkingRead(pageData!.currentPage + 1);
               }
-            }
-          },
-          child: settings.pageTurnAnimations
-              ? _PageTransition(
-                  isForward: _isNavigatingForward,
-                  child: textDisplay,
-                )
-              : textDisplay,
+            },
+            onHorizontalDragEnd: (details) async {
+              if (pageData!.pageCount <= 1) return;
+
+              final currentTextSettings = ref.read(
+                textFormattingSettingsProvider,
+              );
+
+              if (!currentTextSettings.swipeNavigationEnabled) return;
+
+              final velocity = details.primaryVelocity ?? 0;
+              const minSwipeVelocity = 300.0;
+
+              if (velocity.abs() < minSwipeVelocity) return;
+
+              if (velocity > 0) {
+                if (pageData!.currentPage > 1) {
+                  _loadPageWithoutMarkingRead(pageData!.currentPage - 1);
+                }
+              } else if (velocity < 0) {
+                if (pageData!.currentPage < pageData!.pageCount) {
+                  final currentTextSettings = ref.read(
+                    textFormattingSettingsProvider,
+                  );
+
+                  if (currentTextSettings.swipeMarksRead) {
+                    ref
+                        .read(readerProvider.notifier)
+                        .markPageRead(pageData!.bookId, pageData!.currentPage);
+                  }
+
+                  _loadPageWithoutMarkingRead(pageData!.currentPage + 1);
+                }
+              }
+            },
+            child: settings.pageTurnAnimations
+                ? _PageTransition(
+                    isForward: _isNavigatingForward,
+                    child: textDisplay,
+                  )
+                : textDisplay,
+          ),
         ),
         if (hasGestureNav)
           Positioned(
