@@ -23,13 +23,20 @@ class StatsScreen extends ConsumerStatefulWidget {
 
 class _StatsScreenState extends ConsumerState<StatsScreen> {
   int _buildCount = 0;
+  bool _hasLoaded = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(statsProvider.notifier).loadStats();
+      _loadStatsOnce();
     });
+  }
+
+  void _loadStatsOnce() {
+    if (_hasLoaded) return;
+    _hasLoaded = true;
+    ref.read(statsProvider.notifier).loadStats();
   }
 
   @override

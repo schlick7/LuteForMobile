@@ -355,50 +355,40 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           }
         },
       ),
-      body: IndexedStack(
-        index: switch (_currentIndex) {
-          0 => 0,
-          1 => 1,
-          2 => 2,
-          3 => 3,
-          4 => 4,
-          5 => 5,
-          6 => 6,
-          _ => 0,
-        },
-        children: [
-          Consumer(
-            builder: (context, ref, child) =>
-                ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
-          ),
-          Consumer(
-            builder: (context, ref, child) =>
-                BooksScreen(key: _booksKey, scaffoldKey: _scaffoldKey),
-          ),
-          Consumer(
-            builder: (context, ref, child) =>
-                TermsScreen(key: _termsKey, scaffoldKey: _scaffoldKey),
-          ),
-          Consumer(
-            builder: (context, ref, child) =>
-                StatsScreen(key: _statsKey, scaffoldKey: _scaffoldKey),
-          ),
-          Consumer(
-            builder: (context, ref, child) =>
-                HelpScreen(key: _helpKey, scaffoldKey: _scaffoldKey),
-          ),
-          Consumer(
-            builder: (context, ref, child) =>
-                SettingsScreen(key: _settingsKey, scaffoldKey: _scaffoldKey),
-          ),
-          Consumer(
-            builder: (context, ref, child) => SentenceReaderScreen(
+      body: _currentIndex == 4
+          ? HelpScreen(key: _helpKey, scaffoldKey: _scaffoldKey)
+          : _currentIndex == 6
+          ? SentenceReaderScreen(
               key: _sentenceReaderKey,
               scaffoldKey: _scaffoldKey,
+            )
+          : IndexedStack(
+              index: _currentIndex > 4 ? _currentIndex - 1 : _currentIndex,
+              children: [
+                Consumer(
+                  builder: (context, ref, child) =>
+                      ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
+                ),
+                Consumer(
+                  builder: (context, ref, child) =>
+                      BooksScreen(key: _booksKey, scaffoldKey: _scaffoldKey),
+                ),
+                Consumer(
+                  builder: (context, ref, child) =>
+                      TermsScreen(key: _termsKey, scaffoldKey: _scaffoldKey),
+                ),
+                Consumer(
+                  builder: (context, ref, child) =>
+                      StatsScreen(key: _statsKey, scaffoldKey: _scaffoldKey),
+                ),
+                Consumer(
+                  builder: (context, ref, child) => SettingsScreen(
+                    key: _settingsKey,
+                    scaffoldKey: _scaffoldKey,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 }

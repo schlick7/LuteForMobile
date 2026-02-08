@@ -26,15 +26,22 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
   int _buildCount = 0;
+  bool _hasLoaded = false;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(termsProvider.notifier).resetForNewNavigation();
-      ref.read(termsProvider.notifier).loadTerms(reset: true);
+      _loadTermsOnce();
     });
+  }
+
+  void _loadTermsOnce() {
+    if (_hasLoaded) return;
+    _hasLoaded = true;
+    ref.read(termsProvider.notifier).resetForNewNavigation();
+    ref.read(termsProvider.notifier).loadTerms(reset: true);
   }
 
   @override
