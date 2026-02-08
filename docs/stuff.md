@@ -39,15 +39,13 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 # Termux
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
 
-
 # Requests 
 
 # Settings
 - 
 
 # Reader
-- Could we switch to this for the reader screen tooltips? https://pub.dev/packages/flutter_popup/versions/3.3.9
-  - Or atleast get the term tooltips aligned better. maybe add a tail?
+- 
 
 # Sentence Reader
 -
@@ -65,7 +63,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 - 
 
 # Statistics Screen  
-- PENDING - In the stats screen we should make the drop down Default language to that of currentbook (similar to what we do in termscreen i think)
+- 
 
 # Help Screen
 - Triple tap
