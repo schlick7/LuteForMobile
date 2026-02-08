@@ -425,10 +425,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
         final result = await _repository.getTermTooltipWithHtml(termId);
         if (result != null) {
           final (tooltip, html) = result;
-          if (html.isNotEmpty) {
-            await tooltipCacheService.saveToCache(termId, html);
-            fetchedCount++;
-          }
+          // Cache all HTML, including empty - use " " as marker for empty
+          final htmlToCache = html.isEmpty ? ' ' : html;
+          await tooltipCacheService.saveToCache(termId, htmlToCache);
+          fetchedCount++;
         }
       } catch (e) {
         ApiLogger.logError('preloadTooltip', e, details: 'termId=$termId');
@@ -552,31 +552,31 @@ class ReaderNotifier extends Notifier<ReaderState> {
     }
 
     try {
-      // Fetch from network
-      final result = await _repository.getTermTooltip(termId);
+      // Fetch from network using single API call
+      final resultWithHtml = await _repository.getTermTooltipWithHtml(termId);
 
-      // If caching is enabled, save to cache
-      if (settings.enableTooltipCaching && result != null) {
-        try {
-          final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
+      if (resultWithHtml != null) {
+        final (tooltip, rawHtml) = resultWithHtml;
 
-          // We need to get the raw HTML that was used to create this result
-          // For this, we need to fetch the raw HTML again
-          final rawHtml = await _repository.contentService
-              .getRawTermTooltipHtml(termId);
-          if (rawHtml != null) {
-            await tooltipCacheService.saveToCache(termId, rawHtml);
+        // If caching is enabled, save to cache (including empty HTML as " " marker)
+        if (settings.enableTooltipCaching) {
+          try {
+            final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
+            final htmlToCache = rawHtml.isEmpty ? ' ' : rawHtml;
+            await tooltipCacheService.saveToCache(termId, htmlToCache);
+          } catch (e) {
+            ApiLogger.logError(
+              'saveTooltipToCache',
+              e,
+              details: 'termId=$termId',
+            );
           }
-        } catch (e) {
-          ApiLogger.logError(
-            'saveTooltipToCache',
-            e,
-            details: 'termId=$termId',
-          );
         }
+
+        return tooltip;
       }
 
-      return result;
+      return null;
     } catch (e) {
       return null;
     }
