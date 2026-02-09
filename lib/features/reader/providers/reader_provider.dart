@@ -367,13 +367,32 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
   Future<void> preloadNextPage() async {
     final currentPageData = state.pageData;
-    if (currentPageData == null) return;
+    if (currentPageData == null) {
+      ApiLogger.logRequest('preloadNextPage', details: 'SKIP - no page data');
+      return;
+    }
 
     final nextPageNum = currentPageData.currentPage + 1;
-    if (nextPageNum > currentPageData.pageCount) return;
+    if (nextPageNum > currentPageData.pageCount) {
+      ApiLogger.logRequest(
+        'preloadNextPage',
+        details: 'SKIP - already at last page (${currentPageData.pageCount})',
+      );
+      return;
+    }
+
+    ApiLogger.logRequest(
+      'preloadNextPage',
+      details: 'START - bookId=${currentPageData.bookId}, page=$nextPageNum',
+    );
 
     // Use the dedicated preload method which checks cache first and fetches if needed
     await _repository.preloadPage(currentPageData.bookId, nextPageNum);
+
+    ApiLogger.logRequest(
+      'preloadNextPage',
+      details: 'DONE - bookId=${currentPageData.bookId}, page=$nextPageNum',
+    );
   }
 
   /// Preload tooltips for terms on the current page if caching is enabled

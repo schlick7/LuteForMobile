@@ -140,9 +140,20 @@ class ContentService {
   Future<void> preloadPage(int bookId, int pageNum) async {
     // Check if already cached - skip if it is
     final cached = await _pageCacheService.getFromCache(bookId, pageNum);
-    if (cached != null) return;
+    if (cached != null) {
+      ApiLogger.logCache(
+        'preloadPage',
+        details: 'CACHED - bookId=$bookId, page=$pageNum',
+      );
+      return;
+    }
 
     // Not cached - fetch and cache it
+    ApiLogger.logRequest(
+      'preloadPage',
+      details: 'FETCHING - bookId=$bookId, page=$pageNum',
+    );
+
     try {
       final pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
       final metadataDocument = html_parser.parse(pageMetadataHtml);
