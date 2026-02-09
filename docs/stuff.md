@@ -23,6 +23,8 @@ fix backup location after restore
 
 Show backups in iso format (year, month, day)
 
+Make sure release key is set up properly
+
 ---
 
 https://wiki.termux.com/wiki/Main_Page
