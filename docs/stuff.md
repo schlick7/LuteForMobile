@@ -21,6 +21,8 @@ I still don't think we're completely clearly and refreshing everything on a serv
 fix backup location after restore
 /data/data/com.termux/files/home/.local/share/Lute3/backups
 
+Show backups in iso format (year, month, day)
+
 ---
 
 https://wiki.termux.com/wiki/Main_Page
@@ -33,6 +35,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 
 # Termux
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
+- Termux never actually shuts down. Stays in the silent notifications with 1 task forever. Can we actually set up a sleep timer? Lets check the termux docs. https://wiki.termux.com/wiki/Main_Page
 
 # Requests 
 
