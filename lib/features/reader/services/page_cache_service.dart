@@ -11,6 +11,18 @@ class PageCacheService {
   static const int _maxCacheSizeBytes = 100 * 1024 * 1024;
   static const String _cachePrefix = 'page_cache_';
 
+  static PageCacheService? _instance;
+  static PageCacheService getInstance() {
+    _instance ??= PageCacheService._internal();
+    return _instance!;
+  }
+
+  PageCacheService._internal();
+
+  factory PageCacheService() {
+    return getInstance();
+  }
+
   Box<PageCacheEntry>? _box;
   bool _isInitialized = false;
 

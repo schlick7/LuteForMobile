@@ -16,7 +16,7 @@ class CacheManager {
     : _booksCache = BooksCacheService.getInstance(),
       _termCache = TermCacheService.getInstance(),
       _tooltipCache = TooltipCacheService.getInstance(),
-      _pageCache = PageCacheService(),
+      _pageCache = PageCacheService.getInstance(),
       _sentenceCache = SentenceCacheService();
 
   factory CacheManager() {

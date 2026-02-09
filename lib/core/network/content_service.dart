@@ -35,7 +35,7 @@ class ContentService {
   ContentService({required ApiService apiService, HtmlParser? htmlParser})
     : _apiService = apiService,
       parser = htmlParser ?? HtmlParser(),
-      _pageCacheService = PageCacheService(),
+      _pageCacheService = PageCacheService.getInstance(),
       _termCacheService = TermCacheService.getInstance();
 
   bool get isConfigured => _apiService.isConfigured;

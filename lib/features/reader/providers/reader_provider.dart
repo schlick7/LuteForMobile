@@ -804,12 +804,12 @@ class ReaderNotifier extends Notifier<ReaderState> {
   }
 
   Future<void> clearPageCacheForBook(int bookId) async {
-    final cacheService = PageCacheService();
+    final cacheService = PageCacheService.getInstance();
     await cacheService.clearBookCache(bookId);
   }
 
   Future<void> clearAllPageCache() async {
-    final cacheService = PageCacheService();
+    final cacheService = PageCacheService.getInstance();
     await cacheService.clearAllCache();
   }
 
