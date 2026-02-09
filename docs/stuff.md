@@ -12,7 +12,7 @@ Lets do a performance review of this app starting with the ReadScreen
 Look at flutter logs and cleanup issues
 
 
-If i change the severselection to termux the server only starts temporarily and then shuts down. I think this is because the silent notification is never created maybe? but it works no problem if i go over to the termux integration and press the start server button. Whats is happening different? isn't all of the server launch supposed to be the same process??? Research this please. 
+If swipe navigation is on then starting the app seems to always trigger a page swipe/turn
 
 
 I still don't think we're completely clearly and refreshing everything on a server change. On a fresh install the stats and terms screen don't work unless i do an entire app restart after adding the localurl. Maybe we need to force and entire app restart?
@@ -55,7 +55,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 - Add a settings toggle to "Always Refresh for Book Details" default to on. Then we need to hook up the code so that it always triggers that stats500samplesize, it will need to do the same thing that makes the server recalculate the book. The Book details should load from chache first and then refresh when the new data is ready
 
 # Terms Screen
-- 
+- Editing a term scrolls to the top when closing the termform. 
 
 # Statistics Screen  
 - 
