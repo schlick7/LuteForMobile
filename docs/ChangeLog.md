@@ -17,6 +17,12 @@
 # Other Changes
 - Make tooltips open instantly
 
-# Changes from PreRelease
-- Change backup directory on backup restores so backuping up between devices works seemlessly.
+
+Hopefully fixed the need to uninstall first instead of just updating
+
+# Changes from Last PreRelease
+- Change backup directory on backup restores so backing up between devices works seemlessly.
 - Change how autobackup works again
+- Many little tweaks
+- Many little bug fixes
+- Fixed Books not loading
