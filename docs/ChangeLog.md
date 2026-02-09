@@ -21,7 +21,7 @@
 Hopefully fixed the need to uninstall first instead of just updating
 
 # Changes from Last PreRelease
-- Change backup directory on backup restores so backing up between devices works seemlessly.
+- Change backup directory on backup restores so backing up between devices works seamlessly.
 - Change how autobackup works again
 - Many little tweaks
 - Many little bug fixes
