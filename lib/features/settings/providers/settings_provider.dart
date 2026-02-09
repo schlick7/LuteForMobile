@@ -587,7 +587,7 @@ class TextFormattingSettings {
     this.fontWeight = FontWeight.w500,
     this.isItalic = false,
     this.fullscreenMode = false,
-    this.swipeNavigationEnabled = true,
+    this.swipeNavigationEnabled = false,
     this.swipeMarksRead = true,
   });
 
