@@ -15,12 +15,7 @@ Look at flutter logs and cleanup issues
 If i change the severselection to termux the server only starts temporarily and then shuts down. I think this is because the silent notification is never created maybe? but it works no problem if i go over to the termux integration and press the start server button. Whats is happening different? isn't all of the server launch supposed to be the same process??? Research this please. 
 
 
-Are we preloading pages on the readscreen without the readscreen being the active screen? if so can we stop that?
-
-
-
-Are we no longer preloading terms? The logs show that every tooltip that is displayed is make an api request instead of using the cache. 
-
+I still don't think we're completely clearly and refreshing everything on a server change. On a fresh install the stats and terms screen don't work unless i do an entire app restart after adding the localurl. Maybe we need to force and entire app restart?
 
 
 fix backup location after restore
