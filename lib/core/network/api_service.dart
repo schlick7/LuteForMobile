@@ -632,7 +632,7 @@ class ApiService {
       if (autoBackupEnabled &&
           (lastBackupTimestamp == null ||
               lastBackupTimestamp < twentyFourHoursAgo)) {
-        await _dio.get('/backup/backup');
+        await _dio.post('/backup/do_backup', data: {'type': 'automatic'});
       }
     } catch (e) {
       // Silently fail on backup errors - don't block app launch
