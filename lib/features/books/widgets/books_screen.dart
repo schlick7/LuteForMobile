@@ -4,6 +4,7 @@ import '../../../core/logger/widget_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/providers/server_status_provider.dart';
+import '../../../shared/providers/network_providers.dart';
 import '../providers/books_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
@@ -133,9 +134,52 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
     );
   }
 
+  Widget _buildNoServerConfigured(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No Server Connection',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please configure your Lute server in settings.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () =>
+                  ref.read(navigationProvider).navigateToScreen('settings'),
+              icon: const Icon(Icons.settings),
+              label: const Text('Open Settings'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBody(BuildContext context, BooksState state, settings) {
     if (state.isLoading) {
       return const LoadingIndicator(message: 'Loading books...');
+    }
+
+    final contentService = ref.watch(contentServiceProvider);
+    if (!contentService.isConfigured) {
+      return _buildNoServerConfigured(context);
     }
 
     if (state.errorMessage != null) {

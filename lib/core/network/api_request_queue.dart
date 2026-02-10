@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import '../../shared/providers/server_status_provider.dart';
 import '../../core/logger/api_logger.dart';
+import '../../core/services/server_health_service.dart';
 
 class QueuedRequest {
   final String signature;
@@ -90,7 +91,7 @@ class ApiRequestQueue {
   void _startPolling() {
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(
-      const Duration(milliseconds: 200),
+      const Duration(milliseconds: 250),
       (_) => _processQueue(),
     );
   }
@@ -154,6 +155,28 @@ class ApiRequestQueue {
     if (_isProcessing) return;
 
     _isProcessing = true;
+
+    if (!_isServerReachable) {
+      ApiLogger.logRequest(
+        '_processQueue',
+        details: 'server unreachable, probing...',
+      );
+      final isNowReachable = await ServerHealthService.isReachable(_serverUrl!);
+      if (isNowReachable) {
+        _isServerReachable = true;
+        ServerStatusManager.setReachable(true);
+        ApiLogger.logRequest(
+          '_processQueue',
+          details: 'server recovered, resuming queue',
+        );
+      } else {
+        ServerStatusManager.markError();
+        ApiLogger.logRequest(
+          '_processQueue',
+          details: 'server still unreachable',
+        );
+      }
+    }
 
     if (_isServerReachable && _queue.isNotEmpty) {
       final requestsToProcess = List<QueuedRequest>.from(_queue);

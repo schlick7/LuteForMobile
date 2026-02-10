@@ -823,6 +823,45 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       return const LoadingIndicator(message: 'Loading content...');
     }
 
+    final settings = ref.watch(settingsProvider);
+    if (!settings.isUrlValid) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.cloud_off,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No Server Connection',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please configure your Lute server in settings.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () =>
+                    ref.read(navigationProvider).navigateToScreen('settings'),
+                icon: const Icon(Icons.settings),
+                label: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (errorMessage != null) {
       final bookId = pageData?.bookId ?? _lastAttemptedBookId;
       final pageNum = pageData?.currentPage ?? _lastAttemptedPageNum;
@@ -841,46 +880,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     if (pageData == null) {
-      final settings = ref.read(settingsProvider);
-
-      if (!settings.isUrlValid) {
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.cloud_off,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No Server Connection',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Please configure your Lute server in settings.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      ref.read(navigationProvider).navigateToScreen('settings'),
-                  icon: const Icon(Icons.settings),
-                  label: const Text('Open Settings'),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -919,7 +918,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
-    final settings = ref.watch(settingsProvider);
 
     final hasGestureNav = MediaQuery.of(context).systemGestureInsets.bottom > 0;
     final textDisplay = TextDisplay(
