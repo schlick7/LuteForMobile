@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/logger/widget_logger.dart';
@@ -56,6 +57,10 @@ class HelpScreen extends ConsumerWidget {
               _buildBooksScreenSection(context),
               const SizedBox(height: 8),
               _buildAIFeaturesSection(context),
+              if (Platform.isAndroid) ...[
+                const SizedBox(height: 8),
+                _buildTermuxSection(context),
+              ],
               const SizedBox(height: 16),
             ]),
           ),
@@ -105,6 +110,12 @@ class HelpScreen extends ConsumerWidget {
             Icons.fingerprint,
             'Double-tap word',
             'Open term form',
+          ),
+          _buildControlItem(
+            context,
+            Icons.touch_app,
+            'Triple-tap word',
+            'Mark word as Known (status 99). Must be enabled in Settings',
           ),
           _buildControlItem(
             context,
@@ -770,6 +781,80 @@ class HelpScreen extends ConsumerWidget {
             Icons.code,
             'Sentence Translation',
             'These Prompts will need adjusted depending on the LLM model used -- Translate the following sentence from [language] to English: [sentence]',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTermuxSection(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(context, 'Termux Integration', Icons.terminal),
+          const Divider(),
+          _buildSubsectionHeader(context, 'What is Termux'),
+          _buildControlItem(
+            context,
+            Icons.info,
+            'OnDevice Server',
+            'Terminal emulator for Android that runs Lute3 server locally on your device',
+          ),
+          _buildControlItem(
+            context,
+            Icons.offline_bolt,
+            '"Offline" Functionality',
+            'Full Lute3 features without needing an external computer',
+          ),
+          _buildControlItem(
+            context,
+            Icons.backup,
+            'Backup/Restore',
+            'Built-in backup and restore capabilities for your data',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Requirements'),
+          _buildControlItem(
+            context,
+            Icons.phone_android,
+            'Android Device',
+            'Termux integration is only available on Android APK',
+          ),
+          _buildControlItem(
+            context,
+            Icons.download,
+            'Termux App',
+            'Must be installed from F-Droid (not Play Store)',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'lute.db Locations'),
+          _buildControlItem(
+            context,
+            Icons.folder,
+            'Termux Path',
+            '/data/data/com.termux/files/home/.local/share/lute3/lute.db',
+          ),
+          _buildControlItem(
+            context,
+            Icons.computer,
+            'Desktop Path',
+            'Find in Lute3 under "About > Version and Software Info" (Data path line)',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Important Notes'),
+          _buildControlItem(
+            context,
+            Icons.warning,
+            'Switching to Desktop Server',
+            'To restore back to a computer server, manually overwrite lute.db with your backup. See: luteorg.github.io/lute-manual/backup/restore.html',
+          ),
+          _buildControlItem(
+            context,
+            Icons.settings,
+            'Setup',
+            'Go to Settings > Termux Integration for installation and configuration',
           ),
         ],
       ),
