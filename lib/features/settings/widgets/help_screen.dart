@@ -14,14 +14,16 @@ class HelpScreen extends ConsumerWidget {
     _buildCount++;
     WidgetLogger.logRebuild('HelpScreen', _buildCount);
 
+    final serverStatus = ref.watch(serverStatusProvider);
+
     return Scaffold(
       appBar: AppBar(
         leading: Builder(
           builder: (context) {
             return IconButton(
               icon: Icon(
-                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
-                color: ServerStatusManager.isReachable ? null : Colors.red,
+                serverStatus.isReachable ? Icons.menu : Icons.warning,
+                color: serverStatus.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (scaffoldKey != null && scaffoldKey!.currentState != null) {

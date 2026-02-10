@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'api_request_queue.dart';
 import '../services/server_health_service.dart';
+import '../../shared/providers/server_status_provider.dart';
 
 class QueuedDioInterceptor extends Interceptor {
   final ApiRequestQueue _queue;
@@ -16,6 +17,7 @@ class QueuedDioInterceptor extends Interceptor {
     if (_queue.isServerReachable) {
       handler.next(options);
     } else {
+      ServerStatusManager.markError();
       unawaited(
         _queue
             .enqueue(Dio(), options)
@@ -36,6 +38,8 @@ class QueuedDioInterceptor extends Interceptor {
     if (isReachable) {
       handler.next(err);
     } else {
+      _queue.markServerUnreachable();
+      ServerStatusManager.markError();
       unawaited(
         _queue
             .enqueue(Dio(), err.requestOptions)

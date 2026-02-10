@@ -10,7 +10,7 @@ class ServerHealthService {
       receiveTimeout: _kDefaultTimeout,
       sendTimeout: _kDefaultTimeout,
     ),
-  );
+  )..interceptors.clear();
 
   static Future<bool> isReachable(String url) async {
     if (url.isEmpty) {

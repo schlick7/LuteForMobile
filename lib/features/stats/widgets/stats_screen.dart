@@ -50,6 +50,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     WidgetLogger.logRebuild('StatsScreen', _buildCount);
 
     final state = ref.watch(statsProvider);
+    final serverStatus = ref.watch(serverStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -57,8 +58,8 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           builder: (context) {
             return IconButton(
               icon: Icon(
-                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
-                color: ServerStatusManager.isReachable ? null : Colors.red,
+                serverStatus.isReachable ? Icons.menu : Icons.warning,
+                color: serverStatus.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (widget.scaffoldKey != null &&

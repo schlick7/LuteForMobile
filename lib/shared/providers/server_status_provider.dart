@@ -29,7 +29,18 @@ class ServerStatus {
 
 class ServerStatusNotifier extends Notifier<ServerStatus> {
   @override
-  ServerStatus build() => const ServerStatus();
+  ServerStatus build() {
+    ServerStatusManager.addListener(() {
+      updateFromManager(
+        ServerStatusManager.isReachable,
+        ServerStatusManager.isConnecting,
+      );
+    });
+    return ServerStatus(
+      isReachable: ServerStatusManager.isReachable,
+      isConnecting: ServerStatusManager.isConnecting,
+    );
+  }
 
   void updateFromManager(bool isReachable, bool isConnecting) {
     state = ServerStatus(isReachable: isReachable, isConnecting: isConnecting);

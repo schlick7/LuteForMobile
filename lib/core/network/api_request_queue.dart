@@ -38,6 +38,10 @@ class ApiRequestQueue {
 
   bool get isServerReachable => _isServerReachable;
 
+  void markServerUnreachable() {
+    _isServerReachable = false;
+  }
+
   bool _isTableStatsRequest(RequestOptions options) {
     return options.uri.path.contains('/book/table_stats/');
   }
@@ -80,7 +84,7 @@ class ApiRequestQueue {
 
     ServerStatusManager.addListener(_onServerStatusChanged);
 
-    _startPolling();
+    // Timer will start only when server issue is detected
   }
 
   void _onServerStatusChanged() {
@@ -165,12 +169,15 @@ class ApiRequestQueue {
       if (isNowReachable) {
         _isServerReachable = true;
         ServerStatusManager.setReachable(true);
+        _pollTimer?.cancel();
+        _pollTimer = null;
         ApiLogger.logRequest(
           '_processQueue',
           details: 'server recovered, resuming queue',
         );
       } else {
         ServerStatusManager.markError();
+        _startPolling(); // Start probing since server is down
         ApiLogger.logRequest(
           '_processQueue',
           details: 'server still unreachable',

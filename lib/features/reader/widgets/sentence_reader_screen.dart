@@ -481,6 +481,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
     final settings = ref.watch(settingsProvider);
+    final serverStatus = ref.watch(serverStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -488,8 +489,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           builder: (context) {
             return IconButton(
               icon: Icon(
-                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
-                color: ServerStatusManager.isReachable ? null : Colors.red,
+                serverStatus.isReachable ? Icons.menu : Icons.warning,
+                color: serverStatus.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (widget.scaffoldKey != null &&

@@ -65,6 +65,7 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
     WidgetLogger.logRebuild('TermsScreen', _buildCount);
 
     final state = ref.watch(termsProvider);
+    final serverStatus = ref.watch(serverStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -72,8 +73,8 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
           builder: (context) {
             return IconButton(
               icon: Icon(
-                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
-                color: ServerStatusManager.isReachable ? null : Colors.red,
+                serverStatus.isReachable ? Icons.menu : Icons.warning,
+                color: serverStatus.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (widget.scaffoldKey != null &&

@@ -492,7 +492,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         context,
         pageData,
         textSettings.fullscreenMode,
-        ServerStatusManager.isReachable,
+        ref.watch(serverStatusProvider).isReachable,
       ),
       body: Stack(
         children: [

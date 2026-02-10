@@ -159,6 +159,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final settings = ref.watch(settingsProvider);
     final themeSettings = ref.watch(themeSettingsProvider);
     final textSettings = ref.watch(textFormattingSettingsProvider);
+    final serverStatus = ref.watch(serverStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -166,8 +167,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           builder: (context) {
             return IconButton(
               icon: Icon(
-                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
-                color: ServerStatusManager.isReachable ? null : Colors.red,
+                serverStatus.isReachable ? Icons.menu : Icons.warning,
+                color: serverStatus.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (widget.scaffoldKey != null &&

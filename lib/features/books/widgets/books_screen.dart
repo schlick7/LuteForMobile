@@ -38,6 +38,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
 
     final state = ref.watch(booksProvider);
     final settings = ref.watch(settingsProvider);
+    final serverStatus = ref.watch(serverStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -45,8 +46,8 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
           builder: (context) {
             return IconButton(
               icon: Icon(
-                ServerStatusManager.isReachable ? Icons.menu : Icons.warning,
-                color: ServerStatusManager.isReachable ? null : Colors.red,
+                serverStatus.isReachable ? Icons.menu : Icons.warning,
+                color: serverStatus.isReachable ? null : Colors.red,
               ),
               onPressed: () {
                 if (widget.scaffoldKey != null &&
