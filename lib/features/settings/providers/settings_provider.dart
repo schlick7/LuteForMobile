@@ -56,6 +56,8 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyStatsRefreshBatchSize = 'stats_refresh_batch_size';
   static const String _keyStatsRefreshCooldownHours =
       'stats_refresh_cooldown_hours';
+  static const String _keyAlwaysRefreshBookDetails =
+      'always_refresh_book_details';
 
   @override
   Settings build() {
@@ -105,6 +107,8 @@ class SettingsNotifier extends Notifier<Settings> {
     final statsRefreshBatchSize = prefs.getInt(_keyStatsRefreshBatchSize) ?? 2;
     final statsRefreshCooldownHours =
         prefs.getInt(_keyStatsRefreshCooldownHours) ?? 48;
+    final alwaysRefreshBookDetails =
+        prefs.getBool(_keyAlwaysRefreshBookDetails) ?? true;
 
     final currentBookId = prefs.getInt(_keyCurrentBookId);
     final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
@@ -139,6 +143,7 @@ class SettingsNotifier extends Notifier<Settings> {
       stats500SampleSize: stats500SampleSize,
       statsRefreshBatchSize: statsRefreshBatchSize,
       statsRefreshCooldownHours: statsRefreshCooldownHours,
+      alwaysRefreshBookDetails: alwaysRefreshBookDetails,
     );
   }
 
@@ -392,6 +397,12 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setInt(_keyStatsRefreshCooldownHours, value);
   }
 
+  Future<void> updateAlwaysRefreshBookDetails(bool value) async {
+    state = state.copyWith(alwaysRefreshBookDetails: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAlwaysRefreshBookDetails, value);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -426,6 +437,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyStatsCalcSampleSize);
     await prefs.remove(_keyStatsRefreshBatchSize);
     await prefs.remove(_keyStatsRefreshCooldownHours);
+    await prefs.remove(_keyAlwaysRefreshBookDetails);
 
     state = Settings.defaultSettings();
   }

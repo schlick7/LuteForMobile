@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
+import '../../../shared/providers/network_providers.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 import '../providers/books_provider.dart';
@@ -24,17 +25,53 @@ class BookDetailsDialog extends ConsumerStatefulWidget {
 }
 
 class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
-  Book? currentBook;
+  bool _isRefreshingStats = false;
 
   @override
   void initState() {
     super.initState();
-    currentBook = widget.book;
+    final settings = ref.read(settingsProvider);
+    if (settings.alwaysRefreshBookDetails && widget.book.hasStats) {
+      _refreshBookStatsInBackground(widget.book.id);
+    }
+  }
+
+  Future<void> _refreshBookStatsInBackground(int bookId) async {
+    setState(() => _isRefreshingStats = true);
+    try {
+      final settings = ref.read(settingsProvider);
+
+      await ref
+          .read(contentServiceProvider)
+          .setUserSetting(
+            'stats_calc_sample_size',
+            settings.stats500SampleSize.toString(),
+          );
+
+      await ref.read(booksProvider.notifier).refreshBookStats(bookId);
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      if (mounted) {
+        setState(() {
+          _isRefreshingStats = false;
+        });
+      }
+
+      await ref
+          .read(contentServiceProvider)
+          .setUserSetting(
+            'stats_calc_sample_size',
+            settings.statsCalcSampleSize.toString(),
+          );
+    } catch (e) {
+      if (mounted) setState(() => _isRefreshingStats = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final book = currentBook ?? widget.book;
+    final book = widget.book;
     print(
       'DEBUG BookDetailsDialog: book=${book.title}, hasStats=${book.hasStats}, distinctTerms=${book.distinctTerms}, statusDistribution=${book.statusDistribution}',
     );

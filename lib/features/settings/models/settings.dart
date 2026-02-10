@@ -35,6 +35,7 @@ class Settings {
   final int stats500SampleSize;
   final int statsRefreshBatchSize;
   final int statsRefreshCooldownHours;
+  final bool alwaysRefreshBookDetails;
 
   static const String termuxUrl = 'http://127.0.0.1:5001';
 
@@ -69,6 +70,7 @@ class Settings {
     this.stats500SampleSize = 500,
     this.statsRefreshBatchSize = 2,
     this.statsRefreshCooldownHours = 48,
+    this.alwaysRefreshBookDetails = true,
   });
 
   Settings copyWith({
@@ -104,6 +106,7 @@ class Settings {
     int? stats500SampleSize,
     int? statsRefreshBatchSize,
     int? statsRefreshCooldownHours,
+    bool? alwaysRefreshBookDetails,
   }) {
     return Settings(
       localUrl: localUrl ?? this.localUrl,
@@ -152,6 +155,8 @@ class Settings {
           statsRefreshBatchSize ?? this.statsRefreshBatchSize,
       statsRefreshCooldownHours:
           statsRefreshCooldownHours ?? this.statsRefreshCooldownHours,
+      alwaysRefreshBookDetails:
+          alwaysRefreshBookDetails ?? this.alwaysRefreshBookDetails,
     );
   }
 
@@ -187,6 +192,7 @@ class Settings {
       stats500SampleSize: 500,
       statsRefreshBatchSize: 2,
       statsRefreshCooldownHours: 48,
+      alwaysRefreshBookDetails: true,
     );
   }
 
@@ -223,7 +229,8 @@ class Settings {
         other.termuxAutoLaunchEnabled == termuxAutoLaunchEnabled &&
         other.statsCalcSampleSize == statsCalcSampleSize &&
         other.statsRefreshBatchSize == statsRefreshBatchSize &&
-        other.statsRefreshCooldownHours == statsRefreshCooldownHours;
+        other.statsRefreshCooldownHours == statsRefreshCooldownHours &&
+        other.alwaysRefreshBookDetails == alwaysRefreshBookDetails;
   }
 
   @override
@@ -257,6 +264,7 @@ class Settings {
     statsCalcSampleSize,
     statsRefreshBatchSize,
     statsRefreshCooldownHours,
+    alwaysRefreshBookDetails,
   ]);
 
   bool isValidServerUrl(String url) {

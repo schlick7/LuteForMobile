@@ -339,7 +339,7 @@ class BooksNotifier extends Notifier<BooksState> {
         bookId,
         timeout: const Duration(seconds: 15),
       );
-      await Future.delayed(const Duration(seconds: 1));
+      await Future.delayed(const Duration(milliseconds: 500));
 
       // Get the existing book from the provided list or from the current state
       final booksList = updatedBooksList ?? state.activeBooks;
