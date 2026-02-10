@@ -828,7 +828,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               return ListTile(
                 title: Text(fileName),
                 subtitle: Text(
-                  '${lastModified.day}/${lastModified.month}/${lastModified.year} ${lastModified.hour}:${lastModified.minute.toString().padLeft(2, '0')} - ${_formatFileSize(size)}',
+                  '${lastModified.year}-${lastModified.month.toString().padLeft(2, '0')}-${lastModified.day.toString().padLeft(2, '0')} ${lastModified.hour}:${lastModified.minute.toString().padLeft(2, '0')} - ${_formatFileSize(size)}',
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -1341,7 +1341,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                              '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade600,
@@ -1552,7 +1552,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
+                                '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey.shade600,
