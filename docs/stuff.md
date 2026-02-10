@@ -4,12 +4,8 @@
   - python3 -m lute.main
   
   
-Why did our nice helpful message in the readscreen get replaced by a scary error message? on a fresh install it nows says error serverurl is not configured and theres a retry button. Previously we had a much nicer no server configured screen with a shortcut button to go to settings
+? Why did our nice helpful message in the readscreen get replaced by a scary error message? on a fresh install it nows says error serverurl is not configured and theres a retry button. Previously we had a much nicer no server configured screen with a shortcut button to go to settings
   
-  
-Lets do a performance review of this app starting with the ReadScreen 
-
-Look at flutter logs and cleanup issues
 
 
 If swipe navigation is on then starting the app seems to always trigger a page swipe/turn
@@ -22,6 +18,8 @@ fix backup location after restore
 /data/data/com.termux/files/home/.local/share/Lute3/backups
 
 Show backups in iso format (year, month, day)
+
+Don't think autobackup is working. It went serveral days without a backup and loading the webpage just triggered one so it needed to run for sure. Look into our process. 
 
 Make sure release key is set up properly
 
