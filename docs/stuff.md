@@ -18,8 +18,6 @@ fix backup location after restore
 /data/data/com.termux/files/home/.local/share/Lute3/backups
 
 
-Make sure release key is set up properly
-
 ---
 https://wiki.termux.com/wiki/Main_Page
 https://github.com/termux/termux-packages/wiki/Mirrors
@@ -49,10 +47,10 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 - 
 
 # Books Screen
-- Add a settings toggle to "Always Refresh for Book Details" default to on. Then we need to hook up the code so that it always triggers that stats500samplesize, it will need to do the same thing that makes the server recalculate the book. The Book details should load from chache first and then refresh when the new data is ready
+- 
 
 # Terms Screen
-- in the termsscreen Editing a term scrolls to the top when closing the termform. 
+- 
 
 # Statistics Screen  
 - 
