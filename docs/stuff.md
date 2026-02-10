@@ -17,25 +17,19 @@ I still don't think we're completely clearly and refreshing everything on a serv
 fix backup location after restore
 /data/data/com.termux/files/home/.local/share/Lute3/backups
 
-Show backups in iso format (year, month, day)
-
-Don't think autobackup is working. It went serveral days without a backup and loading the webpage just triggered one so it needed to run for sure. Look into our process. 
 
 Make sure release key is set up properly
 
 ---
-
 https://wiki.termux.com/wiki/Main_Page
 https://github.com/termux/termux-packages/wiki/Mirrors
 https://github.com/termux/termux-tools/tree/master/mirrors
 
----
- 
-Can we use the PWA that we have to handle backup and restore on our local (not on device) server?
-
 # Termux
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
+  - no idea how without creating a "micro service"
 - Termux never actually shuts down. Stays in the silent notifications with 1 task forever. Can we actually set up a sleep timer? Lets check the termux docs. https://wiki.termux.com/wiki/Main_Page
+---
 
 # Requests 
 
@@ -58,7 +52,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 - Add a settings toggle to "Always Refresh for Book Details" default to on. Then we need to hook up the code so that it always triggers that stats500samplesize, it will need to do the same thing that makes the server recalculate the book. The Book details should load from chache first and then refresh when the new data is ready
 
 # Terms Screen
-- Editing a term scrolls to the top when closing the termform. 
+- in the termsscreen Editing a term scrolls to the top when closing the termform. 
 
 # Statistics Screen  
 - 
@@ -66,6 +60,7 @@ Can we use the PWA that we have to handle backup and restore on our local (not o
 # Help Screen
 - Triple tap
 - Termux 
+- Add note that to restore back to the localurl (server on computer) users will need to overwrite lute.db manually. We should list about default locations of this file. 
 
 
 
