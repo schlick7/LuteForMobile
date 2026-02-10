@@ -8,7 +8,7 @@ import '../../reader/widgets/term_form.dart' show TermFormWidget;
 class TermEditDialogWrapper extends ConsumerStatefulWidget {
   final Term term;
   final VoidCallback onDelete;
-  final VoidCallback? onSave;
+  final void Function(Term)? onSave;
 
   const TermEditDialogWrapper({
     super.key,
@@ -31,6 +31,19 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
   void initState() {
     super.initState();
     _loadTermForm();
+  }
+
+  Term _createTermFromForm(TermForm form) {
+    return Term(
+      id: form.termId!,
+      text: form.term,
+      translation: form.translation,
+      status: form.status,
+      langId: form.languageId,
+      language: widget.term.language,
+      tags: form.tags,
+      createdDate: widget.term.createdDate,
+    );
   }
 
   Future<void> _loadTermForm() async {
@@ -133,7 +146,8 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
                     updatedForm.toFormData(),
                   );
                   if (mounted) {
-                    widget.onSave?.call();
+                    final updatedTerm = _createTermFromForm(updatedForm);
+                    widget.onSave?.call(updatedTerm);
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -163,7 +177,8 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
                     updatedForm.toFormData(),
                   );
                   if (mounted) {
-                    widget.onSave?.call();
+                    final updatedTerm = _createTermFromForm(updatedForm);
+                    widget.onSave?.call(updatedTerm);
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Term updated successfully'),

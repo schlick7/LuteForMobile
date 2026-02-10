@@ -224,8 +224,8 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
       isScrollControlled: true,
       builder: (context) => TermEditDialogWrapper(
         term: term,
-        onSave: () {
-          ref.read(termsProvider.notifier).refreshTerms();
+        onSave: (updatedTerm) {
+          ref.read(termsProvider.notifier).updateTermInList(updatedTerm);
         },
         onDelete: () async {
           await ref.read(termsProvider.notifier).deleteTerm(term.id);

@@ -229,6 +229,16 @@ class TermsNotifier extends Notifier<TermsState> {
     }
   }
 
+  void updateTermInList(Term updatedTerm) {
+    final updatedTerms = state.terms.map((term) {
+      if (term.id == updatedTerm.id) {
+        return updatedTerm;
+      }
+      return term;
+    }).toList();
+    state = state.copyWith(terms: updatedTerms);
+  }
+
   Future<void> refreshTerms() async {
     await loadTerms(reset: true);
   }
