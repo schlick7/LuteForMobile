@@ -673,7 +673,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
     final isItalic = prefs.getBool(_keyIsItalic) ?? false;
     final fullscreenMode = prefs.getBool(_keyFullscreenMode) ?? false;
     final swipeNavigationEnabled =
-        prefs.getBool(_keySwipeNavigationEnabled) ?? true;
+        prefs.getBool(_keySwipeNavigationEnabled) ?? false;
     final swipeMarksRead = prefs.getBool(_keySwipeMarksRead) ?? true;
 
     final fontWeightMap = [
