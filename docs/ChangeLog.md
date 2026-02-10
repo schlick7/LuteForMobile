@@ -1,4 +1,4 @@
-# Requires Uninstalling Version v0.8.2 or earlier first
+# Requires Uninstalling Version v0.8.5 or earlier first
 
 # Bug Fixes
 - Stop autobackups from triggering every app launch
@@ -16,13 +16,14 @@
 
 # Other Changes
 - Make tooltips open instantly
+- Add icon for server not connected
 
 
-Hopefully fixed the need to uninstall first instead of just updating
 
-# Changes from Last PreRelease
+# Changes from PreReleases
 - Change backup directory on backup restores so backing up between devices works seamlessly.
-- Change how autobackup works again
+- Change how autobackup works again again
 - Many little tweaks
 - Many little bug fixes
 - Fixed Books not loading
+- For real this time fixed release key changing
