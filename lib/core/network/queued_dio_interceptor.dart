@@ -6,9 +6,20 @@ import '../../shared/providers/server_status_provider.dart';
 
 class QueuedDioInterceptor extends Interceptor {
   final ApiRequestQueue _queue;
-  final Set<String> _pendingTermFormSignatures = {};
+  bool _hasQueuedTermForm = false;
+  bool _wasUnreachable = false;
 
-  QueuedDioInterceptor(this._queue);
+  QueuedDioInterceptor(this._queue) {
+    ServerStatusManager.addListener(_onServerStatusChanged);
+  }
+
+  void _onServerStatusChanged() {
+    final isReachable = ServerStatusManager.isReachable;
+    if (_wasUnreachable && isReachable) {
+      _hasQueuedTermForm = false;
+    }
+    _wasUnreachable = !isReachable;
+  }
 
   bool _isTermFormFetch(RequestOptions options) {
     return options.method == 'GET' &&
@@ -26,8 +37,7 @@ class QueuedDioInterceptor extends Interceptor {
       ServerStatusManager.markError();
 
       if (_isTermFormFetch(options)) {
-        final signature = _computeSignature(options);
-        if (_pendingTermFormSignatures.contains(signature)) {
+        if (_hasQueuedTermForm) {
           handler.reject(
             DioException(
               requestOptions: options,
@@ -37,17 +47,15 @@ class QueuedDioInterceptor extends Interceptor {
           );
           return;
         }
-        _pendingTermFormSignatures.add(signature);
+        _hasQueuedTermForm = true;
         unawaited(
           _queue
               .enqueue(Dio(), options)
               .then(
                 (response) {
-                  _pendingTermFormSignatures.remove(signature);
                   handler.resolve(response);
                 },
                 onError: (error) {
-                  _pendingTermFormSignatures.remove(signature);
                   handler.reject(error as DioException);
                 },
               ),
@@ -65,12 +73,6 @@ class QueuedDioInterceptor extends Interceptor {
     }
   }
 
-  String _computeSignature(RequestOptions options) {
-    final method = options.method;
-    final url = options.uri.toString();
-    return '$method:$url';
-  }
-
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     final isReachable = await ServerHealthService.isReachable(
@@ -84,8 +86,7 @@ class QueuedDioInterceptor extends Interceptor {
       ServerStatusManager.markError();
 
       if (_isTermFormFetch(err.requestOptions)) {
-        final signature = _computeSignature(err.requestOptions);
-        if (_pendingTermFormSignatures.contains(signature)) {
+        if (_hasQueuedTermForm) {
           handler.reject(
             DioException(
               requestOptions: err.requestOptions,
@@ -95,17 +96,15 @@ class QueuedDioInterceptor extends Interceptor {
           );
           return;
         }
-        _pendingTermFormSignatures.add(signature);
+        _hasQueuedTermForm = true;
         unawaited(
           _queue
               .enqueue(Dio(), err.requestOptions)
               .then(
                 (response) {
-                  _pendingTermFormSignatures.remove(signature);
                   handler.resolve(response);
                 },
                 onError: (error) {
-                  _pendingTermFormSignatures.remove(signature);
                   handler.reject(error as DioException);
                 },
               ),
