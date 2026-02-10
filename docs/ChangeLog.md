@@ -6,6 +6,7 @@
 - Fixed a BUNCH of excessive Fetch calls
 - Fixed some incorrect Rebuilds triggering
 - Fixed ondevice TTS
+- TermScreen no longer scrolls on TermForm exit
 
 # New Feature
 - Termux Integration (Android APK only)
