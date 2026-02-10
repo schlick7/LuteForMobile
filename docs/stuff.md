@@ -4,7 +4,7 @@
   - python3 -m lute.main
   
   
-  
+Why did our nice helpful message in the readscreen get replaced by a scary error message? on a fresh install it nows says error serverurl is not configured and theres a retry button. Previously we had a much nicer no server configured screen with a shortcut button to go to settings
   
   
 Lets do a performance review of this app starting with the ReadScreen 
