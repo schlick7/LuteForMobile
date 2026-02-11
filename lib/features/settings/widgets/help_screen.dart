@@ -57,6 +57,8 @@ class HelpScreen extends ConsumerWidget {
               _buildBooksScreenSection(context),
               const SizedBox(height: 8),
               _buildAIFeaturesSection(context),
+              const SizedBox(height: 8),
+              _buildPerformanceSection(context),
               if (Platform.isAndroid) ...[
                 const SizedBox(height: 8),
                 _buildTermuxSection(context),
@@ -781,6 +783,72 @@ class HelpScreen extends ConsumerWidget {
             Icons.code,
             'Sentence Translation',
             'These Prompts will need adjusted depending on the LLM model used -- Translate the following sentence from [language] to English: [sentence]',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceSection(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            context,
+            'Performance & Troubleshooting',
+            Icons.bug_report,
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Book Stats Configuration'),
+          _buildControlItem(
+            context,
+            Icons.calculate,
+            'Calc Sample Size',
+            'Pages sampled when calculating book stats (1-500). Lower = faster. Lower this is you lose server connection on launch',
+          ),
+          _buildControlItem(
+            context,
+            Icons.layers,
+            'Pages to Process at Once',
+            'Batch size for stats refresh (1-5). Lower take long but reduce server load',
+          ),
+          _buildControlItem(
+            context,
+            Icons.timer,
+            'Cooldown Before Refresh',
+            'Hours between auto-refresh (1-336). Prevents excessive recalculation',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Tooltip Caching'),
+          _buildControlItem(
+            context,
+            Icons.cached,
+            'Enable Tooltip Caching',
+            'Cache term tooltips for 48 hours. Significantly speeds up tooltip loading, especially on slow connections',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Swipe Navigation'),
+          _buildControlItem(
+            context,
+            Icons.swipe,
+            'Enable Swipe Navigation',
+            'Toggle swipe gestures for page navigation. If you experience issues with pages turning unexpectedly between app launches, try disabling this',
+          ),
+          _buildControlItem(
+            context,
+            Icons.check_circle_outline,
+            'Mark Pages as Read When Swiping',
+            'Automatically mark pages as read when navigating via swipe gestures',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Location'),
+          _buildControlItem(
+            context,
+            Icons.settings,
+            'Settings',
+            'Book Stats: Settings > Book Stats Settings. Tooltip Caching & Swipe: Settings > Reading Settings',
           ),
         ],
       ),
