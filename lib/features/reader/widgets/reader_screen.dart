@@ -487,38 +487,44 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     final statsState = ref.watch(statsProvider);
 
-    return Scaffold(
-      appBar: _buildAppBar(
-        context,
-        pageData,
-        textSettings.fullscreenMode,
-        ref.watch(serverStatusProvider).isReachable,
-      ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              if (settings.showAudioPlayer && pageData?.hasAudio == true)
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  margin: EdgeInsets.only(
-                    top: textSettings.fullscreenMode && !_isUiVisible
-                        ? MediaQuery.of(context).padding.top + kToolbarHeight
-                        : 0,
+    // Check if reader is the active screen
+    final isVisible = ref.watch(currentScreenRouteProvider) == 'reader';
+
+    return AbsorbPointer(
+      absorbing: !isVisible,
+      child: Scaffold(
+        appBar: _buildAppBar(
+          context,
+          pageData,
+          textSettings.fullscreenMode,
+          ref.watch(serverStatusProvider).isReachable,
+        ),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                if (settings.showAudioPlayer && pageData?.hasAudio == true)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    margin: EdgeInsets.only(
+                      top: textSettings.fullscreenMode && !_isUiVisible
+                          ? MediaQuery.of(context).padding.top + kToolbarHeight
+                          : 0,
+                    ),
+                    child: AudioPlayerWidget(
+                      audioUrl:
+                          '${settings.serverUrl}/useraudio/stream/${pageData!.bookId}',
+                      bookId: pageData!.bookId,
+                      page: pageData!.currentPage,
+                      bookmarks: pageData?.audioBookmarks,
+                    ),
                   ),
-                  child: AudioPlayerWidget(
-                    audioUrl:
-                        '${settings.serverUrl}/useraudio/stream/${pageData!.bookId}',
-                    bookId: pageData!.bookId,
-                    page: pageData!.currentPage,
-                    bookmarks: pageData?.audioBookmarks,
-                  ),
-                ),
-              Expanded(child: _buildBody(isLoading, errorMessage, pageData)),
-            ],
-          ),
-        ],
+                Expanded(child: _buildBody(isLoading, errorMessage, pageData)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -779,21 +785,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
                     onPressed: pageData.currentPage > 1
-                        ? () {
-                            // Guard: only process when reader is visible
-                            final currentRoute = ref.read(
-                              currentScreenRouteProvider,
-                            );
-                            if (currentRoute != 'reader') {
-                              ApiLogger.logRequest(
-                                'ReaderScreen.prevButton',
-                                details:
-                                    'BLOCKED - not visible, route=$currentRoute',
-                              );
-                              return;
-                            }
-                            _goToPage(pageData.currentPage - 1);
-                          }
+                        ? () => _goToPage(pageData.currentPage - 1)
                         : null,
                     tooltip: 'Previous page',
                   ),
@@ -819,21 +811,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   else
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
-                      onPressed: () {
-                        // Guard: only process when reader is visible
-                        final currentRoute = ref.read(
-                          currentScreenRouteProvider,
-                        );
-                        if (currentRoute != 'reader') {
-                          ApiLogger.logRequest(
-                            'ReaderScreen.nextButton',
-                            details:
-                                'BLOCKED - not visible, route=$currentRoute',
-                          );
-                          return;
-                        }
-                        _goToPage(pageData.currentPage + 1);
-                      },
+                      onPressed: () => _goToPage(pageData.currentPage + 1),
                       tooltip: 'Next page',
                     ),
                 ],
@@ -1005,16 +983,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               }
             },
             onHorizontalDragEnd: (details) async {
-              // Guard: only process gestures when reader is visible
-              final currentRoute = ref.read(currentScreenRouteProvider);
-              if (currentRoute != 'reader') {
-                ApiLogger.logRequest(
-                  'ReaderScreen.onHorizontalDragEnd',
-                  details: 'BLOCKED - not visible, route=$currentRoute',
-                );
-                return;
-              }
-
               if (pageData!.pageCount <= 1) return;
 
               final currentTextSettings = ref.read(
@@ -1080,16 +1048,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _handleTap(TextItem item, BuildContext context) async {
-    // Guard: only process taps when reader is visible
-    final currentRoute = ref.read(currentScreenRouteProvider);
-    if (currentRoute != 'reader') {
-      ApiLogger.logRequest(
-        'ReaderScreen._handleTap',
-        details: 'BLOCKED - not visible, route=$currentRoute',
-      );
-      return;
-    }
-
     if (item.isSpace) return;
 
     TermTooltipClass.close();
@@ -1112,16 +1070,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _handleDoubleTap(TextItem item) async {
-    // Guard: only process taps when reader is visible
-    final currentRoute = ref.read(currentScreenRouteProvider);
-    if (currentRoute != 'reader') {
-      ApiLogger.logRequest(
-        'ReaderScreen._handleDoubleTap',
-        details: 'BLOCKED - not visible, route=$currentRoute',
-      );
-      return;
-    }
-
     TermTooltipClass.close();
 
     // Only handle double tap for terms from the server (items with wordId)
@@ -1186,16 +1134,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _handleLongPress(TextItem item) {
-    // Guard: only process taps when reader is visible
-    final currentRoute = ref.read(currentScreenRouteProvider);
-    if (currentRoute != 'reader') {
-      ApiLogger.logRequest(
-        'ReaderScreen._handleLongPress',
-        details: 'BLOCKED - not visible, route=$currentRoute',
-      );
-      return;
-    }
-
     // Only handle long press for terms from the server (items with wordId)
     if (item.wordId == null) return;
     if (item.langId == null) return;
@@ -1207,16 +1145,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _handleTripleTap(TextItem item) async {
-    // Guard: only process taps when reader is visible
-    final currentRoute = ref.read(currentScreenRouteProvider);
-    if (currentRoute != 'reader') {
-      ApiLogger.logRequest(
-        'ReaderScreen._handleTripleTap',
-        details: 'BLOCKED - not visible, route=$currentRoute',
-      );
-      return;
-    }
-
     TermTooltipClass.close();
 
     // Only handle triple tap for terms from the server (items with wordId)
