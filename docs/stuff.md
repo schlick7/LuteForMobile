@@ -8,8 +8,6 @@
   
 
 
-If swipe navigation is on then starting the app seems to always trigger a page swipe/turn
-
 
 I still don't think we're completely clearly and refreshing everything on a server change. On a fresh install the stats and terms screen don't work unless i do an entire app restart after adding the localurl. Maybe we need to force and entire app restart?
 
@@ -56,9 +54,7 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 - 
 
 # Help Screen
-- Triple tap
-- Termux 
-- Add note that to restore back to the localurl (server on computer) users will need to overwrite lute.db manually. We should list about default locations of this file. 
+- 
 
 
 
