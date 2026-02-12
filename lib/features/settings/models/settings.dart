@@ -67,9 +67,9 @@ class Settings {
     this.termuxIntegrationEnabled = false,
     this.termuxAutoLaunchEnabled = false,
     this.statsCalcSampleSize = 5,
-    this.stats500SampleSize = 500,
+    this.stats500SampleSize = 100,
     this.statsRefreshBatchSize = 2,
-    this.statsRefreshCooldownHours = 48,
+    this.statsRefreshCooldownHours = 96,
     this.alwaysRefreshBookDetails = true,
   });
 
