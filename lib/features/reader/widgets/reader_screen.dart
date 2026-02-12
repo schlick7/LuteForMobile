@@ -171,6 +171,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
   bool _checkServerPageInProgress = false;
+  int? _lastAudioBookId;
   final List<String> _availableFonts = [
     'Roboto',
     'AtkinsonHyperlegibleNext',
@@ -208,6 +209,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Future<void> _loadLanguageMapping() async {
+    if (_languageIdToName.isNotEmpty) return;
+
     final repository = ref.read(readerRepositoryProvider);
     try {
       final languages = await repository.contentService.getLanguagesWithIds();
@@ -221,7 +224,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _loadStatsIfNeeded() {
     final statsState = ref.read(statsProvider);
-    if (statsState.value == null) {
+    if (statsState.value == null && !statsState.isLoading) {
       ref.read(statsProvider.notifier).loadStats();
     }
   }
@@ -364,9 +367,13 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     if (pageData == null || !settings.showAudioPlayer) {
       ref.read(audioPlayerProvider.notifier).reset();
+      _lastAudioBookId = null;
       return;
     }
 
+    if (_lastAudioBookId == pageData.bookId) return;
+
+    _lastAudioBookId = pageData.bookId;
     ref.read(audioPlayerProvider.notifier).reset();
 
     if (pageData.hasAudio) {
@@ -421,6 +428,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       _isLastPageMarkedDone = false;
       _lastAttemptedBookId = bookId;
       _lastAttemptedPageNum = pageNum;
+      _lastAudioBookId = null;
     });
     try {
       await ref
