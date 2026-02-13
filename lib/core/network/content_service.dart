@@ -56,7 +56,7 @@ class ContentService {
     String pageMetadataHtml;
     String pageTextHtml;
 
-    if (useCache && !forceRefresh) {
+    if (useCache && !forceRefresh && pageNum != null) {
       // Cache-only mode: return cached data or null if not found
       final cached = await _pageCacheService.getFromCache(bookId, pageNum ?? 1);
       if (cached != null) {

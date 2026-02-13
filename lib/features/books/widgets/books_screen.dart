@@ -244,17 +244,8 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
     );
   }
 
-  void _navigateToReader(BuildContext context, Book book) async {
-    try {
-      final updatedBook = await ref
-          .read(booksProvider.notifier)
-          .getUpdatedBook(book.id);
-      ref
-          .read(navigationProvider)
-          .navigateToReader(updatedBook.id, updatedBook.currentPage);
-    } catch (e) {
-      ref.read(navigationProvider).navigateToReader(book.id, book.currentPage);
-    }
+  void _navigateToReader(BuildContext context, Book book) {
+    ref.read(navigationProvider).navigateToReader(book.id, null);
   }
 
   void _showBookDetails(BuildContext context, Book book) {
