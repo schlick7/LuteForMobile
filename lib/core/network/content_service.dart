@@ -18,6 +18,7 @@ import '../../core/cache/models/term_cache_entry.dart';
 import '../../features/settings/providers/settings_provider.dart';
 import 'api_service.dart';
 import 'html_parser.dart';
+import 'concurrent_queue.dart';
 
 enum ContentMode { reading, peeking, refresh }
 
@@ -26,6 +27,7 @@ class ContentService {
   final HtmlParser parser;
   final PageCacheService _pageCacheService;
   final TermCacheService _termCacheService;
+  final ConcurrentQueue<TermParent> _parentFetchQueue;
 
   // 5-second cache for languages to prevent redundant API calls
   List<Language>? _cachedLanguages;
@@ -36,7 +38,11 @@ class ContentService {
     : _apiService = apiService,
       parser = htmlParser ?? HtmlParser(),
       _pageCacheService = PageCacheService.getInstance(),
-      _termCacheService = TermCacheService.getInstance();
+      _termCacheService = TermCacheService.getInstance(),
+      _parentFetchQueue = ConcurrentQueue<TermParent>(
+        maxConcurrent: 2,
+        name: 'parentFetch',
+      );
 
   bool get isConfigured => _apiService.isConfigured;
 
@@ -259,25 +265,26 @@ class ContentService {
     if (termForm.parents.isEmpty) {
       return termForm;
     }
-    final parentsWithDetails = <TermParent>[];
-    for (final parent in termForm.parents) {
-      final searchResults = await searchTerms(parent.term, langId);
-      if (searchResults.isNotEmpty) {
-        final result = searchResults.first;
-        parentsWithDetails.add(
-          TermParent(
+
+    final fetchFutures = termForm.parents.map((parent) {
+      return _parentFetchQueue.enqueue(() async {
+        final searchResults = await searchTerms(parent.term, langId);
+        if (searchResults.isNotEmpty) {
+          final result = searchResults.first;
+          return TermParent(
             id: result.id,
             term: result.text,
             translation: result.translation,
             status: result.status,
             syncStatus: result.syncStatus,
-          ),
-        );
-      } else {
-        parentsWithDetails.add(parent);
-      }
-    }
-    return termForm.copyWith(parents: parentsWithDetails);
+          );
+        }
+        return parent;
+      });
+    }).toList();
+
+    final parentsWithDetails = await Future.wait(fetchFutures);
+    return termForm.copyWith(parents: parentsWithDetails.cast<TermParent>());
   }
 
   Future<TermForm> getTermFormByIdWithParentDetails(int termId) async {
@@ -285,25 +292,29 @@ class ContentService {
     if (termForm.parents.isEmpty) {
       return termForm;
     }
-    final parentsWithDetails = <TermParent>[];
-    for (final parent in termForm.parents) {
-      final searchResults = await searchTerms(parent.term, termForm.languageId);
-      if (searchResults.isNotEmpty) {
-        final result = searchResults.first;
-        parentsWithDetails.add(
-          TermParent(
+
+    final fetchFutures = termForm.parents.map((parent) {
+      return _parentFetchQueue.enqueue(() async {
+        final searchResults = await searchTerms(
+          parent.term,
+          termForm.languageId,
+        );
+        if (searchResults.isNotEmpty) {
+          final result = searchResults.first;
+          return TermParent(
             id: result.id,
             term: result.text,
             translation: result.translation,
             status: result.status,
             syncStatus: result.syncStatus,
-          ),
-        );
-      } else {
-        parentsWithDetails.add(parent);
-      }
-    }
-    return termForm.copyWith(parents: parentsWithDetails);
+          );
+        }
+        return parent;
+      });
+    }).toList();
+
+    final parentsWithDetails = await Future.wait(fetchFutures);
+    return termForm.copyWith(parents: parentsWithDetails.cast<TermParent>());
   }
 
   Future<int?> createTerm(int langId, String term) async {
