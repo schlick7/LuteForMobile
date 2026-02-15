@@ -153,7 +153,12 @@ class BooksNotifier extends Notifier<BooksState> {
         state = state.copyWith(isLoading: false);
       }
       await _loadBooksFromNetwork();
-      _backgroundRefreshExpiredBooks();
+      // Only refresh expired books in background if not doing a force refresh.
+      // Force refresh means the caller will handle full stats refresh themselves
+      // (e.g., pull-to-refresh followed by refreshAllStatsInBackground).
+      if (!forceRefresh) {
+        _backgroundRefreshExpiredBooks();
+      }
     } catch (e) {
       state = state.copyWith(isLoading: false);
       ApiLogger.logError('loadBooksFromCache', e);
@@ -241,21 +246,15 @@ class BooksNotifier extends Notifier<BooksState> {
           i += settings.statsRefreshBatchSize
         ) {
           final batch = <Future<void>>[];
-          if (i < expiredBooks.length) {
-            batch.add(
-              _refreshBookSimple(
-                expiredBooks[i].id,
-                updatedBooksList: updatedActiveBooks,
-              ),
-            );
-          }
-          if (i + 1 < expiredBooks.length) {
-            batch.add(
-              _refreshBookSimple(
-                expiredBooks[i + 1].id,
-                updatedBooksList: updatedActiveBooks,
-              ),
-            );
+          for (int j = 0; j < settings.statsRefreshBatchSize; j++) {
+            if (i + j < expiredBooks.length) {
+              batch.add(
+                _refreshBookSimple(
+                  expiredBooks[i + j].id,
+                  updatedBooksList: updatedActiveBooks,
+                ),
+              );
+            }
           }
           await Future.wait(batch);
         }
@@ -656,23 +655,21 @@ class BooksNotifier extends Notifier<BooksState> {
       final activeBooksToRefresh = state.activeBooks;
       final updatedActiveBooks = List<Book>.from(state.activeBooks);
 
-      for (int i = 0; i < activeBooksToRefresh.length; i += 2) {
+      for (
+        int i = 0;
+        i < activeBooksToRefresh.length;
+        i += settings.statsRefreshBatchSize
+      ) {
         final batch = <Future<void>>[];
-        if (i < activeBooksToRefresh.length) {
-          batch.add(
-            _refreshBookSimple(
-              activeBooksToRefresh[i].id,
-              updatedBooksList: updatedActiveBooks,
-            ),
-          );
-        }
-        if (i + 1 < activeBooksToRefresh.length) {
-          batch.add(
-            _refreshBookSimple(
-              activeBooksToRefresh[i + 1].id,
-              updatedBooksList: updatedActiveBooks,
-            ),
-          );
+        for (int j = 0; j < settings.statsRefreshBatchSize; j++) {
+          if (i + j < activeBooksToRefresh.length) {
+            batch.add(
+              _refreshBookSimple(
+                activeBooksToRefresh[i + j].id,
+                updatedBooksList: updatedActiveBooks,
+              ),
+            );
+          }
         }
         await Future.wait(batch);
       }
@@ -722,23 +719,21 @@ class BooksNotifier extends Notifier<BooksState> {
       final activeBooksToRefresh = state.activeBooks;
       final updatedActiveBooks = List<Book>.from(state.activeBooks);
 
-      for (int i = 0; i < activeBooksToRefresh.length; i += 2) {
+      for (
+        int i = 0;
+        i < activeBooksToRefresh.length;
+        i += settings.statsRefreshBatchSize
+      ) {
         final batch = <Future<void>>[];
-        if (i < activeBooksToRefresh.length) {
-          batch.add(
-            _refreshBookSimple(
-              activeBooksToRefresh[i].id,
-              updatedBooksList: updatedActiveBooks,
-            ),
-          );
-        }
-        if (i + 1 < activeBooksToRefresh.length) {
-          batch.add(
-            _refreshBookSimple(
-              activeBooksToRefresh[i + 1].id,
-              updatedBooksList: updatedActiveBooks,
-            ),
-          );
+        for (int j = 0; j < settings.statsRefreshBatchSize; j++) {
+          if (i + j < activeBooksToRefresh.length) {
+            batch.add(
+              _refreshBookSimple(
+                activeBooksToRefresh[i + j].id,
+                updatedBooksList: updatedActiveBooks,
+              ),
+            );
+          }
         }
         await Future.wait(batch);
       }
