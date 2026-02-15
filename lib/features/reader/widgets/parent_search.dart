@@ -4,7 +4,6 @@ import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../../../core/network/content_service.dart';
 import '../../../shared/theme/theme_extensions.dart';
-import '../../../shared/theme/app_theme.dart';
 
 class ParentSearchWidget extends ConsumerStatefulWidget {
   final int languageId;

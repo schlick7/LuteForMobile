@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as html;
 import '../../core/logger/api_logger.dart';
@@ -15,7 +14,6 @@ import '../../features/terms/models/term.dart';
 import '../../shared/models/language.dart';
 import '../../core/cache/term_cache_service.dart';
 import '../../core/cache/models/term_cache_entry.dart';
-import '../../features/settings/providers/settings_provider.dart';
 import 'api_service.dart';
 import 'html_parser.dart';
 import 'concurrent_queue.dart';

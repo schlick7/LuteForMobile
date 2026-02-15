@@ -3,7 +3,6 @@ import '../models/text_item.dart';
 import '../models/term_tooltip.dart';
 import '../utils/sentence_parser.dart';
 import '../../../shared/theme/theme_extensions.dart';
-import '../../../shared/theme/app_theme.dart';
 
 String _formatTranslation(String? translation) {
   if (translation == null) return '';

@@ -21,8 +21,6 @@ import '../widgets/sentence_ai_translation_widget.dart';
 import '../utils/sentence_parser.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../../../features/settings/providers/settings_provider.dart';
-import '../../../features/settings/providers/ai_settings_provider.dart';
-import '../../../features/settings/models/ai_settings.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/language_flag_mapper.dart';

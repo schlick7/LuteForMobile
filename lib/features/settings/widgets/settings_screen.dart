@@ -17,7 +17,6 @@ import 'theme_selector_screen.dart';
 import 'tts_settings_section.dart';
 import 'ai_settings_section.dart';
 import 'termux_screen.dart';
-import 'package:lute_for_mobile/features/settings/widgets/termux_storage_access_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
