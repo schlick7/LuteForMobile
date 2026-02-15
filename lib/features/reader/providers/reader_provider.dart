@@ -15,6 +15,7 @@ import '../../../features/settings/providers/settings_provider.dart';
 import 'sentence_reader_provider.dart';
 import '../../../core/cache/providers/tooltip_cache_provider.dart';
 import '../../../features/terms/providers/terms_provider.dart';
+import '../../../shared/providers/app_startup_providers.dart';
 
 @immutable
 class ReaderState {
@@ -216,6 +217,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
           if (pageData.currentPage < pageData.pageCount) {
             _enqueuePrefetch(() => preloadNextPage());
             _enqueuePrefetch(() => preloadTooltipsForNextPage());
+          }
+
+          // Signal that reader is ready for other operations to begin
+          if (updateReaderState && !refreshStatuses) {
+            ref.read(readerReadinessProvider.notifier).markReady();
           }
         } else {
           // Cache miss: stay in loading state and trigger background refresh

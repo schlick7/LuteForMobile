@@ -8,7 +8,6 @@ import 'package:lute_for_mobile/core/cache/tooltip_cache_service.dart';
 import 'package:lute_for_mobile/core/cache/books_cache_service.dart';
 import 'package:lute_for_mobile/core/cache/term_cache_service.dart';
 import 'package:lute_for_mobile/features/stats/repositories/stats_repository.dart';
-import 'package:lute_for_mobile/core/network/api_service.dart';
 import 'package:lute_for_mobile/core/services/server_health_service.dart';
 import 'package:lute_for_mobile/core/services/termux_service.dart';
 import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
@@ -52,11 +51,6 @@ void main() async {
   }
 
   ServerStatusManager.setInitialCheckComplete(true);
-
-  if (serverUrl.isNotEmpty) {
-    final apiService = ApiService(baseUrl: serverUrl);
-    apiService.triggerAutoBackup();
-  }
 
   runApp(
     ProviderScope(

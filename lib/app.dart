@@ -22,6 +22,8 @@ import 'package:lute_for_mobile/features/books/models/book.dart';
 import 'package:lute_for_mobile/core/services/termux_service.dart';
 import 'package:lute_for_mobile/core/services/server_health_service.dart';
 import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
+import 'package:lute_for_mobile/shared/providers/app_startup_providers.dart';
+import 'package:lute_for_mobile/core/network/api_service.dart';
 
 class RestartWidget extends StatefulWidget {
   final Widget child;
@@ -344,6 +346,17 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
 
   @override
   Widget build(BuildContext context) {
+    // Watch for books loading completion and trigger auto backup
+    ref.listen(booksLoadingCompleteProvider, (previous, next) {
+      if (next == true && previous != true) {
+        final settings = ref.read(settingsProvider);
+        if (settings.serverUrl.isNotEmpty) {
+          final apiService = ApiService(baseUrl: settings.serverUrl);
+          apiService.triggerAutoBackup();
+        }
+      }
+    });
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: AppDrawer(

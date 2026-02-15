@@ -7,6 +7,7 @@ import '../models/book.dart';
 import '../repositories/books_repository.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../settings/providers/settings_provider.dart';
+import '../../../shared/providers/app_startup_providers.dart';
 
 @immutable
 class BooksState {
@@ -90,13 +91,54 @@ class BooksNotifier extends Notifier<BooksState> {
     if (!_isInitialized) {
       _isInitialized = true;
       _previousServerUrl = settings.serverUrl;
-      Future.microtask(() => loadBooks(forceRefresh: true));
+      Future.microtask(() => _waitForReaderAndLoadBooks());
     } else if (_previousServerUrl != settings.serverUrl) {
       _previousServerUrl = settings.serverUrl;
       Future.microtask(() => _onServerChanged());
     }
 
     return const BooksState();
+  }
+
+  /// Waits for reader to signal ready, then loads books.
+  /// Uses a 10-second fallback if reader never signals (e.g., user opens books screen directly).
+  Future<void> _waitForReaderAndLoadBooks() async {
+    // Check if reader is already ready
+    if (ref.read(readerReadinessProvider)) {
+      await _loadBooksAndSignalComplete();
+      return;
+    }
+
+    // Set up a listener for reader readiness
+    bool booksLoaded = false;
+    late ProviderSubscription<bool> subscription;
+    subscription = ref.listen(readerReadinessProvider, (previous, next) {
+      if (next == true && !booksLoaded) {
+        booksLoaded = true;
+        subscription.close();
+        _loadBooksAndSignalComplete();
+      }
+    });
+
+    // Fallback: load books after 10 seconds if reader never signals ready
+    Future.delayed(const Duration(seconds: 10), () {
+      if (!booksLoaded) {
+        booksLoaded = true;
+        subscription.close();
+        _loadBooksAndSignalComplete();
+      }
+    });
+  }
+
+  /// Loads books and signals completion (even on error, since cache might have partial data).
+  Future<void> _loadBooksAndSignalComplete() async {
+    try {
+      await loadBooks(forceRefresh: true);
+    } finally {
+      // Signal that books loading is complete, even if there was an error
+      // (partial cache data may still be valuable)
+      ref.read(booksLoadingCompleteProvider.notifier).markComplete();
+    }
   }
 
   Future<void> _onServerChanged() async {
