@@ -768,9 +768,9 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
                 RESULT_FILE="$resultFilePath"
 
                 OLD_MTIME=""
-                if [ -f "$DEST" ]; then
-                    OLD_MTIME=$(stat -c %Y "$DEST")
-                    echo "Old mtime: $OLD_MTIME"
+                if [ -f "${'$'}DEST" ]; then
+                    OLD_MTIME=$(stat -c %Y "${'$'}DEST")
+                    echo "Old mtime: ${'$'}OLD_MTIME"
                 else
                     echo "No existing lute.db"
                 fi
@@ -779,26 +779,26 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
                 sleep 3
 
                 if pgrep -f "python -m lute.main" > /dev/null 2>&1; then
-                    echo "FAIL: Server still running" > "$RESULT_FILE"
+                    echo "FAIL: Server still running" > "${'$'}RESULT_FILE"
                     exit 1
                 fi
 
                 python3 -c "import gzip; f = open(\${'$'}SOURCE, 'rb'); open(\${'$'}DEST, 'wb').write(gzip.decompress(f.read()))"
 
-                if [ ! -f "$DEST" ]; then
-                    echo "FAIL: File not created" > "$RESULT_FILE"
+                if [ ! -f "${'$'}DEST" ]; then
+                    echo "FAIL: File not created" > "${'$'}RESULT_FILE"
                     exit 1
                 fi
 
-                NEW_MTIME=$(stat -c %Y "$DEST")
-                echo "New mtime: $NEW_MTIME"
+                NEW_MTIME=$(stat -c %Y "${'$'}DEST")
+                echo "New mtime: ${'$'}NEW_MTIME"
 
-                if [ -n "$OLD_MTIME" ] && [ "$OLD_MTIME" = "$NEW_MTIME" ]; then
-                    echo "FAIL: Timestamp unchanged" > "$RESULT_FILE"
+                if [ -n "${'$'}OLD_MTIME" ] && [ "${'$'}OLD_MTIME" = "${'$'}NEW_MTIME" ]; then
+                    echo "FAIL: Timestamp unchanged" > "${'$'}RESULT_FILE"
                     exit 1
                 fi
 
-                echo "SUCCESS" > "$RESULT_FILE"
+                echo "SUCCESS" > "${'$'}RESULT_FILE"
             """.trimIndent()
 
             android.util.Log.d("TermuxBridge", "Sending restore script")
