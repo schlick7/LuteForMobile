@@ -493,8 +493,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       _isUiVisible = true;
     }
 
-    final statsState = ref.watch(statsProvider);
-
     // Check if reader is the active screen
     final isVisible = ref.watch(currentScreenRouteProvider) == 'reader';
 

@@ -277,8 +277,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       'isVisible=$isVisible',
     );
 
-    final statsState = ref.watch(statsProvider);
-
     final pageTitle = ref.watch(
       readerProvider.select((state) => state.pageData?.title),
     );
@@ -316,7 +314,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
         if (!_isParsing) {
           final sentenceReader = ref.read(sentenceReaderProvider);
-          final reader = ref.read(readerProvider);
 
           if (sentenceReader.lastParsedBookId == bookId &&
               sentenceReader.lastParsedPageNum == pageNum &&
@@ -1680,7 +1677,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final bookId = reader.pageData!.bookId;
     final pageNum = reader.pageData!.currentPage;
     final langId = _getLangId(reader);
-    final serverUrl = ref.read(settingsProvider).serverUrl;
 
     await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
 

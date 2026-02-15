@@ -179,11 +179,6 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     final pageNum = reader.pageData!.currentPage;
     final combineThreshold = settings.combineShortSentences ?? 3;
 
-    final isNavigatingBack =
-        state.customSentences.isNotEmpty &&
-        state.lastParsedPageNum != null &&
-        state.lastParsedPageNum! > pageNum;
-
     if (state.lastParsedBookId == bookId &&
         state.lastParsedPageNum != null &&
         state.lastParsedPageNum != pageNum &&
@@ -284,10 +279,6 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
         combineThreshold,
       );
 
-      if (sentences.isNotEmpty && sentences[0].textItems.isNotEmpty) {
-        final firstItem = sentences[0].textItems[0];
-      }
-
       await _cacheService.saveToCache(
         bookId,
         pageNum,
@@ -327,12 +318,9 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     if (reader.pageData == null) return;
 
     if (state.currentSentenceIndex < state.customSentences.length - 1) {
-      final oldIndex = state.currentSentenceIndex;
-      final oldSentenceId = state.currentSentence?.id;
       state = state.copyWith(
         currentSentenceIndex: state.currentSentenceIndex + 1,
       );
-      final newSentenceId = state.currentSentence?.id;
 
       if (state.currentSentenceIndex >= state.customSentences.length - 3) {
         _triggerPrefetch(reader);
@@ -529,9 +517,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
     // Also clear tooltip cache for this book if needed
     final settings = ref.read(settingsProvider);
     if (settings.enableTooltipCaching) {
-      try {
-        final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
-      } catch (e) {
+      try {} catch (e) {
         ApiLogger.logError('clearTooltipCache', e);
       }
     }

@@ -554,11 +554,6 @@ class HtmlParser {
               ?.querySelector('option[selected]')
               ?.attributes['value'] ??
           '';
-      final dicttype =
-          dicttypeSelect
-              ?.querySelector('option[selected]')
-              ?.attributes['value'] ??
-          '';
       final isActive = isActiveCheckbox?.attributes['checked'] != null;
 
       if (!isActive) continue;
@@ -590,11 +585,6 @@ class HtmlParser {
 
       final usefor =
           useforSelect
-              ?.querySelector('option[selected]')
-              ?.attributes['value'] ??
-          '';
-      final dicttype =
-          dicttypeSelect
               ?.querySelector('option[selected]')
               ?.attributes['value'] ??
           '';

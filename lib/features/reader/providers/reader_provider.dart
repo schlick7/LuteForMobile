@@ -678,7 +678,6 @@ class ReaderNotifier extends Notifier<ReaderState> {
       final settings = ref.read(settingsProvider);
       if (settings.enableTooltipCaching) {
         try {
-          final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
           // Note: We don't have the termId here, so we can't invalidate the specific cache entry
           // The cache will be refreshed on next fetch
         } catch (e) {

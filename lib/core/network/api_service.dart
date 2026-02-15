@@ -219,7 +219,6 @@ class ApiService {
     String text,
     dynamic data,
   ) async {
-    final encodedText = Uri.encodeComponent(text);
     return await _dio.post<String>(
       '/term/datatables',
       data: data,

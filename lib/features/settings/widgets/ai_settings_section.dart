@@ -225,7 +225,6 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
     final config = settings.promptConfigs[type];
     final currentPrompt =
         config?.customPrompt ?? AIPromptTemplates.getDefault(type);
-    final isCustom = config?.customPrompt?.isNotEmpty ?? false;
     final placeholders = _getPlaceholders(type);
     final isExpanded = _promptExpanded[type] ?? false;
 
