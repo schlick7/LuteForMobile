@@ -205,7 +205,6 @@ class BooksNotifier extends Notifier<BooksState> {
     try {
       final settings = ref.read(settingsProvider);
       final now = DateTime.now().millisecondsSinceEpoch;
-      final ttl = Duration(hours: 336);
       final cooldown = Duration(hours: settings.statsRefreshCooldownHours);
 
       if (_lastBackgroundRefreshTime != null) {
@@ -218,7 +217,7 @@ class BooksNotifier extends Notifier<BooksState> {
       final expiredBooks = state.activeBooks.where((book) {
         if (book.lastStatsRefresh == null) return true;
         final age = now - book.lastStatsRefresh!;
-        return age > ttl.inMilliseconds;
+        return age > cooldown.inMilliseconds;
       }).toList();
 
       ApiLogger.logCache(
@@ -483,7 +482,6 @@ class BooksNotifier extends Notifier<BooksState> {
         archivedBooks: state.archivedBooks,
         errorMessage: null,
       );
-      _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     } finally {
@@ -579,7 +577,6 @@ class BooksNotifier extends Notifier<BooksState> {
       );
 
       state = state.copyWith(activeBooks: finalActiveBooks, errorMessage: null);
-      _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     } finally {
