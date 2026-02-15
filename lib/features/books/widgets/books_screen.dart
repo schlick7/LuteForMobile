@@ -89,7 +89,10 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
       body: RefreshIndicator(
         onRefresh: () async {
           final notifier = ref.read(booksProvider.notifier);
-          await notifier.loadBooks(forceRefresh: true);
+          await notifier.loadBooks(
+            forceRefresh: true,
+            skipExpiredBookRefresh: true,
+          );
           await notifier.refreshAllStatsInBackground();
         },
         child: Column(

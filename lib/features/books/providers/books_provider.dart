@@ -109,7 +109,10 @@ class BooksNotifier extends Notifier<BooksState> {
     await loadBooks(forceRefresh: true);
   }
 
-  Future<void> loadBooks({bool forceRefresh = false}) async {
+  Future<void> loadBooks({
+    bool forceRefresh = false,
+    bool skipExpiredBookRefresh = false,
+  }) async {
     if (_isLoadingBooks) {
       return;
     }
@@ -153,10 +156,9 @@ class BooksNotifier extends Notifier<BooksState> {
         state = state.copyWith(isLoading: false);
       }
       await _loadBooksFromNetwork();
-      // Only refresh expired books in background if not doing a force refresh.
-      // Force refresh means the caller will handle full stats refresh themselves
-      // (e.g., pull-to-refresh followed by refreshAllStatsInBackground).
-      if (!forceRefresh) {
+      // Only refresh expired books in background if not explicitly skipped.
+      // Skip when followed by a full refresh (e.g., pull-to-refresh).
+      if (!skipExpiredBookRefresh) {
         _backgroundRefreshExpiredBooks();
       }
     } catch (e) {
