@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/stats/repositories/stats_repository.dart';
@@ -15,6 +16,7 @@ enum StatsFilter { all, activeLanguages }
 class StatsNotifier extends AsyncNotifier<StatsState> {
   late final ContentService _contentService;
   String? _previousServerUrl;
+  Completer<StatsState>? _loadStatsCompleter;
 
   @override
   Future<StatsState> build() async {
@@ -38,37 +40,57 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
   }
 
   Future<void> loadStats() async {
+    // If a request is already in progress, wait for it instead of starting a new one
+    if (_loadStatsCompleter != null) {
+      await _loadStatsCompleter!.future;
+      return;
+    }
+
+    // Create a new completer for this request
+    final completer = Completer<StatsState>();
+    _loadStatsCompleter = completer;
+
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      final cacheEntry = await StatsRepository.fetchAndProcessStats(
-        contentService: _contentService,
-      );
-      final languages = cacheEntry.stats.values.toList();
+      try {
+        final cacheEntry = await StatsRepository.fetchAndProcessStats(
+          contentService: _contentService,
+        );
+        final languages = cacheEntry.stats.values.toList();
 
-      LanguageReadingStats? selectedLanguage;
-      final currentBookLangId = ref.read(settingsProvider).currentBookLangId;
-      if (currentBookLangId != null) {
-        final languageList = await ref.read(languageListProvider.future);
-        try {
-          final currentBookLanguage = languageList.firstWhere(
-            (lang) => lang.id == currentBookLangId,
-          );
-          selectedLanguage = languages.firstWhere(
-            (lang) => lang.language == currentBookLanguage.name,
-          );
-        } catch (e) {
-          // Language or stats not found, keep selectedLanguage as null
+        LanguageReadingStats? selectedLanguage;
+        final currentBookLangId = ref.read(settingsProvider).currentBookLangId;
+        if (currentBookLangId != null) {
+          final languageList = await ref.read(languageListProvider.future);
+          try {
+            final currentBookLanguage = languageList.firstWhere(
+              (lang) => lang.id == currentBookLangId,
+            );
+            selectedLanguage = languages.firstWhere(
+              (lang) => lang.language == currentBookLanguage.name,
+            );
+          } catch (e) {
+            // Language or stats not found, keep selectedLanguage as null
+          }
         }
-      }
 
-      return StatsState(
-        isLoading: false,
-        cacheEntry: cacheEntry,
-        languages: languages,
-        selectedLanguage: selectedLanguage,
-        selectedPeriod: StatsPeriod.all,
-        selectedFilter: StatsFilter.all,
-      );
+        final result = StatsState(
+          isLoading: false,
+          cacheEntry: cacheEntry,
+          languages: languages,
+          selectedLanguage: selectedLanguage,
+          selectedPeriod: StatsPeriod.all,
+          selectedFilter: StatsFilter.all,
+        );
+
+        completer.complete(result);
+        return result;
+      } catch (e) {
+        completer.completeError(e);
+        rethrow;
+      } finally {
+        _loadStatsCompleter = null;
+      }
     });
   }
 
