@@ -299,7 +299,7 @@ suspend fun restoreDatabaseFromDownloads(
     context: Context,
     backupFile: File
 ): RestoreResult = withContext(Dispatchers.IO) {
-    val dataPath = "/data/data/com.termux/files/home/.local/share/lute3"
+    val dataPath = "/data/data/com.termux/files/home/.local/share/Lute3"
     val dbPath = "$dataPath/lute.db"
     val backupPath = "$dataPath/${backupFile.name}"
 

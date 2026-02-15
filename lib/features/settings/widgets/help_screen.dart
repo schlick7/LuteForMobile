@@ -902,7 +902,7 @@ class HelpScreen extends ConsumerWidget {
             context,
             Icons.folder,
             'Termux Path',
-            '/data/data/com.termux/files/home/.local/share/lute3/lute.db',
+            '/data/data/com.termux/files/home/.local/share/Lute3/lute.db',
           ),
           _buildControlItem(
             context,

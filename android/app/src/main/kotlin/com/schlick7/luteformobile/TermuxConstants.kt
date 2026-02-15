@@ -15,7 +15,7 @@ object TermuxConstants {
 
     // Lute3 configuration
     const val LUTE3_DEFAULT_PORT = 5001
-    const val LUTE3_DATA_DIR = "$TERMUX_HOME/.local/share/lute3"
+    const val LUTE3_DATA_DIR = "$TERMUX_HOME/.local/share/Lute3"
     const val LUTE3_DB_PATH = "$LUTE3_DATA_DIR/lute.db"
 
     // File paths for status tracking (use Downloads directory which both apps can access)
