@@ -417,7 +417,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
   }
 
   /// Helper method to preload tooltips for a set of term IDs
-  /// Uses single API call per term (fetches and caches in one request)
+  /// Fetches in parallel batches based on tooltipBatchSize setting
   Future<void> _preloadTooltipsForTerms(
     Set<int> termIds,
     String pageLabel,
@@ -428,36 +428,62 @@ class ReaderNotifier extends Notifier<ReaderState> {
     if (!settings.enableTooltipCaching) return;
 
     final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
+    final batchSize = settings.tooltipBatchSize.clamp(1, 10);
     int fetchedCount = 0;
     int cachedCount = 0;
 
-    for (final termId in termIds) {
-      // Check if tooltip is already cached
-      final cachedEntry = await tooltipCacheService.getFromCache(termId);
-      if (cachedEntry != null) {
-        cachedCount++;
-        continue;
-      }
+    // Convert to list for indexed access
+    final termIdsList = termIds.toList();
 
-      // Fetch and cache the tooltip in a single API call
-      try {
-        final result = await _repository.getTermTooltipWithHtml(termId);
-        if (result != null) {
-          final (tooltip, html) = result;
-          // Cache all HTML, including empty - use " " as marker for empty
-          final htmlToCache = html.isEmpty ? ' ' : html;
-          await tooltipCacheService.saveToCache(termId, htmlToCache);
+    // Process in batches
+    for (int i = 0; i < termIdsList.length; i += batchSize) {
+      final end = (i + batchSize < termIdsList.length)
+          ? i + batchSize
+          : termIdsList.length;
+      final batch = termIdsList.sublist(i, end);
+
+      // Fetch batch in parallel using Future.wait
+      final batchFutures = batch.map((termId) async {
+        // Check if tooltip is already cached
+        final cachedEntry = await tooltipCacheService.getFromCache(termId);
+        if (cachedEntry != null) {
+          return {'cached': true, 'termId': termId};
+        }
+
+        // Fetch and cache the tooltip
+        try {
+          final result = await _repository.getTermTooltipWithHtml(termId);
+          if (result != null) {
+            final (tooltip, html) = result;
+            // Cache all HTML, including empty - use " " as marker for empty
+            final htmlToCache = html.isEmpty ? ' ' : html;
+            await tooltipCacheService.saveToCache(termId, htmlToCache);
+            return {'cached': false, 'fetched': true, 'termId': termId};
+          }
+        } catch (e) {
+          ApiLogger.logError('preloadTooltip', e, details: 'termId=$termId');
+        }
+        return {'cached': false, 'fetched': false, 'termId': termId};
+      });
+
+      // Wait for all fetches in this batch to complete
+      final results = await Future.wait(batchFutures);
+
+      // Count results
+      for (final result in results) {
+        if (result['cached'] == true) {
+          cachedCount++;
+        } else if (result['fetched'] == true) {
           fetchedCount++;
         }
-      } catch (e) {
-        ApiLogger.logError('preloadTooltip', e, details: 'termId=$termId');
       }
     }
 
     if (fetchedCount > 0 || cachedCount > 0) {
       ApiLogger.logCache(
         'preloadTooltipsComplete',
-        details: '$pageLabel: fetched=$fetchedCount, cached=$cachedCount',
+        details:
+            '$pageLabel: fetched=$fetchedCount, cached=$cachedCount, batchSize=$batchSize',
       );
     }
   }

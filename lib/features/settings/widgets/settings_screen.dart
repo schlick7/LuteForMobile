@@ -742,6 +742,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                           ],
                         ),
+                        if (settings.enableTooltipCaching) ...[
+                          const SizedBox(height: 16),
+                          _buildNumberField(
+                            context,
+                            'Tooltip Batch Size',
+                            settings.tooltipBatchSize.toString(),
+                            '1-10',
+                            1,
+                            10,
+                            (value) {
+                              final intValue = int.tryParse(value);
+                              if (intValue != null) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .updateTooltipBatchSize(intValue);
+                              }
+                            },
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         Row(
                           children: [

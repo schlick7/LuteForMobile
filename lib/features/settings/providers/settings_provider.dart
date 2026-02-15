@@ -58,6 +58,7 @@ class SettingsNotifier extends Notifier<Settings> {
       'stats_refresh_cooldown_hours';
   static const String _keyAlwaysRefreshBookDetails =
       'always_refresh_book_details';
+  static const String _keyTooltipBatchSize = 'tooltip_batch_size';
 
   @override
   Settings build() {
@@ -109,6 +110,7 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getInt(_keyStatsRefreshCooldownHours) ?? 48;
     final alwaysRefreshBookDetails =
         prefs.getBool(_keyAlwaysRefreshBookDetails) ?? true;
+    final tooltipBatchSize = prefs.getInt(_keyTooltipBatchSize) ?? 2;
 
     final currentBookId = prefs.getInt(_keyCurrentBookId);
     final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
@@ -144,6 +146,7 @@ class SettingsNotifier extends Notifier<Settings> {
       statsRefreshBatchSize: statsRefreshBatchSize,
       statsRefreshCooldownHours: statsRefreshCooldownHours,
       alwaysRefreshBookDetails: alwaysRefreshBookDetails,
+      tooltipBatchSize: tooltipBatchSize,
     );
   }
 
@@ -401,6 +404,12 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(alwaysRefreshBookDetails: value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyAlwaysRefreshBookDetails, value);
+  }
+
+  Future<void> updateTooltipBatchSize(int value) async {
+    state = state.copyWith(tooltipBatchSize: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyTooltipBatchSize, value);
   }
 
   bool _isValidUrl(String url) {

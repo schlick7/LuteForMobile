@@ -36,6 +36,7 @@ class Settings {
   final int statsRefreshBatchSize;
   final int statsRefreshCooldownHours;
   final bool alwaysRefreshBookDetails;
+  final int tooltipBatchSize;
 
   static const String termuxUrl = 'http://127.0.0.1:5001';
 
@@ -71,6 +72,7 @@ class Settings {
     this.statsRefreshBatchSize = 2,
     this.statsRefreshCooldownHours = 96,
     this.alwaysRefreshBookDetails = true,
+    this.tooltipBatchSize = 2,
   });
 
   Settings copyWith({
@@ -107,6 +109,7 @@ class Settings {
     int? statsRefreshBatchSize,
     int? statsRefreshCooldownHours,
     bool? alwaysRefreshBookDetails,
+    int? tooltipBatchSize,
   }) {
     return Settings(
       localUrl: localUrl ?? this.localUrl,
@@ -157,6 +160,7 @@ class Settings {
           statsRefreshCooldownHours ?? this.statsRefreshCooldownHours,
       alwaysRefreshBookDetails:
           alwaysRefreshBookDetails ?? this.alwaysRefreshBookDetails,
+      tooltipBatchSize: tooltipBatchSize ?? this.tooltipBatchSize,
     );
   }
 
@@ -193,6 +197,7 @@ class Settings {
       statsRefreshBatchSize: 2,
       statsRefreshCooldownHours: 48,
       alwaysRefreshBookDetails: true,
+      tooltipBatchSize: 2,
     );
   }
 
@@ -230,7 +235,8 @@ class Settings {
         other.statsCalcSampleSize == statsCalcSampleSize &&
         other.statsRefreshBatchSize == statsRefreshBatchSize &&
         other.statsRefreshCooldownHours == statsRefreshCooldownHours &&
-        other.alwaysRefreshBookDetails == alwaysRefreshBookDetails;
+        other.alwaysRefreshBookDetails == alwaysRefreshBookDetails &&
+        other.tooltipBatchSize == tooltipBatchSize;
   }
 
   @override
@@ -265,6 +271,7 @@ class Settings {
     statsRefreshBatchSize,
     statsRefreshCooldownHours,
     alwaysRefreshBookDetails,
+    tooltipBatchSize,
   ]);
 
   bool isValidServerUrl(String url) {
