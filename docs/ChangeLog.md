@@ -28,3 +28,5 @@
 - Many little bug fixes
 - Fixed Books not loading
 - For real this time fixed release key changing
+- Added configuration for Book Stats loading
+- Added configuration of tooltip caching
