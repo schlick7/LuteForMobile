@@ -758,31 +758,52 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
             android.util.Log.d("TermuxBridge", "File exists: ${localFile.absolutePath}")
 
             val lute3DbPath = "\$HOME/.local/share/Lute3/lute.db"
+            val downloadsDir = "/storage/emulated/0/Download"
+            val resultFilePath = "$downloadsDir/restore_result.txt"
 
             val restoreScript = """
                 #!/bin/bash
                 SOURCE="$localFilePath"
                 DEST="$lute3DbPath"
+                RESULT_FILE="$resultFilePath"
+
+                OLD_MTIME=""
+                if [ -f "$DEST" ]; then
+                    OLD_MTIME=$(stat -c %Y "$DEST")
+                    echo "Old mtime: $OLD_MTIME"
+                else
+                    echo "No existing lute.db"
+                fi
 
                 pkill -f "python -m lute.main" || true
                 sleep 3
 
                 if pgrep -f "python -m lute.main" > /dev/null 2>&1; then
-                    echo "FAIL: Server still running"
+                    echo "FAIL: Server still running" > "$RESULT_FILE"
                     exit 1
                 fi
 
                 python3 -c "import gzip; f = open(\${'$'}SOURCE, 'rb'); open(\${'$'}DEST, 'wb').write(gzip.decompress(f.read()))"
 
-                if [ -f "${'$'}DEST" ]; then
-                    echo "SUCCESS"
-                else
-                    echo "FAIL: File not created"
+                if [ ! -f "$DEST" ]; then
+                    echo "FAIL: File not created" > "$RESULT_FILE"
                     exit 1
                 fi
+
+                NEW_MTIME=$(stat -c %Y "$DEST")
+                echo "New mtime: $NEW_MTIME"
+
+                if [ -n "$OLD_MTIME" ] && [ "$OLD_MTIME" = "$NEW_MTIME" ]; then
+                    echo "FAIL: Timestamp unchanged" > "$RESULT_FILE"
+                    exit 1
+                fi
+
+                echo "SUCCESS" > "$RESULT_FILE"
             """.trimIndent()
 
             android.util.Log.d("TermuxBridge", "Sending restore script")
+
+            java.io.File(resultFilePath).delete()
 
             val intent = android.content.Intent().apply {
                 setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
@@ -796,7 +817,17 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
 
             delay(10000)
 
-            val success = true
+            val resultFile = java.io.File(resultFilePath)
+            val success = if (resultFile.exists()) {
+                val result = resultFile.readText().trim()
+                android.util.Log.d("TermuxBridge", "Restore result: $result")
+                result == "SUCCESS"
+            } else {
+                android.util.Log.e("TermuxBridge", "Result file not found")
+                false
+            }
+
+            resultFile.delete()
 
             if (success) {
                 android.util.Log.d("TermuxBridge", "Restore completed successfully")
