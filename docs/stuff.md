@@ -10,6 +10,15 @@ Can we make ontap tooltips jump to the front of the tooltip queue? or bypass it.
 
 I still don't think we're completely clearing and refreshing everything on a server change. On a fresh install the stats and terms screen don't work unless i do an entire app restart after adding the localurl. Maybe we need to force and entire app restart?
 
+---
+statsState` (x2) | ⚠️ **Risky** | Could be intentional to keep provider alive |
+
+## Potential Issue
+
+The `statsState` variables I removed could have been **intentionally watched** to:
+1. Keep the stats provider "warm" 
+2. Trigger rebuilds when stats change (even if not displayed on that screen)
+---
 
 fix backup location after restore
 /data/data/com.termux/files/home/.local/share/Lute3/backups
