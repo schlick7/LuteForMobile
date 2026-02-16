@@ -162,8 +162,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _isLastPageMarkedDone = false;
   SentenceTTSNotifier? _ttsNotifier;
   bool _isNavigatingForward = true;
-  Key? _sentenceKey;
-  bool _isNavigating = false;
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
   bool _checkServerPageInProgress = false;
@@ -283,7 +281,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     if (currentSentence != null && _currentSentenceId != currentSentence.id) {
       setState(() {
         _currentSentenceId = currentSentence.id;
-        _sentenceKey = ValueKey('sentence-$currentSentence.id');
       });
     }
 
@@ -1144,7 +1141,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   Future<void> _goNext() async {
     setState(() {
       _isNavigatingForward = true;
-      _isNavigating = true;
     });
     await ref.read(sentenceReaderProvider.notifier).nextSentence();
     _saveSentencePosition();
@@ -1163,17 +1159,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       });
     }
 
-    if (currentSentence != null) {
-      final newKey = ValueKey('sentence-${currentSentence.id}');
-      setState(() {
-        _sentenceKey = newKey;
-      });
-    }
+    if (currentSentence != null) {}
 
     await Future.delayed(const Duration(milliseconds: 350));
-    setState(() {
-      _isNavigating = false;
-    });
 
     _loadTooltipsForCurrentSentence();
     ref.read(statsProvider.notifier).loadStats();
@@ -1182,23 +1170,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   Future<void> _goPrevious() async {
     setState(() {
       _isNavigatingForward = false;
-      _isNavigating = true;
     });
     await ref.read(sentenceReaderProvider.notifier).previousSentence();
     _saveSentencePosition();
 
     final currentSentence = ref.read(sentenceReaderProvider).currentSentence;
-    if (currentSentence != null) {
-      final newKey = ValueKey('sentence-${currentSentence.id}');
-      setState(() {
-        _sentenceKey = newKey;
-      });
-    }
+    if (currentSentence != null) {}
 
     await Future.delayed(const Duration(milliseconds: 350));
-    setState(() {
-      _isNavigating = false;
-    });
 
     _loadTooltipsForCurrentSentence();
     ref.read(statsProvider.notifier).loadStats();

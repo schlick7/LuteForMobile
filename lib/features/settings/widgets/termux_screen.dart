@@ -1056,11 +1056,9 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     VoidCallback? onTap,
   }) {
     String displayText;
-    bool displayStatus = status;
 
     if (isLoading) {
       displayText = 'Checking...';
-      displayStatus = false;
     } else if (labelText == 'Permission') {
       displayText = status ? 'Granted' : 'Not granted';
     } else if (labelText == 'External Apps') {

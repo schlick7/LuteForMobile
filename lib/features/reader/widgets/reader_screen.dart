@@ -142,15 +142,7 @@ class _PageTransitionState extends State<_PageTransition>
 class ReaderScreenState extends ConsumerState<ReaderScreen>
     with WidgetsBindingObserver {
   int _buildCount = 0;
-  double _tempTextSize = 18.0;
-  double _tempLineSpacing = 1.5;
-  String? _tempFont;
-  double _tempFontWeight = 2.0;
-  bool? _tempIsItalic;
   TermForm? _currentTermForm;
-  bool _isDictionaryOpen = false;
-  AppLifecycleState? _lastLifecycleState;
-  bool _hasInitialized = false;
   bool _isUiVisible = true;
   bool _lastFullscreenMode = false;
   Timer? _hideUiTimer;
@@ -158,7 +150,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   int? _highlightedWordId;
   int? _highlightedParagraphId;
   int? _highlightedOrder;
-  int? _originalWordId;
   TextItem? _originalTextItem;
   ScrollController _scrollController = ScrollController();
   double _lastScrollPosition = 0.0;
@@ -171,41 +162,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   int? _lastStatsLangId;
   bool _checkServerPageInProgress = false;
   int? _lastAudioBookId;
-  final List<String> _availableFonts = [
-    'Roboto',
-    'AtkinsonHyperlegibleNext',
-    'Vollkorn',
-    'LinBiolinum',
-    'Literata',
-  ];
-  final List<FontWeight> _availableWeights = [
-    FontWeight.w200,
-    FontWeight.w300,
-    FontWeight.normal,
-    FontWeight.w500,
-    FontWeight.w600,
-    FontWeight.bold,
-    FontWeight.w800,
-  ];
-  final List<String> _weightLabels = [
-    'Extra Light',
-    'Light',
-    'Regular',
-    'Medium',
-    'Semi Bold',
-    'Bold',
-    'Extra Bold',
-  ];
-
-  FontWeight _getWeightFromIndex(double index) {
-    final idx = index.round().clamp(0, _availableWeights.length - 1);
-    return _availableWeights[idx];
-  }
-
-  String _getWeightLabel(double index) {
-    final idx = index.round().clamp(0, _weightLabels.length - 1);
-    return _weightLabels[idx];
-  }
 
   Future<void> _loadLanguageMapping() async {
     if (_languageIdToName.isNotEmpty) return;
@@ -232,7 +188,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _hasInitialized = true;
     _scrollController.addListener(_handleScrollPosition);
 
     Future.delayed(Duration.zero, _loadLanguageMapping);
@@ -252,7 +207,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    _lastLifecycleState = state;
 
     if (state == AppLifecycleState.resumed) {
       _checkAndStartLute3IfNeeded();
@@ -1082,7 +1036,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     if (item.langId == null) return;
 
     // Store original identifiers before opening term form
-    _originalWordId = item.wordId;
     _originalTextItem = item;
     _highlightedWordId = null;
     _highlightedParagraphId = null;
@@ -1233,7 +1186,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _showTermForm(TermForm termForm) {
     _currentTermForm = termForm;
-    _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
       context: context,
@@ -1320,9 +1272,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
-                      setState(() {
-                        _isDictionaryOpen = isOpen;
-                      });
                       setModalState(() {});
                     },
                     onParentDoubleTap: (parent) async {
@@ -1365,7 +1314,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     TermForm termForm, {
     void Function(List<TermParent>)? onParentUpdated,
   }) {
-    _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
       context: context,
@@ -1449,9 +1397,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
-                      setState(() {
-                        _isDictionaryOpen = isOpen;
-                      });
                       setModalState(() {});
                     },
                     onParentDoubleTap: (parent) async {
@@ -1535,7 +1480,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       _lastAttemptedBookId = pageData.bookId;
       _lastAttemptedPageNum = pageNum;
       _highlightedWordId = null;
-      _originalWordId = null;
     });
 
     if (pageNum > pageData.currentPage) {
@@ -1578,7 +1522,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       _lastAttemptedBookId = pageData.bookId;
       _lastAttemptedPageNum = pageNum;
       _highlightedWordId = null;
-      _originalWordId = null;
     });
 
     await ref
