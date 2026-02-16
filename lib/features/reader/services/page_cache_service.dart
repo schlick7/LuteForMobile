@@ -23,7 +23,6 @@ class PageCacheService {
     return getInstance();
   }
 
-  Box<PageCacheEntry>? _box;
   bool _isInitialized = false;
 
   Future<void> _initialize() async {

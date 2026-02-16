@@ -12,7 +12,6 @@ class SentenceCacheService {
   static const int _maxCacheSizeBytes = 100 * 1024 * 1024;
   static const String _cachePrefix = 'sentence_cache_';
 
-  Box<SentenceCacheEntry>? _box;
   bool _isInitialized = false;
 
   Future<void> _initialize() async {

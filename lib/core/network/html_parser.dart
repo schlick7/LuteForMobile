@@ -541,7 +541,6 @@ class HtmlParser {
     for (final entry in dictEntries) {
       final uriInput = entry.querySelector('input[name*="dicturi"]');
       final useforSelect = entry.querySelector('select[name*="usefor"]');
-      final dicttypeSelect = entry.querySelector('select[name*="dicttype"]');
       final isActiveCheckbox = entry.querySelector('input[name*="is_active"]');
 
       if (uriInput == null) continue;
@@ -575,7 +574,6 @@ class HtmlParser {
     for (final entry in dictEntries) {
       final uriInput = entry.querySelector('input[name*="dicturi"]');
       final useforSelect = entry.querySelector('select[name*="usefor"]');
-      final dicttypeSelect = entry.querySelector('select[name*="dicttype"]');
       final isActiveCheckbox = entry.querySelector('input[name*="is_active"]');
 
       if (uriInput == null) continue;

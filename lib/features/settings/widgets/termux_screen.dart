@@ -41,8 +41,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _isBackingUpLocal = false;
   final Set<String> _downloadingLocalBackups = {};
   bool _isRestoring = false;
-  List<String>? _downloadFolderFiles;
-  bool _isLoadingDownloadFiles = false;
   bool _isLaunchingTermux = false;
 
   StreamSubscription? _progressSubscription;
@@ -56,8 +54,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _checkingStorageAccess = false;
   bool _storageAccessGranted = false;
   bool _checkingLute3 = false;
-  bool _checkingServer = false;
-  bool _checkingBackups = false;
   bool _checkingLocalBackups = false;
 
   @override
@@ -104,7 +100,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       _checkingPermission = true;
       _checkingExternalApps = true;
       _checkingLute3 = true;
-      _checkingServer = true;
       _checkingTermuxRunning = true;
     });
 
@@ -176,26 +171,20 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           settings.serverUrl,
         );
         setState(() {
-          _checkingServer = false;
           _serverRunning = serverRunning;
         });
 
         if (lute3Status == 'INSTALLED') {
           if (serverRunning) {
-            setState(() {
-              _checkingBackups = true;
-            });
             try {
               final backups = await BackupService.listBackups(
                 Settings.termuxUrl,
               );
               setState(() {
-                _checkingBackups = false;
                 _backups = backups;
               });
             } catch (e) {
               setState(() {
-                _checkingBackups = false;
                 _backups = null;
               });
             }
@@ -777,17 +766,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Future<void> _restoreBackup() async {
-    setState(() {
-      _isLoadingDownloadFiles = true;
-    });
-
     final files = await StorageService.getBackupFilesInDownloads();
     debugPrint('Found ${files.length} backup files in Downloads');
-
-    setState(() {
-      _downloadFolderFiles = files;
-      _isLoadingDownloadFiles = false;
-    });
 
     if (files.isEmpty) {
       if (mounted) {
