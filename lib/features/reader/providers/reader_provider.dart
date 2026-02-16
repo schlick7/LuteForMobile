@@ -843,34 +843,6 @@ class ReaderNotifier extends Notifier<ReaderState> {
     final cacheService = PageCacheService.getInstance();
     await cacheService.clearAllCache();
   }
-
-  /// Parse a TermTooltip from HTML representation
-  TermTooltip _parseTooltipFromHtml(String html) {
-    // This is a simplified implementation - in reality, you'd want to properly
-    // parse the HTML and reconstruct the TermTooltip object
-    // For now, we'll create a basic tooltip with the HTML as the term
-    return TermTooltip(
-      term: html, // This is just a placeholder
-      status: '0', // Default to unknown
-      sentences: [], // Empty list
-      parents: [], // Empty list
-      children: [], // Empty list
-    );
-  }
-
-  /// Create an HTML representation of a TermTooltip for caching
-  String _createHtmlRepresentation(TermTooltip tooltip) {
-    // Create a simple HTML representation of the tooltip
-    // In a real implementation, you'd want to serialize the tooltip properly
-    return '''
-<div class="tooltip-cache">
-  <div class="term">${tooltip.term}</div>
-  <div class="translation">${tooltip.translation ?? ''}</div>
-  <div class="status">${tooltip.status}</div>
-  <div class="language">${tooltip.language ?? ''}</div>
-</div>
-''';
-  }
 }
 
 final readerRepositoryProvider = Provider<ReaderRepository>((ref) {

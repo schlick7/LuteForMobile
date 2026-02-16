@@ -49,7 +49,7 @@ class Term {
       id: json['WoID'] as int,
       text: json['WoText'] as String,
       translation: json['WoTranslation'] as String?,
-      status: (json['StID'] as int?).toString() ?? '99',
+      status: (json['StID'] as int?).toString(),
       langId: json['LgID'] as int? ?? 0,
       language: json['LgName'] as String? ?? '',
       tags: (json['Tags'] as String?)

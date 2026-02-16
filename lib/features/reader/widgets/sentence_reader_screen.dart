@@ -202,10 +202,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     }
   }
 
-  void _setupAppLifecycleListener() {
-    WidgetsBinding.instance.addObserver(this);
-  }
-
   bool _canPreload() {
     return ref.read(currentScreenRouteProvider) == 'sentence-reader' &&
         _lastLifecycleState != AppLifecycleState.paused;

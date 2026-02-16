@@ -56,7 +56,7 @@ class ContentService {
 
     if (useCache && !forceRefresh && pageNum != null) {
       // Cache-only mode: return cached data or null if not found
-      final cached = await _pageCacheService.getFromCache(bookId, pageNum ?? 1);
+      final cached = await _pageCacheService.getFromCache(bookId, pageNum);
       if (cached != null) {
         pageMetadataHtml = cached.metadataHtml;
         pageTextHtml = cached.pageTextHtml;
@@ -161,8 +161,7 @@ class ContentService {
     try {
       final pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
       final metadataDocument = html_parser.parse(pageMetadataHtml);
-      final actualPageNum =
-          pageNum ?? _extractPageNumFromMetadata(metadataDocument);
+      final actualPageNum = _extractPageNumFromMetadata(metadataDocument);
       final pageTextHtml = await _fetchPageTextHtml(
         bookId,
         actualPageNum,

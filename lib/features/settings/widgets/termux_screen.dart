@@ -293,10 +293,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     }
   }
 
-  Future<void> _openAppSettings() async {
-    AppSettings.openAppSettings(type: AppSettingsType.settings);
-  }
-
   Future<void> _requestTermuxPermission() async {
     await showDialog<bool>(
       context: context,
