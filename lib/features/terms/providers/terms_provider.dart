@@ -68,11 +68,11 @@ class TermsNotifier extends Notifier<TermsState> {
   @override
   TermsState build() {
     _repository = ref.watch(termsRepositoryProvider);
-    final settings = ref.watch(settingsProvider);
+    final serverUrl = ref.watch(settingsProvider.select((s) => s.serverUrl));
     if (_previousServerUrl == null) {
-      _previousServerUrl = settings.serverUrl;
-    } else if (_previousServerUrl != settings.serverUrl) {
-      _previousServerUrl = settings.serverUrl;
+      _previousServerUrl = serverUrl;
+    } else if (_previousServerUrl != serverUrl) {
+      _previousServerUrl = serverUrl;
       Future.microtask(() => _onServerChanged());
     }
     return const TermsState();

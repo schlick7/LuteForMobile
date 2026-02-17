@@ -24,11 +24,11 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
     final apiService = ref.watch(apiServiceProvider);
     _contentService = ContentService(apiService: apiService);
 
-    final settings = ref.watch(settingsProvider);
+    final serverUrl = ref.watch(settingsProvider.select((s) => s.serverUrl));
     if (_previousServerUrl == null) {
-      _previousServerUrl = settings.serverUrl;
-    } else if (_previousServerUrl != settings.serverUrl) {
-      _previousServerUrl = settings.serverUrl;
+      _previousServerUrl = serverUrl;
+    } else if (_previousServerUrl != serverUrl) {
+      _previousServerUrl = serverUrl;
       Future.microtask(() => _onServerChanged());
     }
 
