@@ -505,14 +505,6 @@ suspend fun installLute3Chained(
             java.io.File("$downloadsDir/lute_python_install.log").delete()
             java.io.File("$downloadsDir/lute_lute3_install.log").delete()
 
-
-            // Clear previous installation status
-            java.io.File(statusFile).delete()
-            java.io.File("$downloadsDir/lute_pkg_update.log").delete()
-            java.io.File("$downloadsDir/lute_pkg_upgrade.log").delete()
-            java.io.File("$downloadsDir/lute_python_install.log").delete()
-            java.io.File("$downloadsDir/lute_lute3_install.log").delete()
-
             // Send initial progress update
             withContext(Dispatchers.Main.immediate) {
                 onProgress("SETUP", "Starting installation...", 1800)

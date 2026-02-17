@@ -1050,7 +1050,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     String labelText,
     bool status,
     bool isLoading,
-    bool showFdroidLink,
+    bool isConfirmed,
     String defaultText, {
     String? statusText,
     VoidCallback? onTap,

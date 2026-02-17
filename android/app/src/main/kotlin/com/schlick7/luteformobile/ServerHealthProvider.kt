@@ -21,6 +21,7 @@ class ServerHealthProvider : ContentProvider() {
         const val AUTHORITY = "com.schlick7.luteformobile.serverhealth"
         val CONTENT_URI: Uri = Uri.parse("content://$AUTHORITY/status")
         
+        @Volatile
         private var _isServerRunning: Boolean = false
         val isServerRunning: Boolean get() = _isServerRunning
         
