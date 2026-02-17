@@ -180,11 +180,6 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
                     if (mounted) {
                       final updatedTerm = _createTermFromForm(updatedForm);
                       widget.onSave?.call(updatedTerm);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Term updated successfully'),
-                        ),
-                      );
                     }
                   } catch (e) {
                     if (mounted) {
