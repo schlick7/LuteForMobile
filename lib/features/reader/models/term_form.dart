@@ -92,9 +92,14 @@ class TermForm {
       'text': term,
       'translation': translation ?? '',
       'status': status,
-      'tags': tags?.join(',') ?? '',
       'romanization': romanization ?? '',
     };
+
+    if (tags != null && tags!.isNotEmpty) {
+      final tagsList = tags!.map((t) => {'value': t}).toList();
+      final tagsListJson = jsonEncode(tagsList);
+      data['termtagslist'] = tagsListJson;
+    }
 
     if (syncStatus == true && parents.length <= 1) {
       data['sync_status'] = 'y';

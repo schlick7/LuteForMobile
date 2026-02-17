@@ -406,7 +406,24 @@ class HtmlParser {
 
     final tagsInput = document.querySelector('input[name="termtagslist"]');
     String? tags = tagsInput?.attributes['value']?.trim();
-    final tagList = tags?.isNotEmpty == true ? tags!.split(',') : null;
+    List<String>? tagList;
+    if (tags?.isNotEmpty == true) {
+      try {
+        final decoded = Uri.decodeComponent(tags!);
+        final jsonList = jsonDecode(decoded) as List;
+        tagList = jsonList
+            .map((item) => item['value'] as String?)
+            .where((value) => value != null && value.isNotEmpty)
+            .cast<String>()
+            .toList();
+        if (tagList.isEmpty) {
+          tagList = null;
+        }
+      } catch (e) {
+        ApiLogger.logError('parseTermForm tags', e);
+        tagList = null;
+      }
+    }
 
     final romanizationInput = document.querySelector(
       'input[name="romanization"]',
