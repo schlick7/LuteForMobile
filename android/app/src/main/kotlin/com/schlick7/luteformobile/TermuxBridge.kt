@@ -21,6 +21,11 @@ import kotlinx.coroutines.*
 
 class TermuxBridge(private val context: Context) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    
+    companion object {
+        @Volatile
+        var installationCancelled = false
+    }
 
     fun registerMethodChannel(flutterEngine: FlutterEngine) {
         val channel = MethodChannel(
@@ -293,6 +298,12 @@ class TermuxBridge(private val context: Context) {
                     }
                 }
 
+                "cancelInstallation" -> {
+                    installationCancelled = true
+                    android.util.Log.d("TermuxBridge", "Installation cancellation requested")
+                    result.success(null)
+                }
+
                 "restoreBackup" -> {
                     scope.launch {
                         val filePath = call.argument<String>("filePath")
@@ -468,6 +479,9 @@ suspend fun installLute3Chained(
     onProgress: (stepName: String, stepStatus: String, maxWaitSeconds: Int) -> Unit = { _, _, _ -> }
 ): String {
     return withContext(Dispatchers.IO) {
+        // Reset cancellation flag at start
+        TermuxBridge.installationCancelled = false
+        
         try {
             val downloadsDir =
                 android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
@@ -606,6 +620,12 @@ suspend fun installLute3Chained(
 
             while (System.currentTimeMillis() - startTime < timeoutMs) {
                 delay(3000) // Poll every 3 seconds
+
+                // Check for cancellation
+                if (TermuxBridge.installationCancelled) {
+                    android.util.Log.d("TermuxBridge", "Installation cancelled by user")
+                    return@withContext "CANCELLED"
+                }
 
                 val statusFileObj = java.io.File(statusFile)
                 android.util.Log.d(

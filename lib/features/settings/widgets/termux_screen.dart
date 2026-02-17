@@ -42,6 +42,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   final Set<String> _downloadingLocalBackups = {};
   bool _isRestoring = false;
   bool _isLaunchingTermux = false;
+  bool _isInstalling = false;
 
   StreamSubscription? _progressSubscription;
   String _currentStep = '';
@@ -318,6 +319,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   Future<void> _installLute3Chained() async {
     setState(() {
       _isLoading = true;
+      _isInstalling = true;
       _currentStep = 'Preparing...';
       _currentStatus = 'Initializing...';
     });
@@ -345,6 +347,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         }
         setState(() {
           _isLoading = false;
+          _isInstalling = false;
         });
       },
     );
@@ -358,17 +361,24 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       _currentStep = '';
       _currentStatus = '';
       _isLoading = false;
+      _isInstalling = false;
     });
 
     if (mounted) {
+      final message = switch (result) {
+        'COMPLETE' => 'Lute3 installed successfully!',
+        'CANCELLED' => 'Installation cancelled',
+        _ => 'Installation failed. Check Downloads folder for log files',
+      };
+      final backgroundColor = switch (result) {
+        'COMPLETE' => Colors.green,
+        'CANCELLED' => Colors.orange,
+        _ => Colors.red,
+      };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            result == 'COMPLETE'
-                ? 'Lute3 installed successfully!'
-                : 'Installation failed. Check Downloads folder for log files',
-          ),
-          backgroundColor: result == 'COMPLETE' ? Colors.green : Colors.red,
+          content: Text(message),
+          backgroundColor: backgroundColor,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -376,6 +386,13 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
 
     await Future.delayed(const Duration(seconds: 3));
     _refreshStatus();
+  }
+
+  Future<void> _cancelInstallation() async {
+    await TermuxService.cancelInstallation();
+    setState(() {
+      _isInstalling = false;
+    });
   }
 
   Future<void> _refreshServerStatus() async {
@@ -890,6 +907,17 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                   'Tip: Output logs are saved to Downloads folder',
                   style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
                   textAlign: TextAlign.center,
+                ),
+              ],
+              if (_isInstalling) ...[
+                const SizedBox(height: 24),
+                TextButton.icon(
+                  onPressed: _cancelInstallation,
+                  icon: const Icon(Icons.cancel, color: Colors.red),
+                  label: const Text(
+                    'Cancel Installation',
+                    style: TextStyle(color: Colors.red),
+                  ),
                 ),
               ],
             ],
