@@ -6,7 +6,9 @@
 
 fixed? Pretty sure we had an old bug creap back in. We seem to be overwhelming the server when refreshing the books. screen. it is supposed to be doing a quick fetch of the bookstable with the calc sample at the server setting of 5pages in case any of the book is stale. And then once that is complete we change the calc sample size to what is used in the 500samplesize method and then mark all as stale, and then add them all to a queue and recalculate them. What i am pretty sure is happening is that both those things run in parallel which is causing all the books to recalc at the exact same time at the 500samplesize setting which overwhelms the server. Do some research
 
-Can we make ontap tooltips jump to the front of the tooltip queue? or bypass it. whichever is easier to implement and maintain
+When i select a book it makes the termscreen show "no terms" and makes the stats screen have an error with a retry button. pressing the retry button makes the stats screen load properly. For the terms screen i need to change the filter and then it loads in correctly. I don't think these are properly reloading when the book gets changed. 
+
+Why doesn't the autobackup ever fucking trigger???
 
 I still don't think we're completely clearing and refreshing everything on a server change. On a fresh install the stats and terms screen don't work unless i do an entire app restart after adding the localurl. Maybe we need to force and entire app restart?
 
