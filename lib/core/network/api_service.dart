@@ -375,8 +375,11 @@ class ApiService {
     return response;
   }
 
-  Future<Response<String>> getBookStats(int bookId) async {
-    return await _dio.get<String>('/book/table_stats/$bookId');
+  Future<Response<String>> getBookStats(int bookId, {Duration? timeout}) async {
+    return await _dio.get<String>(
+      '/book/table_stats/$bookId',
+      options: Options(receiveTimeout: timeout, sendTimeout: timeout),
+    );
   }
 
   /// Gets full HTML page structure for a book page.
@@ -426,16 +429,6 @@ class ApiService {
 
   Future<Response<String>> getLanguages() async {
     return await _dio.get<String>('/language/index');
-  }
-
-  Future<Response<String>> refreshBookStats(
-    int bookId, {
-    Duration? timeout,
-  }) async {
-    return await _dio.get<String>(
-      '/book/table_stats/$bookId',
-      options: Options(receiveTimeout: timeout, sendTimeout: timeout),
-    );
   }
 
   Future<void> invalidateAllBookStatsCache() async {

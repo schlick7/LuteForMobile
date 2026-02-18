@@ -218,7 +218,7 @@ class BooksDrawerSettings extends ConsumerWidget {
               onPressed: () async {
                 await ref
                     .read(booksProvider.notifier)
-                    .refreshAllStatsInBackground();
+                    .refreshExpiredBooks(forceRefreshAll: true);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(

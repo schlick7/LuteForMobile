@@ -78,14 +78,6 @@ class BooksRepository {
     }).toList();
   }
 
-  Future<void> refreshBookStats(int bookId, {Duration? timeout}) async {
-    try {
-      await contentService.refreshBookStats(bookId, timeout: timeout);
-    } catch (e) {
-      throw Exception('Failed to refresh book stats: $e');
-    }
-  }
-
   Future<void> invalidateAllBookStatsCache() async {
     try {
       await contentService.invalidateAllBookStatsCache();

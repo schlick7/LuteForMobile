@@ -201,7 +201,7 @@ class BooksNotifier extends Notifier<BooksState> {
       // Only refresh expired books in background if not explicitly skipped.
       // Skip when followed by a full refresh (e.g., pull-to-refresh).
       if (!skipExpiredBookRefresh) {
-        _backgroundRefreshExpiredBooks();
+        refreshExpiredBooks();
       }
     } catch (e) {
       state = state.copyWith(isLoading: false);
@@ -237,39 +237,52 @@ class BooksNotifier extends Notifier<BooksState> {
     await _refreshBookWith500SampleSize(book.id);
   }
 
-  Future<void> _backgroundRefreshExpiredBooks() async {
-    // Prevent concurrent background refresh calls
+  Future<void> refreshExpiredBooks({bool forceRefreshAll = false}) async {
     if (_isBackgroundRefreshing) {
       return;
     }
     _isBackgroundRefreshing = true;
 
+    final now = DateTime.now().millisecondsSinceEpoch;
+    const globalCooldownMs = 120 * 1000;
+
+    if (_lastBackgroundRefreshTime != null) {
+      final timeSinceLastRefresh = now - _lastBackgroundRefreshTime!;
+      if (timeSinceLastRefresh < globalCooldownMs) {
+        _isBackgroundRefreshing = false;
+        return;
+      }
+    }
+
+    if (forceRefreshAll) {
+      state = state.copyWith(isRefreshing: true, errorMessage: null);
+    }
+
     try {
       final settings = ref.read(settingsProvider);
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final cooldown = Duration(hours: settings.statsRefreshCooldownHours);
-
-      if (_lastBackgroundRefreshTime != null) {
-        final timeSinceLastRefresh = now - _lastBackgroundRefreshTime!;
-        if (timeSinceLastRefresh < cooldown.inMilliseconds) {
-          return;
-        }
-      }
-
-      final expiredBooks = state.activeBooks.where((book) {
-        if (book.lastStatsRefresh == null) return true;
-        final age = now - book.lastStatsRefresh!;
-        return age > cooldown.inMilliseconds;
-      }).toList();
-
-      ApiLogger.logCache(
-        'backgroundRefreshExpired',
-        details:
-            '${expiredBooks.length} expired out of ${state.activeBooks.length}',
+      final perBookCooldown = Duration(
+        hours: settings.statsRefreshCooldownHours,
       );
 
-      if (expiredBooks.isEmpty) {
+      final booksToRefresh = forceRefreshAll
+          ? state.activeBooks
+          : state.activeBooks.where((book) {
+              if (book.lastStatsRefresh == null) return true;
+              final age = now - book.lastStatsRefresh!;
+              return age > perBookCooldown.inMilliseconds;
+            }).toList();
+
+      ApiLogger.logCache(
+        'refreshExpiredBooks',
+        details:
+            'forceRefreshAll=$forceRefreshAll, ${booksToRefresh.length} books out of ${state.activeBooks.length}',
+      );
+
+      if (booksToRefresh.isEmpty) {
         _lastBackgroundRefreshTime = now;
+        if (forceRefreshAll) {
+          state = state.copyWith(isRefreshing: false);
+        }
         return;
       }
 
@@ -283,31 +296,33 @@ class BooksNotifier extends Notifier<BooksState> {
 
         final updatedActiveBooks = List<Book>.from(state.activeBooks);
 
-        for (
-          int i = 0;
-          i < expiredBooks.length;
-          i += settings.statsRefreshBatchSize
-        ) {
-          final batch = <Future<void>>[];
-          for (int j = 0; j < settings.statsRefreshBatchSize; j++) {
-            if (i + j < expiredBooks.length) {
-              batch.add(
-                _refreshBookSimple(
-                  expiredBooks[i + j].id,
-                  updatedBooksList: updatedActiveBooks,
-                ),
-              );
-            }
-          }
-          await Future.wait(batch);
-        }
+        final futures = booksToRefresh
+            .map(
+              (book) => _refreshBookSimple(
+                book.id,
+                updatedBooksList: updatedActiveBooks,
+              ),
+            )
+            .toList();
+        await Future.wait(futures);
 
         await _repository.saveBooksToCache(
           activeBooks: updatedActiveBooks,
           archivedBooks: state.archivedBooks,
         );
 
-        state = state.copyWith(activeBooks: updatedActiveBooks);
+        state = state.copyWith(
+          isRefreshing: false,
+          activeBooks: updatedActiveBooks,
+        );
+      } catch (e) {
+        if (forceRefreshAll) {
+          state = state.copyWith(
+            isRefreshing: false,
+            errorMessage: e.toString(),
+          );
+        }
+        rethrow;
       } finally {
         try {
           final settings = ref.read(settingsProvider);
@@ -377,20 +392,17 @@ class BooksNotifier extends Notifier<BooksState> {
         'stats_calc_sample_size',
         settings.stats500SampleSize.toString(),
       );
-      await _repository.refreshBookStats(
-        bookId,
-        timeout: const Duration(seconds: 15),
-      );
-      await Future.delayed(const Duration(milliseconds: 500));
 
-      // Get the existing book from the provided list or from the current state
       final booksList = updatedBooksList ?? state.activeBooks;
       final existingBook = booksList.firstWhere(
         (book) => book.id == bookId,
         orElse: () =>
             throw Exception('Book with id $bookId not found in active books'),
       );
-      final statsBook = await _repository.contentService.getBookStats(bookId);
+      final statsBook = await _repository.contentService.getBookStats(
+        bookId,
+        timeout: const Duration(seconds: 15),
+      );
       final updatedBook = existingBook.copyWith(
         distinctTerms: statsBook.distinctTerms,
         unknownPct: statsBook.unknownPct,
@@ -743,144 +755,6 @@ class BooksNotifier extends Notifier<BooksState> {
       }
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
-  }
-
-  Future<void> refreshAllStatsInBackground() async {
-    state = state.copyWith(isRefreshing: true, errorMessage: null);
-
-    try {
-      final settings = ref.read(settingsProvider);
-      await _repository.invalidateAllBookStatsCache();
-
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        settings.stats500SampleSize.toString(),
-      );
-
-      final activeBooksToRefresh = state.activeBooks;
-      final updatedActiveBooks = List<Book>.from(state.activeBooks);
-
-      for (
-        int i = 0;
-        i < activeBooksToRefresh.length;
-        i += settings.statsRefreshBatchSize
-      ) {
-        final batch = <Future<void>>[];
-        for (int j = 0; j < settings.statsRefreshBatchSize; j++) {
-          if (i + j < activeBooksToRefresh.length) {
-            batch.add(
-              _refreshBookSimple(
-                activeBooksToRefresh[i + j].id,
-                updatedBooksList: updatedActiveBooks,
-              ),
-            );
-          }
-        }
-        await Future.wait(batch);
-      }
-
-      await _repository.saveBooksToCache(
-        activeBooks: updatedActiveBooks,
-        archivedBooks: state.archivedBooks,
-      );
-
-      state = state.copyWith(
-        isRefreshing: false,
-        activeBooks: updatedActiveBooks,
-        archivedBooks: state.archivedBooks,
-      );
-      _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
-
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        settings.statsCalcSampleSize.toString(),
-      );
-    } catch (e) {
-      try {
-        final settings = ref.read(settingsProvider);
-        await _repository.contentService.setUserSetting(
-          'stats_calc_sample_size',
-          settings.statsCalcSampleSize.toString(),
-        );
-      } catch (err) {
-        ApiLogger.logError('restoreSampleSize', err);
-      }
-      state = state.copyWith(isRefreshing: false, errorMessage: e.toString());
-    }
-  }
-
-  Future<void> refreshBookStats(int bookId, {Duration? timeout}) async {
-    try {
-      await _repository.refreshBookStats(bookId, timeout: timeout);
-    } catch (e) {
-      state = state.copyWith(errorMessage: e.toString());
-    }
-  }
-
-  Future<Book> getBookWithStats(int bookId) async {
-    try {
-      await _repository.refreshBookStats(bookId);
-      final active = await _repository.getActiveBooks();
-      final archived = await _repository.getArchivedBooks();
-      final books = active + archived;
-      return books.firstWhere((b) => b.id == bookId);
-    } catch (e) {
-      throw Exception('Failed to get book with stats: $e');
-    }
-  }
-
-  Future<Book> getBookWithStatsAfterDelay(int bookId) async {
-    try {
-      final active = await _repository.getActiveBooks();
-      final archived = await _repository.getArchivedBooks();
-      final books = active + archived;
-      return books.firstWhere((b) => b.id == bookId);
-    } catch (e) {
-      throw Exception('Failed to get book with stats: $e');
-    }
-  }
-
-  Future<Book> getUpdatedBook(int bookId) async {
-    final isArchived = state.archivedBooks.any((b) => b.id == bookId);
-    final books = isArchived ? state.archivedBooks : state.activeBooks;
-
-    final existingBook = books.firstWhere(
-      (b) => b.id == bookId,
-      orElse: () => throw Exception('Book not found'),
-    );
-
-    await _repository.refreshBookStats(bookId);
-    final statsBook = await _repository.contentService.getBookStats(bookId);
-    final currentPage = await _repository.contentService.getCurrentPageForBook(
-      bookId,
-    );
-
-    final updatedBook = existingBook.copyWith(
-      currentPage: currentPage,
-      distinctTerms: statsBook.distinctTerms,
-      unknownPct: statsBook.unknownPct,
-      statusDistribution: statsBook.statusDistribution,
-      lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
-    );
-
-    if (isArchived) {
-      final updatedArchived = state.archivedBooks
-          .map((b) => b.id == bookId ? updatedBook : b)
-          .toList();
-      state = state.copyWith(archivedBooks: updatedArchived);
-    } else {
-      final updatedActive = state.activeBooks
-          .map((b) => b.id == bookId ? updatedBook : b)
-          .toList();
-      state = state.copyWith(activeBooks: updatedActive);
-    }
-
-    await _repository.saveBooksToCache(
-      activeBooks: state.activeBooks,
-      archivedBooks: state.archivedBooks,
-    );
-
-    return updatedBook;
   }
 
   Future<void> updateBookInList(Book updatedBook) async {

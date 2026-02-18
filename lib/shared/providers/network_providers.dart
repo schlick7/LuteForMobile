@@ -13,7 +13,12 @@ final apiServiceProvider = Provider<ApiService>((ref) {
 // Content service provider
 final contentServiceProvider = Provider<ContentService>((ref) {
   final apiService = ref.watch(apiServiceProvider);
-  return ContentService(apiService: apiService);
+  final batchSize = ref.watch(
+    settingsProvider.select((s) => s.statsRefreshBatchSize),
+  );
+  final service = ContentService(apiService: apiService);
+  service.setBookStatsBatchSize(batchSize);
+  return service;
 });
 
 // Dictionary service provider

@@ -48,9 +48,18 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
             settings.stats500SampleSize.toString(),
           );
 
-      await ref.read(booksProvider.notifier).refreshBookStats(bookId);
+      final statsBook = await ref
+          .read(contentServiceProvider)
+          .getBookStats(bookId, timeout: const Duration(seconds: 15));
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      final updatedBook = widget.book.copyWith(
+        distinctTerms: statsBook.distinctTerms,
+        unknownPct: statsBook.unknownPct,
+        statusDistribution: statsBook.statusDistribution,
+        lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
+      );
+
+      await ref.read(booksProvider.notifier).updateBookInList(updatedBook);
 
       if (mounted) {
         setState(() {
