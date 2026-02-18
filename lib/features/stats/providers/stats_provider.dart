@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/stats/repositories/stats_repository.dart';
 import 'package:lute_for_mobile/features/stats/models/stats_cache_entry.dart';
 import 'package:lute_for_mobile/features/stats/models/language_stats.dart';
-import 'package:lute_for_mobile/core/network/content_service.dart';
 import 'package:lute_for_mobile/shared/providers/network_providers.dart';
 import 'package:lute_for_mobile/shared/providers/language_data_provider.dart';
 import '../../../features/settings/providers/settings_provider.dart';
@@ -14,28 +13,17 @@ enum StatsPeriod { week, month, quarter, year, all }
 enum StatsFilter { all, activeLanguages }
 
 class StatsNotifier extends AsyncNotifier<StatsState> {
-  late final ContentService _contentService;
   Completer<StatsState>? _loadStatsCompleter;
 
   @override
   Future<StatsState> build() async {
-    final ref = this.ref;
-    final apiService = ref.watch(apiServiceProvider);
-    _contentService = ContentService(apiService: apiService);
-
     ref.listen(settingsProvider, (previous, next) {
-      if (previous?.serverUrl != next.serverUrl) {
-        _onServerChanged();
-      } else if (previous?.currentBookLangId != next.currentBookLangId) {
+      if (previous?.currentBookLangId != next.currentBookLangId) {
         _onLangIdChanged();
       }
     });
 
     return const StatsState();
-  }
-
-  Future<void> _onServerChanged() async {
-    await loadStats();
   }
 
   Future<void> _onLangIdChanged() async {
@@ -53,11 +41,13 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
     final completer = Completer<StatsState>();
     _loadStatsCompleter = completer;
 
+    final contentService = ref.read(contentServiceProvider);
+
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       try {
         final cacheEntry = await StatsRepository.fetchAndProcessStats(
-          contentService: _contentService,
+          contentService: contentService,
         );
         final languages = cacheEntry.stats.values.toList();
 

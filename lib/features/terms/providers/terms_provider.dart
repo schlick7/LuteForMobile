@@ -60,32 +60,18 @@ class TermsState {
 }
 
 class TermsNotifier extends Notifier<TermsState> {
-  late TermsRepository _repository;
   final int _pageSize = 50;
   bool _isLoadingMore = false;
 
   @override
   TermsState build() {
-    _repository = ref.watch(termsRepositoryProvider);
-
     ref.listen(settingsProvider, (previous, next) {
-      if (previous?.serverUrl != next.serverUrl) {
-        _onServerChanged();
-      } else if (previous?.currentBookLangId != next.currentBookLangId) {
+      if (previous?.currentBookLangId != next.currentBookLangId) {
         _onLangIdChanged();
       }
     });
 
     return const TermsState();
-  }
-
-  Future<void> _onServerChanged() async {
-    state = state.copyWith(
-      terms: const [],
-      isInitialized: false,
-      errorMessage: null,
-    );
-    await loadTerms(reset: true);
   }
 
   Future<void> _onLangIdChanged() async {
@@ -108,7 +94,9 @@ class TermsNotifier extends Notifier<TermsState> {
       );
     }
 
-    if (!_repository.contentService.isConfigured) {
+    final repository = ref.read(termsRepositoryProvider);
+
+    if (!repository.contentService.isConfigured) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Server URL not configured.',
@@ -136,7 +124,7 @@ class TermsNotifier extends Notifier<TermsState> {
         'DEBUG loadTerms: langId=$langId, search="${state.searchQuery}", statuses=$filteredStatuses',
       );
 
-      final newTerms = await _repository.getTermsPaginated(
+      final newTerms = await repository.getTermsPaginated(
         langId: langId,
         search: state.searchQuery.isNotEmpty ? state.searchQuery : null,
         page: state.currentPage,
@@ -183,7 +171,8 @@ class TermsNotifier extends Notifier<TermsState> {
 
   Future<void> loadStats(int langId) async {
     try {
-      final stats = await _repository.getTermStats(langId);
+      final repository = ref.read(termsRepositoryProvider);
+      final stats = await repository.getTermStats(langId);
       state = state.copyWith(stats: stats);
     } catch (e) {
       ApiLogger.logError('loadStats', e);
@@ -226,7 +215,8 @@ class TermsNotifier extends Notifier<TermsState> {
 
   Future<void> deleteTerm(int termId) async {
     try {
-      await _repository.deleteTerm(termId);
+      final repository = ref.read(termsRepositoryProvider);
+      await repository.deleteTerm(termId);
       state = state.copyWith(
         terms: state.terms.where((t) => t.id != termId).toList(),
       );
