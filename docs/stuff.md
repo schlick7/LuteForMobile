@@ -55,7 +55,7 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 - 
 
 # Books Screen
-- 
+- Show spinner during refresh next to books label. 
 
 # Terms Screen
 - 
