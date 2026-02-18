@@ -165,7 +165,7 @@ class ContentService {
       final pageTextHtml = await _fetchPageTextHtml(
         bookId,
         actualPageNum,
-        ContentMode.reading,
+        ContentMode.refresh,
       );
 
       // Cache the fetched data
