@@ -6,8 +6,8 @@ import '../../core/network/dictionary_service.dart';
 
 // API service provider using serverUrl from settings
 final apiServiceProvider = Provider<ApiService>((ref) {
-  final settings = ref.watch(settingsProvider);
-  return ApiService(baseUrl: settings.serverUrl);
+  final serverUrl = ref.watch(settingsProvider.select((s) => s.serverUrl));
+  return ApiService(baseUrl: serverUrl);
 });
 
 // Content service provider

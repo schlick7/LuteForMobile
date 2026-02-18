@@ -15,7 +15,6 @@ enum StatsFilter { all, activeLanguages }
 
 class StatsNotifier extends AsyncNotifier<StatsState> {
   late final ContentService _contentService;
-  String? _previousServerUrl;
   Completer<StatsState>? _loadStatsCompleter;
 
   @override
@@ -24,18 +23,22 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
     final apiService = ref.watch(apiServiceProvider);
     _contentService = ContentService(apiService: apiService);
 
-    final serverUrl = ref.watch(settingsProvider.select((s) => s.serverUrl));
-    if (_previousServerUrl == null) {
-      _previousServerUrl = serverUrl;
-    } else if (_previousServerUrl != serverUrl) {
-      _previousServerUrl = serverUrl;
-      Future.microtask(() => _onServerChanged());
-    }
+    ref.listen(settingsProvider, (previous, next) {
+      if (previous?.serverUrl != next.serverUrl) {
+        _onServerChanged();
+      } else if (previous?.currentBookLangId != next.currentBookLangId) {
+        _onLangIdChanged();
+      }
+    });
 
     return const StatsState();
   }
 
   Future<void> _onServerChanged() async {
+    await loadStats();
+  }
+
+  Future<void> _onLangIdChanged() async {
     await loadStats();
   }
 
