@@ -174,9 +174,6 @@ class SettingsNotifier extends Notifier<Settings> {
       await ref.read(cacheManagerProvider).clearServerDependentCaches();
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
-
-      ref.refresh(booksRepositoryProvider);
-      ref.refresh(termsRepositoryProvider);
     }
   }
 
@@ -198,9 +195,6 @@ class SettingsNotifier extends Notifier<Settings> {
       await ref.read(cacheManagerProvider).clearServerDependentCaches();
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
-
-      ref.refresh(booksRepositoryProvider);
-      ref.refresh(termsRepositoryProvider);
 
       // Set the stats_calc_sample_size on the server before fetching books
       try {
