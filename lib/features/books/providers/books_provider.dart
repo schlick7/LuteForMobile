@@ -648,6 +648,12 @@ class BooksNotifier extends Notifier<BooksState> {
     _isLoadingFromNetwork = true;
 
     try {
+      final settings = ref.read(settingsProvider);
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        settings.statsCalcSampleSize.toString(),
+      );
+
       final networkBooks = await _repository.getActiveBooks();
       final archived = state.archivedBooks;
 
@@ -678,6 +684,12 @@ class BooksNotifier extends Notifier<BooksState> {
     _isLoadingFromNetwork = true;
 
     try {
+      final settings = ref.read(settingsProvider);
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        settings.statsCalcSampleSize.toString(),
+      );
+
       final networkBooks = await _repository.getArchivedBooks();
       final active = state.activeBooks;
 
