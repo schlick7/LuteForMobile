@@ -209,8 +209,6 @@ class SettingsNotifier extends Notifier<Settings> {
       }
 
       await ref.read(booksProvider.notifier).refreshBooks();
-      await ref.read(statsProvider.notifier).refreshStats();
-      await ref.read(termsProvider.notifier).refreshTerms();
     }
 
     final isReachable = await ServerHealthService.isReachable(state.serverUrl);
