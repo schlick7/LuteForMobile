@@ -193,7 +193,7 @@ class Settings {
       termuxIntegrationEnabled: false,
       termuxAutoLaunchEnabled: false,
       statsCalcSampleSize: 5,
-      stats500SampleSize: 500,
+      stats500SampleSize: 100,
       statsRefreshBatchSize: 2,
       statsRefreshCooldownHours: 48,
       alwaysRefreshBookDetails: true,

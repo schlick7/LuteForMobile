@@ -1,7 +1,5 @@
 import 'package:hive_ce/hive.dart';
 import 'models/term_cache_entry.dart';
-import 'package:hive_ce_flutter/hive_ce_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'cache_logger.dart';
 
 class TermCacheService {
@@ -30,10 +28,7 @@ class TermCacheService {
     if (_isInitialized) return;
 
     try {
-      final cacheDir = await getApplicationCacheDirectory();
-      await Hive.initFlutter(cacheDir.path);
-
-      await Hive.openBox<TermCacheEntry>(_boxName);
+      _box = await Hive.openBox<TermCacheEntry>(_boxName);
       _isInitialized = true;
       CacheLogger.log('initialized');
     } catch (e) {

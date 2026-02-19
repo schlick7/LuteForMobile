@@ -3,8 +3,6 @@ import 'package:lute_for_mobile/core/network/content_service.dart';
 import 'package:lute_for_mobile/features/stats/models/stats_cache_entry.dart';
 import 'package:lute_for_mobile/features/stats/models/language_stats.dart';
 import 'package:lute_for_mobile/features/stats/models/stats_data.dart';
-import 'package:hive_ce_flutter/hive_ce_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../../core/cache/cache_logger.dart';
 
 class StatsRepository {
@@ -15,9 +13,6 @@ class StatsRepository {
 
   static Future<void> initialize() async {
     if (_box == null || !_box!.isOpen) {
-      final cacheDir = await getApplicationCacheDirectory();
-      await Hive.initFlutter(cacheDir.path);
-
       _box = await Hive.openBox<StatsCacheEntry>(_boxName);
       CacheLogger.log('initialized');
     }

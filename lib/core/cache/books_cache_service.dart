@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'package:hive_ce_flutter/hive_ce_flutter.dart';
 import 'package:hive_ce/hive.dart';
-import 'package:path_provider/path_provider.dart';
 import '../../features/books/models/book.dart';
 import '../../features/books/models/book_cache_entry.dart';
 import 'cache_logger.dart';
@@ -30,9 +28,6 @@ class BooksCacheService {
   Future<void> initialize() async {
     try {
       if (!_isInitialized) {
-        final cacheDir = await getApplicationCacheDirectory();
-        await Hive.initFlutter(cacheDir.path);
-
         _box = await Hive.openBox<BookCacheEntry>(_boxName);
 
         await _cleanupExpiredEntries();

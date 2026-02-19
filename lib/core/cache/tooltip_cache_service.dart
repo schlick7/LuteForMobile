@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:hive_ce/hive.dart';
-import 'package:hive_ce_flutter/hive_ce_flutter.dart';
-import 'package:path_provider/path_provider.dart';
 import 'models/tooltip_cache_entry.dart';
 import 'cache_logger.dart';
 
@@ -31,9 +29,6 @@ class TooltipCacheService {
   Future<void> initialize() async {
     try {
       if (!_isInitialized) {
-        final cacheDir = await getApplicationCacheDirectory();
-        await Hive.initFlutter(cacheDir.path);
-
         _box = await Hive.openBox<TooltipCacheEntry>(_boxName);
 
         await _cleanupExpiredEntries();
