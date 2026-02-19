@@ -215,8 +215,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
           _enqueuePrefetch(() => preloadTooltipsForCurrentPage());
 
           if (pageData.currentPage < pageData.pageCount) {
-            _enqueuePrefetch(() => preloadNextPage());
-            _enqueuePrefetch(() => preloadTooltipsForNextPage());
+            final settings = ref.read(settingsProvider);
+            if (settings.enablePagePreload) {
+              _enqueuePrefetch(() => preloadNextPage());
+              _enqueuePrefetch(() => preloadTooltipsForNextPage());
+            }
           }
 
           // Signal that reader is ready for other operations to begin

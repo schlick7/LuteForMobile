@@ -29,6 +29,7 @@ class Settings {
   final TTSProvider? ttsProvider;
   final AIProvider? aiProvider;
   final bool enableTripleTapToMarkKnown;
+  final bool enablePagePreload;
   final bool termuxIntegrationEnabled;
   final bool termuxAutoLaunchEnabled;
   final int statsCalcSampleSize;
@@ -65,6 +66,7 @@ class Settings {
     this.ttsProvider,
     this.aiProvider,
     this.enableTripleTapToMarkKnown = false,
+    this.enablePagePreload = true,
     this.termuxIntegrationEnabled = false,
     this.termuxAutoLaunchEnabled = false,
     this.statsCalcSampleSize = 5,
@@ -102,6 +104,7 @@ class Settings {
     TTSProvider? ttsProvider,
     AIProvider? aiProvider,
     bool? enableTripleTapToMarkKnown,
+    bool? enablePagePreload,
     bool? termuxIntegrationEnabled,
     bool? termuxAutoLaunchEnabled,
     int? statsCalcSampleSize,
@@ -148,6 +151,7 @@ class Settings {
       aiProvider: aiProvider ?? this.aiProvider,
       enableTripleTapToMarkKnown:
           enableTripleTapToMarkKnown ?? this.enableTripleTapToMarkKnown,
+      enablePagePreload: enablePagePreload ?? this.enablePagePreload,
       termuxIntegrationEnabled:
           termuxIntegrationEnabled ?? this.termuxIntegrationEnabled,
       termuxAutoLaunchEnabled:
@@ -190,6 +194,7 @@ class Settings {
       ttsProvider: TTSProvider.onDevice,
       aiProvider: AIProvider.none,
       enableTripleTapToMarkKnown: false,
+      enablePagePreload: true,
       termuxIntegrationEnabled: false,
       termuxAutoLaunchEnabled: false,
       statsCalcSampleSize: 5,
@@ -230,6 +235,7 @@ class Settings {
         other.ttsProvider == ttsProvider &&
         other.aiProvider == aiProvider &&
         other.enableTripleTapToMarkKnown == enableTripleTapToMarkKnown &&
+        other.enablePagePreload == enablePagePreload &&
         other.termuxIntegrationEnabled == termuxIntegrationEnabled &&
         other.termuxAutoLaunchEnabled == termuxAutoLaunchEnabled &&
         other.statsCalcSampleSize == statsCalcSampleSize &&
@@ -265,6 +271,7 @@ class Settings {
     ttsProvider,
     aiProvider,
     enableTripleTapToMarkKnown,
+    enablePagePreload,
     termuxIntegrationEnabled,
     termuxAutoLaunchEnabled,
     statsCalcSampleSize,

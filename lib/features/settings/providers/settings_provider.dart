@@ -47,6 +47,7 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyShowPageNumbers = 'show_page_numbers';
   static const String _keyEnableTripleTapToMarkKnown =
       'enable_triple_tap_to_mark_known';
+  static const String _keyEnablePagePreload = 'enable_page_preload';
   static const String _keyTermuxIntegrationEnabled =
       'termux_integration_enabled';
   static const String _keyTermuxAutoLaunchEnabled =
@@ -99,6 +100,7 @@ class SettingsNotifier extends Notifier<Settings> {
     final showPageNumbers = prefs.getBool(_keyShowPageNumbers) ?? true;
     final enableTripleTapToMarkKnown =
         prefs.getBool(_keyEnableTripleTapToMarkKnown) ?? false;
+    final enablePagePreload = prefs.getBool(_keyEnablePagePreload) ?? true;
     final termuxAutoLaunchEnabled =
         prefs.getBool(_keyTermuxAutoLaunchEnabled) ?? false;
     final termuxIntegrationEnabled =
@@ -139,6 +141,7 @@ class SettingsNotifier extends Notifier<Settings> {
       showStatsBar: showStatsBar,
       showPageNumbers: showPageNumbers,
       enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
+      enablePagePreload: enablePagePreload,
       termuxAutoLaunchEnabled: termuxAutoLaunchEnabled,
       termuxIntegrationEnabled: termuxIntegrationEnabled,
       statsCalcSampleSize: statsCalcSampleSize,
@@ -362,6 +365,12 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(enableTripleTapToMarkKnown: enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyEnableTripleTapToMarkKnown, enabled);
+  }
+
+  Future<void> updateEnablePagePreload(bool enabled) async {
+    state = state.copyWith(enablePagePreload: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyEnablePagePreload, enabled);
   }
 
   Future<void> updateTermuxAutoLaunchEnabled(bool enabled) async {
