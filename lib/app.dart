@@ -191,12 +191,11 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     super.initState();
     _navigationController = ref.read(navigationProvider);
 
-    // Reset route to 'reader' on initialization to handle app restart
-    // When RestartWidget.restartApp() is called, providers persist but widgets rebuild,
-    // so we need to ensure the route matches the initial tab (_currentIndex = 0)
-    ref.read(currentScreenRouteProvider.notifier).setRoute('reader');
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Reset route to 'reader' on initialization to handle app restart
+      // When RestartWidget.restartApp() is called, providers persist but widgets rebuild,
+      // so we need to ensure the route matches the initial tab (_currentIndex = 0)
+      ref.read(currentScreenRouteProvider.notifier).setRoute('reader');
       _updateDrawerSettings();
       _checkServerHealth();
       _checkAndStartLute3IfNeeded();

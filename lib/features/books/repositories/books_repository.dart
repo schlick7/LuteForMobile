@@ -7,8 +7,10 @@ class BooksRepository {
   final BooksCacheService _cacheService;
   Map<String, int>? _languageNameToIdMap;
 
-  BooksRepository({required this.contentService})
-    : _cacheService = BooksCacheService.getInstance();
+  BooksRepository({
+    required this.contentService,
+    required BooksCacheService cacheService,
+  }) : _cacheService = cacheService;
 
   void resetLanguageMap() {
     _languageNameToIdMap = null;

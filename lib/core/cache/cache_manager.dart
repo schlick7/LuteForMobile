@@ -5,24 +5,23 @@ import '../../features/reader/services/page_cache_service.dart';
 import '../../features/reader/services/sentence_cache_service.dart';
 
 class CacheManager {
-  static CacheManager? _instance;
   final BooksCacheService _booksCache;
   final TermCacheService _termCache;
   final TooltipCacheService _tooltipCache;
   final PageCacheService _pageCache;
   final SentenceCacheService _sentenceCache;
 
-  CacheManager._internal()
-    : _booksCache = BooksCacheService.getInstance(),
-      _termCache = TermCacheService.getInstance(),
-      _tooltipCache = TooltipCacheService.getInstance(),
-      _pageCache = PageCacheService.getInstance(),
-      _sentenceCache = SentenceCacheService();
-
-  factory CacheManager() {
-    _instance ??= CacheManager._internal();
-    return _instance!;
-  }
+  CacheManager({
+    required BooksCacheService booksCache,
+    required TermCacheService termCache,
+    required TooltipCacheService tooltipCache,
+    required PageCacheService pageCache,
+    required SentenceCacheService sentenceCache,
+  }) : _booksCache = booksCache,
+       _termCache = termCache,
+       _tooltipCache = tooltipCache,
+       _pageCache = pageCache,
+       _sentenceCache = sentenceCache;
 
   Future<void> clearAllCaches() async {
     await Future.wait([

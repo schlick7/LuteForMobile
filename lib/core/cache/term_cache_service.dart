@@ -11,18 +11,7 @@ class TermCacheService {
   Box<TermCacheEntry>? _box;
   bool _isInitialized = false;
 
-  static TermCacheService? _instance;
-
-  static TermCacheService getInstance() {
-    _instance ??= TermCacheService._internal();
-    return _instance!;
-  }
-
-  TermCacheService._internal();
-
-  factory TermCacheService() {
-    return getInstance();
-  }
+  TermCacheService();
 
   Future<void> initialize() async {
     if (_isInitialized) return;

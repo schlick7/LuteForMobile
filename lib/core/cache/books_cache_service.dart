@@ -12,18 +12,7 @@ class BooksCacheService {
   Box<BookCacheEntry>? _box;
   bool _isInitialized = false;
 
-  static BooksCacheService? _instance;
-
-  static BooksCacheService getInstance() {
-    _instance ??= BooksCacheService._internal();
-    return _instance!;
-  }
-
-  BooksCacheService._internal();
-
-  factory BooksCacheService() {
-    return getInstance();
-  }
+  BooksCacheService();
 
   Future<void> initialize() async {
     try {

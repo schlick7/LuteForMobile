@@ -3,6 +3,8 @@ import '../../features/settings/providers/settings_provider.dart';
 import '../../core/network/api_service.dart';
 import '../../core/network/content_service.dart';
 import '../../core/network/dictionary_service.dart';
+import '../../core/cache/providers/page_cache_provider.dart';
+import '../../core/cache/providers/term_cache_provider.dart';
 
 // API service provider using serverUrl from settings
 final apiServiceProvider = Provider<ApiService>((ref) {
@@ -13,10 +15,16 @@ final apiServiceProvider = Provider<ApiService>((ref) {
 // Content service provider
 final contentServiceProvider = Provider<ContentService>((ref) {
   final apiService = ref.watch(apiServiceProvider);
+  final pageCacheService = ref.watch(pageCacheServiceProvider);
+  final termCacheService = ref.watch(termCacheServiceProvider);
   final batchSize = ref.watch(
     settingsProvider.select((s) => s.statsRefreshBatchSize),
   );
-  final service = ContentService(apiService: apiService);
+  final service = ContentService(
+    apiService: apiService,
+    pageCacheService: pageCacheService,
+    termCacheService: termCacheService,
+  );
   service.setBookStatsBatchSize(batchSize);
   return service;
 });

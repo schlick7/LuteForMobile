@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lute_for_mobile/features/stats/repositories/stats_repository.dart';
 import 'package:lute_for_mobile/features/stats/models/stats_cache_entry.dart';
 import 'package:lute_for_mobile/features/stats/models/language_stats.dart';
 import 'package:lute_for_mobile/shared/providers/network_providers.dart';
 import 'package:lute_for_mobile/shared/providers/language_data_provider.dart';
 import '../../../features/settings/providers/settings_provider.dart';
+import 'stats_repository_provider.dart';
 
 enum StatsPeriod { week, month, quarter, year, all }
 
@@ -42,11 +42,12 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
     _loadStatsCompleter = completer;
 
     final contentService = ref.read(contentServiceProvider);
+    final statsRepository = ref.read(statsRepositoryProvider);
 
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       try {
-        final cacheEntry = await StatsRepository.fetchAndProcessStats(
+        final cacheEntry = await statsRepository.fetchAndProcessStats(
           contentService: contentService,
         );
         final languages = cacheEntry.stats.values.toList();
@@ -88,7 +89,7 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
   }
 
   Future<void> refreshStats() async {
-    await StatsRepository.clearCache();
+    await ref.read(statsRepositoryProvider).clearCache();
     await loadStats();
   }
 

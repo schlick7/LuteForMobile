@@ -33,15 +33,19 @@ class ContentService {
   DateTime? _languagesCacheTime;
   static const _languagesCacheTtl = Duration(seconds: 5);
 
-  ContentService({required ApiService apiService, HtmlParser? htmlParser})
-    : _apiService = apiService,
-      parser = htmlParser ?? HtmlParser(),
-      _pageCacheService = PageCacheService.getInstance(),
-      _termCacheService = TermCacheService.getInstance(),
-      _parentFetchQueue = ConcurrentQueue<TermParent>(
-        maxConcurrent: 2,
-        name: 'parentFetch',
-      ) {
+  ContentService({
+    required ApiService apiService,
+    HtmlParser? htmlParser,
+    required PageCacheService pageCacheService,
+    required TermCacheService termCacheService,
+  }) : _apiService = apiService,
+       parser = htmlParser ?? HtmlParser(),
+       _pageCacheService = pageCacheService,
+       _termCacheService = termCacheService,
+       _parentFetchQueue = ConcurrentQueue<TermParent>(
+         maxConcurrent: 2,
+         name: 'parentFetch',
+       ) {
     _bookStatsQueue = ConcurrentQueue<Book>(
       maxConcurrent: 2,
       name: 'bookStats',

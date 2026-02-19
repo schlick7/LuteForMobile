@@ -9,27 +9,21 @@ class StatsRepository {
   static const String _boxName = 'stats';
   static const String _cacheKey = 'all';
 
-  static Box<StatsCacheEntry>? _box;
+  Box<StatsCacheEntry>? _box;
+  bool _isInitialized = false;
 
-  static Future<void> initialize() async {
-    if (_box == null || !_box!.isOpen) {
+  Future<void> _ensureInitialized() async {
+    if (!_isInitialized || _box == null || !_box!.isOpen) {
       _box = await Hive.openBox<StatsCacheEntry>(_boxName);
+      _isInitialized = true;
       CacheLogger.log('initialized');
     }
   }
 
-  static Box<StatsCacheEntry> _getBox() {
-    if (_box == null || !_box!.isOpen) {
-      throw StateError(
-        'StatsRepository not initialized. Call initialize() first.',
-      );
-    }
-    return _box!;
-  }
-
-  static Future<StatsCacheEntry?> _getCachedStats() async {
+  Future<StatsCacheEntry?> _getCachedStats() async {
     try {
-      final entry = _getBox().get(_cacheKey);
+      await _ensureInitialized();
+      final entry = _box!.get(_cacheKey);
       if (entry != null) {
         CacheLogger.logHit(_boxName, _cacheKey.hashCode);
       } else {
@@ -42,25 +36,27 @@ class StatsRepository {
     }
   }
 
-  static Future<void> _saveToCache(StatsCacheEntry entry) async {
+  Future<void> _saveToCache(StatsCacheEntry entry) async {
     try {
-      await _getBox().put(_cacheKey, entry);
+      await _ensureInitialized();
+      await _box!.put(_cacheKey, entry);
       CacheLogger.logSave(_boxName, _cacheKey.hashCode);
     } catch (e) {
       CacheLogger.logError('saveToCache', e);
     }
   }
 
-  static Future<void> clearCache() async {
+  Future<void> clearCache() async {
     try {
-      await _getBox().clear();
+      await _ensureInitialized();
+      await _box!.clear();
       CacheLogger.logClear(_boxName);
     } catch (e) {
       CacheLogger.logError('clearCache', e);
     }
   }
 
-  static Future<StatsCacheEntry> fetchAndProcessStats({
+  Future<StatsCacheEntry> fetchAndProcessStats({
     required ContentService contentService,
   }) async {
     final serverData = await contentService.getStatsData();
@@ -121,7 +117,7 @@ class StatsRepository {
     return entry;
   }
 
-  static List<DailyReadingStats> _fillGaps(List<DailyReadingStats> sortedData) {
+  List<DailyReadingStats> _fillGaps(List<DailyReadingStats> sortedData) {
     if (sortedData.isEmpty) return [];
 
     final firstDate = sortedData.first.date;

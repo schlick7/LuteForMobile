@@ -8,6 +8,7 @@ import '../repositories/books_repository.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../../shared/providers/app_startup_providers.dart';
+import '../../../core/cache/providers/books_cache_provider.dart';
 
 @immutable
 class BooksState {
@@ -137,7 +138,10 @@ class BooksNotifier extends Notifier<BooksState> {
     } finally {
       // Signal that books loading is complete, even if there was an error
       // (partial cache data may still be valuable)
-      ref.read(booksLoadingCompleteProvider.notifier).markComplete();
+      // Use microtask to avoid modifying provider during build
+      Future.microtask(() {
+        ref.read(booksLoadingCompleteProvider.notifier).markComplete();
+      });
     }
   }
 
@@ -298,11 +302,13 @@ class BooksNotifier extends Notifier<BooksState> {
 
         final updatedActiveBooks = List<Book>.from(state.activeBooks);
 
+        const statsTimeout = Duration(seconds: 15);
         final futures = booksToRefresh
             .map(
               (book) => _refreshBookSimple(
                 book.id,
                 updatedBooksList: updatedActiveBooks,
+                timeout: statsTimeout,
               ),
             )
             .toList();
@@ -346,6 +352,7 @@ class BooksNotifier extends Notifier<BooksState> {
   Future<void> _refreshBookSimple(
     int bookId, {
     List<Book>? updatedBooksList,
+    Duration? timeout,
   }) async {
     ApiLogger.logRequest('_refreshBookSimple', details: 'bookId=$bookId');
 
@@ -355,7 +362,10 @@ class BooksNotifier extends Notifier<BooksState> {
       orElse: () =>
           throw Exception('Book with id $bookId not found in active books'),
     );
-    final statsBook = await _repository.contentService.getBookStats(bookId);
+    final statsBook = await _repository.contentService.getBookStats(
+      bookId,
+      timeout: timeout,
+    );
     ApiLogger.logRequest(
       '_refreshBookSimple',
       details: 'bookId=$bookId, distinctTerms=${statsBook.distinctTerms}',
@@ -710,6 +720,7 @@ class BooksNotifier extends Notifier<BooksState> {
       final activeBooksToRefresh = state.activeBooks;
       final updatedActiveBooks = List<Book>.from(state.activeBooks);
 
+      const statsTimeout = Duration(seconds: 15);
       for (
         int i = 0;
         i < activeBooksToRefresh.length;
@@ -722,6 +733,7 @@ class BooksNotifier extends Notifier<BooksState> {
               _refreshBookSimple(
                 activeBooksToRefresh[i + j].id,
                 updatedBooksList: updatedActiveBooks,
+                timeout: statsTimeout,
               ),
             );
           }
@@ -866,7 +878,11 @@ class BooksNotifier extends Notifier<BooksState> {
 
 final booksRepositoryProvider = Provider<BooksRepository>((ref) {
   final contentService = ref.watch(contentServiceProvider);
-  return BooksRepository(contentService: contentService);
+  final cacheService = ref.watch(booksCacheServiceProvider);
+  return BooksRepository(
+    contentService: contentService,
+    cacheService: cacheService,
+  );
 });
 
 final booksProvider = NotifierProvider<BooksNotifier, BooksState>(() {

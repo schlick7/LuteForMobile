@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
 import '../../../shared/theme/theme_definitions.dart';
-import '../../../core/cache/cache_manager.dart';
+import '../../../core/cache/providers/cache_manager_provider.dart';
 import '../../../features/reader/providers/reader_provider.dart';
 import '../../../core/services/termux_service.dart';
 import '../../../core/services/server_health_service.dart';
@@ -165,7 +165,7 @@ class SettingsNotifier extends Notifier<Settings> {
     );
 
     if (previousServerUrl != state.serverUrl) {
-      await CacheManager().clearServerDependentCaches();
+      await ref.read(cacheManagerProvider).clearServerDependentCaches();
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
 
@@ -189,7 +189,7 @@ class SettingsNotifier extends Notifier<Settings> {
     }
 
     if (previousServerUrl != state.serverUrl) {
-      await CacheManager().clearServerDependentCaches();
+      await ref.read(cacheManagerProvider).clearServerDependentCaches();
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
 

@@ -8,12 +8,12 @@ import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
 import '../models/language_sentence_settings.dart';
 import '../repositories/reader_repository.dart';
-import '../services/page_cache_service.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../../features/settings/providers/settings_provider.dart';
 
 import 'sentence_reader_provider.dart';
 import '../../../core/cache/providers/tooltip_cache_provider.dart';
+import '../../../core/cache/providers/page_cache_provider.dart';
 import '../../../features/terms/providers/terms_provider.dart';
 import '../../../shared/providers/app_startup_providers.dart';
 
@@ -835,12 +835,12 @@ class ReaderNotifier extends Notifier<ReaderState> {
   }
 
   Future<void> clearPageCacheForBook(int bookId) async {
-    final cacheService = PageCacheService.getInstance();
+    final cacheService = ref.read(pageCacheServiceProvider);
     await cacheService.clearBookCache(bookId);
   }
 
   Future<void> clearAllPageCache() async {
-    final cacheService = PageCacheService.getInstance();
+    final cacheService = ref.read(pageCacheServiceProvider);
     await cacheService.clearAllCache();
   }
 }

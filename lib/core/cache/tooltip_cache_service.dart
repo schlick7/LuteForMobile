@@ -13,18 +13,7 @@ class TooltipCacheService {
   Box<TooltipCacheEntry>? _box;
   bool _isInitialized = false;
 
-  static TooltipCacheService? _instance;
-
-  static TooltipCacheService getInstance() {
-    _instance ??= TooltipCacheService._internal();
-    return _instance!;
-  }
-
-  TooltipCacheService._internal();
-
-  factory TooltipCacheService() {
-    return getInstance();
-  }
+  TooltipCacheService();
 
   Future<void> initialize() async {
     try {
