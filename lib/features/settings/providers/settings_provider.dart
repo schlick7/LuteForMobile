@@ -195,20 +195,6 @@ class SettingsNotifier extends Notifier<Settings> {
       await ref.read(cacheManagerProvider).clearServerDependentCaches();
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
-
-      // Set the stats_calc_sample_size on the server before fetching books
-      try {
-        await ref
-            .read(contentServiceProvider)
-            .setUserSetting(
-              'stats_calc_sample_size',
-              state.statsCalcSampleSize.toString(),
-            );
-      } catch (e) {
-        debugPrint('Failed to set stats_calc_sample_size: $e');
-      }
-
-      await ref.read(booksProvider.notifier).refreshBooks();
     }
 
     final isReachable = await ServerHealthService.isReachable(state.serverUrl);

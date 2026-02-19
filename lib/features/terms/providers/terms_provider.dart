@@ -62,22 +62,13 @@ class TermsState {
 class TermsNotifier extends Notifier<TermsState> {
   final int _pageSize = 50;
   bool _isLoadingMore = false;
-  String? _previousServerUrl;
-  bool _isInitialized = false;
 
   @override
   TermsState build() {
-    final settings = ref.watch(settingsProvider);
-
-    if (!_isInitialized) {
-      _isInitialized = true;
-      _previousServerUrl = settings.serverUrl;
-    } else if (_previousServerUrl != settings.serverUrl) {
-      _previousServerUrl = settings.serverUrl;
-      Future.microtask(() => _onServerChanged());
-    }
-
     ref.listen(settingsProvider, (previous, next) {
+      if (previous?.serverUrl != next.serverUrl) {
+        _onServerChanged();
+      }
       if (previous?.currentBookLangId != next.currentBookLangId) {
         _onLangIdChanged();
       }
@@ -86,8 +77,9 @@ class TermsNotifier extends Notifier<TermsState> {
     return const TermsState();
   }
 
-  Future<void> _onServerChanged() async {
-    state = const TermsState();
+  void _onServerChanged() {
+    state = state.copyWith(isInitialized: false);
+    loadTerms(reset: true);
   }
 
   Future<void> _onLangIdChanged() async {

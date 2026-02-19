@@ -126,64 +126,67 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
       );
     }
 
-    if (state.terms.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.spellcheck, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              'No terms found',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            if (state.selectedLangId == null)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('Showing terms from all languages'),
-              ),
-          ],
-        ),
-      );
-    }
-
     final slivers = <Widget>[
-      if (state.selectedLangId != null)
-        SliverToBoxAdapter(
-          child: Consumer(
-            builder: (context, ref, child) {
-              final languageListAsync = ref.watch(languageListProvider);
-              final languageList = languageListAsync.value ?? [];
-              final language = languageList.cast<Language?>().firstWhere(
-                (l) => l?.id == state.selectedLangId,
-                orElse: () => null,
-              );
-              return TermStatsCard(
-                stats: state.stats,
-                languageName: language?.name,
-              );
-            },
+      if (state.terms.isEmpty)
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.spellcheck, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  'No terms found',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                if (state.selectedLangId == null)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Showing terms from all languages'),
+                  ),
+              ],
+            ),
+          ),
+        )
+      else ...[
+        if (state.selectedLangId != null)
+          SliverToBoxAdapter(
+            child: Consumer(
+              builder: (context, ref, child) {
+                final languageListAsync = ref.watch(languageListProvider);
+                final languageList = languageListAsync.value ?? [];
+                final language = languageList.cast<Language?>().firstWhere(
+                  (l) => l?.id == state.selectedLangId,
+                  orElse: () => null,
+                );
+                return TermStatsCard(
+                  stats: state.stats,
+                  languageName: language?.name,
+                );
+              },
+            ),
+          ),
+        SliverPadding(
+          padding: const EdgeInsets.only(bottom: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              if (index < state.terms.length) {
+                return TermCard(
+                  term: state.terms[index],
+                  onTap: () => _showTermEditDialog(state.terms[index]),
+                );
+              } else if (state.hasMore) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              return null;
+            }, childCount: state.terms.length + (state.hasMore ? 1 : 0)),
           ),
         ),
-      SliverPadding(
-        padding: const EdgeInsets.only(bottom: 16),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            if (index < state.terms.length) {
-              return TermCard(
-                term: state.terms[index],
-                onTap: () => _showTermEditDialog(state.terms[index]),
-              );
-            } else if (state.hasMore) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            return null;
-          }, childCount: state.terms.length + (state.hasMore ? 1 : 0)),
-        ),
-      ),
+      ],
     ];
 
     return RefreshIndicator(
