@@ -287,7 +287,9 @@ class BooksNotifier extends Notifier<BooksState> {
       }
 
       try {
-        await _repository.invalidateAllBookStatsCache();
+        await _repository.invalidateAllBookStatsCache(
+          timeout: const Duration(seconds: 15),
+        );
 
         await _repository.contentService.setUserSetting(
           'stats_calc_sample_size',

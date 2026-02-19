@@ -399,8 +399,8 @@ class ContentService {
     return response.data;
   }
 
-  Future<void> invalidateAllBookStatsCache() async {
-    await _apiService.invalidateAllBookStatsCache();
+  Future<void> invalidateAllBookStatsCache({Duration? timeout}) async {
+    await _apiService.invalidateAllBookStatsCache(timeout: timeout);
   }
 
   Future<Book> getBookStats(int bookId, {Duration? timeout}) async {

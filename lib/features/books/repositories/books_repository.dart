@@ -78,9 +78,9 @@ class BooksRepository {
     }).toList();
   }
 
-  Future<void> invalidateAllBookStatsCache() async {
+  Future<void> invalidateAllBookStatsCache({Duration? timeout}) async {
     try {
-      await contentService.invalidateAllBookStatsCache();
+      await contentService.invalidateAllBookStatsCache(timeout: timeout);
     } catch (e) {
       throw Exception('Failed to invalidate all book stats cache: $e');
     }

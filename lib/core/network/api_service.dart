@@ -431,8 +431,11 @@ class ApiService {
     return await _dio.get<String>('/language/index');
   }
 
-  Future<void> invalidateAllBookStatsCache() async {
-    await _dio.get<String>('/refresh_all_stats');
+  Future<void> invalidateAllBookStatsCache({Duration? timeout}) async {
+    await _dio.get<String>(
+      '/refresh_all_stats',
+      options: Options(receiveTimeout: timeout, sendTimeout: timeout),
+    );
   }
 
   Future<Response<String>> getSettingsPage() async {
