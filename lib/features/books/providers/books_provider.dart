@@ -227,7 +227,6 @@ class BooksNotifier extends Notifier<BooksState> {
   void setCurrentBook(int? bookId) {
     if (bookId != null && bookId != state.currentBookId) {
       state = state.copyWith(currentBookId: bookId);
-      _refreshCurrentBook();
     }
   }
 
