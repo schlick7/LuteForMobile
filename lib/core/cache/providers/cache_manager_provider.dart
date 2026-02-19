@@ -5,6 +5,7 @@ import 'term_cache_provider.dart';
 import 'tooltip_cache_provider.dart';
 import 'page_cache_provider.dart';
 import '../../../features/reader/providers/sentence_reader_provider.dart';
+import '../../../features/stats/providers/stats_repository_provider.dart';
 
 final cacheManagerProvider = Provider<CacheManager>((ref) {
   return CacheManager(
@@ -13,5 +14,6 @@ final cacheManagerProvider = Provider<CacheManager>((ref) {
     tooltipCache: ref.watch(tooltipCacheServiceProvider),
     pageCache: ref.watch(pageCacheServiceProvider),
     sentenceCache: ref.watch(sentenceCacheServiceProvider),
+    statsRepository: ref.watch(statsRepositoryProvider),
   );
 });
