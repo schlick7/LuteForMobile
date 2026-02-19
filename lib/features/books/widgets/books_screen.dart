@@ -87,6 +87,8 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
         ],
       ),
       body: RefreshIndicator(
+        color: Colors.transparent,
+        backgroundColor: Colors.transparent,
         onRefresh: () async {
           final notifier = ref.read(booksProvider.notifier);
           await notifier.loadBooks(
