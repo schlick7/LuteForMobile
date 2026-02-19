@@ -3,8 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/logger/widget_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
 import '../../../shared/providers/language_data_provider.dart';
-import '../../../shared/providers/server_status_provider.dart';
 import '../../../shared/models/language.dart';
 import '../providers/terms_provider.dart';
 import '../models/term.dart';
@@ -65,28 +65,10 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
     WidgetLogger.logRebuild('TermsScreen', _buildCount);
 
     final state = ref.watch(termsProvider);
-    final serverStatus = ref.watch(serverStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: Icon(
-                serverStatus.isReachable ? Icons.menu : Icons.warning,
-                color: serverStatus.isReachable ? null : Colors.red,
-              ),
-              onPressed: () {
-                if (widget.scaffoldKey != null &&
-                    widget.scaffoldKey!.currentState != null) {
-                  widget.scaffoldKey!.currentState!.openDrawer();
-                } else {
-                  Scaffold.of(context).openDrawer();
-                }
-              },
-            );
-          },
-        ),
+        leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
         title: const Text('Terms'),
         actions: [
           IconButton(

@@ -5,7 +5,7 @@ import 'package:dio/dio.dart';
 import '../../../core/logger/widget_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
-import '../../../shared/providers/server_status_provider.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
 import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
@@ -158,28 +158,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final settings = ref.watch(settingsProvider);
     final themeSettings = ref.watch(themeSettingsProvider);
     final textSettings = ref.watch(textFormattingSettingsProvider);
-    final serverStatus = ref.watch(serverStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: Icon(
-                serverStatus.isReachable ? Icons.menu : Icons.warning,
-                color: serverStatus.isReachable ? null : Colors.red,
-              ),
-              onPressed: () {
-                if (widget.scaffoldKey != null &&
-                    widget.scaffoldKey!.currentState != null) {
-                  widget.scaffoldKey!.currentState!.openDrawer();
-                } else {
-                  Scaffold.of(context).openDrawer();
-                }
-              },
-            );
-          },
-        ),
+        leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
         title: const Text('Settings'),
         elevation: 2,
       ),

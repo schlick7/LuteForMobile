@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/logger/widget_logger.dart';
-import '../../../shared/providers/server_status_provider.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
@@ -469,28 +469,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
     final settings = ref.watch(settingsProvider);
-    final serverStatus = ref.watch(serverStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: Icon(
-                serverStatus.isReachable ? Icons.menu : Icons.warning,
-                color: serverStatus.isReachable ? null : Colors.red,
-              ),
-              onPressed: () {
-                if (widget.scaffoldKey != null &&
-                    widget.scaffoldKey!.currentState != null) {
-                  widget.scaffoldKey!.currentState!.openDrawer();
-                } else {
-                  Scaffold.of(context).openDrawer();
-                }
-              },
-            );
-          },
-        ),
+        leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
         title: Text(pageTitle ?? 'Sentence Reader'),
         actions: [
           IconButton(

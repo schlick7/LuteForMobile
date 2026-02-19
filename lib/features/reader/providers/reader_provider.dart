@@ -27,6 +27,7 @@ class ReaderState {
   final bool isTermFormLoading;
   final LanguageSentenceSettings? languageSentenceSettings;
   final bool isBackgroundRefreshing;
+  final bool isPreloadingTooltips;
 
   const ReaderState({
     this.isLoading = false,
@@ -36,6 +37,7 @@ class ReaderState {
     this.isTermFormLoading = false,
     this.languageSentenceSettings,
     this.isBackgroundRefreshing = false,
+    this.isPreloadingTooltips = false,
   });
 
   ReaderState copyWith({
@@ -46,6 +48,7 @@ class ReaderState {
     bool? isTermFormLoading,
     LanguageSentenceSettings? languageSentenceSettings,
     bool? isBackgroundRefreshing,
+    bool? isPreloadingTooltips,
   }) {
     return ReaderState(
       isLoading: isLoading ?? this.isLoading,
@@ -57,6 +60,7 @@ class ReaderState {
           languageSentenceSettings ?? this.languageSentenceSettings,
       isBackgroundRefreshing:
           isBackgroundRefreshing ?? this.isBackgroundRefreshing,
+      isPreloadingTooltips: isPreloadingTooltips ?? this.isPreloadingTooltips,
     );
   }
 }
@@ -424,17 +428,22 @@ class ReaderNotifier extends Notifier<ReaderState> {
     final currentPageData = state.pageData;
     if (currentPageData == null) return;
 
-    // Extract unique term IDs from the current page
-    final termIds = <int>{};
-    for (final paragraph in currentPageData.paragraphs) {
-      for (final item in paragraph.textItems) {
-        if (item.wordId != null && item.wordId! > 0) {
-          termIds.add(item.wordId!);
+    state = state.copyWith(isPreloadingTooltips: true);
+    try {
+      // Extract unique term IDs from the current page
+      final termIds = <int>{};
+      for (final paragraph in currentPageData.paragraphs) {
+        for (final item in paragraph.textItems) {
+          if (item.wordId != null && item.wordId! > 0) {
+            termIds.add(item.wordId!);
+          }
         }
       }
-    }
 
-    await _preloadTooltipsForTerms(termIds, 'current');
+      await _preloadTooltipsForTerms(termIds, 'current');
+    } finally {
+      state = state.copyWith(isPreloadingTooltips: false);
+    }
   }
 
   /// Helper method to preload tooltips for a set of term IDs
@@ -543,6 +552,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
     final nextPageNum = currentPageData.currentPage + 1;
     if (nextPageNum > currentPageData.pageCount) return;
 
+    state = state.copyWith(isPreloadingTooltips: true);
     try {
       // Get the next page data to identify terms that need tooltips
       final nextPageData = await _repository.getPage(
@@ -567,6 +577,8 @@ class ReaderNotifier extends Notifier<ReaderState> {
       await _preloadTooltipsForTerms(termIds, 'next');
     } catch (e) {
       print('Error preloading tooltips for next page: $e');
+    } finally {
+      state = state.copyWith(isPreloadingTooltips: false);
     }
   }
 

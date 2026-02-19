@@ -6,6 +6,7 @@ import '../../../core/logger/widget_logger.dart';
 import '../../../core/logger/api_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
 import '../../../features/settings/providers/settings_provider.dart';
 import '../../../features/settings/models/settings.dart';
@@ -507,24 +508,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           curve: Curves.easeInOut,
           height: _isUiVisible ? kToolbarHeight + topPadding : 0,
           child: AppBar(
-            leading: Builder(
-              builder: (context) {
-                return IconButton(
-                  icon: Icon(
-                    serverReachable ? Icons.menu : Icons.warning,
-                    color: serverReachable ? null : Colors.red,
-                  ),
-                  onPressed: () {
-                    if (widget.scaffoldKey != null &&
-                        widget.scaffoldKey!.currentState != null) {
-                      widget.scaffoldKey!.currentState!.openDrawer();
-                    } else {
-                      Scaffold.of(context).openDrawer();
-                    }
-                  },
-                );
-              },
-            ),
+            leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
             title: Text(pageData?.title ?? 'Reader'),
             actions: [
               if (pageData != null && pageData!.pageCount > 1)
@@ -571,24 +555,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     return AppBar(
-      leading: Builder(
-        builder: (context) {
-          return IconButton(
-            icon: Icon(
-              serverReachable ? Icons.menu : Icons.warning,
-              color: serverReachable ? null : Colors.red,
-            ),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          );
-        },
-      ),
+      leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
       title: Text(pageData?.title ?? 'Reader'),
       actions: [
         if (pageData != null && pageData!.pageCount > 1)

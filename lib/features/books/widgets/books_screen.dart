@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/logger/widget_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
-import '../../../shared/providers/server_status_provider.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../providers/books_provider.dart';
 import '../../settings/providers/settings_provider.dart';
@@ -38,41 +38,11 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
 
     final state = ref.watch(booksProvider);
     final settings = ref.watch(settingsProvider);
-    final serverStatus = ref.watch(serverStatusProvider);
 
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: Icon(
-                serverStatus.isReachable ? Icons.menu : Icons.warning,
-                color: serverStatus.isReachable ? null : Colors.red,
-              ),
-              onPressed: () {
-                if (widget.scaffoldKey != null &&
-                    widget.scaffoldKey!.currentState != null) {
-                  widget.scaffoldKey!.currentState!.openDrawer();
-                } else {
-                  Scaffold.of(context).openDrawer();
-                }
-              },
-            );
-          },
-        ),
-        title: Row(
-          children: [
-            const Text('Books'),
-            if (state.isRefreshing) ...[
-              const SizedBox(width: 12),
-              const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ],
-          ],
-        ),
+        leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
+        title: const Text('Books'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8),
@@ -89,6 +59,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
       body: RefreshIndicator(
         color: Colors.transparent,
         backgroundColor: Colors.transparent,
+        elevation: 0,
         onRefresh: () async {
           final notifier = ref.read(booksProvider.notifier);
           await notifier.loadBooks(

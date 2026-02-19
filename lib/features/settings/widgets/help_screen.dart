@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/logger/widget_logger.dart';
-import '../../../shared/providers/server_status_provider.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
 
 class HelpScreen extends ConsumerWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -15,27 +15,9 @@ class HelpScreen extends ConsumerWidget {
     _buildCount++;
     WidgetLogger.logRebuild('HelpScreen', _buildCount);
 
-    final serverStatus = ref.watch(serverStatusProvider);
-
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) {
-            return IconButton(
-              icon: Icon(
-                serverStatus.isReachable ? Icons.menu : Icons.warning,
-                color: serverStatus.isReachable ? null : Colors.red,
-              ),
-              onPressed: () {
-                if (scaffoldKey != null && scaffoldKey!.currentState != null) {
-                  scaffoldKey!.currentState!.openDrawer();
-                } else {
-                  Scaffold.of(context).openDrawer();
-                }
-              },
-            );
-          },
-        ),
+        leading: AppBarLeading(scaffoldKey: scaffoldKey),
         title: const Text('Help'),
         elevation: 2,
       ),
