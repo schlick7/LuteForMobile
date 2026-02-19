@@ -3,6 +3,7 @@ import 'package:dio/dio.dart' show DioException, DioExceptionType;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 import '../../../core/logger/api_logger.dart';
+import '../../../core/network/content_service.dart';
 import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
@@ -207,11 +208,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
           // Cache hit: update state with cached data
           state = state.copyWith(isLoading: false, pageData: pageData);
 
-          // Refresh current page statuses in background first (can run in parallel)
-          _backgroundRefreshStatuses(bookId, pageNum, requestKey);
-
-          // Queue up prefetch operations sequentially to avoid duplicate fetches
-          // Current page tooltips first, then next page, then next page tooltips
+          // Queue up prefetch operations sequentially to ensure start_reading
+          // completes before preloading the next page
+          _enqueuePrefetch(
+            () => _backgroundRefreshStatuses(bookId, pageNum, requestKey),
+          );
           _enqueuePrefetch(() => preloadTooltipsForCurrentPage());
 
           if (pageData.currentPage < pageData.pageCount) {
@@ -228,7 +229,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
           }
         } else {
           // Cache miss: stay in loading state and trigger background refresh
-          _backgroundRefreshStatuses(bookId, pageNum, requestKey);
+          await _backgroundRefreshStatuses(bookId, pageNum, requestKey);
         }
       }
     } catch (e) {
@@ -248,98 +249,98 @@ class ReaderNotifier extends Notifier<ReaderState> {
     }
   }
 
-  void _backgroundRefreshStatuses(int bookId, int? pageNum, String requestKey) {
-    Future.microtask(() async {
-      state = state.copyWith(isBackgroundRefreshing: true);
+  Future<void> _backgroundRefreshStatuses(
+    int bookId,
+    int? pageNum,
+    String requestKey,
+  ) async {
+    state = state.copyWith(isBackgroundRefreshing: true);
 
-      const maxRetries = 3;
-      int attempt = 0;
-      PageData? freshPage;
-      Object? lastError;
+    const maxRetries = 3;
+    int attempt = 0;
+    PageData? freshPage;
+    Object? lastError;
 
-      while (attempt < maxRetries && freshPage == null) {
-        try {
-          freshPage = await _repository.getPage(
-            bookId: bookId,
-            pageNum: pageNum,
-            useCache: false,
-            forceRefresh: true,
-          );
-        } catch (e) {
-          attempt++;
-          lastError = e;
-          ApiLogger.logBackground(
-            'statusRefresh',
-            details: 'attempt=$attempt failed',
-          );
-          if (attempt < maxRetries) {
-            await Future.delayed(Duration(milliseconds: 500 * attempt));
-          }
-        }
-      }
-
-      ApiLogger.logBackground(
-        'statusRefreshComplete',
-        details: 'requestKey=$requestKey, freshPage=${freshPage != null}',
-      );
-
-      // Check if this response is still valid (user hasn't navigated to a different page)
-      if (requestKey != _currentRequestKey) {
-        ApiLogger.logBackground(
-          'statusRefreshIgnored',
-          details: 'pageChanged from $requestKey to $_currentRequestKey',
+    while (attempt < maxRetries && freshPage == null) {
+      try {
+        freshPage = await _repository.getPage(
+          bookId: bookId,
+          pageNum: pageNum,
+          mode: ContentMode.reading,
+          useCache: false,
+          forceRefresh: true,
         );
-        return;
-      }
-
-      if (freshPage == null) {
-        final currentData = state.pageData;
-        if (currentData != null) {
-          state = state.copyWith(
-            isBackgroundRefreshing: false,
-            isLoading: false,
-          );
-        } else {
-          state = state.copyWith(
-            isBackgroundRefreshing: false,
-            isLoading: false,
-            errorMessage: lastError != null
-                ? 'Failed to load page: ${_formatError(lastError)}'
-                : 'Failed to load page',
-          );
-        }
-        return;
-      }
-
-      final currentData = state.pageData;
-      if (currentData == null) {
-        // No cached data, use fresh data directly and stop loading
-        state = state.copyWith(
-          isBackgroundRefreshing: false,
-          isLoading: false,
-          pageData: freshPage,
-        );
-      } else if (currentData.currentPage == freshPage.currentPage) {
-        // Same page - merge statuses with existing data
-        final mergedData = _mergePageStatuses(currentData, freshPage);
-        state = state.copyWith(
-          isBackgroundRefreshing: false,
-          isLoading: false,
-          pageData: mergedData,
-        );
+      } catch (e) {
+        attempt++;
+        lastError = e;
         ApiLogger.logBackground(
           'statusRefresh',
-          details: 'failedAfter=$maxRetries attempts',
+          details: 'attempt=$attempt failed',
         );
+        if (attempt < maxRetries) {
+          await Future.delayed(Duration(milliseconds: 500 * attempt));
+        }
+      }
+    }
+
+    ApiLogger.logBackground(
+      'statusRefreshComplete',
+      details: 'requestKey=$requestKey, freshPage=${freshPage != null}',
+    );
+
+    // Check if this response is still valid (user hasn't navigated to a different page)
+    if (requestKey != _currentRequestKey) {
+      ApiLogger.logBackground(
+        'statusRefreshIgnored',
+        details: 'pageChanged from $requestKey to $_currentRequestKey',
+      );
+      return;
+    }
+
+    if (freshPage == null) {
+      final currentData = state.pageData;
+      if (currentData != null) {
+        state = state.copyWith(isBackgroundRefreshing: false, isLoading: false);
       } else {
-        // Different page - use fresh data directly
         state = state.copyWith(
           isBackgroundRefreshing: false,
           isLoading: false,
-          pageData: freshPage,
+          errorMessage: lastError != null
+              ? 'Failed to load page: ${_formatError(lastError)}'
+              : 'Failed to load page',
         );
       }
-    });
+      return;
+    }
+
+    final currentData = state.pageData;
+    if (currentData == null) {
+      // No cached data, use fresh data directly and stop loading
+      state = state.copyWith(
+        isBackgroundRefreshing: false,
+        isLoading: false,
+        pageData: freshPage,
+      );
+    } else if (currentData.currentPage == freshPage.currentPage) {
+      // Same page - merge statuses with existing data
+      final mergedData = _mergePageStatuses(currentData, freshPage);
+      state = state.copyWith(
+        isBackgroundRefreshing: false,
+        isLoading: false,
+        pageData: mergedData,
+      );
+      ApiLogger.logBackground(
+        'statusRefresh',
+        details: 'failedAfter=$maxRetries attempts',
+      );
+    } else {
+      // Different page - use fresh data directly
+      state = state.copyWith(
+        isBackgroundRefreshing: false,
+        isLoading: false,
+        pageData: freshPage,
+      );
+    }
   }
 
   PageData _mergePageStatuses(PageData currentPage, PageData freshPage) {
@@ -395,8 +396,19 @@ class ReaderNotifier extends Notifier<ReaderState> {
       details: 'START - bookId=${currentPageData.bookId}, page=$nextPageNum',
     );
 
+    // Get cached metadata from current page to reuse (avoids extra API call)
+    final cacheService = ref.read(pageCacheServiceProvider);
+    final cachedMetadata = await cacheService.getMetadataFromCache(
+      currentPageData.bookId,
+      currentPageData.currentPage,
+    );
+
     // Use the dedicated preload method which checks cache first and fetches if needed
-    await _repository.preloadPage(currentPageData.bookId, nextPageNum);
+    await _repository.preloadPage(
+      currentPageData.bookId,
+      nextPageNum,
+      cachedMetadataHtml: cachedMetadata,
+    );
 
     ApiLogger.logRequest(
       'preloadNextPage',
@@ -426,7 +438,9 @@ class ReaderNotifier extends Notifier<ReaderState> {
   }
 
   /// Helper method to preload tooltips for a set of term IDs
-  /// Fetches in parallel batches based on tooltipBatchSize setting
+  /// Fetches in parallel based on maxConcurrentTooltipFetches setting
+  /// Uses concurrent queue pattern - maintains N concurrent requests,
+  /// starting a new one as soon as any completes
   Future<void> _preloadTooltipsForTerms(
     Set<int> termIds,
     String pageLabel,
@@ -437,62 +451,83 @@ class ReaderNotifier extends Notifier<ReaderState> {
     if (!settings.enableTooltipCaching) return;
 
     final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
-    final batchSize = settings.tooltipBatchSize.clamp(1, 10);
+    final maxConcurrent = settings.maxConcurrentTooltipFetches.clamp(1, 10);
     int fetchedCount = 0;
     int cachedCount = 0;
 
-    // Convert to list for indexed access
-    final termIdsList = termIds.toList();
+    // Phase 1: Check cache for ALL terms in parallel to identify misses
+    final cacheChecks = termIds.map((termId) async {
+      final cached = await tooltipCacheService.getFromCache(termId);
+      return {'termId': termId, 'cached': cached != null};
+    });
+    final cacheResults = await Future.wait(cacheChecks);
 
-    // Process in batches
-    for (int i = 0; i < termIdsList.length; i += batchSize) {
-      final end = (i + batchSize < termIdsList.length)
-          ? i + batchSize
-          : termIdsList.length;
-      final batch = termIdsList.sublist(i, end);
+    // Phase 2: Filter to uncached term IDs only
+    final uncachedTermIds = cacheResults
+        .where((r) => r['cached'] == false)
+        .map((r) => r['termId'] as int)
+        .toSet();
 
-      // Fetch batch in parallel using Future.wait
-      final batchFutures = batch.map((termId) async {
-        // Check if tooltip is already cached
-        final cachedEntry = await tooltipCacheService.getFromCache(termId);
-        if (cachedEntry != null) {
-          return {'cached': true, 'termId': termId};
+    cachedCount = cacheResults.where((r) => r['cached'] == true).length;
+
+    if (uncachedTermIds.isEmpty) {
+      if (cachedCount > 0) {
+        ApiLogger.logCache(
+          'preloadTooltipsComplete',
+          details: '$pageLabel: fetched=0, cached=$cachedCount (all cached)',
+        );
+      }
+      return;
+    }
+
+    // Phase 3: Concurrent queue pattern - maintain N concurrent requests
+    // When any request completes, immediately start the next one
+    final queue = List<int>.from(uncachedTermIds);
+    int activeCount = 0;
+    final completer = Completer<void>();
+
+    Future<void> fetchNext() async {
+      if (queue.isEmpty) {
+        if (activeCount == 0 && !completer.isCompleted) {
+          completer.complete();
         }
+        return;
+      }
 
-        // Fetch and cache the tooltip
-        try {
-          final result = await _repository.getTermTooltipWithHtml(termId);
-          if (result != null) {
-            final (tooltip, html) = result;
-            // Cache all HTML, including empty - use " " as marker for empty
-            final htmlToCache = html.isEmpty ? ' ' : html;
-            await tooltipCacheService.saveToCache(termId, htmlToCache);
-            return {'cached': false, 'fetched': true, 'termId': termId};
-          }
-        } catch (e) {
-          ApiLogger.logError('preloadTooltip', e, details: 'termId=$termId');
-        }
-        return {'cached': false, 'fetched': false, 'termId': termId};
-      });
+      activeCount++;
+      final termId = queue.removeAt(0);
 
-      // Wait for all fetches in this batch to complete
-      final results = await Future.wait(batchFutures);
-
-      // Count results
-      for (final result in results) {
-        if (result['cached'] == true) {
-          cachedCount++;
-        } else if (result['fetched'] == true) {
+      try {
+        final result = await _repository.getTermTooltipWithHtml(termId);
+        if (result != null) {
+          final (tooltip, html) = result;
+          final htmlToCache = html.isEmpty ? ' ' : html;
+          await tooltipCacheService.saveToCache(termId, htmlToCache);
           fetchedCount++;
         }
+      } catch (e) {
+        ApiLogger.logError('preloadTooltip', e, details: 'termId=$termId');
+      } finally {
+        activeCount--;
+        fetchNext(); // Immediately trigger next request
       }
+    }
+
+    // Start initial batch (up to maxConcurrent concurrent)
+    for (int i = 0; i < maxConcurrent && queue.isNotEmpty; i++) {
+      fetchNext();
+    }
+
+    // Wait for all to complete
+    if (queue.isNotEmpty || activeCount > 0) {
+      await completer.future;
     }
 
     if (fetchedCount > 0 || cachedCount > 0) {
       ApiLogger.logCache(
         'preloadTooltipsComplete',
         details:
-            '$pageLabel: fetched=$fetchedCount, cached=$cachedCount, batchSize=$batchSize',
+            '$pageLabel: fetched=$fetchedCount, cached=$cachedCount, maxConcurrent=$maxConcurrent',
       );
     }
   }
@@ -545,6 +580,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
       final freshPage = await _repository.getPage(
         bookId: currentPageData.bookId,
         pageNum: currentPageData.currentPage,
+        mode: ContentMode.refresh,
         useCache: false,
         forceRefresh: true,
       );

@@ -77,6 +77,7 @@ class BooksNotifier extends Notifier<BooksState> {
   int? _lastBackgroundRefreshTime;
   String? _previousServerUrl;
   bool _isInitialized = false;
+  ProviderSubscription<bool>? _readerReadinessSubscription;
 
   @override
   BooksState build() {
@@ -112,11 +113,14 @@ class BooksNotifier extends Notifier<BooksState> {
 
     // Set up a listener for reader readiness
     bool booksLoaded = false;
-    late ProviderSubscription<bool> subscription;
-    subscription = ref.listen(readerReadinessProvider, (previous, next) {
+    _readerReadinessSubscription = ref.listen(readerReadinessProvider, (
+      previous,
+      next,
+    ) {
       if (next == true && !booksLoaded) {
         booksLoaded = true;
-        subscription.close();
+        _readerReadinessSubscription?.close();
+        _readerReadinessSubscription = null;
         _loadBooksAndSignalComplete();
       }
     });
@@ -125,7 +129,8 @@ class BooksNotifier extends Notifier<BooksState> {
     Future.delayed(const Duration(seconds: 10), () {
       if (!booksLoaded) {
         booksLoaded = true;
-        subscription.close();
+        _readerReadinessSubscription?.close();
+        _readerReadinessSubscription = null;
         _loadBooksAndSignalComplete();
       }
     });
@@ -159,6 +164,10 @@ class BooksNotifier extends Notifier<BooksState> {
     bool forceRefresh = false,
     bool skipExpiredBookRefresh = false,
   }) async {
+    // Cancel any pending reader readiness listener to prevent duplicate loads
+    _readerReadinessSubscription?.close();
+    _readerReadinessSubscription = null;
+
     if (_isLoadingBooks) {
       return;
     }
@@ -297,7 +306,7 @@ class BooksNotifier extends Notifier<BooksState> {
 
         await _repository.contentService.setUserSetting(
           'stats_calc_sample_size',
-          '500',
+          settings.stats500SampleSize.toString(),
         );
 
         final updatedActiveBooks = List<Book>.from(state.activeBooks);
@@ -500,6 +509,12 @@ class BooksNotifier extends Notifier<BooksState> {
     _isLoadingFromNetwork = true;
 
     try {
+      final settings = ref.read(settingsProvider);
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        settings.statsCalcSampleSize.toString(),
+      );
+
       final networkBooks = await _repository.getActiveBooks();
       ApiLogger.logRequest(
         '_loadBooksFromNetwork',
@@ -557,6 +572,12 @@ class BooksNotifier extends Notifier<BooksState> {
 
   Future<void> _loadArchivedBooksFromNetwork() async {
     try {
+      final settings = ref.read(settingsProvider);
+      await _repository.contentService.setUserSetting(
+        'stats_calc_sample_size',
+        settings.statsCalcSampleSize.toString(),
+      );
+
       final archived = await _repository.getArchivedBooks();
       final existingArchivedMap = {for (var b in state.archivedBooks) b.id: b};
 
@@ -703,72 +724,6 @@ class BooksNotifier extends Notifier<BooksState> {
 
   void clearError() {
     state = state.copyWith(errorMessage: null);
-  }
-
-  Future<void> refreshAllStats() async {
-    state = state.copyWith(isLoading: true, errorMessage: null);
-
-    try {
-      final settings = ref.read(settingsProvider);
-      await _repository.invalidateAllBookStatsCache();
-
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        settings.stats500SampleSize.toString(),
-      );
-
-      final activeBooksToRefresh = state.activeBooks;
-      final updatedActiveBooks = List<Book>.from(state.activeBooks);
-
-      const statsTimeout = Duration(seconds: 15);
-      for (
-        int i = 0;
-        i < activeBooksToRefresh.length;
-        i += settings.statsRefreshBatchSize
-      ) {
-        final batch = <Future<void>>[];
-        for (int j = 0; j < settings.statsRefreshBatchSize; j++) {
-          if (i + j < activeBooksToRefresh.length) {
-            batch.add(
-              _refreshBookSimple(
-                activeBooksToRefresh[i + j].id,
-                updatedBooksList: updatedActiveBooks,
-                timeout: statsTimeout,
-              ),
-            );
-          }
-        }
-        await Future.wait(batch);
-      }
-
-      await _repository.saveBooksToCache(
-        activeBooks: updatedActiveBooks,
-        archivedBooks: state.archivedBooks,
-      );
-
-      state = state.copyWith(
-        isLoading: false,
-        activeBooks: updatedActiveBooks,
-        archivedBooks: state.archivedBooks,
-      );
-      _lastBackgroundRefreshTime = DateTime.now().millisecondsSinceEpoch;
-
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        settings.statsCalcSampleSize.toString(),
-      );
-    } catch (e) {
-      try {
-        final settings = ref.read(settingsProvider);
-        await _repository.contentService.setUserSetting(
-          'stats_calc_sample_size',
-          settings.statsCalcSampleSize.toString(),
-        );
-      } catch (err) {
-        ApiLogger.logError('restoreSampleSize', err);
-      }
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
-    }
   }
 
   Future<void> updateBookInList(Book updatedBook) async {

@@ -68,6 +68,12 @@ class PageCacheService {
     }
   }
 
+  /// Gets just the metadata HTML from cache (without full entry)
+  Future<String?> getMetadataFromCache(int bookId, int pageNum) async {
+    final entry = await getFromCache(bookId, pageNum);
+    return entry?.metadataHtml;
+  }
+
   Future<void> saveToCache(
     int bookId,
     int pageNum,

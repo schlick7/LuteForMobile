@@ -18,7 +18,7 @@ import 'api_service.dart';
 import 'html_parser.dart';
 import 'concurrent_queue.dart';
 
-enum ContentMode { reading, peeking, refresh }
+enum ContentMode { reading, peeking, refresh, statusOnly }
 
 class ContentService {
   final ApiService _apiService;
@@ -68,6 +68,7 @@ class ContentService {
     ContentMode mode = ContentMode.reading,
     bool useCache = true,
     bool forceRefresh = false,
+    String? cachedMetadataHtml,
   }) async {
     String pageMetadataHtml;
     String pageTextHtml;
@@ -84,7 +85,12 @@ class ContentService {
       }
     } else {
       // Network mode: fetch from server and cache the result
-      pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
+      if (mode == ContentMode.statusOnly && cachedMetadataHtml != null) {
+        // Use cached metadata, only fetch text
+        pageMetadataHtml = cachedMetadataHtml;
+      } else {
+        pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
+      }
       final metadataDocument = html_parser.parse(pageMetadataHtml);
       final actualPageNum =
           pageNum ?? _extractPageNumFromMetadata(metadataDocument);
@@ -159,7 +165,14 @@ class ContentService {
   /// Preloads a page by fetching it from the network and caching it.
   /// Does nothing if the page is already cached.
   /// This is used for precaching the next page for better UX.
-  Future<void> preloadPage(int bookId, int pageNum) async {
+  ///
+  /// [cachedMetadataHtml] - Optional metadata from current page to reuse
+  /// (avoids extra API call for metadata since it's mostly static)
+  Future<void> preloadPage(
+    int bookId,
+    int pageNum, {
+    String? cachedMetadataHtml,
+  }) async {
     // Check if already cached - skip if it is
     final cached = await _pageCacheService.getFromCache(bookId, pageNum);
     if (cached != null) {
@@ -177,25 +190,42 @@ class ContentService {
     );
 
     try {
-      final pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
-      final metadataDocument = html_parser.parse(pageMetadataHtml);
-      final actualPageNum = _extractPageNumFromMetadata(metadataDocument);
-      final pageTextHtml = await _fetchPageTextHtml(
-        bookId,
-        actualPageNum,
-        ContentMode.refresh,
-      );
+      // Use cached metadata from current page (or fetch if not provided)
+      String pageMetadataHtml;
+      if (cachedMetadataHtml != null && cachedMetadataHtml.isNotEmpty) {
+        // Update the page number in the cached metadata
+        pageMetadataHtml = _updatePageNumInMetadata(
+          cachedMetadataHtml,
+          pageNum,
+        );
+      } else {
+        pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
+      }
+
+      // Use refresh_page for text content (no session creation)
+      final pageTextHtml = await _apiService.refreshBookPage(bookId, pageNum);
+      final pageText = pageTextHtml.data ?? '';
 
       // Cache the fetched data
       await _pageCacheService.saveToCache(
         bookId,
-        actualPageNum,
+        pageNum,
         pageMetadataHtml,
-        pageTextHtml,
+        pageText,
       );
     } catch (e) {
       ApiLogger.logError('preloadPage', e, details: 'pageNum=$pageNum');
     }
+  }
+
+  /// Updates the page number in metadata HTML string
+  String _updatePageNumInMetadata(String metadataHtml, int newPageNum) {
+    // Simple string replacement for the page number input value
+    // The metadata contains: <input id="page_num" value="67" type="text">
+    return metadataHtml.replaceFirst(
+      RegExp(r'id="page_num"[^>]*value="(\d*)"'),
+      'id="page_num" value="$newPageNum"',
+    );
   }
 
   Future<Response<String>> _getPageHtml(
@@ -209,6 +239,8 @@ class ContentService {
       case ContentMode.peeking:
         return await _apiService.peekBookPage(bookId, pageNum);
       case ContentMode.refresh:
+        return await _apiService.refreshBookPage(bookId, pageNum);
+      case ContentMode.statusOnly:
         return await _apiService.refreshBookPage(bookId, pageNum);
     }
   }

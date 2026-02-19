@@ -32,46 +32,10 @@ class ApiRequestQueue {
   bool _isServerReachable = true;
   String? _serverUrl;
 
-  static const int _kMaxTableStatsConcurrent = 2;
-  int _tableStatsActive = 0;
-  final List<Completer<void>> _tableStatsWaiters = [];
-
   bool get isServerReachable => _isServerReachable;
 
   void markServerUnreachable() {
     _isServerReachable = false;
-  }
-
-  bool _isTableStatsRequest(RequestOptions options) {
-    return options.uri.path.contains('/book/table_stats/');
-  }
-
-  Future<void> _acquireTableStatsSlot() async {
-    ApiLogger.logRequest(
-      '_acquireTableStatsSlot',
-      details:
-          'active=$_tableStatsActive, waiters=${_tableStatsWaiters.length}',
-    );
-    if (_tableStatsActive < _kMaxTableStatsConcurrent) {
-      _tableStatsActive++;
-      ApiLogger.logRequest(
-        '_acquireTableStatsSlot',
-        details: 'acquired slot, active=$_tableStatsActive',
-      );
-      return;
-    }
-    final completer = Completer<void>();
-    _tableStatsWaiters.add(completer);
-    await completer.future;
-  }
-
-  void _releaseTableStatsSlot() {
-    if (_tableStatsWaiters.isNotEmpty) {
-      final nextCompleter = _tableStatsWaiters.removeAt(0);
-      nextCompleter.complete();
-    } else {
-      _tableStatsActive--;
-    }
   }
 
   void initialize(String serverUrl, Dio dio) {
@@ -83,8 +47,6 @@ class ApiRequestQueue {
     _isServerReachable = ServerStatusManager.isReachable;
 
     ServerStatusManager.addListener(_onServerStatusChanged);
-
-    // Timer will start only when server issue is detected
   }
 
   void _onServerStatusChanged() {
@@ -95,7 +57,7 @@ class ApiRequestQueue {
   void _startPolling() {
     _pollTimer?.cancel();
     _pollTimer = Timer.periodic(
-      const Duration(milliseconds: 250),
+      const Duration(milliseconds: 500),
       (_) => _processQueue(),
     );
   }
@@ -139,11 +101,9 @@ class ApiRequestQueue {
     );
 
     _queue.add(queuedRequest);
-    final isStats = _isTableStatsRequest(options);
     ApiLogger.logRequest(
       'enqueue',
-      details:
-          '${options.uri}, isTableStats=$isStats, queueLength=${_queue.length}',
+      details: '${options.uri}, queueLength=${_queue.length}',
     );
 
     unawaited(_processQueue());
@@ -177,7 +137,7 @@ class ApiRequestQueue {
         );
       } else {
         ServerStatusManager.markError();
-        _startPolling(); // Start probing since server is down
+        _startPolling();
         ApiLogger.logRequest(
           '_processQueue',
           details: 'server still unreachable',
@@ -196,25 +156,12 @@ class ApiRequestQueue {
 
       for (final request in requestsToProcess) {
         _pendingSignatures.remove(request.signature);
-        final isStats = _isTableStatsRequest(request.options);
-        ApiLogger.logRequest(
-          '_processQueue',
-          details: '${request.options.uri}, isTableStats=$isStats',
-        );
-
-        if (isStats) {
-          await _acquireTableStatsSlot();
-        }
 
         try {
           final response = await request.dio.fetch(request.options);
           request.completer.complete(response);
         } catch (e) {
           request.completer.completeError(e);
-        } finally {
-          if (isStats) {
-            _releaseTableStatsSlot();
-          }
         }
       }
     }

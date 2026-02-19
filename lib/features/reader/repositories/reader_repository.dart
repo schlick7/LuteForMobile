@@ -13,16 +13,19 @@ class ReaderRepository {
   Future<PageData?> getPage({
     required int bookId,
     int? pageNum,
+    ContentMode mode = ContentMode.reading,
     bool useCache = true,
     bool forceRefresh = false,
+    String? cachedMetadataHtml,
   }) async {
     try {
       return await contentService.getPageContent(
         bookId,
         pageNum: pageNum,
-        mode: ContentMode.reading,
+        mode: mode,
         useCache: useCache,
         forceRefresh: forceRefresh,
+        cachedMetadataHtml: cachedMetadataHtml,
       );
     } catch (e) {
       throw Exception('Failed to load page: $e');
@@ -182,9 +185,19 @@ class ReaderRepository {
   /// Preloads a page by fetching it from the network and caching it.
   /// Does nothing if the page is already cached.
   /// This is used for precaching the next page for better UX.
-  Future<void> preloadPage(int bookId, int pageNum) async {
+  ///
+  /// [cachedMetadataHtml] - Optional metadata from current page to reuse
+  Future<void> preloadPage(
+    int bookId,
+    int pageNum, {
+    String? cachedMetadataHtml,
+  }) async {
     try {
-      await contentService.preloadPage(bookId, pageNum);
+      await contentService.preloadPage(
+        bookId,
+        pageNum,
+        cachedMetadataHtml: cachedMetadataHtml,
+      );
     } catch (e) {
       // Silently fail - preloading is best effort
       print('Failed to preload page $pageNum: $e');

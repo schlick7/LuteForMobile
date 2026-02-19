@@ -12,6 +12,7 @@ import '../../stats/providers/stats_provider.dart';
 import '../../terms/providers/terms_provider.dart';
 import '../../terms/repositories/terms_repository.dart';
 import '../../../shared/providers/server_status_provider.dart';
+import '../../../shared/providers/network_providers.dart';
 
 typedef DrawerSettingsBuilder =
     Widget Function(BuildContext context, WidgetRef ref);
@@ -59,7 +60,8 @@ class SettingsNotifier extends Notifier<Settings> {
       'stats_refresh_cooldown_hours';
   static const String _keyAlwaysRefreshBookDetails =
       'always_refresh_book_details';
-  static const String _keyTooltipBatchSize = 'tooltip_batch_size';
+  static const String _keyMaxConcurrentTooltipFetches =
+      'max_concurrent_tooltip_fetches';
 
   @override
   Settings build() {
@@ -112,7 +114,8 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getInt(_keyStatsRefreshCooldownHours) ?? 48;
     final alwaysRefreshBookDetails =
         prefs.getBool(_keyAlwaysRefreshBookDetails) ?? true;
-    final tooltipBatchSize = prefs.getInt(_keyTooltipBatchSize) ?? 2;
+    final maxConcurrentTooltipFetches =
+        prefs.getInt(_keyMaxConcurrentTooltipFetches) ?? 4;
 
     final currentBookId = prefs.getInt(_keyCurrentBookId);
     final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
@@ -149,7 +152,7 @@ class SettingsNotifier extends Notifier<Settings> {
       statsRefreshBatchSize: statsRefreshBatchSize,
       statsRefreshCooldownHours: statsRefreshCooldownHours,
       alwaysRefreshBookDetails: alwaysRefreshBookDetails,
-      tooltipBatchSize: tooltipBatchSize,
+      maxConcurrentTooltipFetches: maxConcurrentTooltipFetches,
     );
   }
 
@@ -198,6 +201,18 @@ class SettingsNotifier extends Notifier<Settings> {
 
       ref.refresh(booksRepositoryProvider);
       ref.refresh(termsRepositoryProvider);
+
+      // Set the stats_calc_sample_size on the server before fetching books
+      try {
+        await ref
+            .read(contentServiceProvider)
+            .setUserSetting(
+              'stats_calc_sample_size',
+              state.statsCalcSampleSize.toString(),
+            );
+      } catch (e) {
+        debugPrint('Failed to set stats_calc_sample_size: $e');
+      }
 
       await ref.read(booksProvider.notifier).refreshBooks();
       await ref.read(statsProvider.notifier).refreshStats();
@@ -415,10 +430,10 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyAlwaysRefreshBookDetails, value);
   }
 
-  Future<void> updateTooltipBatchSize(int value) async {
-    state = state.copyWith(tooltipBatchSize: value);
+  Future<void> updateMaxConcurrentTooltipFetches(int value) async {
+    state = state.copyWith(maxConcurrentTooltipFetches: value);
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyTooltipBatchSize, value);
+    await prefs.setInt(_keyMaxConcurrentTooltipFetches, value);
   }
 
   bool _isValidUrl(String url) {

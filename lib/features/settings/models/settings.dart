@@ -37,7 +37,7 @@ class Settings {
   final int statsRefreshBatchSize;
   final int statsRefreshCooldownHours;
   final bool alwaysRefreshBookDetails;
-  final int tooltipBatchSize;
+  final int maxConcurrentTooltipFetches;
 
   static const String termuxUrl = 'http://127.0.0.1:5001';
 
@@ -74,7 +74,7 @@ class Settings {
     this.statsRefreshBatchSize = 2,
     this.statsRefreshCooldownHours = 96,
     this.alwaysRefreshBookDetails = true,
-    this.tooltipBatchSize = 2,
+    this.maxConcurrentTooltipFetches = 4,
   });
 
   Settings copyWith({
@@ -112,7 +112,7 @@ class Settings {
     int? statsRefreshBatchSize,
     int? statsRefreshCooldownHours,
     bool? alwaysRefreshBookDetails,
-    int? tooltipBatchSize,
+    int? maxConcurrentTooltipFetches,
   }) {
     return Settings(
       localUrl: localUrl ?? this.localUrl,
@@ -164,7 +164,8 @@ class Settings {
           statsRefreshCooldownHours ?? this.statsRefreshCooldownHours,
       alwaysRefreshBookDetails:
           alwaysRefreshBookDetails ?? this.alwaysRefreshBookDetails,
-      tooltipBatchSize: tooltipBatchSize ?? this.tooltipBatchSize,
+      maxConcurrentTooltipFetches:
+          maxConcurrentTooltipFetches ?? this.maxConcurrentTooltipFetches,
     );
   }
 
@@ -202,7 +203,7 @@ class Settings {
       statsRefreshBatchSize: 2,
       statsRefreshCooldownHours: 48,
       alwaysRefreshBookDetails: true,
-      tooltipBatchSize: 2,
+      maxConcurrentTooltipFetches: 4,
     );
   }
 
@@ -242,7 +243,7 @@ class Settings {
         other.statsRefreshBatchSize == statsRefreshBatchSize &&
         other.statsRefreshCooldownHours == statsRefreshCooldownHours &&
         other.alwaysRefreshBookDetails == alwaysRefreshBookDetails &&
-        other.tooltipBatchSize == tooltipBatchSize;
+        other.maxConcurrentTooltipFetches == maxConcurrentTooltipFetches;
   }
 
   @override
@@ -278,7 +279,7 @@ class Settings {
     statsRefreshBatchSize,
     statsRefreshCooldownHours,
     alwaysRefreshBookDetails,
-    tooltipBatchSize,
+    maxConcurrentTooltipFetches,
   ]);
 
   bool isValidServerUrl(String url) {

@@ -786,8 +786,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           const SizedBox(height: 16),
                           _buildNumberField(
                             context,
-                            'Tooltip Batch Size',
-                            settings.tooltipBatchSize.toString(),
+                            'Max Concurrent Tooltip Fetches',
+                            settings.maxConcurrentTooltipFetches.toString(),
                             '1-10',
                             1,
                             10,
@@ -796,7 +796,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               if (intValue != null) {
                                 ref
                                     .read(settingsProvider.notifier)
-                                    .updateTooltipBatchSize(intValue);
+                                    .updateMaxConcurrentTooltipFetches(
+                                      intValue,
+                                    );
                               }
                             },
                           ),
