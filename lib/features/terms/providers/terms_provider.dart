@@ -87,10 +87,6 @@ class TermsNotifier extends Notifier<TermsState> {
     await loadTerms(reset: true);
   }
 
-  void resetForNewNavigation() {
-    state = state.copyWith(isInitialized: false);
-  }
-
   Future<void> loadTerms({bool reset = true}) async {
     if (reset) {
       state = state.copyWith(

@@ -31,7 +31,7 @@ class AppBarLeading extends ConsumerWidget {
             icon: const Icon(Icons.menu),
             onPressed: () => _openDrawer(context),
           ),
-          const CircularProgressIndicator(strokeWidth: 2),
+          const IgnorePointer(child: CircularProgressIndicator(strokeWidth: 2)),
         ],
       );
     }

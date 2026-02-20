@@ -12,6 +12,8 @@ class ServerHealthService {
     ),
   )..interceptors.clear();
 
+  static Future<bool>? _pendingCheck;
+
   static Future<bool> isReachable(String url) async {
     if (url.isEmpty) {
       print('ServerHealthService: URL is empty, returning false');
@@ -24,6 +26,20 @@ class ServerHealthService {
       return false;
     }
 
+    // If already checking, return existing future
+    if (_pendingCheck != null) {
+      return _pendingCheck!;
+    }
+
+    _pendingCheck = _performCheck(uri);
+    try {
+      return await _pendingCheck!;
+    } finally {
+      _pendingCheck = null;
+    }
+  }
+
+  static Future<bool> _performCheck(Uri uri) async {
     try {
       // Use /info endpoint for health check (designed for this purpose)
       final healthUri = uri.replace(path: '/info');
@@ -38,17 +54,21 @@ class ServerHealthService {
       );
       return response.statusCode == 200;
     } on TimeoutException catch (e) {
-      print('ServerHealthService: HEAD $url TIMEOUT - ${e.duration}');
+      print(
+        'ServerHealthService: HEAD ${uri.toString()} TIMEOUT - ${e.duration}',
+      );
       return false;
     } on DioException catch (e) {
-      print('ServerHealthService: HEAD $url DIO ERROR');
+      print('ServerHealthService: HEAD ${uri.toString()} DIO ERROR');
       print('  - type: ${e.type}');
       print('  - message: ${e.message}');
       print('  - error: ${e.error}');
       print('  - stack trace: ${e.stackTrace}');
       return false;
     } on Exception catch (e) {
-      print('ServerHealthService: HEAD $url EXCEPTION - ${e.runtimeType}: $e');
+      print(
+        'ServerHealthService: HEAD ${uri.toString()} EXCEPTION - ${e.runtimeType}: $e',
+      );
       return false;
     }
   }

@@ -104,6 +104,9 @@ class ApiService {
   }
 
   bool _shouldRetry(DioException error) {
+    if (error.requestOptions.extra['noRetry'] == true) {
+      return false;
+    }
     if (error.type == DioExceptionType.connectionError) {
       return true;
     }
@@ -378,7 +381,12 @@ class ApiService {
   Future<Response<String>> getBookStats(int bookId, {Duration? timeout}) async {
     return await _dio.get<String>(
       '/book/table_stats/$bookId',
-      options: Options(receiveTimeout: timeout, sendTimeout: timeout),
+      options: Options(
+        connectTimeout: timeout,
+        receiveTimeout: timeout,
+        sendTimeout: timeout,
+        extra: {'noRetry': true},
+      ),
     );
   }
 

@@ -20,8 +20,6 @@ import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
 import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
 import 'package:lute_for_mobile/core/services/termux_service.dart';
-import 'package:lute_for_mobile/core/services/server_health_service.dart';
-import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
 import 'package:lute_for_mobile/shared/providers/app_startup_providers.dart';
 import 'package:lute_for_mobile/shared/providers/network_providers.dart';
 
@@ -192,28 +190,13 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     _navigationController = ref.read(navigationProvider);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Reset route to 'reader' on initialization to handle app restart
-      // When RestartWidget.restartApp() is called, providers persist but widgets rebuild,
-      // so we need to ensure the route matches the initial tab (_currentIndex = 0)
       ref.read(currentScreenRouteProvider.notifier).setRoute('reader');
       _updateDrawerSettings();
-      _checkServerHealth();
       _checkAndStartLute3IfNeeded();
       _loadLastReadBook();
     });
     _navigationController.addReaderListener(_handleNavigateToReader);
     _navigationController.addScreenListener(_handleNavigateToScreen);
-  }
-
-  Future<void> _checkServerHealth() async {
-    final settings = ref.read(settingsProvider);
-    if (settings.serverUrl.isEmpty) return;
-
-    ApiLogger.logRequest('ServerHealthCheck');
-    final isReachable = await ServerHealthService.isReachable(
-      settings.serverUrl,
-    );
-    ServerStatusManager.setReachable(isReachable);
   }
 
   Future<void> _checkAndStartLute3IfNeeded() async {

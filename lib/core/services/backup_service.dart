@@ -172,7 +172,7 @@ class BackupService {
 
       if (response.statusCode == 200) {
         final html = response.body;
-        final regex = RegExp(r'name="backup_dir"\s+value="([^"]*)"');
+        final regex = RegExp(r'name="backup_dir"[^>]*value="([^"]*)"');
         final match = regex.firstMatch(html);
         if (match != null) {
           return match.group(1) ?? '';

@@ -108,8 +108,8 @@ class SettingsNotifier extends Notifier<Settings> {
     final termuxIntegrationEnabled =
         prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
     final statsCalcSampleSize = prefs.getInt(_keyStatsCalcSampleSize) ?? 5;
-    final stats500SampleSize = prefs.getInt(_keyStats500SampleSize) ?? 500;
-    final statsRefreshBatchSize = prefs.getInt(_keyStatsRefreshBatchSize) ?? 2;
+    final stats500SampleSize = prefs.getInt(_keyStats500SampleSize) ?? 100;
+    final statsRefreshBatchSize = prefs.getInt(_keyStatsRefreshBatchSize) ?? 1;
     final statsRefreshCooldownHours =
         prefs.getInt(_keyStatsRefreshCooldownHours) ?? 48;
     final alwaysRefreshBookDetails =
