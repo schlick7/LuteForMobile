@@ -7,9 +7,9 @@
 fixed? Pretty sure we had an old bug creap back in. We seem to be overwhelming the server when refreshing the books. screen. it is supposed to be doing a quick fetch of the bookstable with the calc sample at the server setting of 5pages in case any of the book is stale. And then once that is complete we change the calc sample size to what is used in the 500samplesize method and then mark all as stale, and then add them all to a queue and recalculate them. What i am pretty sure is happening is that both those things run in parallel which is causing all the books to recalc at the exact same time at the 500samplesize setting which overwhelms the server. Do some research
 
 
-Changing the severselection toggle or saving a new localurl needs to actually make all the app refresh. Currently it clears the caches but then appears to get stuck and the user needs to manually relaunch the app to get things to load. 
-
 Why the fuck do we check if the book has audio EVERY page turn!?! we only need to set this value exactly once when we save the selected book to currentbook. The book can never magically gets audio, it either has it or doesn't have it so we can do this check once and then save it. 
+
+
 
 
 Why doesn't the autobackup ever fucking trigger???
