@@ -213,7 +213,8 @@ class BooksNotifier extends Notifier<BooksState> {
       await _loadBooksFromNetwork();
       // Only refresh expired books in background if not explicitly skipped.
       // Skip when followed by a full refresh (e.g., pull-to-refresh).
-      if (!skipExpiredBookRefresh) {
+      if (!skipExpiredBookRefresh &&
+          ref.read(settingsProvider).autoRefreshFullStats) {
         refreshExpiredBooks();
       }
     } catch (e) {

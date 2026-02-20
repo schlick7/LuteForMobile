@@ -62,6 +62,7 @@ class SettingsNotifier extends Notifier<Settings> {
       'always_refresh_book_details';
   static const String _keyMaxConcurrentTooltipFetches =
       'max_concurrent_tooltip_fetches';
+  static const String _keyAutoRefreshFullStats = 'auto_refresh_full_stats';
 
   @override
   Settings build() {
@@ -116,6 +117,8 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getBool(_keyAlwaysRefreshBookDetails) ?? true;
     final maxConcurrentTooltipFetches =
         prefs.getInt(_keyMaxConcurrentTooltipFetches) ?? 4;
+    final autoRefreshFullStats =
+        prefs.getBool(_keyAutoRefreshFullStats) ?? true;
 
     final currentBookId = prefs.getInt(_keyCurrentBookId);
     final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
@@ -153,6 +156,7 @@ class SettingsNotifier extends Notifier<Settings> {
       statsRefreshCooldownHours: statsRefreshCooldownHours,
       alwaysRefreshBookDetails: alwaysRefreshBookDetails,
       maxConcurrentTooltipFetches: maxConcurrentTooltipFetches,
+      autoRefreshFullStats: autoRefreshFullStats,
     );
   }
 
@@ -414,6 +418,12 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setInt(_keyMaxConcurrentTooltipFetches, value);
   }
 
+  Future<void> updateAutoRefreshFullStats(bool value) async {
+    state = state.copyWith(autoRefreshFullStats: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAutoRefreshFullStats, value);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -449,6 +459,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyStatsRefreshBatchSize);
     await prefs.remove(_keyStatsRefreshCooldownHours);
     await prefs.remove(_keyAlwaysRefreshBookDetails);
+    await prefs.remove(_keyAutoRefreshFullStats);
 
     state = Settings.defaultSettings();
   }

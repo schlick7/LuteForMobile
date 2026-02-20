@@ -63,7 +63,9 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
             forceRefresh: true,
             skipExpiredBookRefresh: true,
           );
-          await notifier.refreshExpiredBooks(forceRefreshAll: true);
+          if (ref.read(settingsProvider).autoRefreshFullStats) {
+            await notifier.refreshExpiredBooks(forceRefreshAll: true);
+          }
         },
         child: Column(
           children: [

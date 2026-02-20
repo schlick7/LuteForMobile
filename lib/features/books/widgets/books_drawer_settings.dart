@@ -160,18 +160,6 @@ class BooksDrawerSettings extends ConsumerWidget {
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
-              _BatchSizeTextField(
-                initialValue: settings.statsRefreshBatchSize.toString(),
-              ),
-              const SizedBox(height: 12),
-              _CooldownHoursTextField(
-                initialValue: settings.statsRefreshCooldownHours.toString(),
-              ),
-              const SizedBox(height: 12),
-              _Stats500SampleSizeTextField(
-                initialValue: settings.stats500SampleSize.toString(),
-              ),
-              const SizedBox(height: 12),
               Consumer(
                 builder: (context, ref, child) {
                   final asyncValue = ref.watch(_userSettingsProvider);
@@ -201,6 +189,31 @@ class BooksDrawerSettings extends ConsumerWidget {
                   );
                 },
               ),
+              const SizedBox(height: 12),
+              SwitchListTile(
+                title: const Text('Auto Refresh Full Stats'),
+                value: settings.autoRefreshFullStats,
+                onChanged: (value) {
+                  ref
+                      .read(settingsProvider.notifier)
+                      .updateAutoRefreshFullStats(value);
+                },
+                contentPadding: EdgeInsets.zero,
+              ),
+              if (settings.autoRefreshFullStats) ...[
+                const SizedBox(height: 8),
+                _BatchSizeTextField(
+                  initialValue: settings.statsRefreshBatchSize.toString(),
+                ),
+                const SizedBox(height: 12),
+                _CooldownHoursTextField(
+                  initialValue: settings.statsRefreshCooldownHours.toString(),
+                ),
+                const SizedBox(height: 12),
+                _Stats500SampleSizeTextField(
+                  initialValue: settings.stats500SampleSize.toString(),
+                ),
+              ],
               const SizedBox(height: 8),
             ],
           ),

@@ -38,6 +38,7 @@ class Settings {
   final int statsRefreshCooldownHours;
   final bool alwaysRefreshBookDetails;
   final int maxConcurrentTooltipFetches;
+  final bool autoRefreshFullStats;
 
   static const String termuxUrl = 'http://127.0.0.1:5001';
 
@@ -75,6 +76,7 @@ class Settings {
     this.statsRefreshCooldownHours = 96,
     this.alwaysRefreshBookDetails = true,
     this.maxConcurrentTooltipFetches = 4,
+    this.autoRefreshFullStats = true,
   });
 
   Settings copyWith({
@@ -113,6 +115,7 @@ class Settings {
     int? statsRefreshCooldownHours,
     bool? alwaysRefreshBookDetails,
     int? maxConcurrentTooltipFetches,
+    bool? autoRefreshFullStats,
   }) {
     return Settings(
       localUrl: localUrl ?? this.localUrl,
@@ -166,6 +169,7 @@ class Settings {
           alwaysRefreshBookDetails ?? this.alwaysRefreshBookDetails,
       maxConcurrentTooltipFetches:
           maxConcurrentTooltipFetches ?? this.maxConcurrentTooltipFetches,
+      autoRefreshFullStats: autoRefreshFullStats ?? this.autoRefreshFullStats,
     );
   }
 
@@ -204,6 +208,7 @@ class Settings {
       statsRefreshCooldownHours: 48,
       alwaysRefreshBookDetails: true,
       maxConcurrentTooltipFetches: 4,
+      autoRefreshFullStats: true,
     );
   }
 
@@ -243,7 +248,8 @@ class Settings {
         other.statsRefreshBatchSize == statsRefreshBatchSize &&
         other.statsRefreshCooldownHours == statsRefreshCooldownHours &&
         other.alwaysRefreshBookDetails == alwaysRefreshBookDetails &&
-        other.maxConcurrentTooltipFetches == maxConcurrentTooltipFetches;
+        other.maxConcurrentTooltipFetches == maxConcurrentTooltipFetches &&
+        other.autoRefreshFullStats == autoRefreshFullStats;
   }
 
   @override
@@ -280,6 +286,7 @@ class Settings {
     statsRefreshCooldownHours,
     alwaysRefreshBookDetails,
     maxConcurrentTooltipFetches,
+    autoRefreshFullStats,
   ]);
 
   bool isValidServerUrl(String url) {
