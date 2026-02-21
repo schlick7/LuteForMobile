@@ -241,15 +241,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       try {
         final serverPage = await ref
             .read(readerProvider.notifier)
-            .getCurrentPageForBook(pageData.bookId);
+            .getCurrentPageForBook(pageData!.bookId);
 
         // If we got a valid page number from server and it's different from current page
-        if (serverPage != -1 && serverPage != pageData.currentPage) {
+        if (serverPage != -1 && serverPage != pageData!.currentPage) {
           // Navigate to the server's page
           ref
               .read(readerProvider.notifier)
               .loadPage(
-                bookId: pageData.bookId,
+                bookId: pageData!.bookId,
                 pageNum: serverPage,
                 showFullPageError:
                     false, // Don't show full page error for navigation
@@ -325,21 +325,21 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       return;
     }
 
-    if (_lastAudioBookId == pageData.bookId) return;
+    if (_lastAudioBookId == pageData!.bookId) return;
 
-    _lastAudioBookId = pageData.bookId;
+    _lastAudioBookId = pageData!.bookId;
     ref.read(audioPlayerProvider.notifier).reset();
 
     if (pageData.hasAudio) {
       final audioUrl =
-          '${settings.serverUrl}/useraudio/stream/${pageData.bookId}';
+          '${settings.serverUrl}/useraudio/stream/${pageData!.bookId}';
       await ref
           .read(audioPlayerProvider.notifier)
           .loadAudio(
             audioUrl: audioUrl,
-            bookId: pageData.bookId,
-            page: pageData.currentPage,
-            bookmarks: pageData.audioBookmarks,
+            bookId: pageData!.bookId,
+            page: pageData!.currentPage,
+            bookmarks: pageData!.audioBookmarks,
             audioCurrentPos: pageData.audioCurrentPos,
           );
     }
@@ -349,12 +349,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.read(readerProvider).pageData;
     if (pageData != null) {
       setState(() {
-        _pageKey = ValueKey('${pageData.bookId}-${pageData.currentPage}');
+        _pageKey = ValueKey('${pageData!.bookId}-${pageData!.currentPage}');
         _isLastPageMarkedDone = false;
       });
       await ref
           .read(readerProvider.notifier)
-          .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
+          .loadPage(bookId: pageData!.bookId, pageNum: pageData!.currentPage);
 
       int? langId;
       for (final paragraph in pageData.paragraphs) {
@@ -477,7 +477,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                           '${settings.serverUrl}/useraudio/stream/${pageData!.bookId}',
                       bookId: pageData!.bookId,
                       page: pageData!.currentPage,
-                      bookmarks: pageData?.audioBookmarks,
+                      bookmarks: pageData!.audioBookmarks,
                     ),
                   ),
                 Expanded(child: _buildBody(isLoading, errorMessage, pageData)),
@@ -511,7 +511,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
             title: Text(pageData?.title ?? 'Reader'),
             actions: [
-              if (pageData != null && pageData!.pageCount > 1)
+              if (pageData != null && pageData.pageCount > 1)
                 Padding(
                   padding: const EdgeInsets.only(right: 16),
                   child: Row(
@@ -533,12 +533,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8.0,
                             ),
-                            child: Text(pageData!.pageIndicator),
+                            child: Text(pageData.pageIndicator),
                           ),
                         ),
                       IconButton(
                         icon: const Icon(Icons.chevron_right),
-                        onPressed: pageData!.currentPage < pageData!.pageCount
+                        onPressed: pageData!.currentPage < pageData.pageCount
                             ? () => _loadPageWithoutMarkingRead(
                                 pageData!.currentPage + 1,
                               )
@@ -558,7 +558,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
       title: Text(pageData?.title ?? 'Reader'),
       actions: [
-        if (pageData != null && pageData!.pageCount > 1)
+        if (pageData != null && pageData.pageCount > 1)
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Row(
@@ -578,12 +578,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                     onLongPress: () => _showPageNavigationSlider(),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text(pageData!.pageIndicator),
+                      child: Text(pageData.pageIndicator),
                     ),
                   ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
-                  onPressed: pageData!.currentPage < pageData!.pageCount
+                  onPressed: pageData!.currentPage < pageData.pageCount
                       ? () => _loadPageWithoutMarkingRead(
                           pageData!.currentPage + 1,
                         )
@@ -677,7 +677,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Widget _buildPageControls(BuildContext context, PageData pageData) {
-    final isLastPage = pageData.currentPage == pageData.pageCount;
+    final isLastPage = pageData!.currentPage == pageData.pageCount;
     final theme = Theme.of(context);
     final settings = ref.read(settingsProvider);
     final showStatsBar = settings.showStatsBar;
@@ -710,8 +710,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   const SizedBox(width: 24),
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
-                    onPressed: pageData.currentPage > 1
-                        ? () => _goToPage(pageData.currentPage - 1)
+                    onPressed: pageData!.currentPage > 1
+                        ? () => _goToPage(pageData!.currentPage - 1)
                         : null,
                     tooltip: 'Previous page',
                   ),
@@ -737,7 +737,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   else
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
-                      onPressed: () => _goToPage(pageData.currentPage + 1),
+                      onPressed: () => _goToPage(pageData!.currentPage + 1),
                       tooltip: 'Next page',
                     ),
                 ],
@@ -854,7 +854,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final hasGestureNav = MediaQuery.of(context).systemGestureInsets.bottom > 0;
     final textDisplay = TextDisplay(
       key: _pageKey,
-      paragraphs: pageData!.paragraphs,
+      paragraphs: pageData.paragraphs,
       scrollController: _scrollController,
       topPadding: textSettings.fullscreenMode && !_isUiVisible
           ? MediaQuery.of(context).padding.top * 0.5
@@ -909,7 +909,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               }
             },
             onHorizontalDragEnd: (details) async {
-              if (pageData!.pageCount <= 1) return;
+              if (pageData.pageCount <= 1) return;
 
               final currentTextSettings = ref.read(
                 textFormattingSettingsProvider,
@@ -927,7 +927,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   _loadPageWithoutMarkingRead(pageData!.currentPage - 1);
                 }
               } else if (velocity < 0) {
-                if (pageData!.currentPage < pageData!.pageCount) {
+                if (pageData!.currentPage < pageData.pageCount) {
                   final currentTextSettings = ref.read(
                     textFormattingSettingsProvider,
                   );
@@ -1437,23 +1437,23 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     ApiLogger.logRequest(
       'ReaderScreen._goToPage',
       details:
-          'from=${pageData.currentPage}, to=$pageNum, bookId=${pageData.bookId}',
+          'from=${pageData!.currentPage}, to=$pageNum, bookId=${pageData!.bookId}',
     );
 
     setState(() {
-      _isNavigatingForward = pageNum > pageData.currentPage;
-      _pageKey = ValueKey('${pageData.bookId}-$pageNum');
+      _isNavigatingForward = pageNum > pageData!.currentPage;
+      _pageKey = ValueKey('${pageData!.bookId}-$pageNum');
       _isLastPageMarkedDone = false;
-      _lastAttemptedBookId = pageData.bookId;
+      _lastAttemptedBookId = pageData!.bookId;
       _lastAttemptedPageNum = pageNum;
       _highlightedWordId = null;
     });
 
-    if (pageNum > pageData.currentPage) {
+    if (pageNum > pageData!.currentPage) {
       try {
         await ref
             .read(readerProvider.notifier)
-            .markPageRead(pageData.bookId, pageData.currentPage);
+            .markPageRead(pageData!.bookId, pageData!.currentPage);
       } catch (e) {
         ApiLogger.logError('markPageRead', e);
       }
@@ -1462,7 +1462,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     await ref
         .read(readerProvider.notifier)
         .loadPage(
-          bookId: pageData.bookId,
+          bookId: pageData!.bookId,
           pageNum: pageNum,
           showFullPageError: false,
           useCache: true,
@@ -1479,14 +1479,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     ApiLogger.logRequest(
       'ReaderScreen._loadPageWithoutMarkingRead',
       details:
-          'pageNum=$pageNum, currentPage=${pageData.currentPage}, bookId=${pageData.bookId}',
+          'pageNum=$pageNum, currentPage=${pageData!.currentPage}, bookId=${pageData!.bookId}',
     );
 
     setState(() {
-      _isNavigatingForward = pageNum > pageData.currentPage;
-      _pageKey = ValueKey('${pageData.bookId}-$pageNum');
+      _isNavigatingForward = pageNum > pageData!.currentPage;
+      _pageKey = ValueKey('${pageData!.bookId}-$pageNum');
       _isLastPageMarkedDone = false;
-      _lastAttemptedBookId = pageData.bookId;
+      _lastAttemptedBookId = pageData!.bookId;
       _lastAttemptedPageNum = pageNum;
       _highlightedWordId = null;
     });
@@ -1494,7 +1494,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     await ref
         .read(readerProvider.notifier)
         .loadPage(
-          bookId: pageData.bookId,
+          bookId: pageData!.bookId,
           pageNum: pageNum,
           showFullPageError: false,
           useCache: true,
@@ -1521,14 +1521,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         );
       }
 
-      if (pageData.currentPage < pageData.pageCount) {
-        _goToPage(pageData.currentPage + 1);
+      if (pageData!.currentPage < pageData.pageCount) {
+        _goToPage(pageData!.currentPage + 1);
       } else {
         ref
             .read(readerProvider.notifier)
             .loadPage(
-              bookId: pageData.bookId,
-              pageNum: pageData.currentPage,
+              bookId: pageData!.bookId,
+              pageNum: pageData!.currentPage,
               showFullPageError: false,
             );
       }
@@ -1549,7 +1549,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     try {
       await ref
           .read(readerProvider.notifier)
-          .markPageRead(pageData.bookId, pageData.currentPage);
+          .markPageRead(pageData!.bookId, pageData!.currentPage);
 
       if (mounted) {
         setState(() {
@@ -1598,7 +1598,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.read(readerProvider).pageData;
     if (pageData == null) return;
 
-    double tempPage = pageData.currentPage.toDouble();
+    double tempPage = pageData!.currentPage.toDouble();
 
     showDialog(
       context: context,

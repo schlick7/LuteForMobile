@@ -31,7 +31,7 @@ List<TextItem> extractUniqueTerms(
   if (sentence == null) return [];
 
   final Map<int, TextItem> uniqueTerms = {};
-  for (final item in sentence!.textItems) {
+  for (final item in sentence.textItems) {
     if (item.wordId != null) {
       final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
       final status = statusMatch?.group(1) ?? '0';

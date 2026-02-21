@@ -231,24 +231,6 @@ class BooksNotifier extends Notifier<BooksState> {
     }
   }
 
-  Future<void> _refreshCurrentBook() async {
-    final currentBookId = state.currentBookId;
-    if (currentBookId == null) return;
-
-    final book = state.activeBooks.firstWhere(
-      (b) => b.id == currentBookId,
-      orElse: () => state.archivedBooks.firstWhere(
-        (b) => b.id == currentBookId,
-        orElse: () => throw Exception('Book not found'),
-      ),
-    );
-
-    if (state.archivedBooks.any((b) => b.id == currentBookId)) {
-      return;
-    }
-
-    await _refreshBookWith500SampleSize(book.id);
-  }
 
   Future<void> refreshExpiredBooks({bool forceRefreshAll = false}) async {
     if (_isBackgroundRefreshing) {

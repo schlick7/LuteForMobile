@@ -25,8 +25,6 @@ class BookDetailsDialog extends ConsumerStatefulWidget {
 }
 
 class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
-  bool _isRefreshingStats = false;
-
   @override
   void initState() {
     super.initState();
@@ -37,7 +35,6 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
   }
 
   Future<void> _refreshBookStatsInBackground(int bookId) async {
-    setState(() => _isRefreshingStats = true);
     try {
       final settings = ref.read(settingsProvider);
 
@@ -61,12 +58,6 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
 
       await ref.read(booksProvider.notifier).updateBookInList(updatedBook);
 
-      if (mounted) {
-        setState(() {
-          _isRefreshingStats = false;
-        });
-      }
-
       await ref
           .read(contentServiceProvider)
           .setUserSetting(
@@ -74,7 +65,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
             settings.statsCalcSampleSize.toString(),
           );
     } catch (e) {
-      if (mounted) setState(() => _isRefreshingStats = false);
+      // Error handling - stats refresh failed
     }
   }
 

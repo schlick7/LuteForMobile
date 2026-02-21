@@ -531,7 +531,7 @@ class ApiService {
     if (selectedStatuses != null && selectedStatuses.isNotEmpty) {
       final statusInts = selectedStatuses
           .where((s) => s != null)
-          .map((s) => int.tryParse(s!))
+          .map((s) => int.tryParse(s))
           .whereType<int>()
           .toList();
 

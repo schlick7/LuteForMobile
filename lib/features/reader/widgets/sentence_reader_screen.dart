@@ -660,24 +660,24 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                 const Spacer(),
                 if (currentSentence != null) ...[
                   SentenceAITranslationButton(
-                    text: currentSentence!.textItems
+                    text: currentSentence.textItems
                         .map((item) => item.text)
                         .join(),
-                    sentenceId: currentSentence!.id,
-                    languageId: currentSentence!.textItems.first.langId ?? 0,
+                    sentenceId: currentSentence.id,
+                    languageId: currentSentence.textItems.first.langId ?? 0,
                     language: 'English',
                     onTranslationRequested: () => _showAITranslation(
-                      currentSentence!.textItems
+                      currentSentence.textItems
                           .map((item) => item.text)
                           .join(),
-                      currentSentence!.textItems.first.langId ?? 0,
+                      currentSentence.textItems.first.langId ?? 0,
                     ),
                   ),
                   SentenceTTSButton(
-                    text: currentSentence!.textItems
+                    text: currentSentence.textItems
                         .map((item) => item.text)
                         .join(),
-                    sentenceId: currentSentence!.id,
+                    sentenceId: currentSentence.id,
                   ),
                 ],
               ],
@@ -896,7 +896,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         final tooltip = results[i];
         final wordId = termsToFetch[i].wordId;
         if (tooltip != null && wordId != null && tooltip.hasData) {
-          newTooltips[wordId!] = tooltip;
+          newTooltips[wordId] = tooltip;
         }
       }
 
@@ -1030,7 +1030,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         final tooltip = results[i];
         final wordId = termsToFetch[i].wordId;
         if (tooltip != null && wordId != null && tooltip.hasData) {
-          newTooltips[wordId!] = tooltip;
+          newTooltips[wordId] = tooltip;
         }
       }
 

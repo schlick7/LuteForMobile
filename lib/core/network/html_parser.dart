@@ -173,7 +173,7 @@ class HtmlParser {
         details: 'finalTranslation="$translation"',
       );
 
-      if (translation?.isEmpty ?? true) {
+      if (translation.isEmpty) {
         translation = null;
       }
     }
@@ -255,7 +255,7 @@ class HtmlParser {
             );
           }
 
-          if (parentTranslation?.isEmpty ?? true) {
+          if (parentTranslation.isEmpty) {
             parentTranslation = null;
           }
         }
@@ -297,7 +297,7 @@ class HtmlParser {
                     .skip(1)
                     .join('')
                     .trim();
-                if (parentTranslation?.isEmpty ?? true) {
+                if (parentTranslation.isEmpty) {
                   parentTranslation = null;
                 }
               } else {
@@ -432,9 +432,8 @@ class HtmlParser {
 
     final romanizationParent = romanizationInput?.parent;
     bool showRomanization = true;
-    if (romanizationParent != null && romanizationParent is html.Element) {
-      final parentElement = romanizationParent as html.Element;
-      final displayStyle = parentElement.attributes['style'];
+    if (romanizationParent is html.Element) {
+      final displayStyle = romanizationParent.attributes['style'];
       showRomanization = displayStyle?.contains('display:none;') != true;
     }
 
@@ -521,7 +520,7 @@ class HtmlParser {
     );
 
     return languageLinks
-        .map((link) => link.text?.trim() ?? '')
+        .map((link) => link.text.trim())
         .where((lang) => lang.isNotEmpty)
         .toList();
   }
@@ -539,7 +538,7 @@ class HtmlParser {
           final id = idMatch != null
               ? int.tryParse(idMatch.group(1) ?? '')
               : null;
-          final name = link.text?.trim() ?? '';
+          final name = link.text.trim();
 
           if (id != null && name.isNotEmpty) {
             return Language(id: id, name: name);

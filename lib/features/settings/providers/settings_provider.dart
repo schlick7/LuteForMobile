@@ -849,16 +849,16 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     final loadedSettings = ThemeSettings(
       themeType: themeType,
       accentLabelColor: accentLabelColorValue != null
-          ? Color(accentLabelColorValue!)
+          ? Color(accentLabelColorValue)
           : ThemeSettings.defaultSettings.accentLabelColor,
       accentButtonColor: accentButtonColorValue != null
-          ? Color(accentButtonColorValue!)
+          ? Color(accentButtonColorValue)
           : ThemeSettings.defaultSettings.accentButtonColor,
       customAccentLabelColor: customAccentLabelColorValue != null
-          ? Color(customAccentLabelColorValue!)
+          ? Color(customAccentLabelColorValue)
           : null,
       customAccentButtonColor: customAccentButtonColorValue != null
-          ? Color(customAccentButtonColorValue!)
+          ? Color(customAccentButtonColorValue)
           : null,
     );
 

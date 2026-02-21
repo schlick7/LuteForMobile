@@ -158,7 +158,7 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
 
   int _getLangIdFromPageData() {
     final reader = ref.read(readerProvider);
-    if (reader.pageData?.paragraphs?.isNotEmpty == true &&
+    if (reader.pageData?.paragraphs.isNotEmpty == true &&
         reader.pageData!.paragraphs[0].textItems.isNotEmpty) {
       return reader.pageData!.paragraphs[0].textItems.first.langId ?? 0;
     }
@@ -208,11 +208,11 @@ class SentenceReaderNotifier extends Notifier<SentenceReaderState> {
       final shouldPreserveIndex =
           isSamePage &&
           state.customSentences.isNotEmpty &&
-          state.customSentences.length == cachedSentences!.length &&
-          state.currentSentenceIndex < cachedSentences!.length;
+          state.customSentences.length == cachedSentences.length &&
+          state.currentSentenceIndex < cachedSentences.length;
 
       final resolvedIndex = initialIndex == -1
-          ? cachedSentences!.length - 1
+          ? cachedSentences.length - 1
           : (shouldPreserveIndex
                 ? state.currentSentenceIndex
                 : (initialIndex ?? 0));
