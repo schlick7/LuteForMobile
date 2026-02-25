@@ -23,12 +23,32 @@ class BooksScreen extends ConsumerStatefulWidget {
 
 class _BooksScreenState extends ConsumerState<BooksScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   int _buildCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+  }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final state = ref.read(booksProvider);
+      if (state.showArchived) {
+        ref.read(booksProvider.notifier).loadMoreArchivedBooks();
+      } else {
+        ref.read(booksProvider.notifier).loadMoreActiveBooks();
+      }
+    }
   }
 
   @override
@@ -167,7 +187,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
       );
     }
 
-    var books = state.filteredBooks;
+    var books = state.showArchived ? state.archivedBooks : state.activeBooks;
 
     if (settings.languageFilter != null) {
       books = books
@@ -205,16 +225,28 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
       );
     }
 
+    final hasMore = state.showArchived
+        ? state.hasMoreArchived
+        : state.hasMoreActive;
+
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.only(bottom: 16),
-      itemCount: books.length,
+      itemCount: books.length + (hasMore ? 1 : 0),
       itemBuilder: (context, index) {
-        final book = books[index];
-        return BookCard(
-          book: book,
-          onTap: () => _navigateToReader(context, book),
-          onLongPress: () => _showBookDetails(context, book),
-        );
+        if (index < books.length) {
+          final book = books[index];
+          return BookCard(
+            book: book,
+            onTap: () => _navigateToReader(context, book),
+            onLongPress: () => _showBookDetails(context, book),
+          );
+        } else {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
       },
     );
   }

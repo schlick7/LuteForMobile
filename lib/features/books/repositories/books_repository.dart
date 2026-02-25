@@ -16,21 +16,37 @@ class BooksRepository {
     _languageNameToIdMap = null;
   }
 
-  Future<List<Book>> getActiveBooks() async {
+  Future<List<Book>> getActiveBooks({
+    int page = 0,
+    int pageSize = 10,
+    String? search,
+  }) async {
     try {
       await _loadLanguageMapping();
-      final books = await contentService.getAllActiveBooks();
-      return _enrichBooksWithLanguageIds(books);
+      final books = await contentService.getActiveBooks(
+        start: page * pageSize,
+        length: pageSize,
+        search: search,
+      );
+      return _enrichBooksWithLanguageIds(books.data);
     } catch (e) {
       throw Exception('Failed to load active books: $e');
     }
   }
 
-  Future<List<Book>> getArchivedBooks() async {
+  Future<List<Book>> getArchivedBooks({
+    int page = 0,
+    int pageSize = 10,
+    String? search,
+  }) async {
     try {
       await _loadLanguageMapping();
-      final books = await contentService.getAllArchivedBooks();
-      return _enrichBooksWithLanguageIds(books);
+      final books = await contentService.getArchivedBooks(
+        start: page * pageSize,
+        length: pageSize,
+        search: search,
+      );
+      return _enrichBooksWithLanguageIds(books.data);
     } catch (e) {
       throw Exception('Failed to load archived books: $e');
     }

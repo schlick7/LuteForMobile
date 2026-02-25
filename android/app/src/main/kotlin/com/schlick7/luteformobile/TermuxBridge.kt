@@ -314,9 +314,24 @@ class TermuxBridge(private val context: Context) {
                             return@launch
                         }
 
-                        val success = restoreBackupToLute3(context, filePath)
+                        val restoreResult = restoreBackupToLute3(context, filePath) { stepName, stepStatus, maxWaitSeconds ->
+                            android.util.Log.d("TermuxBridge", "Restore progress: $stepName - $stepStatus")
+                            try {
+                                scope.launch(Dispatchers.Main.immediate) {
+                                    eventSink?.success(
+                                        mapOf(
+                                            "step" to stepName,
+                                            "status" to stepStatus,
+                                            "maxWaitSeconds" to maxWaitSeconds
+                                        )
+                                    )
+                                }
+                            } catch (e: Exception) {
+                                android.util.Log.e("TermuxBridge", "Failed to send restore progress: ${e.message}")
+                            }
+                        }
                         withContext(Dispatchers.Main) {
-                            result.success(success)
+                            result.success(restoreResult)
                         }
                     }
                 }
@@ -756,7 +771,11 @@ class InstallationForegroundService : Service() {
     }
 }
 
-private suspend fun restoreBackupToLute3(context: Context, localFilePath: String): Boolean {
+private suspend fun restoreBackupToLute3(
+    context: Context,
+    localFilePath: String,
+    onProgress: (stepName: String, stepStatus: String, maxWaitSeconds: Int) -> Unit = { _, _, _ -> }
+): String {
     return withContext(Dispatchers.IO) {
         try {
             android.util.Log.d("TermuxBridge", "Starting restore: localFilePath=$localFilePath")
@@ -764,94 +783,147 @@ private suspend fun restoreBackupToLute3(context: Context, localFilePath: String
             val localFile = java.io.File(localFilePath)
             if (!localFile.exists()) {
                 android.util.Log.e("TermuxBridge", "Local file does not exist: $localFilePath")
-                return@withContext false
+                return@withContext "FAIL: Backup file not found at $localFilePath"
             }
 
             android.util.Log.d("TermuxBridge", "File exists: ${localFile.absolutePath}")
 
+            onProgress("PREPARING", "Preparing restore...", 30)
+
+            // Step 1: Stop the Termux server using the same method as the stop button
+            withContext(Dispatchers.Main.immediate) {
+                onProgress("STOPPING_SERVER", "Stopping Lute3 server...", 10)
+            }
+            android.util.Log.d("TermuxBridge", "Stopping Termux server...")
+            stopLute3Server(context)
+
+            // Step 2: Wait for server to stop by polling HTTP (always use Termux port 5001)
+            var serverStopped = false
+            val stopTimeoutMs = 10000L // 10 seconds
+            val stopStartTime = System.currentTimeMillis()
+            while (System.currentTimeMillis() - stopStartTime < stopTimeoutMs) {
+                delay(1000)
+                val isRunning = isLute3ServerRunningHttp(TermuxConstants.LUTE3_DEFAULT_PORT)
+                android.util.Log.d("TermuxBridge", "Server running check: $isRunning")
+                if (!isRunning) {
+                    serverStopped = true
+                    break
+                }
+            }
+            if (!serverStopped) {
+                android.util.Log.e("TermuxBridge", "Server did not stop within timeout")
+                return@withContext "FAIL: Server did not stop within timeout"
+            }
+            android.util.Log.d("TermuxBridge", "Server stopped successfully")
+
+            // Step 3: Send restore command to decompress the backup file
+            withContext(Dispatchers.Main.immediate) {
+                onProgress("DECOMPRESSING", "Decompressing backup file...", 20)
+            }
+
             val lute3DbPath = "\$HOME/.local/share/Lute3/lute.db"
-            val downloadsDir = "/storage/emulated/0/Download"
-            val resultFilePath = "$downloadsDir/restore_result.txt"
+            val successMarkerPath = "/storage/emulated/0/Download/restore_decompress_success.txt"
+            val restoreScript = "SOURCE=\"$localFilePath\"; " +
+                "DEST=\"$lute3DbPath\"; " +
+                "python3 -c \"import gzip; f = open('\$SOURCE', 'rb'); open('\$DEST', 'wb').write(gzip.decompress(f.read()))\" && " +
+                "echo 'SUCCESS' > $successMarkerPath"
 
-            val restoreScript = """
-                #!/bin/bash
-                SOURCE="$localFilePath"
-                DEST="$lute3DbPath"
-                RESULT_FILE="$resultFilePath"
-
-                OLD_MTIME=""
-                if [ -f "${'$'}DEST" ]; then
-                    OLD_MTIME=$(stat -c %Y "${'$'}DEST")
-                    echo "Old mtime: ${'$'}OLD_MTIME"
-                else
-                    echo "No existing lute.db"
-                fi
-
-                pkill -f "python -m lute.main" || true
-                sleep 3
-
-                if pgrep -f "python -m lute.main" > /dev/null 2>&1; then
-                    echo "FAIL: Server still running" > "${'$'}RESULT_FILE"
-                    exit 1
-                fi
-
-                python3 -c "import gzip; f = open(\${'$'}SOURCE, 'rb'); open(\${'$'}DEST, 'wb').write(gzip.decompress(f.read()))"
-
-                if [ ! -f "${'$'}DEST" ]; then
-                    echo "FAIL: File not created" > "${'$'}RESULT_FILE"
-                    exit 1
-                fi
-
-                NEW_MTIME=$(stat -c %Y "${'$'}DEST")
-                echo "New mtime: ${'$'}NEW_MTIME"
-
-                if [ -n "${'$'}OLD_MTIME" ] && [ "${'$'}OLD_MTIME" = "${'$'}NEW_MTIME" ]; then
-                    echo "FAIL: Timestamp unchanged" > "${'$'}RESULT_FILE"
-                    exit 1
-                fi
-
-                echo "SUCCESS" > "${'$'}RESULT_FILE"
-            """.trimIndent()
-
-            android.util.Log.d("TermuxBridge", "Sending restore script")
-
-            java.io.File(resultFilePath).delete()
-
-            val intent = android.content.Intent().apply {
+            android.util.Log.d("TermuxBridge", "Sending restore script to decompress file")
+            android.util.Log.d("TermuxBridge", "Restore script: $restoreScript")
+            val restoreIntent = android.content.Intent().apply {
                 setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
                 action = TermuxConstants.TERMUX_ACTION
                 putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
                 putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", restoreScript))
                 putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
             }
+            context.startService(restoreIntent)
 
-            context.startService(intent)
+            // Wait for decompress to complete (can take up to 30 seconds for large databases)
+            android.util.Log.d("TermuxBridge", "Waiting for decompress to complete...")
+            delay(30000)
+            android.util.Log.d("TermuxBridge", "Decompress wait done (30s)")
 
-            delay(10000)
+            // Verify decompress succeeded by checking marker file
+            val successMarker = java.io.File("/storage/emulated/0/Download/restore_decompress_success.txt")
+            android.util.Log.d("TermuxBridge", "Checking for success marker at ${successMarker.absolutePath}")
+            if (!successMarker.exists()) {
+                android.util.Log.e("TermuxBridge", "Success marker not found - decompress may have failed")
+                return@withContext "FAIL: Database file was not created after restore"
+            }
+            // Read and check marker content
+            val markerContent = successMarker.readText().trim()
+            android.util.Log.d("TermuxBridge", "Success marker content: '$markerContent'")
+            if (markerContent != "SUCCESS") {
+                android.util.Log.e("TermuxBridge", "Success marker content was not SUCCESS")
+                return@withContext "FAIL: Database file was not created after restore"
+            }
+            // Clean up marker
+            successMarker.delete()
+            android.util.Log.d("TermuxBridge", "Decompress verified successfully")
 
-            val resultFile = java.io.File(resultFilePath)
-            val success = if (resultFile.exists()) {
-                val result = resultFile.readText().trim()
-                android.util.Log.d("TermuxBridge", "Restore result: $result")
-                result == "SUCCESS"
-            } else {
-                android.util.Log.e("TermuxBridge", "Result file not found")
-                false
+            // Step 4: Start the server again
+            withContext(Dispatchers.Main.immediate) {
+                onProgress("STARTING_SERVER", "Starting Lute3 server...", 30)
+            }
+            android.util.Log.d("TermuxBridge", "Starting Termux server...")
+            launchLute3ServerWithAutoShutdown(context, TermuxConstants.LUTE3_DEFAULT_PORT)
+
+            // Step 5: Wait for server to come back up
+            var serverStarted = false
+            val startTimeoutMs = 30000L // 30 seconds
+            val startStartTime = System.currentTimeMillis()
+            while (System.currentTimeMillis() - startStartTime < startTimeoutMs) {
+                delay(2000)
+                val isRunning = isLute3ServerRunningHttp(TermuxConstants.LUTE3_DEFAULT_PORT)
+                android.util.Log.d("TermuxBridge", "Server running check: $isRunning")
+                if (isRunning) {
+                    serverStarted = true
+                    break
+                }
+            }
+            if (!serverStarted) {
+                android.util.Log.e("TermuxBridge", "Server did not start within timeout")
+                return@withContext "FAIL: Server did not start within timeout"
+            }
+            android.util.Log.d("TermuxBridge", "Server started successfully")
+
+            // Step 6: Update backup_dir to Termux path
+            withContext(Dispatchers.Main.immediate) {
+                onProgress("UPDATING_SETTINGS", "Updating backup directory setting...", 10)
+            }
+            android.util.Log.d("TermuxBridge", "Updating backup_dir to Termux path...")
+
+            try {
+                val termuxBackupDir = "/data/data/com.termux/files/home/.local/share/Lute3/backups"
+                val client = okhttp3.OkHttpClient()
+                val formBody = okhttp3.FormBody.Builder()
+                    .add("backup_dir", termuxBackupDir)
+                    .add("submit", "Save")
+                    .build()
+
+                val request = okhttp3.Request.Builder()
+                    .url("http://127.0.0.1:${TermuxConstants.LUTE3_DEFAULT_PORT}/settings/index")
+                    .post(formBody)
+                    .build()
+
+                val response = client.newCall(request).execute()
+                android.util.Log.d("TermuxBridge", "Backup dir update response: ${response.code}")
+                response.close()
+            } catch (e: Exception) {
+                android.util.Log.e("TermuxBridge", "Failed to update backup_dir: ${e.message}")
+                // Non-fatal - the restore itself succeeded
             }
 
-            resultFile.delete()
-
-            if (success) {
-                android.util.Log.d("TermuxBridge", "Restore completed successfully")
-            } else {
-                android.util.Log.e("TermuxBridge", "Restore failed")
+            android.util.Log.d("TermuxBridge", "Restore completed successfully")
+            withContext(Dispatchers.Main.immediate) {
+                onProgress("COMPLETE", "Restore completed successfully", 0)
             }
-
-            success
+            return@withContext "SUCCESS"
 
         } catch (e: Exception) {
             android.util.Log.e("TermuxBridge", "Restore failed: ${e.message}")
-            false
+            return@withContext "FAIL: ${e.message ?: "Unknown error"}"
         }
     }
 }

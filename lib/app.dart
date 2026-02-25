@@ -4,6 +4,7 @@ import 'package:lute_for_mobile/core/logger/api_logger.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.dart';
 import 'package:lute_for_mobile/features/reader/widgets/sentence_reader_screen.dart';
+import 'package:lute_for_mobile/features/reader/providers/audio_player_provider.dart';
 import 'package:lute_for_mobile/features/reader/providers/current_book_provider.dart';
 
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
@@ -166,6 +167,7 @@ class MainNavigation extends ConsumerStatefulWidget {
 
 class _MainNavigationState extends ConsumerState<MainNavigation> {
   int _currentIndex = 0;
+  String _currentRoute = 'reader';
   final GlobalKey<ReaderScreenState> _readerKey =
       GlobalKey<ReaderScreenState>();
   final GlobalKey<State<StatefulWidget>> _booksKey =
@@ -280,6 +282,11 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       'settings': 5,
       'sentence-reader': 6,
     };
+
+    if (_currentRoute == 'reader' && route != 'reader') {
+      ref.read(audioPlayerProvider.notifier).reset();
+    }
+    _currentRoute = route;
 
     final index = routeToIndex[route] ?? 0;
     setState(() {

@@ -20,6 +20,8 @@ class BooksState {
   final String? errorMessage;
   final String searchQuery;
   final int? currentBookId;
+  final bool hasMoreActive;
+  final bool hasMoreArchived;
 
   const BooksState({
     this.isLoading = false,
@@ -30,18 +32,9 @@ class BooksState {
     this.errorMessage,
     this.searchQuery = '',
     this.currentBookId,
+    this.hasMoreActive = true,
+    this.hasMoreArchived = true,
   });
-
-  List<Book> get filteredBooks {
-    var list = showArchived ? archivedBooks : activeBooks;
-    if (searchQuery.isEmpty) return list;
-    return list
-        .where(
-          (book) =>
-              book.title.toLowerCase().contains(searchQuery.toLowerCase()),
-        )
-        .toList();
-  }
 
   BooksState copyWith({
     bool? isLoading,
@@ -52,6 +45,8 @@ class BooksState {
     String? errorMessage,
     String? searchQuery,
     int? currentBookId,
+    bool? hasMoreActive,
+    bool? hasMoreArchived,
   }) {
     return BooksState(
       isLoading: isLoading ?? this.isLoading,
@@ -59,9 +54,11 @@ class BooksState {
       activeBooks: activeBooks ?? this.activeBooks,
       archivedBooks: archivedBooks ?? this.archivedBooks,
       showArchived: showArchived ?? this.showArchived,
-      errorMessage: errorMessage,
+      errorMessage: errorMessage ?? this.errorMessage,
       searchQuery: searchQuery ?? this.searchQuery,
       currentBookId: currentBookId ?? this.currentBookId,
+      hasMoreActive: hasMoreActive ?? this.hasMoreActive,
+      hasMoreArchived: hasMoreArchived ?? this.hasMoreArchived,
     );
   }
 }
@@ -78,6 +75,12 @@ class BooksNotifier extends Notifier<BooksState> {
   String? _previousServerUrl;
   bool _isInitialized = false;
   ProviderSubscription<bool>? _readerReadinessSubscription;
+
+  final int _pageSize = 10;
+  int _activePage = 0;
+  int _archivedPage = 0;
+  bool _isLoadingMoreActive = false;
+  bool _isLoadingMoreArchived = false;
 
   @override
   BooksState build() {
@@ -151,6 +154,9 @@ class BooksNotifier extends Notifier<BooksState> {
   }
 
   Future<void> _onServerChanged() async {
+    // Clear the cache when server changes to avoid mixing books from different servers
+    await _repository.saveBooksToCache(activeBooks: [], archivedBooks: []);
+
     state = state.copyWith(
       activeBooks: const [],
       archivedBooks: const [],
@@ -230,7 +236,6 @@ class BooksNotifier extends Notifier<BooksState> {
       state = state.copyWith(currentBookId: bookId);
     }
   }
-
 
   Future<void> refreshExpiredBooks({bool forceRefreshAll = false}) async {
     if (_isBackgroundRefreshing) {
@@ -497,7 +502,12 @@ class BooksNotifier extends Notifier<BooksState> {
         settings.statsCalcSampleSize.toString(),
       );
 
-      final networkBooks = await _repository.getActiveBooks();
+      _activePage = 0;
+      final networkBooks = await _repository.getActiveBooks(
+        page: 0,
+        pageSize: _pageSize,
+        search: state.searchQuery.isEmpty ? null : state.searchQuery,
+      );
       ApiLogger.logRequest(
         '_loadBooksFromNetwork',
         details: 'got ${networkBooks.length} books',
@@ -543,6 +553,7 @@ class BooksNotifier extends Notifier<BooksState> {
         isLoading: false,
         activeBooks: finalActiveBooks,
         archivedBooks: state.archivedBooks,
+        hasMoreActive: networkBooks.length == _pageSize,
         errorMessage: null,
       );
     } catch (e) {
@@ -560,7 +571,12 @@ class BooksNotifier extends Notifier<BooksState> {
         settings.statsCalcSampleSize.toString(),
       );
 
-      final archived = await _repository.getArchivedBooks();
+      _archivedPage = 0;
+      final archived = await _repository.getArchivedBooks(
+        page: 0,
+        pageSize: _pageSize,
+        search: state.searchQuery.isEmpty ? null : state.searchQuery,
+      );
       final existingArchivedMap = {for (var b in state.archivedBooks) b.id: b};
 
       final mergedArchived = archived.map((networkBook) {
@@ -606,7 +622,11 @@ class BooksNotifier extends Notifier<BooksState> {
         archivedBooks: mergedArchived,
       );
 
-      state = state.copyWith(archivedBooks: mergedArchived, errorMessage: null);
+      state = state.copyWith(
+        archivedBooks: mergedArchived,
+        hasMoreArchived: archived.length == _pageSize,
+        errorMessage: null,
+      );
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }
@@ -713,7 +733,68 @@ class BooksNotifier extends Notifier<BooksState> {
   }
 
   void setSearchQuery(String query) {
-    state = state.copyWith(searchQuery: query);
+    if (state.searchQuery != query) {
+      _activePage = 0;
+      _archivedPage = 0;
+      state = state.copyWith(
+        searchQuery: query,
+        activeBooks: [],
+        archivedBooks: [],
+        hasMoreActive: true,
+        hasMoreArchived: true,
+      );
+      _loadBooksFromNetwork();
+    }
+  }
+
+  Future<void> loadMoreActiveBooks() async {
+    if (_isLoadingMoreActive || !state.hasMoreActive) return;
+    _isLoadingMoreActive = true;
+
+    try {
+      _activePage++;
+      final newBooks = await _repository.getActiveBooks(
+        page: _activePage,
+        pageSize: _pageSize,
+        search: state.searchQuery.isEmpty ? null : state.searchQuery,
+      );
+
+      final allBooks = [...state.activeBooks, ...newBooks];
+      state = state.copyWith(
+        activeBooks: allBooks,
+        hasMoreActive: newBooks.length == _pageSize,
+      );
+    } catch (e) {
+      _activePage--;
+      ApiLogger.logError('loadMoreActiveBooks', e);
+    } finally {
+      _isLoadingMoreActive = false;
+    }
+  }
+
+  Future<void> loadMoreArchivedBooks() async {
+    if (_isLoadingMoreArchived || !state.hasMoreArchived) return;
+    _isLoadingMoreArchived = true;
+
+    try {
+      _archivedPage++;
+      final newBooks = await _repository.getArchivedBooks(
+        page: _archivedPage,
+        pageSize: _pageSize,
+        search: state.searchQuery.isEmpty ? null : state.searchQuery,
+      );
+
+      final allBooks = [...state.archivedBooks, ...newBooks];
+      state = state.copyWith(
+        archivedBooks: allBooks,
+        hasMoreArchived: newBooks.length == _pageSize,
+      );
+    } catch (e) {
+      _archivedPage--;
+      ApiLogger.logError('loadMoreArchivedBooks', e);
+    } finally {
+      _isLoadingMoreArchived = false;
+    }
   }
 
   void clearError() {

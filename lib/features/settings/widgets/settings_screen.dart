@@ -889,56 +889,69 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        _buildNumberField(
-                          context,
-                          'Full Refresh Sample Size',
-                          settings.stats500SampleSize.toString(),
-                          '1-500',
-                          1,
-                          500,
-                          (value) {
-                            final intValue = int.tryParse(value);
-                            if (intValue != null) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updateStats500SampleSize(intValue);
-                            }
+                        SwitchListTile(
+                          title: const Text('Auto Refresh Full Stats'),
+                          value: settings.autoRefreshFullStats,
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateAutoRefreshFullStats(value);
                           },
+                          contentPadding: EdgeInsets.zero,
                         ),
-                        const SizedBox(height: 16),
-                        _buildNumberField(
-                          context,
-                          'Books to Process at Once',
-                          settings.statsRefreshBatchSize.toString(),
-                          '1-5',
-                          1,
-                          5,
-                          (value) {
-                            final intValue = int.tryParse(value);
-                            if (intValue != null) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updateStatsRefreshBatchSize(intValue);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        _buildNumberField(
-                          context,
-                          'Cooldown Before Refresh (hours)',
-                          settings.statsRefreshCooldownHours.toString(),
-                          '1-336 (14 days)',
-                          1,
-                          336,
-                          (value) {
-                            final intValue = int.tryParse(value);
-                            if (intValue != null) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updateStatsRefreshCooldownHours(intValue);
-                            }
-                          },
-                        ),
+                        if (settings.autoRefreshFullStats) ...[
+                          const SizedBox(height: 8),
+                          _buildNumberField(
+                            context,
+                            'Books to Process at Once',
+                            settings.statsRefreshBatchSize.toString(),
+                            '1-5',
+                            1,
+                            5,
+                            (value) {
+                              final intValue = int.tryParse(value);
+                              if (intValue != null) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .updateStatsRefreshBatchSize(intValue);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildNumberField(
+                            context,
+                            'Cooldown Before Refresh (hours)',
+                            settings.statsRefreshCooldownHours.toString(),
+                            '1-336 (14 days)',
+                            1,
+                            336,
+                            (value) {
+                              final intValue = int.tryParse(value);
+                              if (intValue != null) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .updateStatsRefreshCooldownHours(intValue);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          _buildNumberField(
+                            context,
+                            'Full Refresh Sample Size',
+                            settings.stats500SampleSize.toString(),
+                            '1-500',
+                            1,
+                            500,
+                            (value) {
+                              final intValue = int.tryParse(value);
+                              if (intValue != null) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .updateStats500SampleSize(intValue);
+                              }
+                            },
+                          ),
+                        ],
                       ],
                     ),
                   ),

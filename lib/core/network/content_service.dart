@@ -391,7 +391,7 @@ class ContentService {
 
   Future<DataTablesResponse<Book>> getActiveBooks({
     int start = 0,
-    int length = 100,
+    int length = 10,
     String? search,
     int draw = 1,
   }) async {
@@ -409,7 +409,7 @@ class ContentService {
 
   Future<DataTablesResponse<Book>> getArchivedBooks({
     int start = 0,
-    int length = 100,
+    int length = 10,
     String? search,
     int draw = 1,
   }) async {

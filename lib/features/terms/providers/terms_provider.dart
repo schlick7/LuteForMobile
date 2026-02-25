@@ -60,7 +60,7 @@ class TermsState {
 }
 
 class TermsNotifier extends Notifier<TermsState> {
-  final int _pageSize = 50;
+  final int _pageSize = 20;
   bool _isLoadingMore = false;
 
   @override

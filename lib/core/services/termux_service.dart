@@ -142,15 +142,15 @@ class TermuxService {
     }
   }
 
-  static Future<bool> restoreBackup(String localFilePath) async {
+  static Future<String> restoreBackup(String localFilePath) async {
     try {
       final result = await _channel.invokeMethod('restoreBackup', {
         'filePath': localFilePath,
       });
-      return result as bool? ?? false;
+      return result as String? ?? 'FAIL: Unknown error';
     } on PlatformException catch (e) {
       print('Restore backup failed: ${e.message}');
-      return false;
+      return 'FAIL: ${e.message ?? 'Unknown platform error'}';
     }
   }
 

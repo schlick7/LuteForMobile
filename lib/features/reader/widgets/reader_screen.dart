@@ -202,6 +202,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     _glowTimer?.cancel();
     _scrollController.removeListener(_handleScrollPosition);
     _scrollController.dispose();
+    ref.read(audioPlayerProvider.notifier).reset();
     super.dispose();
   }
 
@@ -214,6 +215,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       if (!_checkServerPageInProgress) {
         _checkServerPage();
       }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      ref.read(audioPlayerProvider.notifier).reset();
     }
   }
 

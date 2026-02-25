@@ -661,97 +661,100 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     );
     setState(() {
       _isRestoring = true;
+      _currentStep = 'PREPARING';
+      _currentStatus = 'Initializing restore...';
+      _currentMaxWaitSeconds = 30;
     });
 
-    try {
-      String? originalBackupDir;
-      try {
-        originalBackupDir = await BackupService.getBackupDir(
-          Settings.termuxUrl,
-        );
-        debugPrint('Original termux backup_dir: $originalBackupDir');
-      } catch (e) {
-        debugPrint('Failed to get original backup_dir: $e');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Warning: Could not save current backup directory setting',
-              ),
-              backgroundColor: Colors.orange,
-            ),
-          );
+    _progressSubscription?.cancel();
+    _progressSubscription = TermuxService.getInstallProgress().listen(
+      (progress) {
+        debugPrint('Restore progress received: $progress');
+        if (mounted && _isRestoring) {
+          setState(() {
+            final step = progress['step'] ?? '';
+            final status = progress['status'] ?? '';
+            debugPrint('Restore step: $step, status: $status');
+            if (step.isNotEmpty) {
+              _currentStep = step;
+            }
+            if (status.isNotEmpty) {
+              _currentStatus = status;
+            }
+            _currentMaxWaitSeconds = progress['maxWaitSeconds'] ?? 30;
+          });
         }
-      }
+      },
+      onError: (error) {
+        debugPrint('Restore progress error: $error');
+      },
+    );
 
+    try {
+      // Step 1: Save original backup_dir
+      // Step 1: Skip saving backup_dir - Kotlin now always sets it to Termux path after restore
+
+      // Step 2: Optional backup
       if (createBackupFirst) {
+        setState(() {
+          _currentStep = 'CREATING_BACKUP';
+          _currentStatus = 'Creating backup before restore...';
+          _currentMaxWaitSeconds = 30;
+        });
         debugPrint('Creating backup via server...');
-        final backupResult = await BackupService.createBackup(
-          Settings.termuxUrl,
-        );
-        debugPrint('Backup result: $backupResult');
-        if (!backupResult.contains('successfully')) {
+        try {
+          final backupResult = await BackupService.createBackup(
+            Settings.termuxUrl,
+          ).timeout(const Duration(seconds: 30));
+          debugPrint('Backup result: $backupResult');
+          if (!backupResult.contains('successfully')) {
+            await _progressSubscription?.cancel();
+            _progressSubscription = null;
+            setState(() {
+              _isRestoring = false;
+              _currentStep = '';
+              _currentStatus = '';
+            });
+            _showRestoreErrorDialog('Backup failed: $backupResult');
+            return;
+          }
+        } on TimeoutException {
+          await _progressSubscription?.cancel();
+          _progressSubscription = null;
           setState(() {
             _isRestoring = false;
+            _currentStep = '';
+            _currentStatus = '';
           });
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Backup failed: $backupResult'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+          _showRestoreErrorDialog('Backup creation timed out after 30 seconds');
           return;
         }
       }
 
+      // Step 3: Execute Termux restore
       debugPrint(
         'Calling TermuxService.restoreBackup with filePath: $filePath',
       );
-      final success = await TermuxService.restoreBackup(filePath);
-      debugPrint('TermuxService.restoreBackup returned: $success');
+      final result = await TermuxService.restoreBackup(filePath);
+      debugPrint('TermuxService.restoreBackup returned: $result');
+
+      await _progressSubscription?.cancel();
+      _progressSubscription = null;
 
       setState(() {
         _isRestoring = false;
+        _currentStep = '';
+        _currentStatus = '';
       });
 
-      if (!success) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Restore failed: Termux operation did not complete',
-              ),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+      if (!result.startsWith('SUCCESS')) {
+        _showRestoreErrorDialog(result);
         return;
       }
 
-      if (originalBackupDir != null && originalBackupDir.isNotEmpty) {
-        try {
-          await BackupService.updateBackupDir(
-            Settings.termuxUrl,
-            originalBackupDir,
-          );
-          debugPrint('Restored backup_dir to: $originalBackupDir');
-        } catch (e) {
-          debugPrint('Failed to restore backup_dir: $e');
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'Failed to restore backup directory setting. You may need to manually update it in Settings > Backup.',
-                ),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      }
+      // Step 4: Skip restoring backup_dir - Kotlin now always sets it to Termux path after restore
 
+      // Success
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -764,22 +767,61 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
 
       await Future.delayed(const Duration(seconds: 2));
       _refreshStatus();
+    } on TimeoutException catch (e) {
+      debugPrint('Restore timeout: $e');
+      await _progressSubscription?.cancel();
+      _progressSubscription = null;
+      setState(() {
+        _isRestoring = false;
+        _currentStep = '';
+        _currentStatus = '';
+      });
+      _showRestoreErrorDialog(
+        'Operation timed out: ${e.message ?? "Unknown timeout"}',
+      );
     } catch (e, stack) {
       debugPrint('Restore exception: $e');
       debugPrint('Stack trace: $stack');
+      await _progressSubscription?.cancel();
+      _progressSubscription = null;
       setState(() {
         _isRestoring = false;
+        _currentStep = '';
+        _currentStatus = '';
       });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Restore failed: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showRestoreErrorDialog('Restore failed: $e');
     }
+  }
+
+  void _showRestoreErrorDialog(String message) {
+    if (!mounted) return;
+    final displayMessage = message
+        .replaceFirst('FAIL: ', '')
+        .replaceFirst('FAIL:', '');
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Restore Failed'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            displayMessage,
+            style: const TextStyle(fontSize: 14),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _restoreBackup() async {
@@ -867,7 +909,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
+    if (_isLoading || _isRestoring) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
