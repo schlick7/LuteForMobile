@@ -768,7 +768,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     if (langId != null && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
       Future.microtask(() {
-        if (mounted && ref.read(settingsProvider).showStatsBar) {
+        final settings = ref.read(settingsProvider);
+        if (mounted && settings.showStatsBar && settings.showKnownTermsCount) {
           ref.read(termsProvider.notifier).loadStats(langId!);
         }
       });
@@ -807,6 +808,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         }
 
         final theme = Theme.of(context);
+        final showKnownTermsCount = ref
+            .read(settingsProvider)
+            .showKnownTermsCount;
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -821,7 +825,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                 style: theme.textTheme.bodySmall,
               ),
               const Spacer(),
-              Text("Known: $status99Count", style: theme.textTheme.bodySmall),
+              if (showKnownTermsCount)
+                Text("Known: $status99Count", style: theme.textTheme.bodySmall),
             ],
           ),
         );

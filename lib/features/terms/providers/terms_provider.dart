@@ -174,6 +174,10 @@ class TermsNotifier extends Notifier<TermsState> {
   }
 
   Future<void> loadStats(int langId) async {
+    // Check if user has enabled known terms count display
+    if (!ref.read(settingsProvider).showKnownTermsCount) {
+      return;
+    }
     try {
       final repository = ref.read(termsRepositoryProvider);
       final stats = await repository.getTermStats(langId);

@@ -664,6 +664,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         }
 
         final theme = Theme.of(context);
+        final showKnownTermsCount = ref
+            .read(settingsProvider)
+            .showKnownTermsCount;
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -678,7 +681,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 style: theme.textTheme.bodySmall,
               ),
               const Spacer(),
-              Text("Known: $status99Count", style: theme.textTheme.bodySmall),
+              if (showKnownTermsCount)
+                Text("Known: $status99Count", style: theme.textTheme.bodySmall),
             ],
           ),
         );
@@ -1273,8 +1277,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                     onStatus99Changed: (langId) async {
                       if (ref.read(settingsProvider).showStatsBar) {
                         if (ref.read(settingsProvider).showStatsBar) {
-                        await ref.read(termsProvider.notifier).loadStats(langId);
-                      }
+                          await ref
+                              .read(termsProvider.notifier)
+                              .loadStats(langId);
+                        }
                       }
                     },
                   ),
@@ -1401,7 +1407,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                     },
                     onStatus99Changed: (langId) async {
                       if (ref.read(settingsProvider).showStatsBar) {
-                        await ref.read(termsProvider.notifier).loadStats(langId);
+                        await ref
+                            .read(termsProvider.notifier)
+                            .loadStats(langId);
                       }
                     },
                   ),
