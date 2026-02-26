@@ -14,10 +14,6 @@ Why the fuck do we check if the book has audio EVERY page turn!?! we only need t
 
 Why doesn't the autobackup ever fucking trigger???
 
-I still don't think we're completely clearing and refreshing everything on a server change. On a fresh install the stats and terms screen don't work unless i do an entire app restart after adding the localurl. Maybe we need to force and entire app restart?
-
-
-
 fix backup location after restore
 /data/data/com.termux/files/home/.local/share/Lute3/backups
 
@@ -39,7 +35,9 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 - 
 
 # Reader
-- 
+- fixed? If the Audio player is toggled off we don't need to sync with server every 10 seconds, Samething if we aren't on the readscreen anymore. If it isn't visible we don't need to save/sync. 
+- If we disable "show stats bar in reader" does it also stop the calls from happening?
+- Add toggles for words known and words read seperately. 
 
 # Sentence Reader
 -
@@ -51,17 +49,18 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 - 
 
 # Books Screen
-- 
+- When refreshing books if there are books in the cache that don't match the server we need to remove them. 
 
 # Terms Screen
-- 
+- Add toggle to hide stats card and therby not make the calls for it either. 
+- Make the stats sequential instead of parallel
 
 # Statistics Screen  
 - 
 
 # Help Screen
 - Tooltip batch size
-
+- Show known terms issue under performance
 
 
 # Theme
