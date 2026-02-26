@@ -790,7 +790,9 @@ class ReaderNotifier extends Notifier<ReaderState> {
             }
 
             if (langId != null) {
-              ref.read(termsProvider.notifier).loadStats(langId);
+              if (ref.read(settingsProvider).showStatsBar) {
+                ref.read(termsProvider.notifier).loadStats(langId);
+              }
             }
           }
         }

@@ -1399,8 +1399,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                     },
                     onStatus99Changed: (langId) async {
                       if (ref.read(settingsProvider).showStatsBar) {
-                      await ref.read(termsProvider.notifier).loadStats(langId);
-                    }
+                        await ref
+                            .read(termsProvider.notifier)
+                            .loadStats(langId);
+                      }
                     },
                   ),
                 );
@@ -1562,8 +1564,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                     },
                     onStatus99Changed: (langId) async {
                       if (ref.read(settingsProvider).showStatsBar) {
-                      await ref.read(termsProvider.notifier).loadStats(langId);
-                    }
+                        await ref
+                            .read(termsProvider.notifier)
+                            .loadStats(langId);
+                      }
                     },
                   ),
                 );
