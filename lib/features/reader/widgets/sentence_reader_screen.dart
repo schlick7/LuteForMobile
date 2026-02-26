@@ -667,9 +667,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                     languageId: currentSentence.textItems.first.langId ?? 0,
                     language: 'English',
                     onTranslationRequested: () => _showAITranslation(
-                      currentSentence.textItems
-                          .map((item) => item.text)
-                          .join(),
+                      currentSentence.textItems.map((item) => item.text).join(),
                       currentSentence.textItems.first.langId ?? 0,
                     ),
                   ),
@@ -770,7 +768,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     if (langId != null && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
       Future.microtask(() {
-        if (mounted) {
+        if (mounted && ref.read(settingsProvider).showStatsBar) {
           ref.read(termsProvider.notifier).loadStats(langId!);
         }
       });
@@ -1400,7 +1398,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                       }
                     },
                     onStatus99Changed: (langId) async {
+                      if (ref.read(settingsProvider).showStatsBar) {
                       await ref.read(termsProvider.notifier).loadStats(langId);
+                    }
                     },
                   ),
                 );
@@ -1561,7 +1561,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                       }
                     },
                     onStatus99Changed: (langId) async {
+                      if (ref.read(settingsProvider).showStatsBar) {
                       await ref.read(termsProvider.notifier).loadStats(langId);
+                    }
                     },
                   ),
                 );

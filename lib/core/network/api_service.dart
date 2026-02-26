@@ -560,6 +560,49 @@ class ApiService {
     return await _dio.post<String>('/term/delete/$termId');
   }
 
+  Future<Response<String>> getTermCounts({
+    required int? langId,
+    int? statusMin,
+    int? statusMax,
+    String? search,
+  }) async {
+    final data = {
+      'draw': 1,
+      'start': 0,
+      'length': 0,
+      'columns[0][data]': '0',
+      'columns[0][name]': 'WoText',
+      'columns[0][searchable]': 'true',
+      'columns[0][orderable]': 'true',
+      'columns[1][data]': '1',
+      'columns[1][name]': 'WoTranslation',
+      'columns[1][searchable]': 'true',
+      'columns[1][orderable]': 'true',
+      'columns[2][data]': '2',
+      'columns[2][name]': 'StID',
+      'columns[2][searchable]': 'true',
+      'columns[2][orderable]': 'true',
+      'search[value]': search ?? '',
+      'search[regex]': 'false',
+      'filtAgeMin': '0',
+      'filtAgeMax': '',
+      'filtStatusMin': (statusMin ?? 0).toString(),
+      'filtStatusMax': (statusMax ?? 99).toString(),
+      'filtLanguage': langId?.toString() ?? '0',
+      'filtText': search ?? '',
+      'filtTermIDs': '',
+      'parentags': '',
+      'included_parentags': '',
+      'excluded_parentags': '',
+    };
+
+    return await _dio.post<String>(
+      '/term/datatables',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+  }
+
   Future<Response<String>> getStatsData() async {
     return await _dio.get('/stats/data');
   }

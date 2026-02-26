@@ -372,7 +372,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       }
 
       if (langId != null) {
-        ref.read(termsProvider.notifier).loadStats(langId);
+        if (ref.read(settingsProvider).showStatsBar) {
+          ref.read(termsProvider.notifier).loadStats(langId);
+        }
       }
 
       _loadAudioIfNeeded();
@@ -407,7 +409,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         }
 
         if (langId != null) {
-          ref.read(termsProvider.notifier).loadStats(langId);
+          if (ref.read(settingsProvider).showStatsBar) {
+            ref.read(termsProvider.notifier).loadStats(langId);
+          }
         }
       }
 
@@ -622,7 +626,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         : '';
     if (langId != null && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
-      ref.read(termsProvider.notifier).loadStats(langId);
+      if (ref.read(settingsProvider).showStatsBar) {
+        ref.read(termsProvider.notifier).loadStats(langId);
+      }
     }
 
     return Consumer(
@@ -1265,7 +1271,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       }
                     },
                     onStatus99Changed: (langId) async {
-                      await ref.read(termsProvider.notifier).loadStats(langId);
+                      if (ref.read(settingsProvider).showStatsBar) {
+                        if (ref.read(settingsProvider).showStatsBar) {
+                        await ref.read(termsProvider.notifier).loadStats(langId);
+                      }
+                      }
                     },
                   ),
                 );
@@ -1390,7 +1400,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       }
                     },
                     onStatus99Changed: (langId) async {
-                      await ref.read(termsProvider.notifier).loadStats(langId);
+                      if (ref.read(settingsProvider).showStatsBar) {
+                        await ref.read(termsProvider.notifier).loadStats(langId);
+                      }
                     },
                   ),
                 );

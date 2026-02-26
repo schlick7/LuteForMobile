@@ -573,6 +573,27 @@ class ContentService {
     await _apiService.deleteTerm(termId);
   }
 
+  Future<int> getTermCount({
+    int? langId,
+    int? statusMin,
+    int? statusMax,
+    String? search,
+  }) async {
+    final response = await _apiService.getTermCounts(
+      langId: langId,
+      statusMin: statusMin,
+      statusMax: statusMax,
+      search: search,
+    );
+    try {
+      final decoded = jsonDecode(response.data ?? '') as Map<String, dynamic>;
+      return decoded['recordsFiltered'] as int? ?? 0;
+    } catch (e) {
+      ApiLogger.logError('getTermCount', e);
+      return 0;
+    }
+  }
+
   /// Fetches and parses all user settings from the settings page.
   /// This makes a single API call and returns a map of all settings,
   /// avoiding multiple redundant requests when different callers need
