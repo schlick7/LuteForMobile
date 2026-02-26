@@ -42,26 +42,35 @@ class TermsRepository {
 
   Future<TermStats> getTermStats(int langId) async {
     try {
-      final learningCount = await contentService.getTermCount(
-        langId: langId,
-        statusMin: 1,
-        statusMax: 5,
-      );
+      final results = await Future.wait([
+        contentService.getTermCount(langId: langId, statusMin: 1, statusMax: 1),
+        contentService.getTermCount(langId: langId, statusMin: 2, statusMax: 2),
+        contentService.getTermCount(langId: langId, statusMin: 3, statusMax: 3),
+        contentService.getTermCount(langId: langId, statusMin: 4, statusMax: 4),
+        contentService.getTermCount(langId: langId, statusMin: 5, statusMax: 5),
+        contentService.getTermCount(
+          langId: langId,
+          statusMin: 99,
+          statusMax: 99,
+        ),
+      ]);
 
-      final wellKnownCount = await contentService.getTermCount(
-        langId: langId,
-        statusMin: 99,
-        statusMax: 99,
-      );
+      final status1 = results[0];
+      final status2 = results[1];
+      final status3 = results[2];
+      final status4 = results[3];
+      final status5 = results[4];
+      final status99 = results[5];
+      final total = status1 + status2 + status3 + status4 + status5 + status99;
 
       return TermStats(
-        status1: 0,
-        status2: 0,
-        status3: 0,
-        status4: 0,
-        status5: 0,
-        status99: wellKnownCount,
-        total: learningCount + wellKnownCount,
+        status1: status1,
+        status2: status2,
+        status3: status3,
+        status4: status4,
+        status5: status5,
+        status99: status99,
+        total: total,
       );
     } catch (e) {
       throw Exception('Failed to load term stats: $e');
