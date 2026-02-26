@@ -42,25 +42,44 @@ class TermsRepository {
 
   Future<TermStats> getTermStats(int langId) async {
     try {
-      final results = await Future.wait([
-        contentService.getTermCount(langId: langId, statusMin: 1, statusMax: 1),
-        contentService.getTermCount(langId: langId, statusMin: 2, statusMax: 2),
-        contentService.getTermCount(langId: langId, statusMin: 3, statusMax: 3),
-        contentService.getTermCount(langId: langId, statusMin: 4, statusMax: 4),
-        contentService.getTermCount(langId: langId, statusMin: 5, statusMax: 5),
-        contentService.getTermCount(
-          langId: langId,
-          statusMin: 99,
-          statusMax: 99,
-        ),
-      ]);
-
-      final status1 = results[0];
-      final status2 = results[1];
-      final status3 = results[2];
-      final status4 = results[3];
-      final status5 = results[4];
-      final status99 = results[5];
+      // Make calls sequentially to avoid overwhelming the server
+      // Each call can take up to ~10 seconds, so we use a 15 second timeout per call
+      final status1 = await contentService.getTermCount(
+        langId: langId,
+        statusMin: 1,
+        statusMax: 1,
+        timeout: const Duration(seconds: 15),
+      );
+      final status2 = await contentService.getTermCount(
+        langId: langId,
+        statusMin: 2,
+        statusMax: 2,
+        timeout: const Duration(seconds: 15),
+      );
+      final status3 = await contentService.getTermCount(
+        langId: langId,
+        statusMin: 3,
+        statusMax: 3,
+        timeout: const Duration(seconds: 15),
+      );
+      final status4 = await contentService.getTermCount(
+        langId: langId,
+        statusMin: 4,
+        statusMax: 4,
+        timeout: const Duration(seconds: 15),
+      );
+      final status5 = await contentService.getTermCount(
+        langId: langId,
+        statusMin: 5,
+        statusMax: 5,
+        timeout: const Duration(seconds: 15),
+      );
+      final status99 = await contentService.getTermCount(
+        langId: langId,
+        statusMin: 99,
+        statusMax: 99,
+        timeout: const Duration(seconds: 15),
+      );
       final total = status1 + status2 + status3 + status4 + status5 + status99;
 
       return TermStats(

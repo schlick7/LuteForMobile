@@ -565,6 +565,7 @@ class ApiService {
     int? statusMin,
     int? statusMax,
     String? search,
+    Duration? timeout,
   }) async {
     final data = {
       'draw': 1,
@@ -599,7 +600,11 @@ class ApiService {
     return await _dio.post<String>(
       '/term/datatables',
       data: data,
-      options: Options(contentType: Headers.formUrlEncodedContentType),
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+        sendTimeout: timeout,
+        receiveTimeout: timeout,
+      ),
     );
   }
 

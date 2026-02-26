@@ -578,12 +578,14 @@ class ContentService {
     int? statusMin,
     int? statusMax,
     String? search,
+    Duration? timeout,
   }) async {
     final response = await _apiService.getTermCounts(
       langId: langId,
       statusMin: statusMin,
       statusMax: statusMax,
       search: search,
+      timeout: timeout,
     );
     try {
       final decoded = jsonDecode(response.data ?? '') as Map<String, dynamic>;
