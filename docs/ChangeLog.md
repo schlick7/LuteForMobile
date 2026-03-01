@@ -7,6 +7,7 @@
 - Fixed some incorrect Rebuilds triggering
 - Fixed ondevice TTS
 - TermScreen no longer scrolls on TermForm exit
+- Tags now work properly in TermsForm
 
 # New Feature
 - Termux Integration (Android APK only)
@@ -30,3 +31,6 @@
 - For real this time fixed release key changing
 - Added configuration for Book Stats loading
 - Added configuration of tooltip caching
+
+
+Fixed term status count loading in TermScreen - This is a major performance fix
