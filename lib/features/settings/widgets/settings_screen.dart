@@ -18,6 +18,85 @@ import 'tts_settings_section.dart';
 import 'ai_settings_section.dart';
 import 'termux_screen.dart';
 
+class NumberField extends StatefulWidget {
+  final String label;
+  final String initialValue;
+  final String hint;
+  final int minValue;
+  final int maxValue;
+  final Function(String) onChanged;
+
+  const NumberField({
+    super.key,
+    required this.label,
+    required this.initialValue,
+    required this.hint,
+    required this.minValue,
+    required this.maxValue,
+    required this.onChanged,
+  });
+
+  @override
+  State<NumberField> createState() => _NumberFieldState();
+}
+
+class _NumberFieldState extends State<NumberField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void didUpdateWidget(NumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialValue != widget.initialValue &&
+        _controller.text != widget.initialValue) {
+      _controller.text = widget.initialValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(widget.label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+            hintText: widget.hint,
+          ),
+          controller: _controller,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          onChanged: (value) {
+            final intValue = int.tryParse(value);
+            if (intValue != null &&
+                intValue >= widget.minValue &&
+                intValue <= widget.maxValue) {
+              widget.onChanged(value);
+            }
+          },
+        ),
+      ],
+    );
+  }
+}
+
 class SettingsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
 
@@ -766,14 +845,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         if (settings.enableTooltipCaching) ...[
                           const SizedBox(height: 16),
-                          _buildNumberField(
-                            context,
-                            'Max Concurrent Tooltip Fetches',
-                            settings.maxConcurrentTooltipFetches.toString(),
-                            '1-10',
-                            1,
-                            10,
-                            (value) {
+                          NumberField(
+                            label: 'Max Concurrent Tooltip Fetches',
+                            initialValue: settings.maxConcurrentTooltipFetches
+                                .toString(),
+                            hint: '1-10',
+                            minValue: 1,
+                            maxValue: 10,
+                            onChanged: (value) {
                               final intValue = int.tryParse(value);
                               if (intValue != null) {
                                 ref
@@ -911,14 +990,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildNumberField(
-                          context,
-                          'Calc Sample Size',
-                          settings.statsCalcSampleSize.toString(),
-                          '1-500',
-                          1,
-                          500,
-                          (value) {
+                        NumberField(
+                          label: 'Calc Sample Size',
+                          initialValue: settings.statsCalcSampleSize.toString(),
+                          hint: '1-500',
+                          minValue: 1,
+                          maxValue: 500,
+                          onChanged: (value) {
                             final intValue = int.tryParse(value);
                             if (intValue != null) {
                               ref
@@ -940,14 +1018,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                         if (settings.autoRefreshFullStats) ...[
                           const SizedBox(height: 8),
-                          _buildNumberField(
-                            context,
-                            'Books to Process at Once',
-                            settings.statsRefreshBatchSize.toString(),
-                            '1-5',
-                            1,
-                            5,
-                            (value) {
+                          NumberField(
+                            label: 'Books to Process at Once',
+                            initialValue: settings.statsRefreshBatchSize
+                                .toString(),
+                            hint: '1-5',
+                            minValue: 1,
+                            maxValue: 5,
+                            onChanged: (value) {
                               final intValue = int.tryParse(value);
                               if (intValue != null) {
                                 ref
@@ -957,14 +1035,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          _buildNumberField(
-                            context,
-                            'Cooldown Before Refresh (hours)',
-                            settings.statsRefreshCooldownHours.toString(),
-                            '1-336 (14 days)',
-                            1,
-                            336,
-                            (value) {
+                          NumberField(
+                            label: 'Cooldown Before Refresh (hours)',
+                            initialValue: settings.statsRefreshCooldownHours
+                                .toString(),
+                            hint: '1-336 (14 days)',
+                            minValue: 1,
+                            maxValue: 336,
+                            onChanged: (value) {
                               final intValue = int.tryParse(value);
                               if (intValue != null) {
                                 ref
@@ -974,14 +1052,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             },
                           ),
                           const SizedBox(height: 16),
-                          _buildNumberField(
-                            context,
-                            'Full Refresh Sample Size',
-                            settings.stats500SampleSize.toString(),
-                            '1-500',
-                            1,
-                            500,
-                            (value) {
+                          NumberField(
+                            label: 'Full Refresh Sample Size',
+                            initialValue: settings.stats500SampleSize
+                                .toString(),
+                            hint: '1-500',
+                            minValue: 1,
+                            maxValue: 500,
+                            onChanged: (value) {
                               final intValue = int.tryParse(value);
                               if (intValue != null) {
                                 ref
@@ -1180,47 +1258,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildNumberField(
-    BuildContext context,
-    String label,
-    String initialValue,
-    String hint,
-    int minValue,
-    int maxValue,
-    Function(String) onChanged,
-  ) {
-    final controller = TextEditingController(text: initialValue);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        TextField(
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
-            hintText: hint,
-          ),
-          controller: controller,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          onChanged: (value) {
-            final intValue = int.tryParse(value);
-            if (intValue != null &&
-                intValue >= minValue &&
-                intValue <= maxValue) {
-              onChanged(value);
-            }
-          },
-        ),
-      ],
     );
   }
 
