@@ -542,7 +542,11 @@ class BooksNotifier extends Notifier<BooksState> {
           .where((b) => !existingBookIds.contains(b.id))
           .toList();
 
-      final finalActiveBooks = [...updatedActiveBooks, ...newBooks];
+      final serverBookIds = networkBooksMap.keys.toSet();
+      final finalActiveBooks = [
+        ...updatedActiveBooks.where((b) => serverBookIds.contains(b.id)),
+        ...newBooks,
+      ];
 
       await _repository.saveBooksToCache(
         activeBooks: finalActiveBooks,
