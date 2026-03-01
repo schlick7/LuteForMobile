@@ -4,11 +4,13 @@
   - python3 -m lute.main
   
 
-fixed? Pretty sure we had an old bug creap back in. We seem to be overwhelming the server when refreshing the books. screen. it is supposed to be doing a quick fetch of the bookstable with the calc sample at the server setting of 5pages in case any of the book is stale. And then once that is complete we change the calc sample size to what is used in the 500samplesize method and then mark all as stale, and then add them all to a queue and recalculate them. What i am pretty sure is happening is that both those things run in parallel which is causing all the books to recalc at the exact same time at the 500samplesize setting which overwhelms the server. Do some research
 
 
-Why the fuck do we check if the book has audio EVERY page turn!?! we only need to set this value exactly once when we save the selected book to currentbook. The book can never magically gets audio, it either has it or doesn't have it so we can do this check once and then save it. 
 
+---
+1) Partially fixed? When books are archived, they still show up in the normal view. Maybe this has to do with my sync/stats settings, but seems like that should be independent?
+
+---
 
 
 
@@ -16,6 +18,7 @@ Why doesn't the autobackup ever fucking trigger???
 
 fix backup location after restore
 /data/data/com.termux/files/home/.local/share/Lute3/backups
+- We need to save and restore the entire settings page for this
 
 
 ---
@@ -36,8 +39,6 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 
 # Reader
 - fixed? If the Audio player is toggled off we don't need to sync with server every 10 seconds, Samething if we aren't on the readscreen anymore. If it isn't visible we don't need to save/sync. 
-- If we disable "show stats bar in reader" does it also stop the calls from happening?
-- Add toggles for words known and words read seperately. 
 
 # Sentence Reader
 -
@@ -49,12 +50,11 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 - 
 
 # Books Screen
-- When refreshing books if there are books in the cache that don't match the server we need to remove them. 
+- 
 
 # Terms Screen
 - Add toggle to hide stats card and therby not make the calls for it either. 
-- Make the stats sequential instead of parallel
-
+- 
 # Statistics Screen  
 - 
 
