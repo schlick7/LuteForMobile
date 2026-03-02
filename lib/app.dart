@@ -339,9 +339,12 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     }
   }
 
+  bool _autoBackupTriggered = false;
+
   void _triggerAutoBackup() {
-    final settings = ref.read(settingsProvider);
-    if (settings.serverUrl.isNotEmpty) {
+    final settings = ref.watch(settingsProvider);
+    if (settings.serverUrl.isNotEmpty && !_autoBackupTriggered) {
+      _autoBackupTriggered = true;
       ref.read(apiServiceProvider).triggerAutoBackup();
     }
   }
@@ -357,6 +360,13 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     // Listen for books loading completion and trigger auto backup
     ref.listen(booksLoadingCompleteProvider, (previous, next) {
       if (next == true && previous != true) {
+        _triggerAutoBackup();
+      }
+    });
+
+    // Also listen for settings to load and trigger backup
+    ref.listen(settingsProvider, (previous, next) {
+      if (previous?.serverUrl.isEmpty == true && next.serverUrl.isNotEmpty) {
         _triggerAutoBackup();
       }
     });

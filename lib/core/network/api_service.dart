@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
 import 'queued_dio_interceptor.dart';
 import 'api_request_queue.dart';
@@ -657,22 +656,8 @@ class ApiService {
     );
   }
 
-  static const String _lastAutoBackupCheckKey = 'lastAutoBackupCheckTimestamp';
-
   Future<void> triggerAutoBackup() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      final lastCheck = prefs.getInt(_lastAutoBackupCheckKey) ?? 0;
-
-      // Skip if we checked within the last 24 hours (cache the check, not the backup)
-      if (now - lastCheck < 24 * 60 * 60) {
-        return;
-      }
-
-      // Update last check timestamp
-      await prefs.setInt(_lastAutoBackupCheckKey, now);
-
       final response = await _dio.get('/settings/index');
       if (response.statusCode != 200) return;
 
@@ -687,11 +672,11 @@ class ApiService {
       if (match != null) {
         final dateStr = match.group(1);
         if (dateStr != null && dateStr.isNotEmpty) {
-          lastBackupTimestamp =
-              DateTime.parse(dateStr).millisecondsSinceEpoch ~/ 1000;
+          lastBackupTimestamp = int.tryParse(dateStr);
         }
       }
 
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final twentyFourHoursAgo = now - (24 * 60 * 60);
 
       if (autoBackupEnabled &&
