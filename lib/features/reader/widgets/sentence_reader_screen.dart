@@ -183,7 +183,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   void _loadStatsIfNeeded() {
     final statsState = ref.read(statsProvider);
-    if (statsState.value == null) {
+    if (statsState.value == null && !statsState.isLoading) {
       ref.read(statsProvider.notifier).loadStats();
     }
   }
@@ -765,6 +765,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final languageName = langId != null
         ? (_languageIdToName[langId] ?? '')
         : '';
+    if (languageName.isEmpty) {
+      return const SizedBox.shrink();
+    }
     if (langId != null && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
       Future.microtask(() {

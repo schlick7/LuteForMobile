@@ -624,6 +624,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final languageName = langId != null
         ? (_languageIdToName[langId] ?? '')
         : '';
+    if (languageName.isEmpty) {
+      return const SizedBox.shrink();
+    }
     if (langId != null && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
       if (ref.read(settingsProvider).showStatsBar) {
@@ -693,7 +696,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildPageControls(BuildContext context, PageData pageData) {
     final isLastPage = pageData!.currentPage == pageData.pageCount;
     final theme = Theme.of(context);
-    final settings = ref.read(settingsProvider);
+    final settings = ref.watch(settingsProvider);
     final showStatsBar = settings.showStatsBar;
 
     return Align(
@@ -1276,11 +1279,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                     },
                     onStatus99Changed: (langId) async {
                       if (ref.read(settingsProvider).showStatsBar) {
-                        if (ref.read(settingsProvider).showStatsBar) {
-                          await ref
-                              .read(termsProvider.notifier)
-                              .loadStats(langId);
-                        }
+                        await ref
+                            .read(termsProvider.notifier)
+                            .loadStats(langId);
                       }
                     },
                   ),
