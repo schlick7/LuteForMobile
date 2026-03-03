@@ -13,9 +13,6 @@
 ---
 
 
-
-Why doesn't the autobackup ever fucking trigger???
-
 fix backup location after restore
 /data/data/com.termux/files/home/.local/share/Lute3/backups
 - We need to save and restore the entire settings page for this
@@ -38,7 +35,7 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 - 
 
 # Reader
-- fixed? If the Audio player is toggled off we don't need to sync with server every 10 seconds, Samething if we aren't on the readscreen anymore. If it isn't visible we don't need to save/sync. 
+-
 
 # Sentence Reader
 -
@@ -54,7 +51,7 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 
 # Terms Screen
 - Add toggle to hide stats card and therby not make the calls for it either. 
-- 
+ 
 # Statistics Screen  
 - 
 
