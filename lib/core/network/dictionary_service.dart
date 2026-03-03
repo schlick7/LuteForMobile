@@ -188,6 +188,22 @@ class DictionaryService {
     );
   }
 
+  static const int defaultPopupHeight = 300;
+  static const int minPopupHeight = 150;
+  static const int maxPopupHeight = 600;
+  static const int popupHeightStep = 50;
+
+  Future<int> getSentenceTranslationPopupHeight() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('sentence_translation_popup_height') ??
+        defaultPopupHeight;
+  }
+
+  Future<void> setSentenceTranslationPopupHeight(int height) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('sentence_translation_popup_height', height);
+  }
+
   String getWebviewCacheKey(String dictionaryName, String term) {
     return '${dictionaryName}_${term.hashCode}';
   }
