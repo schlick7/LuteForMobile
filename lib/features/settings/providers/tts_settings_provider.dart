@@ -59,7 +59,7 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
             (e) => e.toString() == providerStr,
             orElse: () => TTSProvider.onDevice,
           )
-        : TTSProvider.onDevice;
+        : TTSProvider.none;
 
     final onDeviceConfig = await _loadConfig(prefs, _onDeviceConfigKey);
     final kokoroConfig = await _loadConfig(prefs, _kokoroConfigKey);
