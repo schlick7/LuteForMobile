@@ -373,7 +373,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
       if (langId != null) {
         if (ref.read(settingsProvider).showStatsBar) {
-          ref.read(termsProvider.notifier).loadStats(langId);
+          ref.read(termsProvider.notifier).loadStatus99Only(langId);
         }
       }
 
@@ -410,7 +410,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
         if (langId != null) {
           if (ref.read(settingsProvider).showStatsBar) {
-            ref.read(termsProvider.notifier).loadStats(langId);
+            ref.read(termsProvider.notifier).loadStatus99Only(langId);
           }
         }
       }
@@ -630,7 +630,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     if (langId != null && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
       if (ref.read(settingsProvider).showStatsBar) {
-        ref.read(termsProvider.notifier).loadStats(langId);
+        ref.read(termsProvider.notifier).loadStatus99Only(langId);
       }
     }
 

@@ -773,7 +773,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       Future.microtask(() {
         final settings = ref.read(settingsProvider);
         if (mounted && settings.showStatsBar && settings.showKnownTermsCount) {
-          ref.read(termsProvider.notifier).loadStats(langId!);
+          ref.read(termsProvider.notifier).loadStatus99Only(langId!);
         }
       });
     }

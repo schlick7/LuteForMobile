@@ -791,7 +791,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
             if (langId != null) {
               if (ref.read(settingsProvider).showStatsBar) {
-                ref.read(termsProvider.notifier).loadStats(langId);
+                ref.read(termsProvider.notifier).loadStatus99Only(langId);
               }
             }
           }

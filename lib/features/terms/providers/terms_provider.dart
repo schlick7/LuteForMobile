@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 import '../../../core/logger/api_logger.dart';
@@ -62,6 +64,11 @@ class TermsState {
 class TermsNotifier extends Notifier<TermsState> {
   final int _pageSize = 20;
   bool _isLoadingMore = false;
+
+  bool _status99LoadInProgress = false;
+  int? _lastStatus99LangId;
+  DateTime? _lastStatus99LoadTime;
+  Timer? _status99DebounceTimer;
 
   @override
   TermsState build() {
@@ -174,7 +181,6 @@ class TermsNotifier extends Notifier<TermsState> {
   }
 
   Future<void> loadStats(int langId) async {
-    // Check if user has enabled known terms count display
     if (!ref.read(settingsProvider).showKnownTermsCount) {
       return;
     }
@@ -184,6 +190,64 @@ class TermsNotifier extends Notifier<TermsState> {
       state = state.copyWith(stats: stats);
     } catch (e) {
       ApiLogger.logError('loadStats', e);
+    }
+  }
+
+  Future<void> loadStatus99Only(int langId) async {
+    if (!ref.read(settingsProvider).showKnownTermsCount) {
+      return;
+    }
+
+    _status99DebounceTimer?.cancel();
+    _status99DebounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _executeLoadStatus99(langId);
+    });
+  }
+
+  Future<void> _executeLoadStatus99(int langId) async {
+    final now = DateTime.now();
+    if (_status99LoadInProgress) {
+      return;
+    }
+    if (_lastStatus99LangId == langId &&
+        _lastStatus99LoadTime != null &&
+        now.difference(_lastStatus99LoadTime!).inSeconds < 3) {
+      return;
+    }
+
+    _status99LoadInProgress = true;
+    try {
+      final repository = ref.read(termsRepositoryProvider);
+      final count = await repository.contentService.getTermCount(
+        langId: langId,
+        statusMin: 99,
+        statusMax: 99,
+      );
+
+      final currentStats = state.stats;
+      final newStats = TermStats(
+        status1: currentStats.status1,
+        status2: currentStats.status2,
+        status3: currentStats.status3,
+        status4: currentStats.status4,
+        status5: currentStats.status5,
+        status99: count,
+        total:
+            currentStats.status1 +
+            currentStats.status2 +
+            currentStats.status3 +
+            currentStats.status4 +
+            currentStats.status5 +
+            count,
+      );
+      state = state.copyWith(stats: newStats);
+
+      _lastStatus99LangId = langId;
+      _lastStatus99LoadTime = DateTime.now();
+    } catch (e) {
+      ApiLogger.logError('loadStatus99Only', e);
+    } finally {
+      _status99LoadInProgress = false;
     }
   }
 
