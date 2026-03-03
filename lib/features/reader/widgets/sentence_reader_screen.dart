@@ -20,6 +20,7 @@ import '../widgets/sentence_ai_translation_button.dart';
 import '../widgets/sentence_ai_translation_widget.dart';
 import '../utils/sentence_parser.dart';
 import '../../../core/network/dictionary_service.dart';
+import '../../../shared/providers/network_providers.dart';
 import '../../../features/settings/providers/settings_provider.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
@@ -165,6 +166,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
   bool _checkServerPageInProgress = false;
+  int _splitRatio = DictionaryService.defaultSplitRatio;
 
   @override
   void initState() {
@@ -172,6 +174,17 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     WidgetsBinding.instance.addObserver(this);
     Future.delayed(Duration.zero, _loadLanguageMapping);
     Future.delayed(Duration.zero, _loadStatsIfNeeded);
+    Future.delayed(Duration.zero, _loadSplitRatio);
+  }
+
+  Future<void> _loadSplitRatio() async {
+    final dictionaryService = ref.read(dictionaryServiceProvider);
+    final ratio = await dictionaryService.getSentenceReaderSplitRatio();
+    if (mounted) {
+      setState(() {
+        _splitRatio = ratio;
+      });
+    }
   }
 
   @override
@@ -490,7 +503,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                 key: ValueKey('column-${currentSentence?.id ?? "null"}'),
                 children: [
                   Expanded(
-                    flex: 3,
+                    flex: 10 - _splitRatio,
                     child: _buildTopSection(
                       textSettings,
                       settings,
@@ -498,7 +511,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                     ),
                   ),
                   Expanded(
-                    flex: 7,
+                    flex: _splitRatio,
                     child: _buildBottomSection(currentSentence),
                   ),
                 ],
@@ -508,14 +521,17 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
               key: ValueKey('column-${currentSentence?.id ?? "null"}'),
               children: [
                 Expanded(
-                  flex: 3,
+                  flex: 10 - _splitRatio,
                   child: _buildTopSection(
                     textSettings,
                     settings,
                     currentSentence,
                   ),
                 ),
-                Expanded(flex: 7, child: _buildBottomSection(currentSentence)),
+                Expanded(
+                  flex: _splitRatio,
+                  child: _buildBottomSection(currentSentence),
+                ),
               ],
             ),
       bottomNavigationBar: Column(
@@ -657,6 +673,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             child: Row(
               children: [
                 Text('Terms', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.settings, size: 20),
+                  onPressed: () => _showSplitRatioDialog(context),
+                  tooltip: 'Adjust split ratio',
+                ),
                 const Spacer(),
                 if (currentSentence != null) ...[
                   SentenceAITranslationButton(
@@ -1668,5 +1690,85 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       _currentSentenceId = null;
       _loadTooltipsForCurrentSentence();
     }
+  }
+
+  void _showSplitRatioDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _SplitRatioDialog(
+        currentRatio: _splitRatio,
+        onRatioChanged: (newRatio) async {
+          final dictionaryService = ref.read(dictionaryServiceProvider);
+          await dictionaryService.setSentenceReaderSplitRatio(newRatio);
+          if (mounted) {
+            setState(() {
+              _splitRatio = newRatio;
+            });
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _SplitRatioDialog extends StatefulWidget {
+  final int currentRatio;
+  final Future<void> Function(int) onRatioChanged;
+
+  const _SplitRatioDialog({
+    required this.currentRatio,
+    required this.onRatioChanged,
+  });
+
+  @override
+  State<_SplitRatioDialog> createState() => _SplitRatioDialogState();
+}
+
+class _SplitRatioDialogState extends State<_SplitRatioDialog> {
+  late double _ratio;
+
+  @override
+  void initState() {
+    super.initState();
+    _ratio = widget.currentRatio.toDouble();
+  }
+
+  int get _topFlex => (10 - _ratio).round();
+  int get _bottomFlex => _ratio.round();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Adjust Split Ratio'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Top: $_topFlex / Bottom: $_bottomFlex'),
+          Slider(
+            value: _ratio,
+            min: DictionaryService.minSplitRatio.toDouble(),
+            max: DictionaryService.maxSplitRatio.toDouble(),
+            divisions:
+                DictionaryService.maxSplitRatio -
+                DictionaryService.minSplitRatio,
+            label: '$_topFlex / $_bottomFlex',
+            onChanged: (value) {
+              setState(() {
+                _ratio = value;
+              });
+            },
+            onChangeEnd: (value) {
+              widget.onRatioChanged(value.round());
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Done'),
+        ),
+      ],
+    );
   }
 }
