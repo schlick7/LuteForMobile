@@ -19,7 +19,8 @@
 # Other Changes
 - Make tooltips open instantly
 - Add icon for server not connected
-
+- Adjust SentenceTranslation popup height
+- Adjust SentenceReader Ratio
 
 
 # Changes from PreReleases
