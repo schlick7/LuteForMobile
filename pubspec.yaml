@@ -54,6 +54,7 @@ dependencies:
 
   # AI Integration
   openai_dart: ^0.6.2
+  google_generative_ai: ^0.4.0
 
   # Charts/Statistics
   fl_chart: ^1.1.1

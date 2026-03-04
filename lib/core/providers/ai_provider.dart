@@ -26,6 +26,12 @@ final aiServiceProvider = Provider<AIService>((ref) {
         apiKey: config?.apiKey,
         promptConfigs: promptConfigs,
       );
+    case AIProvider.gemini:
+      return GeminiService(
+        apiKey: config?.apiKey ?? '',
+        model: config?.model,
+        promptConfigs: promptConfigs,
+      );
     case AIProvider.none:
       return NoAIService();
   }
