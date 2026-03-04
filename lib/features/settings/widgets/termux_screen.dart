@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import '../../../core/logger/widget_logger.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:app_settings/app_settings.dart';
@@ -889,6 +891,358 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
+  Future<String?> _saveServerSettings() async {
+    try {
+      final settings = await BackupService.getAllSettings(Settings.termuxUrl);
+      final downloadsDir = Directory('/storage/emulated/0/Download');
+      await downloadsDir.create(recursive: true);
+      final file = File('${downloadsDir.path}/termux_settings_backup.json');
+      await file.writeAsString(json.encode(settings));
+      return file.path;
+    } catch (e) {
+      debugPrint('Failed to save server settings: $e');
+      return null;
+    }
+  }
+
+  Future<bool> _restoreServerSettings(String filePath) async {
+    try {
+      final file = File(filePath);
+      final jsonStr = await file.readAsString();
+      final settings = json.decode(jsonStr) as Map<String, dynamic>;
+
+      final checkboxFields = [
+        'backup_enabled',
+        'backup_auto',
+        'backup_warn',
+        'show_highlights',
+        'open_popup_in_new_tab',
+        'stop_audio_on_term_form_open',
+        'term_popup_promote_parent_translation',
+        'term_popup_show_components',
+        'use_ankiconnect',
+      ];
+
+      final textFieldFields = [
+        'backup_dir',
+        'backup_count',
+        'current_theme',
+        'custom_styles',
+        'mecab_path',
+        'japanese_reading',
+        'stats_calc_sample_size',
+        'ankiconnect_url',
+      ];
+
+      final formBody = <MapEntry<String, String>>[];
+
+      for (final field in checkboxFields) {
+        final value = settings[field];
+        if (value == true || value == '1' || value == 'true') {
+          formBody.add(MapEntry(field, 'y'));
+        }
+      }
+
+      for (final field in textFieldFields) {
+        final value = settings[field];
+        formBody.add(MapEntry(field, value?.toString() ?? ''));
+      }
+
+      formBody.add(const MapEntry('submit', 'Save'));
+
+      final response = await http.post(
+        Uri.parse('${Settings.termuxUrl}/settings/index'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: formBody,
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      debugPrint('Failed to restore server settings: $e');
+      return false;
+    }
+  }
+
+  void _showRestoreFlowDialog() {
+    int dialogStep = 0;
+    String? settingsPath;
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            title: const Text('Restore Flow'),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildRestoreFlowStep(
+                    setDialogState,
+                    step: 1,
+                    title: 'Save Settings',
+                    subtitle: 'Save settings to JSON file',
+                    enabled: dialogStep == 0 && !isLoading,
+                    completed: dialogStep > 0 && settingsPath != null,
+                    isLoading: isLoading,
+                    onTap: () async {
+                      setDialogState(() => isLoading = true);
+                      final path = await _saveServerSettings();
+                      setDialogState(() {
+                        settingsPath = path;
+                        dialogStep = 1;
+                        isLoading = false;
+                      });
+                    },
+                  ),
+                  _buildRestoreFlowStep(
+                    setDialogState,
+                    step: 2,
+                    title: 'Create Backup (Optional)',
+                    subtitle: 'Create lute3 backup on Termux',
+                    enabled: dialogStep == 1 && !isLoading,
+                    completed: dialogStep > 1,
+                    isLoading: isLoading,
+                    onTap: () async {
+                      final skip = await showDialog<bool>(
+                        context: dialogContext,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Create Backup?'),
+                          content: const Text(
+                            'Do you want to create a backup of your Termux data before restoring?',
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: const Text('Skip'),
+                            ),
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: const Text('Create Backup'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (skip == null) return;
+                      if (skip) {
+                        setDialogState(() => dialogStep = 2);
+                        return;
+                      }
+                      setDialogState(() => isLoading = true);
+                      try {
+                        await BackupService.createBackup(
+                          Settings.termuxUrl,
+                        ).timeout(const Duration(seconds: 30));
+                        setDialogState(() {
+                          dialogStep = 2;
+                          isLoading = false;
+                        });
+                      } catch (e) {
+                        debugPrint('Backup failed: $e');
+                        setDialogState(() => isLoading = false);
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(content: Text('Backup failed: $e')),
+                        );
+                      }
+                    },
+                  ),
+                  _buildRestoreFlowStep(
+                    setDialogState,
+                    step: 3,
+                    title: 'Stop Server',
+                    subtitle: 'Shutdown Termux server',
+                    enabled: dialogStep >= 1 && !isLoading,
+                    completed: dialogStep > 2,
+                    isLoading: isLoading,
+                    onTap: () async {
+                      setDialogState(() => isLoading = true);
+                      await TermuxService.stopServer();
+                      await Future.delayed(const Duration(seconds: 2));
+                      await _refreshServerStatus();
+                      setDialogState(() {
+                        dialogStep = 3;
+                        isLoading = false;
+                      });
+                    },
+                  ),
+                  _buildRestoreFlowStep(
+                    setDialogState,
+                    step: 4,
+                    title: 'Restore',
+                    subtitle: 'Restore from backup file',
+                    enabled: dialogStep == 3 && !isLoading,
+                    completed: dialogStep > 3,
+                    isLoading: isLoading,
+                    onTap: () async {
+                      final files =
+                          await StorageService.getBackupFilesInDownloads();
+                      if (files.isEmpty) {
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text('No backup files found in Downloads'),
+                          ),
+                        );
+                        return;
+                      }
+                      final selectedFile = await showDialog<String>(
+                        context: dialogContext,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Select Backup File'),
+                          content: SizedBox(
+                            width: double.maxFinite,
+                            child: ListView.builder(
+                              shrinkWrap: true,
+                              itemCount: files.length,
+                              itemBuilder: (context, index) {
+                                final filePath = files[index];
+                                final fileName = filePath.split('/').last;
+                                return ListTile(
+                                  title: Text(fileName),
+                                  onTap: () => Navigator.pop(context, filePath),
+                                );
+                              },
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Cancel'),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (selectedFile == null) return;
+                      setDialogState(() => isLoading = true);
+                      try {
+                        final result = await TermuxService.restoreBackup(
+                          selectedFile,
+                        );
+                        if (result.startsWith('SUCCESS')) {
+                          if (settingsPath != null) {
+                            await _restoreServerSettings(settingsPath!);
+                          }
+                          setDialogState(() {
+                            dialogStep = 4;
+                            isLoading = false;
+                          });
+                        } else {
+                          throw Exception(result);
+                        }
+                      } catch (e) {
+                        setDialogState(() => isLoading = false);
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          SnackBar(content: Text('Restore failed: $e')),
+                        );
+                      }
+                    },
+                  ),
+                  _buildRestoreFlowStep(
+                    setDialogState,
+                    step: 5,
+                    title: 'Start Server',
+                    subtitle: 'Restart Termux server',
+                    enabled: dialogStep == 4 && !isLoading,
+                    completed: dialogStep > 4,
+                    isLoading: isLoading,
+                    onTap: () async {
+                      setDialogState(() => isLoading = true);
+                      await TermuxService.startServer();
+                      await Future.delayed(const Duration(seconds: 2));
+                      await _refreshServerStatus();
+                      setDialogState(() {
+                        dialogStep = 5;
+                        isLoading = false;
+                      });
+                      Navigator.pop(dialogContext);
+                      _refreshStatus();
+                    },
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRestoreFlowStep(
+    StateSetter setDialogState, {
+    required int step,
+    required String title,
+    required String subtitle,
+    required bool enabled,
+    required bool completed,
+    required bool isLoading,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: completed
+                  ? Colors.green
+                  : (enabled ? Colors.blue : Colors.grey),
+            ),
+            child: Center(
+              child: completed
+                  ? const Icon(Icons.check, color: Colors.white, size: 18)
+                  : Text(
+                      step.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: InkWell(
+              onTap: enabled && !isLoading ? onTap : null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: enabled && !isLoading ? Colors.black : Colors.grey,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (enabled && isLoading)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     _buildCount++;
@@ -1259,40 +1613,17 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Termux Backup',
+              'Termux Restore',
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: _isBackingUp ? null : _createBackup,
-              icon: _isBackingUp
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.backup),
-              label: Text(_isBackingUp ? 'Creating...' : 'Create Backup'),
-            ),
-            const SizedBox(height: 8),
-            ElevatedButton.icon(
-              onPressed: _isRestoring ? null : _restoreBackup,
-              icon: _isRestoring
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : const Icon(Icons.restore),
-              label: Text(_isRestoring ? 'Restoring...' : 'Restore Backup'),
+              onPressed: _serverRunning ? _showRestoreFlowDialog : null,
+              icon: const Icon(Icons.restore),
+              label: const Text('Restore Backup'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange.shade700,
+                minimumSize: const Size(double.infinity, 48),
               ),
             ),
             const SizedBox(height: 16),
