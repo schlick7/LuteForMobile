@@ -991,11 +991,23 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     onTap: () async {
                       setDialogState(() => isLoading = true);
                       final path = await _saveServerSettings();
-                      setDialogState(() {
-                        settingsPath = path;
-                        dialogStep = 1;
-                        isLoading = false;
-                      });
+                      if (path == null) {
+                        setDialogState(() => isLoading = false);
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Failed to save settings. Please try again.',
+                            ),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      } else {
+                        setDialogState(() {
+                          settingsPath = path;
+                          dialogStep = 1;
+                          isLoading = false;
+                        });
+                      }
                     },
                   ),
                   _buildRestoreFlowStep(
@@ -1059,13 +1071,26 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     isLoading: isLoading,
                     onTap: () async {
                       setDialogState(() => isLoading = true);
-                      await TermuxService.stopServer();
-                      await Future.delayed(const Duration(seconds: 2));
+                      final stopped = await TermuxService.stopServer();
                       await _refreshServerStatus();
-                      setDialogState(() {
-                        dialogStep = 3;
-                        isLoading = false;
-                      });
+
+                      if (!stopped || _serverRunning) {
+                        setDialogState(() => isLoading = false);
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Failed to stop server. Please try again or stop it manually in Termux.',
+                            ),
+                            backgroundColor: Colors.red,
+                            duration: Duration(seconds: 5),
+                          ),
+                        );
+                      } else {
+                        setDialogState(() {
+                          dialogStep = 3;
+                          isLoading = false;
+                        });
+                      }
                     },
                   ),
                   _buildRestoreFlowStep(

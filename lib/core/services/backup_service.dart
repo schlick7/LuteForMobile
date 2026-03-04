@@ -235,7 +235,8 @@ class BackupService {
 
       if (response.statusCode == 200) {
         final html = response.body;
-        final regex = RegExp(r'LUTE_USER_SETTINGS\s*=\s*(\{[^;]+\})\s*;');
+        // Match LUTE_USER_SETTINGS = {...} (with or without trailing semicolon)
+        final regex = RegExp(r'LUTE_USER_SETTINGS\s*=\s*(\{.*?\})\s*;?\s*');
         final match = regex.firstMatch(html);
         if (match != null) {
           final jsonStr = match.group(1)!;
