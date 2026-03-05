@@ -340,6 +340,14 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             ),
             actions: [
               TextButton(
+                onPressed: () {
+                  termEditController.text = termEditController.text
+                      .toLowerCase();
+                  setDialogState(() {});
+                },
+                child: const Icon(Icons.format_size),
+              ),
+              TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
                 child: const Text('Cancel'),
               ),
