@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_ce/hive.dart';
 import 'package:hive_ce_flutter/hive_ce_flutter.dart';
@@ -21,8 +22,12 @@ void main() async {
   final useTermux = prefs.getBool('use_termux') ?? false;
   final serverUrl = useTermux ? Settings.termuxUrl : localUrl;
 
-  final cacheDir = await getApplicationCacheDirectory();
-  await Hive.initFlutter(cacheDir.path);
+  if (kIsWeb) {
+    await Hive.initFlutter();
+  } else {
+    final cacheDir = await getApplicationCacheDirectory();
+    await Hive.initFlutter(cacheDir.path);
+  }
   Hive.registerAdapters();
 
   ServerStatusManager.setConnecting();

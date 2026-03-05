@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import '../../../core/logger/widget_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io';
 import '../../../shared/widgets/app_bar_leading.dart';
 import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
@@ -432,7 +432,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
                     ],
-                    if (Platform.isAndroid) ...[
+                    if (!kIsWeb &&
+                        defaultTargetPlatform == TargetPlatform.android) ...[
                       const SizedBox(height: 16),
                       Row(
                         children: [

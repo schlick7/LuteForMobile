@@ -5,9 +5,10 @@ import 'package:lute_for_mobile/core/services/termux_service.dart';
 
 class StorageService {
   static Future<bool> checkStoragePermissions() async {
-    if (Platform.isAndroid) {
+    if (kIsWeb) return true;
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return await _checkAndroidPermissions();
-    } else if (Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       return await Permission.photos.request().isGranted;
     }
     return true;
@@ -75,9 +76,10 @@ class StorageService {
   }
 
   static Future<bool> requestStoragePermissions() async {
-    if (Platform.isAndroid) {
+    if (kIsWeb) return true;
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return await _requestAndroidStoragePermissions();
-    } else if (Platform.isIOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS) {
       final permission = await Permission.photos.request();
       return permission.isGranted;
     }

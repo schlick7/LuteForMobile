@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/logger/widget_logger.dart';
@@ -41,7 +41,8 @@ class HelpScreen extends ConsumerWidget {
               _buildAIFeaturesSection(context),
               const SizedBox(height: 8),
               _buildPerformanceSection(context),
-              if (Platform.isAndroid) ...[
+              if (!kIsWeb &&
+                  defaultTargetPlatform == TargetPlatform.android) ...[
                 const SizedBox(height: 8),
                 _buildTermuxSection(context),
               ],
