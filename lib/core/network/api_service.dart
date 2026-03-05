@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
@@ -474,7 +473,7 @@ class ApiService {
     double position,
     List<double> bookmarks,
   ) async {
-    final bookmarksString = jsonEncode(bookmarks);
+    final bookmarksString = bookmarks.map((b) => b.toString()).join(';');
     return await _dio.post<String>(
       '/read/save_player_data',
       data: {
