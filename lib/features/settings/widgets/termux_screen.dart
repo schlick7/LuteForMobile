@@ -156,9 +156,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           _lute3Status = lute3Status;
         });
 
-        final settings = ref.read(settingsProvider);
         final serverRunning = await TermuxService.isServerRunning(
-          settings.serverUrl,
+          Settings.termuxUrl,
         );
         setState(() {
           _serverRunning = serverRunning;
@@ -385,9 +384,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   }
 
   Future<void> _refreshServerStatus() async {
-    final settings = ref.read(settingsProvider);
     final serverRunning = await TermuxService.isServerRunning(
-      settings.serverUrl,
+      Settings.termuxUrl,
     );
     setState(() {
       _serverRunning = serverRunning;
@@ -921,21 +919,21 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         'ankiconnect_url',
       ];
 
-      final formBody = <MapEntry<String, String>>[];
+      final formBody = <String, String>{};
 
       for (final field in checkboxFields) {
         final value = settings[field];
         if (value == true || value == '1' || value == 'true') {
-          formBody.add(MapEntry(field, 'y'));
+          formBody[field] = 'y';
         }
       }
 
       for (final field in textFieldFields) {
         final value = settings[field];
-        formBody.add(MapEntry(field, value?.toString() ?? ''));
+        formBody[field] = value?.toString() ?? '';
       }
 
-      formBody.add(const MapEntry('submit', 'Save'));
+      formBody['submit'] = 'Save';
 
       final response = await http.post(
         Uri.parse('${Settings.termuxUrl}/settings/index'),
@@ -1134,7 +1132,13 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                         );
                         if (result.startsWith('SUCCESS')) {
                           if (settingsPath != null) {
-                            await _restoreServerSettings(settingsPath!);
+                            final settingsRestored =
+                                await _restoreServerSettings(settingsPath!);
+                            if (!settingsRestored) {
+                              throw Exception(
+                                'Database restored, but restoring server settings failed',
+                              );
+                            }
                           }
                           setDialogState(() {
                             dialogStep = 4;
@@ -1161,15 +1165,28 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     isLoading: isLoading,
                     onTap: () async {
                       setDialogState(() => isLoading = true);
-                      await TermuxService.startServer();
+                      final started = await TermuxService.startServer();
                       await Future.delayed(const Duration(seconds: 2));
                       await _refreshServerStatus();
-                      setDialogState(() {
-                        dialogStep = 5;
-                        isLoading = false;
-                      });
-                      Navigator.pop(dialogContext);
-                      _refreshStatus();
+                      if (!started || !_serverRunning) {
+                        setDialogState(() => isLoading = false);
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Failed to start server. Please try again or start it manually in Termux.',
+                            ),
+                            backgroundColor: Colors.red,
+                            duration: Duration(seconds: 5),
+                          ),
+                        );
+                      } else {
+                        setDialogState(() {
+                          dialogStep = 5;
+                          isLoading = false;
+                        });
+                        Navigator.pop(dialogContext);
+                        _refreshStatus();
+                      }
                     },
                   ),
                 ],

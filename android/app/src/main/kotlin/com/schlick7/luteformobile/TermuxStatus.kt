@@ -196,31 +196,38 @@ suspend fun isLute3ServerRunningHttpQuick(port: Int = TermuxConstants.LUTE3_DEFA
 }
 
 private suspend fun checkHttpServer(url: String): Boolean = withContext(Dispatchers.IO) {
-    try {
-        val client = OkHttpClient.Builder()
-            .connectTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
-            .readTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
-            .callTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
-            .build()
+    val client = OkHttpClient.Builder()
+        .connectTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
+        .readTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
+        .callTimeout(500, java.util.concurrent.TimeUnit.MILLISECONDS)
+        .build()
 
-        val request = Request.Builder()
-            .url(url)
-            .head()
-            .build()
+    val probeUrls = listOf("$url/info", url)
+    for (probeUrl in probeUrls) {
+        try {
+            val request = Request.Builder()
+                .url(probeUrl)
+                .get()
+                .build()
 
-        val startTime = System.currentTimeMillis()
-        val response = client.newCall(request).execute()
-        val elapsed = System.currentTimeMillis() - startTime
-        val responseCode = response.code
-        val isSuccessful = response.isSuccessful
+            val startTime = System.currentTimeMillis()
+            val response = client.newCall(request).execute()
+            val elapsed = System.currentTimeMillis() - startTime
+            val responseCode = response.code
 
-        android.util.Log.d("TermuxStatus", "HTTP $url -> $responseCode in ${elapsed}ms")
-        response.close()
-        isSuccessful
-    } catch (e: Exception) {
-        android.util.Log.d("TermuxStatus", "HTTP $url FAILED: ${e.javaClass.simpleName}: ${e.message}")
-        false
+            android.util.Log.d("TermuxStatus", "HTTP GET $probeUrl -> $responseCode in ${elapsed}ms")
+            response.close()
+
+            // Any non-5xx response indicates an HTTP server is up and responding.
+            if (responseCode in 100..499) {
+                return@withContext true
+            }
+        } catch (e: Exception) {
+            android.util.Log.d("TermuxStatus", "HTTP GET $probeUrl FAILED: ${e.javaClass.simpleName}: ${e.message}")
+        }
     }
+
+    false
 }
 
 suspend fun isLute3ServerRunningHttpWithRetries(

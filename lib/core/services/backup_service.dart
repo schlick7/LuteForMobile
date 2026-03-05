@@ -235,14 +235,8 @@ class BackupService {
 
       if (response.statusCode == 200) {
         final html = response.body;
-        // Match LUTE_USER_SETTINGS = {...} (with or without trailing semicolon)
-        final regex = RegExp(r'LUTE_USER_SETTINGS\s*=\s*(\{.*?\})\s*;?\s*');
-        final match = regex.firstMatch(html);
-        if (match != null) {
-          final jsonStr = match.group(1)!;
-          return Map<String, dynamic>.from(json.decode(jsonStr));
-        }
-        throw Exception('LUTE_USER_SETTINGS not found in settings page');
+        final jsonStr = _extractLuteUserSettingsJson(html);
+        return Map<String, dynamic>.from(json.decode(jsonStr));
       } else {
         throw Exception('Failed to load settings: ${response.statusCode}');
       }
@@ -253,6 +247,68 @@ class BackupService {
     } catch (e) {
       throw Exception('Failed to get all settings: $e');
     }
+  }
+
+  /// Extracts the JSON object assigned to `LUTE_USER_SETTINGS` from HTML/JS.
+  /// Uses balanced brace parsing so values containing CSS/braces are handled.
+  static String _extractLuteUserSettingsJson(String html) {
+    const marker = 'LUTE_USER_SETTINGS';
+    final markerIndex = html.indexOf(marker);
+    if (markerIndex == -1) {
+      throw Exception('LUTE_USER_SETTINGS not found in settings page');
+    }
+
+    final equalsIndex = html.indexOf('=', markerIndex);
+    if (equalsIndex == -1) {
+      throw Exception('LUTE_USER_SETTINGS assignment not found');
+    }
+
+    final objectStart = html.indexOf('{', equalsIndex);
+    if (objectStart == -1) {
+      throw Exception('LUTE_USER_SETTINGS object start not found');
+    }
+
+    int depth = 0;
+    bool inString = false;
+    String? stringDelimiter;
+    bool escaping = false;
+
+    for (int i = objectStart; i < html.length; i++) {
+      final ch = html[i];
+
+      if (inString) {
+        if (escaping) {
+          escaping = false;
+          continue;
+        }
+        if (ch == r'\') {
+          escaping = true;
+          continue;
+        }
+        if (ch == stringDelimiter) {
+          inString = false;
+          stringDelimiter = null;
+        }
+        continue;
+      }
+
+      if (ch == '"' || ch == "'") {
+        inString = true;
+        stringDelimiter = ch;
+        continue;
+      }
+
+      if (ch == '{') {
+        depth++;
+      } else if (ch == '}') {
+        depth--;
+        if (depth == 0) {
+          return html.substring(objectStart, i + 1);
+        }
+      }
+    }
+
+    throw Exception('Unterminated LUTE_USER_SETTINGS object');
   }
 
   static const _checkboxFields = [
