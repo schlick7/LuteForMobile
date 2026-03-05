@@ -102,6 +102,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       _checkingTermux = true;
       _checkingPermission = true;
       _checkingExternalApps = true;
+      _checkingStorageAccess = true;
       _checkingLute3 = true;
       _checkingTermuxRunning = true;
     });
@@ -120,6 +121,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         final basicResults = await Future.wait([
           TermuxService.isTermuxRunning(),
           TermuxService.isTermuxPermissionGranted(),
+          _checkStorageAccessGranted(),
         ]);
 
         // Check external apps (may need storage permission)
@@ -150,6 +152,8 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           _termuxRunning = basicResults[0] as bool;
           _checkingPermission = false;
           _permissionGranted = basicResults[1] as bool;
+          _checkingStorageAccess = false;
+          _storageAccessGranted = basicResults[2] as bool;
           _checkingExternalApps = false;
           _externalAppsEnabled = externalAppsEnabled;
           _checkingLute3 = false;
@@ -204,6 +208,16 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           });
         }
       }
+      if (!termuxInstalled) {
+        setState(() {
+          _checkingTermuxRunning = false;
+          _checkingPermission = false;
+          _checkingExternalApps = false;
+          _checkingStorageAccess = false;
+          _checkingLute3 = false;
+          _storageAccessGranted = false;
+        });
+      }
     } catch (e) {
       print('Background status check failed: $e');
     } finally {
@@ -217,6 +231,18 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
 
   Future<void> _refreshStatus() async {
     _runBackgroundStatusCheck();
+  }
+
+  Future<bool> _checkStorageAccessGranted() async {
+    try {
+      final androidVersion = await TermuxService.getAndroidVersion();
+      if (androidVersion != null && androidVersion >= 30) {
+        return await Permission.manageExternalStorage.isGranted;
+      }
+      return await Permission.storage.isGranted;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _openFStore() async {
