@@ -160,6 +160,7 @@ class Book {
       'audio_filename': audioFilename,
       'LastOpenedDate': lastRead,
       'lastStatsRefresh': lastStatsRefresh,
+      'TagList': tags,
     };
   }
 
