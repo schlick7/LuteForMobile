@@ -1,3 +1,10 @@
+
+cd /home/cody/LuteForMobile
+./new_release.sh 1.2.3
+
+
+
+
 # Project Folder
 - cd ~/LuteForMobile/
 
