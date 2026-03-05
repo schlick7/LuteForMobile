@@ -203,8 +203,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
 
   Future<void> _checkAndStartLute3IfNeeded() async {
     final settings = ref.read(settingsProvider);
-    if (settings.serverUrl == Settings.termuxUrl &&
-        settings.termuxAutoLaunchEnabled) {
+    if (settings.serverUrl == Settings.termuxUrl) {
       for (int i = 0; i < 15; i++) {
         final isRunning = await TermuxService.isServerRunning(
           settings.serverUrl,

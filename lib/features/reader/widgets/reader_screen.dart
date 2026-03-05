@@ -223,8 +223,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
   Future<void> _checkAndStartLute3IfNeeded() async {
     final settings = ref.read(settingsProvider);
-    if (settings.serverUrl == Settings.termuxUrl &&
-        settings.termuxAutoLaunchEnabled) {
+    if (settings.serverUrl == Settings.termuxUrl) {
       final isRunning = await TermuxService.isServerRunning(settings.serverUrl);
       if (!isRunning) {
         await TermuxService.startServer();

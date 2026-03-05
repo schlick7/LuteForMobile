@@ -53,8 +53,6 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyEnablePagePreload = 'enable_page_preload';
   static const String _keyTermuxIntegrationEnabled =
       'termux_integration_enabled';
-  static const String _keyTermuxAutoLaunchEnabled =
-      'termux_auto_launch_enabled';
   static const String _keyStatsCalcSampleSize = 'stats_calc_sample_size';
   static const String _keyStats500SampleSize = 'stats_500_sample_size';
   static const String _keyStatsRefreshBatchSize = 'stats_refresh_batch_size';
@@ -108,8 +106,6 @@ class SettingsNotifier extends Notifier<Settings> {
     final enableTripleTapToMarkKnown =
         prefs.getBool(_keyEnableTripleTapToMarkKnown) ?? false;
     final enablePagePreload = prefs.getBool(_keyEnablePagePreload) ?? false;
-    final termuxAutoLaunchEnabled =
-        prefs.getBool(_keyTermuxAutoLaunchEnabled) ?? false;
     final termuxIntegrationEnabled =
         prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
     final statsCalcSampleSize = prefs.getInt(_keyStatsCalcSampleSize) ?? 5;
@@ -154,7 +150,6 @@ class SettingsNotifier extends Notifier<Settings> {
       showPageNumbers: showPageNumbers,
       enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
       enablePagePreload: enablePagePreload,
-      termuxAutoLaunchEnabled: termuxAutoLaunchEnabled,
       termuxIntegrationEnabled: termuxIntegrationEnabled,
       statsCalcSampleSize: statsCalcSampleSize,
       stats500SampleSize: stats500SampleSize,
@@ -388,12 +383,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyEnablePagePreload, enabled);
   }
 
-  Future<void> updateTermuxAutoLaunchEnabled(bool enabled) async {
-    state = state.copyWith(termuxAutoLaunchEnabled: enabled);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyTermuxAutoLaunchEnabled, enabled);
-  }
-
   Future<void> updateTermuxIntegrationEnabled(bool enabled) async {
     state = state.copyWith(termuxIntegrationEnabled: enabled);
     final prefs = await SharedPreferences.getInstance();
@@ -474,7 +463,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyShowTermStatsCard);
     await prefs.remove(_keyShowPageNumbers);
     await prefs.remove(_keyEnableTripleTapToMarkKnown);
-    await prefs.remove(_keyTermuxAutoLaunchEnabled);
     await prefs.remove(_keyStatsCalcSampleSize);
     await prefs.remove(_keyStatsRefreshBatchSize);
     await prefs.remove(_keyStatsRefreshCooldownHours);

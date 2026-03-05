@@ -33,7 +33,6 @@ class Settings {
   final bool enableTripleTapToMarkKnown;
   final bool enablePagePreload;
   final bool termuxIntegrationEnabled;
-  final bool termuxAutoLaunchEnabled;
   final int statsCalcSampleSize;
   final int stats500SampleSize;
   final int statsRefreshBatchSize;
@@ -73,7 +72,6 @@ class Settings {
     this.enableTripleTapToMarkKnown = false,
     this.enablePagePreload = false,
     this.termuxIntegrationEnabled = false,
-    this.termuxAutoLaunchEnabled = false,
     this.statsCalcSampleSize = 5,
     this.stats500SampleSize = 100,
     this.statsRefreshBatchSize = 1,
@@ -114,7 +112,6 @@ class Settings {
     bool? enableTripleTapToMarkKnown,
     bool? enablePagePreload,
     bool? termuxIntegrationEnabled,
-    bool? termuxAutoLaunchEnabled,
     int? statsCalcSampleSize,
     int? stats500SampleSize,
     int? statsRefreshBatchSize,
@@ -165,8 +162,6 @@ class Settings {
       enablePagePreload: enablePagePreload ?? this.enablePagePreload,
       termuxIntegrationEnabled:
           termuxIntegrationEnabled ?? this.termuxIntegrationEnabled,
-      termuxAutoLaunchEnabled:
-          termuxAutoLaunchEnabled ?? this.termuxAutoLaunchEnabled,
       statsCalcSampleSize: statsCalcSampleSize ?? this.statsCalcSampleSize,
       stats500SampleSize: stats500SampleSize ?? this.stats500SampleSize,
       statsRefreshBatchSize:
@@ -211,7 +206,6 @@ class Settings {
       enableTripleTapToMarkKnown: false,
       enablePagePreload: false,
       termuxIntegrationEnabled: false,
-      termuxAutoLaunchEnabled: false,
       statsCalcSampleSize: 5,
       stats500SampleSize: 100,
       statsRefreshBatchSize: 1,
@@ -255,7 +249,6 @@ class Settings {
         other.enableTripleTapToMarkKnown == enableTripleTapToMarkKnown &&
         other.enablePagePreload == enablePagePreload &&
         other.termuxIntegrationEnabled == termuxIntegrationEnabled &&
-        other.termuxAutoLaunchEnabled == termuxAutoLaunchEnabled &&
         other.statsCalcSampleSize == statsCalcSampleSize &&
         other.statsRefreshBatchSize == statsRefreshBatchSize &&
         other.statsRefreshCooldownHours == statsRefreshCooldownHours &&
@@ -294,7 +287,6 @@ class Settings {
     enableTripleTapToMarkKnown,
     enablePagePreload,
     termuxIntegrationEnabled,
-    termuxAutoLaunchEnabled,
     statsCalcSampleSize,
     statsRefreshBatchSize,
     statsRefreshCooldownHours,

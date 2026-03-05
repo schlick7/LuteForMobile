@@ -17,7 +17,7 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         android.util.Log.d("MainActivity", ">>> onCreate() <<<")
-        
+
         if (!hasAutoLaunched) {
             hasAutoLaunched = true
             mainScope.launch {
@@ -25,7 +25,7 @@ class MainActivity : FlutterActivity() {
             }
         }
     }
-    
+
     override fun onResume() {
         super.onResume()
         android.util.Log.d("MainActivity", ">>> onResume() <<<")
@@ -44,27 +44,25 @@ class MainActivity : FlutterActivity() {
     }
 
     /**
-     * Checks if Termux auto-launch should be performed on app start.
+     * Checks if Termux should be launched on app start.
      * This is called in onCreate() to ensure it runs early in the app lifecycle.
      * Uses ContentProvider's cached server health check result when available.
      */
     private fun checkAndAutoLaunchTermux() {
         try {
             val prefs: SharedPreferences = getSharedPreferences("FlutterSharedPreferences", MODE_PRIVATE)
-            // Use the correct key format as determined by our logging
             val useTermux = prefs.getBoolean("flutter.use_termux", false)
-            val autoLaunchEnabled = prefs.getBoolean("flutter.termux_auto_launch_enabled", false)
 
             android.util.Log.d(
                 "MainActivity",
-                "checkAndAutoLaunchTermux: useTermux=$useTermux, autoLaunchEnabled=$autoLaunchEnabled"
+                "checkAndAutoLaunchTermux: useTermux=$useTermux"
             )
 
             // Check ContentProvider for cached server health
             val cachedRunning = ServerHealthProvider.isServerRunning
             android.util.Log.d("MainActivity", "Cached server status from ContentProvider: $cachedRunning")
 
-            if (useTermux && autoLaunchEnabled) {
+            if (useTermux) {
                 // Perform auto-launch in a coroutine
                 mainScope.launch {
                     try {
@@ -80,7 +78,7 @@ class MainActivity : FlutterActivity() {
             } else {
                 android.util.Log.d(
                     "MainActivity",
-                    "Auto-launch conditions not met: useTermux=$useTermux, autoLaunchEnabled=$autoLaunchEnabled"
+                    "Auto-launch conditions not met: useTermux=$useTermux"
                 )
             }
         } catch (e: Exception) {

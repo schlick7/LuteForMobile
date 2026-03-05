@@ -1433,39 +1433,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Auto-Launch Settings',
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 16),
-                  Consumer(
-                    builder: (context, ref, child) {
-                      final settings = ref.watch(settingsProvider);
-                      return SwitchListTile(
-                        title: const Text('Auto-launch Termux when needed'),
-                        subtitle: const Text(
-                          'Automatically launch Termux in the background when the app starts if it\'s not already running',
-                        ),
-                        value: settings.termuxAutoLaunchEnabled,
-                        onChanged: (bool value) {
-                          ref
-                              .read(settingsProvider.notifier)
-                              .updateTermuxAutoLaunchEnabled(value);
-                        },
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
           if (_lute3Status == 'INSTALLED') ...[
             const SizedBox(height: 16),
             _buildServerCard(),
