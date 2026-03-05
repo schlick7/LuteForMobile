@@ -212,11 +212,14 @@ class ReaderNotifier extends Notifier<ReaderState> {
           // Cache hit: update state with cached data
           state = state.copyWith(isLoading: false, pageData: pageData);
 
-          // Queue up prefetch operations sequentially to ensure start_reading
-          // completes before preloading the next page
-          _enqueuePrefetch(
-            () => _backgroundRefreshStatuses(bookId, pageNum, requestKey),
-          );
+          // Only background-refresh statuses when this load can actually come
+          // from cache (explicit page requests). For pageNum == null, the
+          // initial load already fetched fresh network data.
+          if (useCache && pageNum != null) {
+            _enqueuePrefetch(
+              () => _backgroundRefreshStatuses(bookId, pageNum, requestKey),
+            );
+          }
           _enqueuePrefetch(() => preloadTooltipsForCurrentPage());
 
           if (pageData.currentPage < pageData.pageCount) {
