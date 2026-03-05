@@ -4,6 +4,12 @@ import 'package:lute_for_mobile/core/services/server_health_service.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 
+class _CacheEntry {
+  final dynamic value;
+  final DateTime timestamp;
+  _CacheEntry(this.value, this.timestamp);
+}
+
 class TermuxService {
   static const MethodChannel _channel = MethodChannel(
     'com.schlick7.luteformobile/termux',
@@ -12,6 +18,32 @@ class TermuxService {
   static const EventChannel _progressChannel = EventChannel(
     'com.schlick7.luteformobile/termux_progress',
   );
+
+  // Caching for status checks (10 second TTL)
+  static const _cacheTTL = Duration(seconds: 10);
+  static final Map<String, _CacheEntry> _statusCache = {};
+
+  static T? _getCached<T>(String key) {
+    final entry = _statusCache[key];
+    if (entry == null) return null;
+    if (DateTime.now().difference(entry.timestamp) > _cacheTTL) {
+      _statusCache.remove(key);
+      return null;
+    }
+    return entry.value as T;
+  }
+
+  static void _setCached(String key, dynamic value) {
+    _statusCache[key] = _CacheEntry(value, DateTime.now());
+  }
+
+  static void clearCache([String? key]) {
+    if (key != null) {
+      _statusCache.remove(key);
+    } else {
+      _statusCache.clear();
+    }
+  }
 
   // Status checks
   static Future<bool> isTermuxInstalled() async {
@@ -25,13 +57,21 @@ class TermuxService {
   }
 
   static Future<bool> isTermuxPermissionGranted() async {
+    final cached = _getCached<bool>('permission');
+    if (cached != null) return cached;
     final result = await _channel.invokeMethod('isTermuxPermissionGranted');
-    return result as bool? ?? false;
+    final value = result as bool? ?? false;
+    _setCached('permission', value);
+    return value;
   }
 
   static Future<String> isLute3Installed() async {
+    final cached = _getCached<String>('lute3_installed');
+    if (cached != null) return cached;
     final result = await _channel.invokeMethod('isLute3Installed');
-    return result as String? ?? 'UNKNOWN';
+    final value = result as String? ?? 'UNKNOWN';
+    _setCached('lute3_installed', value);
+    return value;
   }
 
   static Future<bool> isServerRunning(String url) async {
@@ -57,18 +97,25 @@ class TermuxService {
   }
 
   static Future<bool> checkExternalAppsEnabled() async {
+    final cached = _getCached<bool>('external_apps');
+    if (cached != null) return cached;
     final result = await _channel.invokeMethod('checkExternalAppsEnabled');
-    return result as bool? ?? false;
+    final value = result as bool? ?? false;
+    _setCached('external_apps', value);
+    return value;
   }
 
   /// Checks if Termux service is running and responsive to commands.
   /// This attempts to execute a simple echo command and checks if it succeeds.
   static Future<bool> isTermuxRunning() async {
+    final cached = _getCached<bool>('termux_running');
+    if (cached != null) return cached;
     try {
       print('Checking if Termux is running...');
       final result = await _channel.invokeMethod('isTermuxRunning');
       final status = result as bool? ?? false;
       print('Termux running status: $status');
+      _setCached('termux_running', status);
       return status;
     } on PlatformException catch (e) {
       print('isTermuxRunning failed: ${e.message}');
@@ -99,11 +146,15 @@ class TermuxService {
       return true;
     }
     final result = await _channel.invokeMethod('startServer');
+    // Invalidate server running cache
+    clearCache('termux_running');
     return result as bool? ?? false;
   }
 
   static Future<bool> stopServer() async {
     final result = await _channel.invokeMethod('stopServer');
+    // Invalidate server running cache
+    clearCache('termux_running');
     return result as bool? ?? false;
   }
 
@@ -115,6 +166,8 @@ class TermuxService {
   // Installation
   static Future<String> installLute3() async {
     final result = await _channel.invokeMethod('installLute3Chained');
+    // Invalidate all caches after installation
+    clearCache();
     return result as String? ?? 'FAILED';
   }
 

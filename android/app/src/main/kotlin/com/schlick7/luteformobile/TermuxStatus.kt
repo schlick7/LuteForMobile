@@ -252,7 +252,7 @@ suspend fun isLute3ServerRunningHttpWithRetries(
 suspend fun isLute3InstalledFastCheck(context: Context): InstallationStatus {
     return try {
         val script = "pip show lute3 > /dev/null 2>&1 && echo 'INSTALLED' || echo 'NOT_INSTALLED'"
-        val success = RunCommandHelper.execute(context, script, timeoutMs = 2000)
+        val success = RunCommandHelper.executeWithRetry(context, script, timeoutMs = 500, maxRetries = 2)
 
         if (success) {
             InstallationStatus.INSTALLED

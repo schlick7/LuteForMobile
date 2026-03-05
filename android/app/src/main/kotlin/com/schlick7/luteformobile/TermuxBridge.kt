@@ -461,8 +461,11 @@ private suspend fun checkExternalAppsEnabled(context: Context): Boolean {
 
     android.util.Log.d("TermuxBridge", "Sending command to check external apps, writing to: $testFile")
 
-    val success = RunCommandHelper.execute(context, script, timeoutMs = 1500)
-    if (!success) return false
+    val success = RunCommandHelper.executeWithRetry(context, script, timeoutMs = 500, maxRetries = 2)
+    if (!success) {
+        android.util.Log.e("TermuxBridge", "Command failed after retries")
+        return false
+    }
 
     android.util.Log.d("TermuxBridge", "Command sent successfully")
 
@@ -498,7 +501,7 @@ object RunCommandHelper {
     suspend fun execute(
         context: Context,
         script: String,
-        timeoutMs: Long = 5000
+        timeoutMs: Long = 500
     ): Boolean = withContext(Dispatchers.IO) {
         val intent = Intent().apply {
             setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
@@ -528,6 +531,29 @@ object RunCommandHelper {
                 // Ignore
             }
         }
+    }
+
+    suspend fun executeWithRetry(
+        context: Context,
+        script: String,
+        timeoutMs: Long = 500,
+        maxRetries: Int = 2
+    ): Boolean = withContext(Dispatchers.IO) {
+        for (attempt in 1..maxRetries + 1) {
+            android.util.Log.d("RunCommandHelper", "Attempt $attempt of ${maxRetries + 1}")
+            val success = execute(context, script, timeoutMs)
+            if (success) {
+                android.util.Log.d("RunCommandHelper", "Success on attempt $attempt")
+                return@withContext true
+            }
+            if (attempt <= maxRetries) {
+                val delayMs = 500L * attempt
+                android.util.Log.d("RunCommandHelper", "Retry $attempt failed, waiting ${delayMs}ms")
+                delay(delayMs)
+            }
+        }
+        android.util.Log.w("RunCommandHelper", "All $maxRetries retries failed")
+        return@withContext false
     }
 }
 

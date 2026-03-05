@@ -107,6 +107,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     });
 
     try {
+      // First check if Termux is installed
       final termuxInstalled = await TermuxService.isTermuxInstalled();
       setState(() {
         _checkingTermux = false;
@@ -115,56 +116,42 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       });
 
       if (termuxInstalled) {
-        // Check if Termux service is running
-        final termuxRunning = await TermuxService.isTermuxRunning();
-        setState(() {
-          _checkingTermuxRunning = false;
-          _termuxRunning = termuxRunning;
-        });
+        // Run Termux running and permission checks in parallel
+        final basicResults = await Future.wait([
+          TermuxService.isTermuxRunning(),
+          TermuxService.isTermuxPermissionGranted(),
+        ]);
 
-        final permissionGranted =
-            await TermuxService.isTermuxPermissionGranted();
-        setState(() {
-          _checkingPermission = false;
-          _permissionGranted = permissionGranted;
-        });
-
+        // Check external apps (may need storage permission)
+        bool externalAppsEnabled = false;
         try {
           final hasStoragePermission =
               await Permission.manageExternalStorage.isGranted;
           if (!hasStoragePermission) {
             final storageResult = await Permission.manageExternalStorage
                 .request();
-            if (!storageResult.isGranted) {
-              setState(() {
-                _checkingExternalApps = false;
-                _externalAppsEnabled = false;
-              });
-            } else {
-              final externalAppsEnabled =
+            if (storageResult.isGranted) {
+              externalAppsEnabled =
                   await TermuxService.checkExternalAppsEnabled();
-              setState(() {
-                _checkingExternalApps = false;
-                _externalAppsEnabled = externalAppsEnabled;
-              });
             }
           } else {
-            final externalAppsEnabled =
+            externalAppsEnabled =
                 await TermuxService.checkExternalAppsEnabled();
-            setState(() {
-              _checkingExternalApps = false;
-              _externalAppsEnabled = externalAppsEnabled;
-            });
           }
         } catch (e) {
-          setState(() {
-            _checkingExternalApps = false;
-            _externalAppsEnabled = false;
-          });
+          externalAppsEnabled = false;
         }
 
+        // Check Lute3 installation
         final lute3Status = await TermuxService.isLute3Installed();
+
         setState(() {
+          _checkingTermuxRunning = false;
+          _termuxRunning = basicResults[0] as bool;
+          _checkingPermission = false;
+          _permissionGranted = basicResults[1] as bool;
+          _checkingExternalApps = false;
+          _externalAppsEnabled = externalAppsEnabled;
           _checkingLute3 = false;
           _lute3Status = lute3Status;
         });
@@ -177,7 +164,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           _serverRunning = serverRunning;
         });
 
-        if (lute3Status == 'INSTALLED') {
+        if (_lute3Status == 'INSTALLED') {
           if (serverRunning) {
             try {
               final backups = await BackupService.listBackups(
