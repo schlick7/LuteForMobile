@@ -101,11 +101,11 @@ class SettingsNotifier extends Notifier<Settings> {
     final enableTooltipCaching =
         prefs.getBool(_keyEnableTooltipCaching) ?? false;
     final showStatsBar = prefs.getBool(_keyShowStatsBar) ?? true;
-    final showKnownTermsCount = prefs.getBool(_keyShowKnownTermsCount) ?? true;
+    final showKnownTermsCount = prefs.getBool(_keyShowKnownTermsCount) ?? false;
     final showPageNumbers = prefs.getBool(_keyShowPageNumbers) ?? true;
     final enableTripleTapToMarkKnown =
         prefs.getBool(_keyEnableTripleTapToMarkKnown) ?? false;
-    final enablePagePreload = prefs.getBool(_keyEnablePagePreload) ?? true;
+    final enablePagePreload = prefs.getBool(_keyEnablePagePreload) ?? false;
     final termuxAutoLaunchEnabled =
         prefs.getBool(_keyTermuxAutoLaunchEnabled) ?? false;
     final termuxIntegrationEnabled =
@@ -120,7 +120,7 @@ class SettingsNotifier extends Notifier<Settings> {
     final maxConcurrentTooltipFetches =
         prefs.getInt(_keyMaxConcurrentTooltipFetches) ?? 4;
     final autoRefreshFullStats =
-        prefs.getBool(_keyAutoRefreshFullStats) ?? true;
+        prefs.getBool(_keyAutoRefreshFullStats) ?? false;
 
     final currentBookId = prefs.getInt(_keyCurrentBookId);
     final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);

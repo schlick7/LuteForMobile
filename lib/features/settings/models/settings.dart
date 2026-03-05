@@ -64,12 +64,12 @@ class Settings {
     this.pageTurnAnimations = true,
     this.enableTooltipCaching = false,
     this.showStatsBar = true,
-    this.showKnownTermsCount = true,
+    this.showKnownTermsCount = false,
     this.showPageNumbers = true,
     this.ttsProvider,
     this.aiProvider,
     this.enableTripleTapToMarkKnown = false,
-    this.enablePagePreload = true,
+    this.enablePagePreload = false,
     this.termuxIntegrationEnabled = false,
     this.termuxAutoLaunchEnabled = false,
     this.statsCalcSampleSize = 5,
@@ -78,7 +78,7 @@ class Settings {
     this.statsRefreshCooldownHours = 96,
     this.alwaysRefreshBookDetails = true,
     this.maxConcurrentTooltipFetches = 4,
-    this.autoRefreshFullStats = true,
+    this.autoRefreshFullStats = false,
   });
 
   Settings copyWith({
@@ -199,12 +199,12 @@ class Settings {
       pageTurnAnimations: true,
       enableTooltipCaching: false,
       showStatsBar: true,
-      showKnownTermsCount: true,
+      showKnownTermsCount: false,
       showPageNumbers: true,
       ttsProvider: TTSProvider.onDevice,
       aiProvider: AIProvider.none,
       enableTripleTapToMarkKnown: false,
-      enablePagePreload: true,
+      enablePagePreload: false,
       termuxIntegrationEnabled: false,
       termuxAutoLaunchEnabled: false,
       statsCalcSampleSize: 5,
@@ -213,7 +213,7 @@ class Settings {
       statsRefreshCooldownHours: 48,
       alwaysRefreshBookDetails: true,
       maxConcurrentTooltipFetches: 4,
-      autoRefreshFullStats: true,
+      autoRefreshFullStats: false,
     );
   }
 
