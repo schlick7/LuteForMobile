@@ -54,11 +54,19 @@ class TermuxForegroundService : Service() {
         if (intent?.action == "STOP_SERVICE") {
             android.util.Log.i("TermuxForegroundService", ">>> STOP SERVICE ACTION RECEIVED <<<")
             Log.d("TermuxForegroundService", "Received STOP_SERVICE action")
+
+            // Stop the server FIRST before destroying the service
+            stopLute3ServerInternal()
+
+            // Give the stop commands a moment to be sent
+            Thread.sleep(500)
+
             stopSelf()
             return START_NOT_STICKY
         }
 
-        val port = intent?.getIntExtra(EXTRA_PORT, TermuxConstants.LUTE3_DEFAULT_PORT) ?: TermuxConstants.LUTE3_DEFAULT_PORT
+        val port =
+            intent?.getIntExtra(EXTRA_PORT, TermuxConstants.LUTE3_DEFAULT_PORT) ?: TermuxConstants.LUTE3_DEFAULT_PORT
         val idleTimeoutMinutes = intent?.getIntExtra(EXTRA_IDLE_TIMEOUT, TermuxConstants.IDLE_TIMEOUT_MINUTES)
             ?: TermuxConstants.IDLE_TIMEOUT_MINUTES
 
@@ -66,10 +74,14 @@ class TermuxForegroundService : Service() {
 
         // Check notification permission (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            val permissionStatus = ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
+            val permissionStatus =
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS)
             Log.d("TermuxForegroundService", "POST_NOTIFICATIONS permission status: $permissionStatus")
             if (permissionStatus != PackageManager.PERMISSION_GRANTED) {
-                Log.w("TermuxForegroundService", "POST_NOTIFICATIONS permission NOT granted - notification may not show!")
+                Log.w(
+                    "TermuxForegroundService",
+                    "POST_NOTIFICATIONS permission NOT granted - notification may not show!"
+                )
             } else {
                 Log.d("TermuxForegroundService", "POST_NOTIFICATIONS permission granted")
             }
@@ -153,20 +165,44 @@ class TermuxForegroundService : Service() {
         Log.d("TermuxForegroundService", "Foreground service destroyed")
 
         // Stop the Lute3 server when the service is destroyed
+        // IMPORTANT: Must stop server BEFORE service is fully destroyed
         stopLute3ServerInternal()
     }
 
     private fun stopLute3ServerInternal() {
         android.util.Log.i("TermuxForegroundService", ">>> STOPPING LUTE3 SERVER INTERNALLY <<<")
-        val intent = Intent().apply {
+
+        // Method 1: Try pkill first
+        val pkillIntent = Intent().apply {
             setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
             action = TermuxConstants.TERMUX_ACTION
             putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
-            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "pkill -f \"python -m lute.main\" || true"))
+            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "pkill -f \"python -m lute.main\""))
             putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
         }
-        startService(intent)
+        try {
+            startService(pkillIntent)
+            Log.d("TermuxForegroundService", "pkill command sent to Termux")
+        } catch (e: Exception) {
+            Log.e("TermuxForegroundService", "Failed to send pkill command: ${e.message}", e)
+        }
 
+        // Method 2: Also try killing by port as backup
+        val fuserIntent = Intent().apply {
+            setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
+            action = TermuxConstants.TERMUX_ACTION
+            putExtra("com.termux.RUN_COMMAND_PATH", TermuxConstants.TERMUX_BASH_PATH)
+            putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "fuser -k 5001/tcp 2>/dev/null || true"))
+            putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
+        }
+        try {
+            startService(fuserIntent)
+            Log.d("TermuxForegroundService", "fuser backup command sent to Termux")
+        } catch (e: Exception) {
+            Log.e("TermuxForegroundService", "Failed to send fuser command: ${e.message}", e)
+        }
+
+        // Cleanup heartbeat file
         val cleanupIntent = Intent().apply {
             setClassName(TermuxConstants.TERMUX_PACKAGE, TermuxConstants.TERMUX_SERVICE)
             action = TermuxConstants.TERMUX_ACTION
@@ -174,7 +210,12 @@ class TermuxForegroundService : Service() {
             putExtra("com.termux.RUN_COMMAND_ARGUMENTS", arrayOf("-c", "rm -f ${TermuxConstants.HEARTBEAT_FILE}"))
             putExtra("com.termux.RUN_COMMAND_BACKGROUND", true)
         }
-        startService(cleanupIntent)
+        try {
+            startService(cleanupIntent)
+            Log.d("TermuxForegroundService", "cleanup command sent to Termux")
+        } catch (e: Exception) {
+            Log.e("TermuxForegroundService", "Failed to send cleanup command: ${e.message}", e)
+        }
     }
 
     private fun createNotificationChannel() {
@@ -196,7 +237,10 @@ class TermuxForegroundService : Service() {
      */
     fun hasNotificationPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
         } else {
             true
         }

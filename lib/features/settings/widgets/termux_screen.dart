@@ -1214,26 +1214,40 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: completed
-                  ? Colors.green
-                  : (enabled ? Colors.blue : Colors.grey),
-            ),
-            child: Center(
-              child: completed
-                  ? const Icon(Icons.check, color: Colors.white, size: 18)
-                  : Text(
-                      step.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-            ),
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: completed
+                      ? Colors.green
+                      : (enabled && !isLoading ? Colors.blue : Colors.grey),
+                ),
+                child: completed
+                    ? const Icon(Icons.check, color: Colors.white, size: 18)
+                    : (isLoading
+                          ? null
+                          : Text(
+                              step.toString(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            )),
+              ),
+              if (isLoading)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 3,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -1257,12 +1271,6 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               ),
             ),
           ),
-          if (enabled && isLoading)
-            const SizedBox(
-              width: 20,
-              height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            ),
         ],
       ),
     );

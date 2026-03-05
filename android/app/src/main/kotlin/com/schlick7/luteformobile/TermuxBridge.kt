@@ -21,7 +21,7 @@ import kotlinx.coroutines.*
 
 class TermuxBridge(private val context: Context) {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    
+
     companion object {
         @Volatile
         var installationCancelled = false
@@ -145,8 +145,48 @@ class TermuxBridge(private val context: Context) {
 
                 "stopServer" -> {
                     android.util.Log.i("TermuxBridge", ">>> FLUTTER STOP SERVER REQUEST <<<")
-                    stopLute3Server(context)
-                    result.success(true)
+                    scope.launch {
+                        try {
+                            // Stop the server
+                            stopLute3Server(context)
+
+                            // Wait for server to actually stop (poll with timeout)
+                            // The foreground service onDestroy() sends pkill command asynchronously
+                            // Give it time to execute before polling
+                            val maxWaitMs = 8000L
+                            val pollIntervalMs = 300L
+                            var elapsedMs = 0L
+
+                            // Initial delay - let the service onDestroy() send the pkill command
+                            delay(1500)
+
+                            while (elapsedMs < maxWaitMs) {
+                                // Check if server stopped (use quick check without retries)
+                                val stillRunning = isLute3ServerRunningHttpQuick(TermuxConstants.LUTE3_DEFAULT_PORT)
+                                if (!stillRunning) {
+                                    android.util.Log.d("TermuxBridge", "Server stopped after ${elapsedMs}ms")
+                                    withContext(Dispatchers.Main) {
+                                        result.success(true)
+                                    }
+                                    return@launch
+                                }
+
+                                delay(pollIntervalMs)
+                                elapsedMs += pollIntervalMs
+                            }
+
+                            // Timeout - server didn't stop
+                            android.util.Log.w("TermuxBridge", "Server stop timeout after ${maxWaitMs}ms")
+                            withContext(Dispatchers.Main) {
+                                result.success(false)
+                            }
+                        } catch (e: Exception) {
+                            android.util.Log.e("TermuxBridge", "stopServer failed: ${e.message}")
+                            withContext(Dispatchers.Main) {
+                                result.success(false)
+                            }
+                        }
+                    }
                 }
 
                 "touchHeartbeat" -> {
@@ -314,22 +354,23 @@ class TermuxBridge(private val context: Context) {
                             return@launch
                         }
 
-                        val restoreResult = restoreBackupToLute3(context, filePath) { stepName, stepStatus, maxWaitSeconds ->
-                            android.util.Log.d("TermuxBridge", "Restore progress: $stepName - $stepStatus")
-                            try {
-                                scope.launch(Dispatchers.Main.immediate) {
-                                    eventSink?.success(
-                                        mapOf(
-                                            "step" to stepName,
-                                            "status" to stepStatus,
-                                            "maxWaitSeconds" to maxWaitSeconds
+                        val restoreResult =
+                            restoreBackupToLute3(context, filePath) { stepName, stepStatus, maxWaitSeconds ->
+                                android.util.Log.d("TermuxBridge", "Restore progress: $stepName - $stepStatus")
+                                try {
+                                    scope.launch(Dispatchers.Main.immediate) {
+                                        eventSink?.success(
+                                            mapOf(
+                                                "step" to stepName,
+                                                "status" to stepStatus,
+                                                "maxWaitSeconds" to maxWaitSeconds
+                                            )
                                         )
-                                    )
+                                    }
+                                } catch (e: Exception) {
+                                    android.util.Log.e("TermuxBridge", "Failed to send restore progress: ${e.message}")
                                 }
-                            } catch (e: Exception) {
-                                android.util.Log.e("TermuxBridge", "Failed to send restore progress: ${e.message}")
                             }
-                        }
                         withContext(Dispatchers.Main) {
                             result.success(restoreResult)
                         }
@@ -353,7 +394,7 @@ class TermuxBridge(private val context: Context) {
                 "hasNotificationPermission" -> {
                     val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                         PackageManager.PERMISSION_GRANTED ==
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
                     } else {
                         true
                     }
@@ -378,7 +419,8 @@ class TermuxBridge(private val context: Context) {
                 "requestTermuxPermission" -> {
                     try {
                         android.util.Log.d("TermuxBridge", "requestTermuxPermission: Opening app info page")
-                        val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        val intent =
+                            android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                         intent.data = android.net.Uri.parse("package:${context.packageName}")
                         if (intent.resolveActivity(context.packageManager) != null) {
                             context.startActivity(intent)
@@ -496,7 +538,7 @@ suspend fun installLute3Chained(
     return withContext(Dispatchers.IO) {
         // Reset cancellation flag at start
         TermuxBridge.installationCancelled = false
-        
+
         try {
             val downloadsDir =
                 android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS).absolutePath
@@ -824,9 +866,9 @@ private suspend fun restoreBackupToLute3(
             val lute3DbPath = "\$HOME/.local/share/Lute3/lute.db"
             val successMarkerPath = "/storage/emulated/0/Download/restore_decompress_success.txt"
             val restoreScript = "SOURCE=\"$localFilePath\"; " +
-                "DEST=\"$lute3DbPath\"; " +
-                "python3 -c \"import gzip; f = open('\$SOURCE', 'rb'); open('\$DEST', 'wb').write(gzip.decompress(f.read()))\" && " +
-                "echo 'SUCCESS' > $successMarkerPath"
+                    "DEST=\"$lute3DbPath\"; " +
+                    "python3 -c \"import gzip; f = open('\$SOURCE', 'rb'); open('\$DEST', 'wb').write(gzip.decompress(f.read()))\" && " +
+                    "echo 'SUCCESS' > $successMarkerPath"
 
             android.util.Log.d("TermuxBridge", "Sending restore script to decompress file")
             android.util.Log.d("TermuxBridge", "Restore script: $restoreScript")

@@ -32,7 +32,7 @@ suspend fun launchLute3ServerWithAutoShutdown(
     // First, check the cached server health from ContentProvider (instant, one-time use)
     val cachedRunning = ServerHealthProvider.isServerRunning
     android.util.Log.d("TermuxServer", "Cached server health from ContentProvider: $cachedRunning")
-    
+
     // Clear the cache immediately after reading (one-time use only)
     ServerHealthProvider.clearCache()
 
@@ -86,13 +86,16 @@ suspend fun touchHeartbeat(context: Context): Boolean {
 
 fun stopLute3Server(context: Context) {
     android.util.Log.i("TermuxServer", ">>> LUTE3 SERVER STOP REQUESTED <<<")
-    // Stop the foreground service which will also stop the Lute3 server
-    val stopIntent = Intent(context, TermuxForegroundService::class.java)
+    // Send STOP_SERVICE action to the foreground service
+    // This will stop the server BEFORE the service is destroyed
+    val stopIntent = Intent(context, TermuxForegroundService::class.java).apply {
+        action = "STOP_SERVICE"
+    }
     try {
-        context.stopService(stopIntent)
-        android.util.Log.d("TermuxServer", "Foreground service stopped")
+        context.startService(stopIntent)
+        android.util.Log.d("TermuxServer", "STOP_SERVICE action sent to foreground service")
     } catch (e: Exception) {
-        android.util.Log.e("TermuxServer", "Failed to stop foreground service: ${e.message}", e)
+        android.util.Log.e("TermuxServer", "Failed to send STOP_SERVICE action: ${e.message}", e)
     }
 }
 

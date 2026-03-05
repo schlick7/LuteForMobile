@@ -187,6 +187,14 @@ suspend fun isLute3ServerRunningHttp(port: Int = TermuxConstants.LUTE3_DEFAULT_P
     return isLute3ServerRunningHttpWithRetries(port)
 }
 
+/**
+ * Quick HTTP check without retries - used during server stop polling
+ */
+suspend fun isLute3ServerRunningHttpQuick(port: Int = TermuxConstants.LUTE3_DEFAULT_PORT): Boolean {
+    val url = "http://127.0.0.1:$port"
+    return checkHttpServer(url)
+}
+
 private suspend fun checkHttpServer(url: String): Boolean = withContext(Dispatchers.IO) {
     try {
         val client = OkHttpClient.Builder()
@@ -205,7 +213,7 @@ private suspend fun checkHttpServer(url: String): Boolean = withContext(Dispatch
         val elapsed = System.currentTimeMillis() - startTime
         val responseCode = response.code
         val isSuccessful = response.isSuccessful
-        
+
         android.util.Log.d("TermuxStatus", "HTTP $url -> $responseCode in ${elapsed}ms")
         response.close()
         isSuccessful
@@ -221,22 +229,22 @@ suspend fun isLute3ServerRunningHttpWithRetries(
     retryDelayMs: Long = 200
 ): Boolean {
     val url = "http://127.0.0.1:$port"
-    
+
     for (attempt in 1..maxRetries) {
         android.util.Log.d("TermuxStatus", "HTTP check attempt $attempt/$maxRetries: $url")
-        
+
         val result = checkHttpServer(url)
         if (result) {
             android.util.Log.d("TermuxStatus", "HTTP check PASSED on attempt $attempt")
             return true
         }
-        
+
         if (attempt < maxRetries) {
             android.util.Log.d("TermuxStatus", "HTTP check failed, retrying in ${retryDelayMs}ms...")
             delay(retryDelayMs)
         }
     }
-    
+
     android.util.Log.d("TermuxStatus", "HTTP check FAILED after $maxRetries attempts")
     return false
 }
@@ -245,7 +253,7 @@ suspend fun isLute3InstalledFastCheck(context: Context): InstallationStatus {
     return try {
         val script = "pip show lute3 > /dev/null 2>&1 && echo 'INSTALLED' || echo 'NOT_INSTALLED'"
         val success = RunCommandHelper.execute(context, script, timeoutMs = 2000)
-        
+
         if (success) {
             InstallationStatus.INSTALLED
         } else {
