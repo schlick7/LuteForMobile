@@ -15,14 +15,10 @@ APK_SRC="build/app/outputs/flutter-apk/app-release.apk"
 APK_OUT="LuteForMobile-v${VERSION}.apk"
 PWA_OUT="LuteForMobilePWA-v${VERSION}.zip"
 
-run_with_optional_sudo() {
-  if "$@"; then
-    return 0
-  fi
-  if command -v sudo >/dev/null 2>&1; then
-    sudo "$@"
-  else
-    return 1
+require_sudo() {
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo "Error: sudo is required but not found."
+    exit 1
   fi
 }
 
@@ -59,15 +55,17 @@ cp setup_pwa.py build/web/
 
 echo
 echo "4) Fixing build/web permissions..."
-run_with_optional_sudo find build/web -type f -exec chmod 644 {} \;
-run_with_optional_sudo find build/web -type d -exec chmod 755 {} \;
-run_with_optional_sudo chown -R "$USER:$USER" build/web
+require_sudo
+sudo find build/web -type f -exec chmod 644 {} \;
+sudo find build/web -type d -exec chmod 755 {} \;
+sudo chown -R "$USER:$USER" build/web
 
 echo
 echo "5) Creating PWA zip..."
 (
   cd build/web
-  run_with_optional_sudo zip -r "../../${PWA_OUT}" . -x "*.last_build_id"
+  require_sudo
+  sudo zip -r "../../${PWA_OUT}" . -x "*.last_build_id"
 )
 
 echo
