@@ -1,6 +1,7 @@
 import 'package:html/parser.dart' as html_parser;
 import 'dart:convert';
 import 'package:html/dom.dart' as html;
+import '../../core/logger/api_logger.dart';
 import '../../features/reader/models/text_item.dart';
 import '../../features/reader/models/paragraph.dart';
 import '../../features/reader/models/page_data.dart';
@@ -136,7 +137,10 @@ class HtmlParser {
     String? translation;
     if (paragraphs.length > 1) {
       final paragraph = paragraphs[1];
-      print('HTML Parser: Paragraph innerHtml: "${paragraph.innerHtml}"');
+      ApiLogger.logLoading(
+        'parsePageTranslation',
+        details: 'innerHtml="${paragraph.innerHtml}"',
+      );
 
       final innerHtml = paragraph.innerHtml;
 
@@ -158,10 +162,16 @@ class HtmlParser {
         }
 
         translation = textParts.join(', ');
-        print('HTML Parser: Split by <br> into parts: $textParts');
+        ApiLogger.logLoading(
+          'parsePageTranslation',
+          details: 'splitParts=$textParts',
+        );
       }
 
-      print('HTML Parser: Final translation: "$translation"');
+      ApiLogger.logLoading(
+        'parsePageTranslation',
+        details: 'finalTranslation="$translation"',
+      );
 
       if (translation.isEmpty) {
         translation = null;
@@ -239,10 +249,13 @@ class HtmlParser {
             }
 
             parentTranslation = textParts.join(', ');
-            print('HTML Parser: Parent translation parts: $textParts');
+            ApiLogger.logLoading(
+              'parseTermParents',
+              details: 'parentTranslationParts=$textParts',
+            );
           }
 
-          if (parentTranslation?.isEmpty ?? true) {
+          if (parentTranslation.isEmpty) {
             parentTranslation = null;
           }
         }
@@ -303,8 +316,9 @@ class HtmlParser {
                 }
 
                 parentTranslation = textParts.join(', ');
-                print(
-                  'HTML Parser: Fallback parent translation parts: $textParts',
+                ApiLogger.logLoading(
+                  'parseTermParents',
+                  details: 'fallbackTranslationParts=$textParts',
                 );
               }
 
@@ -358,13 +372,15 @@ class HtmlParser {
 
     final termIdInput = document.querySelector('input[name="termid"]');
     final termIdValue = termIdInput?.attributes['value'] ?? '';
-    print(
-      'parseTermForm: term="$term", termIdInput value="$termIdValue", provided termId=$termId',
+    ApiLogger.logLoading(
+      'parseTermForm',
+      details:
+          'term="$term", termIdInput="$termIdValue", providedTermId=$termId',
     );
     final parsedTermId = termIdInput != null
         ? int.tryParse(termIdValue)
         : termId;
-    print('parseTermForm: final termId=$parsedTermId');
+    ApiLogger.logLoading('parseTermForm', details: 'finalTermId=$parsedTermId');
 
     final langIdInput = document.querySelector('select[name="language_id"]');
     final languageId = langIdInput != null
@@ -390,7 +406,24 @@ class HtmlParser {
 
     final tagsInput = document.querySelector('input[name="termtagslist"]');
     String? tags = tagsInput?.attributes['value']?.trim();
-    final tagList = tags?.isNotEmpty == true ? tags!.split(',') : null;
+    List<String>? tagList;
+    if (tags?.isNotEmpty == true) {
+      try {
+        final decoded = Uri.decodeComponent(tags!);
+        final jsonList = jsonDecode(decoded) as List;
+        tagList = jsonList
+            .map((item) => item['value'] as String?)
+            .where((value) => value != null && value.isNotEmpty)
+            .cast<String>()
+            .toList();
+        if (tagList.isEmpty) {
+          tagList = null;
+        }
+      } catch (e) {
+        ApiLogger.logError('parseTermForm tags', e);
+        tagList = null;
+      }
+    }
 
     final romanizationInput = document.querySelector(
       'input[name="romanization"]',
@@ -399,9 +432,8 @@ class HtmlParser {
 
     final romanizationParent = romanizationInput?.parent;
     bool showRomanization = true;
-    if (romanizationParent != null && romanizationParent is html.Element) {
-      final parentElement = romanizationParent as html.Element;
-      final displayStyle = parentElement.attributes['style'];
+    if (romanizationParent is html.Element) {
+      final displayStyle = romanizationParent.attributes['style'];
       showRomanization = displayStyle?.contains('display:none;') != true;
     }
 
@@ -424,16 +456,25 @@ class HtmlParser {
     );
     if (parentsListInput != null) {
       final parentsListValue = parentsListInput.attributes['value'];
-      print('Found parentslist input with value: $parentsListValue');
+      ApiLogger.logLoading(
+        'parseTermForm',
+        details: 'parentsListValue="$parentsListValue"',
+      );
       if (parentsListValue != null && parentsListValue.isNotEmpty) {
         try {
           final decoded = Uri.decodeComponent(parentsListValue);
-          print('Decoded parents list: $decoded');
+          ApiLogger.logLoading(
+            'parseTermForm',
+            details: 'decodedParentsList="$decoded"',
+          );
           final jsonList = jsonDecode(decoded) as List;
           for (final item in jsonList) {
             final parentData = item as Map<String, dynamic>;
             final parentTerm = parentData['value'] as String?;
-            print('Parent from HTML: $parentData');
+            ApiLogger.logLoading(
+              'parseTermForm',
+              details: 'parentData=$parentData',
+            );
             if (parentTerm != null && parentTerm.isNotEmpty) {
               parents.add(
                 TermParent(
@@ -446,9 +487,12 @@ class HtmlParser {
               );
             }
           }
-          print('Parsed ${parents.length} parents');
+          ApiLogger.logLoading(
+            'parseTermForm',
+            details: 'parsedParentsCount=${parents.length}',
+          );
         } catch (e) {
-          print('Error parsing parents list: $e');
+          ApiLogger.logError('parseTermParents', e);
         }
       }
     }
@@ -476,7 +520,7 @@ class HtmlParser {
     );
 
     return languageLinks
-        .map((link) => link.text?.trim() ?? '')
+        .map((link) => link.text.trim())
         .where((lang) => lang.isNotEmpty)
         .toList();
   }
@@ -494,7 +538,7 @@ class HtmlParser {
           final id = idMatch != null
               ? int.tryParse(idMatch.group(1) ?? '')
               : null;
-          final name = link.text?.trim() ?? '';
+          final name = link.text.trim();
 
           if (id != null && name.isNotEmpty) {
             return Language(id: id, name: name);
@@ -513,7 +557,6 @@ class HtmlParser {
     for (final entry in dictEntries) {
       final uriInput = entry.querySelector('input[name*="dicturi"]');
       final useforSelect = entry.querySelector('select[name*="usefor"]');
-      final dicttypeSelect = entry.querySelector('select[name*="dicttype"]');
       final isActiveCheckbox = entry.querySelector('input[name*="is_active"]');
 
       if (uriInput == null) continue;
@@ -523,11 +566,6 @@ class HtmlParser {
 
       final usefor =
           useforSelect
-              ?.querySelector('option[selected]')
-              ?.attributes['value'] ??
-          '';
-      final dicttype =
-          dicttypeSelect
               ?.querySelector('option[selected]')
               ?.attributes['value'] ??
           '';
@@ -552,7 +590,6 @@ class HtmlParser {
     for (final entry in dictEntries) {
       final uriInput = entry.querySelector('input[name*="dicturi"]');
       final useforSelect = entry.querySelector('select[name*="usefor"]');
-      final dicttypeSelect = entry.querySelector('select[name*="dicttype"]');
       final isActiveCheckbox = entry.querySelector('input[name*="is_active"]');
 
       if (uriInput == null) continue;
@@ -562,11 +599,6 @@ class HtmlParser {
 
       final usefor =
           useforSelect
-              ?.querySelector('option[selected]')
-              ?.attributes['value'] ??
-          '';
-      final dicttype =
-          dicttypeSelect
               ?.querySelector('option[selected]')
               ?.attributes['value'] ??
           '';
@@ -652,7 +684,7 @@ class HtmlParser {
   String? _extractAudioFilename(html.Document document) {
     final audioInput = document.querySelector('input[id="book_audio_file"]');
     final value = audioInput?.attributes['value']?.trim();
-    print('DEBUG: _extractAudioFilename - found: $value');
+    ApiLogger.logLoading('_extractAudioFilename', details: 'found=$value');
     return value;
   }
 
@@ -701,14 +733,21 @@ class HtmlParser {
       final decoded = jsonDecode(jsonData) as Map<String, dynamic>;
       final data = decoded['data'] as List;
 
-      print('DEBUG parseTermsFromDatatables: received ${data.length} terms');
+      ApiLogger.logLoading(
+        'parseTermsFromDatatables',
+        details: 'received ${data.length} terms',
+      );
 
       if (data.isNotEmpty) {
         final firstTermLang = data[0]['LgName'];
         final uniqueLangs = data.map((t) => t['LgName']).toSet();
-        print('DEBUG parseTermsFromDatatables: unique languages: $uniqueLangs');
-        print(
-          'DEBUG parseTermsFromDatatables: first term language: $firstTermLang',
+        ApiLogger.logLoading(
+          'parseTermsFromDatatables',
+          details: 'uniqueLanguages=$uniqueLangs',
+        );
+        ApiLogger.logLoading(
+          'parseTermsFromDatatables',
+          details: 'firstTermLanguage=$firstTermLang',
         );
       }
 
@@ -717,7 +756,7 @@ class HtmlParser {
         return Term.fromJson(termData);
       }).toList();
     } catch (e) {
-      print('Error parsing terms from datatables: $e');
+      ApiLogger.logError('parseTermsFromDatatables', e);
       return [];
     }
   }

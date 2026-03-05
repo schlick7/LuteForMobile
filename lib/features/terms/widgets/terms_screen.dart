@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
 import '../../../shared/providers/language_data_provider.dart';
 import '../../../shared/models/language.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../providers/terms_provider.dart';
 import '../models/term.dart';
 import 'term_card.dart';
@@ -23,15 +26,12 @@ class TermsScreen extends ConsumerStatefulWidget {
 class _TermsScreenState extends ConsumerState<TermsScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _searchController = TextEditingController();
+  int _buildCount = 0;
 
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_scrollListener);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(termsProvider.notifier).resetForNewNavigation();
-      ref.read(termsProvider.notifier).loadTerms(reset: true);
-    });
   }
 
   @override
@@ -51,23 +51,14 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    WidgetLogger.logRebuild('TermsScreen', _buildCount);
+
     final state = ref.watch(termsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
-        ),
+        leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
         title: const Text('Terms'),
         actions: [
           IconButton(
@@ -125,64 +116,71 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
       );
     }
 
-    if (state.terms.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.spellcheck, size: 64, color: Colors.grey),
-            const SizedBox(height: 16),
-            Text(
-              'No terms found',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            if (state.selectedLangId == null)
-              const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('Showing terms from all languages'),
-              ),
-          ],
-        ),
-      );
-    }
-
     final slivers = <Widget>[
-      if (state.selectedLangId != null)
-        SliverToBoxAdapter(
-          child: Consumer(
-            builder: (context, ref, child) {
-              final languageListAsync = ref.watch(languageListProvider);
-              final languageList = languageListAsync.value ?? [];
-              final language = languageList.cast<Language?>().firstWhere(
-                (l) => l?.id == state.selectedLangId,
-                orElse: () => null,
-              );
-              return TermStatsCard(
-                stats: state.stats,
-                languageName: language?.name,
-              );
-            },
+      if (state.terms.isEmpty)
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.spellcheck, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  'No terms found',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                if (state.selectedLangId == null)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('Showing terms from all languages'),
+                  ),
+              ],
+            ),
+          ),
+        )
+      else ...[
+        if (state.selectedLangId != null)
+          SliverToBoxAdapter(
+            child: Consumer(
+              builder: (context, ref, child) {
+                final settings = ref.watch(settingsProvider);
+                if (!settings.showTermStatsCard) {
+                  return const SizedBox.shrink();
+                }
+                final languageListAsync = ref.watch(languageListProvider);
+                final languageList = languageListAsync.value ?? [];
+                final language = languageList.cast<Language?>().firstWhere(
+                  (l) => l?.id == state.selectedLangId,
+                  orElse: () => null,
+                );
+                return TermStatsCard(
+                  stats: state.stats,
+                  languageName: language?.name,
+                );
+              },
+            ),
+          ),
+        SliverPadding(
+          padding: const EdgeInsets.only(bottom: 16),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate((context, index) {
+              if (index < state.terms.length) {
+                return TermCard(
+                  term: state.terms[index],
+                  onTap: () => _showTermEditDialog(state.terms[index]),
+                );
+              } else if (state.hasMore) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              return null;
+            }, childCount: state.terms.length + (state.hasMore ? 1 : 0)),
           ),
         ),
-      SliverPadding(
-        padding: const EdgeInsets.only(bottom: 16),
-        sliver: SliverList(
-          delegate: SliverChildBuilderDelegate((context, index) {
-            if (index < state.terms.length) {
-              return TermCard(
-                term: state.terms[index],
-                onTap: () => _showTermEditDialog(state.terms[index]),
-              );
-            } else if (state.hasMore) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            return null;
-          }, childCount: state.terms.length + (state.hasMore ? 1 : 0)),
-        ),
-      ),
+      ],
     ];
 
     return RefreshIndicator(
@@ -205,8 +203,8 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
       isScrollControlled: true,
       builder: (context) => TermEditDialogWrapper(
         term: term,
-        onSave: () {
-          ref.read(termsProvider.notifier).refreshTerms();
+        onSave: (updatedTerm) {
+          ref.read(termsProvider.notifier).updateTermInList(updatedTerm);
         },
         onDelete: () async {
           await ref.read(termsProvider.notifier).deleteTerm(term.id);

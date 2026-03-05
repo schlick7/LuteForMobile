@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../models/text_item.dart';
 import '../models/paragraph.dart';
 import '../../../shared/theme/theme_extensions.dart';
@@ -7,7 +8,7 @@ import 'term_tooltip.dart';
 
 class TextDisplay extends StatefulWidget {
   final List<Paragraph> paragraphs;
-  final void Function(TextItem, Offset)? onTap;
+  final void Function(TextItem, BuildContext)? onTap;
   final void Function(TextItem)? onDoubleTap;
   final void Function(TextItem)? onLongPress;
   final void Function(TextItem)? onTripleTap;
@@ -57,7 +58,7 @@ class TextDisplay extends StatefulWidget {
     required String fontFamily,
     required FontWeight fontWeight,
     required bool isItalic,
-    void Function(TextItem, Offset)? onTap,
+    void Function(TextItem, BuildContext)? onTap,
     void Function(TextItem)? onDoubleTap,
     void Function(TextItem)? onLongPress,
     void Function(TextItem)? onTripleTap,
@@ -132,12 +133,14 @@ class TextDisplay extends StatefulWidget {
 
     if (item.wordId != null) {
       return RepaintBoundary(
-        child: GestureDetector(
-          key: ValueKey('gesture-${item.wordId}'),
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (details) => onTap?.call(item, details.globalPosition),
-          onLongPress: () => onLongPress?.call(item),
-          child: textWidget,
+        child: Builder(
+          builder: (context) => GestureDetector(
+            key: ValueKey('gesture-${item.wordId}'),
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onTap?.call(item, context),
+            onLongPress: () => onLongPress?.call(item),
+            child: textWidget,
+          ),
         ),
       );
     }
@@ -160,20 +163,21 @@ class _TextDisplayState extends State<TextDisplay> {
     super.initState();
   }
 
-  void _handleTap(TextItem item, Offset tapPosition) {
+  void _handleTap(TextItem item, BuildContext context) {
     if (_lastTappedItem == item &&
         _tripleTapTimer != null &&
         _tripleTapTimer!.isActive) {
       _singleTapTimer?.cancel();
-
       _tripleTapTimer?.cancel();
       widget.onTripleTap?.call(item);
+      TermTooltipClass.close();
       _tripleTapTimer = null;
       _singleTapTimer = null;
     } else if (_lastTappedItem == item &&
         _singleTapTimer != null &&
         _singleTapTimer!.isActive) {
       _singleTapTimer?.cancel();
+      TermTooltipClass.close();
 
       if (widget.enableTripleTap) {
         _tripleTapTimer = Timer(
@@ -193,13 +197,12 @@ class _TextDisplayState extends State<TextDisplay> {
       _tripleTapTimer = null;
 
       _singleTapTimer?.cancel();
-      widget.onTap?.call(item, tapPosition);
+      widget.onTap?.call(item, context);
 
       _singleTapTimer = Timer(
         Duration(milliseconds: widget.doubleTapTimeout),
         () {
           _singleTapTimer = null;
-          TermTooltipClass.makeVisible();
         },
       );
     }
@@ -216,8 +219,10 @@ class _TextDisplayState extends State<TextDisplay> {
   @override
   Widget build(BuildContext context) {
     _buildCount++;
-    print(
-      'DEBUG: TextDisplay rebuild #$_buildCount (paragraphs: ${widget.paragraphs.length})',
+    WidgetLogger.logRebuild(
+      'TextDisplay',
+      _buildCount,
+      'paragraphs: ${widget.paragraphs.length}',
     );
     return RepaintBoundary(
       child: SingleChildScrollView(
@@ -267,7 +272,7 @@ class _TextDisplayState extends State<TextDisplay> {
       fontFamily: widget.fontFamily,
       fontWeight: widget.fontWeight,
       isItalic: widget.isItalic,
-      onTap: (item, position) => _handleTap(item, position),
+      onTap: (item, context) => _handleTap(item, context),
       onDoubleTap: (item) => widget.onDoubleTap?.call(item),
       onLongPress: (item) => widget.onLongPress?.call(item),
       onTripleTap: (item) => widget.onTripleTap?.call(item),

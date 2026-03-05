@@ -3,17 +3,30 @@ import '../../features/settings/providers/settings_provider.dart';
 import '../../core/network/api_service.dart';
 import '../../core/network/content_service.dart';
 import '../../core/network/dictionary_service.dart';
+import '../../core/cache/providers/page_cache_provider.dart';
+import '../../core/cache/providers/term_cache_provider.dart';
 
 // API service provider using serverUrl from settings
 final apiServiceProvider = Provider<ApiService>((ref) {
-  final settings = ref.watch(settingsProvider);
-  return ApiService(baseUrl: settings.serverUrl);
+  final serverUrl = ref.watch(settingsProvider.select((s) => s.serverUrl));
+  return ApiService(baseUrl: serverUrl);
 });
 
 // Content service provider
 final contentServiceProvider = Provider<ContentService>((ref) {
   final apiService = ref.watch(apiServiceProvider);
-  return ContentService(apiService: apiService);
+  final pageCacheService = ref.watch(pageCacheServiceProvider);
+  final termCacheService = ref.watch(termCacheServiceProvider);
+  final batchSize = ref.watch(
+    settingsProvider.select((s) => s.statsRefreshBatchSize),
+  );
+  final service = ContentService(
+    apiService: apiService,
+    pageCacheService: pageCacheService,
+    termCacheService: termCacheService,
+  );
+  service.setBookStatsBatchSize(batchSize);
+  return service;
 });
 
 // Dictionary service provider
@@ -24,15 +37,3 @@ final dictionaryServiceProvider = Provider<DictionaryService>((ref) {
         contentService.getLanguageSettingsHtml(langId),
   );
 });
-
-// Future: AI service provider (placeholder for future implementation)
-// final aiServiceProvider = Provider<AiService>((ref) {
-//   final settings = ref.watch(settingsProvider);
-//   return AiService(baseUrl: settings.aiServerUrl);
-// });
-
-// Future: TTS service provider (placeholder for future implementation)
-// final ttsServiceProvider = Provider<TtsService>((ref) {
-//   final settings = ref.watch(settingsProvider);
-//   return TtsService(baseUrl: settings.ttsServerUrl);
-// });

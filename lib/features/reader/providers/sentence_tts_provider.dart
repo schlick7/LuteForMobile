@@ -61,12 +61,14 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
     ref.onDispose(() {
       _playerStateSubscription?.cancel();
       _completeSubscription?.cancel();
+      _ttsServiceStateSubscription?.cancel();
     });
     return const SentenceTTSState();
   }
 
   StreamSubscription<PlayerState>? _playerStateSubscription;
   StreamSubscription<void>? _completeSubscription;
+  StreamSubscription<PlayerState>? _ttsServiceStateSubscription;
 
   void _setupPlayerStateListener() {
     final audioPlayer = ref
@@ -92,6 +94,22 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
     });
   }
 
+  void _setupTTSServiceListener() {
+    final ttsService = ref.read(ttsServiceProvider);
+    _ttsServiceStateSubscription?.cancel();
+
+    _ttsServiceStateSubscription = ttsService.playerStateStream.listen((
+      playerState,
+    ) {
+      debugPrint('TTS Service state changed: $playerState');
+      if (playerState == PlayerState.completed ||
+          playerState == PlayerState.stopped) {
+        debugPrint('TTS service finished, resetting state');
+        state = const SentenceTTSState();
+      }
+    });
+  }
+
   String _getUserFriendlyErrorMessage(String error) {
     if (error.contains('connection') || error.contains('connect')) {
       return 'Could not connect to TTS service. Please check your settings or network connection.';
@@ -112,7 +130,6 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
 
   Future<void> speakSentence(String text, int sentenceId) async {
     final ttsService = ref.read(ttsServiceProvider);
-    final audioPlayer = ref.read(audioPlayerProvider.notifier);
 
     try {
       state = state.copyWith(
@@ -125,22 +142,31 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
         ttsAudioSource: null,
       );
 
-      debugPrint('Fetching TTS audio bytes...');
-      final audioBytes = await ttsService.getAudioBytes(text);
-      debugPrint('Got ${audioBytes.length} bytes of audio');
+      if (ttsService.supportsBytesOutput) {
+        debugPrint('Fetching TTS audio bytes...');
+        final audioBytes = await ttsService.getAudioBytes(text);
+        debugPrint('Got ${audioBytes.length} bytes of audio');
 
-      final bytesSource = BytesSource(audioBytes);
+        final bytesSource = BytesSource(audioBytes);
 
-      state = state.copyWith(
-        status: SentenceTTSStatus.playing,
-        ttsAudioSource: bytesSource,
-      );
+        state = state.copyWith(
+          status: SentenceTTSStatus.playing,
+          ttsAudioSource: bytesSource,
+        );
 
-      _setupPlayerStateListener();
+        final audioPlayer = ref.read(audioPlayerProvider.notifier);
+        _setupPlayerStateListener();
 
-      debugPrint('Starting TTS playback...');
-      await audioPlayer.playTTSAudio(bytesSource);
-      debugPrint('TTS playback started');
+        debugPrint('Starting TTS playback...');
+        await audioPlayer.playTTSAudio(bytesSource);
+        debugPrint('TTS playback started');
+      } else {
+        debugPrint('Using direct speak for on-device TTS...');
+        _setupTTSServiceListener();
+        await ref.read(ttsServiceProvider.notifier).ensureServiceReady();
+        await ttsService.speak(text);
+        state = state.copyWith(status: SentenceTTSStatus.playing);
+      }
     } catch (e) {
       debugPrint('TTS Error: $e');
       await _handleError(text, sentenceId, e);
@@ -160,15 +186,22 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
         final ttsService = ref.read(ttsServiceProvider);
         final audioPlayer = ref.read(audioPlayerProvider.notifier);
 
-        final audioBytes = await ttsService.getAudioBytes(text);
-        final bytesSource = BytesSource(audioBytes);
+        if (ttsService.supportsBytesOutput) {
+          final audioBytes = await ttsService.getAudioBytes(text);
+          final bytesSource = BytesSource(audioBytes);
 
-        state = state.copyWith(
-          status: SentenceTTSStatus.playing,
-          ttsAudioSource: bytesSource,
-        );
+          state = state.copyWith(
+            status: SentenceTTSStatus.playing,
+            ttsAudioSource: bytesSource,
+          );
 
-        await audioPlayer.playTTSAudio(bytesSource);
+          await audioPlayer.playTTSAudio(bytesSource);
+        } else {
+          debugPrint('Using direct speak for on-device TTS...');
+          _setupTTSServiceListener();
+          await ttsService.speak(text);
+          state = state.copyWith(status: SentenceTTSStatus.playing);
+        }
       } catch (retryError) {
         await _handleError(text, sentenceId, retryError);
       }
@@ -183,11 +216,17 @@ class SentenceTTSNotifier extends Notifier<SentenceTTSState> {
   }
 
   Future<void> stop() async {
+    final ttsService = ref.read(ttsServiceProvider);
     final audioPlayer = ref.read(audioPlayerProvider.notifier);
 
     try {
       debugPrint('Stopping TTS...');
-      await audioPlayer.stop();
+      if (ttsService.supportsBytesOutput) {
+        await audioPlayer.stop();
+      } else {
+        await ttsService.stop();
+      }
+      _ttsServiceStateSubscription?.cancel();
       state = const SentenceTTSState();
     } catch (e) {
       debugPrint('Failed to stop TTS: $e');

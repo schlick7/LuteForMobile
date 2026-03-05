@@ -26,18 +26,26 @@ final aiServiceProvider = Provider<AIService>((ref) {
         apiKey: config?.apiKey,
         promptConfigs: promptConfigs,
       );
+    case AIProvider.gemini:
+      return GeminiService(
+        apiKey: config?.apiKey ?? '',
+        model: config?.model,
+        promptConfigs: promptConfigs,
+      );
     case AIProvider.none:
       return NoAIService();
   }
 });
 
 class AIModelsNotifier extends AsyncNotifier<List<String>> {
-  static const String _modelsCacheKey = 'ai_models_cache';
-  static const String _providerCacheKey = 'ai_models_provider';
+  static String _modelsCacheKeyForProvider(AIProvider provider) {
+    return 'ai_models_cache_${provider.toString()}';
+  }
 
   @override
   Future<List<String>> build() async {
-    final initialModels = await _loadCachedModels();
+    final currentProvider = ref.read(aiSettingsProvider).provider;
+    final initialModels = await _loadCachedModels(currentProvider);
     ref.listen<AISettings>(aiSettingsProvider, (previous, next) {
       final prevProvider = previous?.provider;
       final nextProvider = next.provider;
@@ -46,34 +54,46 @@ class AIModelsNotifier extends AsyncNotifier<List<String>> {
           : null;
       final nextConfig = next.providerConfigs[nextProvider];
 
-      final shouldFetch =
-          prevProvider != nextProvider ||
-          (nextProvider == AIProvider.openAI &&
-              prevConfig?.apiKey != nextConfig?.apiKey) ||
-          (nextProvider == AIProvider.localOpenAI &&
-              prevConfig?.endpointUrl != nextConfig?.endpointUrl);
+      final providerChanged = prevProvider != nextProvider;
+      final openAiKeyChanged =
+          nextProvider == AIProvider.openAI &&
+          prevConfig?.apiKey != nextConfig?.apiKey;
+      final openAiBaseUrlChanged =
+          nextProvider == AIProvider.openAI &&
+          prevConfig?.baseUrl != nextConfig?.baseUrl;
+      final localOpenAiEndpointChanged =
+          nextProvider == AIProvider.localOpenAI &&
+          prevConfig?.endpointUrl != nextConfig?.endpointUrl;
+      final localOpenAiKeyChanged =
+          nextProvider == AIProvider.localOpenAI &&
+          prevConfig?.apiKey != nextConfig?.apiKey;
+      final geminiKeyChanged =
+          nextProvider == AIProvider.gemini &&
+          prevConfig?.apiKey != nextConfig?.apiKey;
 
-      if (shouldFetch && nextProvider != AIProvider.none) {
+      if (providerChanged ||
+          openAiKeyChanged ||
+          openAiBaseUrlChanged ||
+          localOpenAiEndpointChanged ||
+          localOpenAiKeyChanged ||
+          geminiKeyChanged) {
         fetchModels();
       }
     }, fireImmediately: false);
     return initialModels;
   }
 
-  Future<List<String>> _loadCachedModels() async {
+  Future<List<String>> _loadCachedModels(AIProvider provider) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final modelsStr = prefs.getString(_modelsCacheKey);
-      final cachedProvider = prefs.getString(_providerCacheKey);
+      final cacheKey = _modelsCacheKeyForProvider(provider);
+      final modelsStr = prefs.getString(cacheKey);
 
-      if (modelsStr != null && cachedProvider != null) {
-        final currentProvider = ref.read(aiSettingsProvider).provider;
-        if (cachedProvider == currentProvider.toString()) {
-          final models = (jsonDecode(modelsStr) as List)
-              .map((e) => e as String)
-              .toList();
-          return models;
-        }
+      if (modelsStr != null) {
+        final models = (jsonDecode(modelsStr) as List)
+            .map((e) => e as String)
+            .toList();
+        return models;
       }
     } catch (_) {}
 
@@ -86,7 +106,9 @@ class AIModelsNotifier extends AsyncNotifier<List<String>> {
       final service = ref.read(aiServiceProvider);
       final models = await service.fetchAvailableModels();
 
-      await _cacheModels(models);
+      if (models.isNotEmpty) {
+        await _cacheModels(models);
+      }
 
       return models;
     });
@@ -96,9 +118,9 @@ class AIModelsNotifier extends AsyncNotifier<List<String>> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final currentProvider = ref.read(aiSettingsProvider).provider;
+      final cacheKey = _modelsCacheKeyForProvider(currentProvider);
 
-      await prefs.setString(_modelsCacheKey, jsonEncode(models));
-      await prefs.setString(_providerCacheKey, currentProvider.toString());
+      await prefs.setString(cacheKey, jsonEncode(models));
     } catch (_) {}
   }
 }

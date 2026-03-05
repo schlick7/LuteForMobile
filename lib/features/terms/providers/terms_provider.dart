@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
+import '../../../core/logger/api_logger.dart';
 import '../models/term.dart';
 import '../models/term_stats.dart';
 import '../repositories/terms_repository.dart';
@@ -59,19 +62,36 @@ class TermsState {
 }
 
 class TermsNotifier extends Notifier<TermsState> {
-  late TermsRepository _repository;
-  final int _pageSize = 50;
+  final int _pageSize = 20;
   bool _isLoadingMore = false;
+
+  bool _status99LoadInProgress = false;
+  int? _lastStatus99LangId;
+  DateTime? _lastStatus99LoadTime;
+  Timer? _status99DebounceTimer;
 
   @override
   TermsState build() {
-    _repository = ref.watch(termsRepositoryProvider);
+    ref.listen(settingsProvider, (previous, next) {
+      if (previous?.serverUrl != next.serverUrl) {
+        _onServerChanged();
+      }
+      if (previous?.currentBookLangId != next.currentBookLangId) {
+        _onLangIdChanged();
+      }
+    });
+
     return const TermsState();
   }
 
-  void resetForNewNavigation() {
-    print('DEBUG resetForNewNavigation: called');
+  void _onServerChanged() {
     state = state.copyWith(isInitialized: false);
+    loadTerms(reset: true);
+  }
+
+  Future<void> _onLangIdChanged() async {
+    state = state.copyWith(isInitialized: false, errorMessage: null);
+    await loadTerms(reset: true);
   }
 
   Future<void> loadTerms({bool reset = true}) async {
@@ -85,7 +105,9 @@ class TermsNotifier extends Notifier<TermsState> {
       );
     }
 
-    if (!_repository.contentService.isConfigured) {
+    final repository = ref.read(termsRepositoryProvider);
+
+    if (!repository.contentService.isConfigured) {
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Server URL not configured.',
@@ -113,15 +135,13 @@ class TermsNotifier extends Notifier<TermsState> {
         'DEBUG loadTerms: langId=$langId, search="${state.searchQuery}", statuses=$filteredStatuses',
       );
 
-      final newTerms = await _repository.getTermsPaginated(
+      final newTerms = await repository.getTermsPaginated(
         langId: langId,
         search: state.searchQuery.isNotEmpty ? state.searchQuery : null,
         page: state.currentPage,
         pageSize: _pageSize,
         selectedStatuses: filteredStatuses.isEmpty ? null : filteredStatuses,
       );
-
-      print('DEBUG loadTerms: loaded ${newTerms.length} terms');
 
       state = state.copyWith(
         isLoading: false,
@@ -132,10 +152,12 @@ class TermsNotifier extends Notifier<TermsState> {
       );
 
       if (langId != null && reset) {
-        loadStats(langId);
+        if (ref.read(settingsProvider).showTermStatsCard) {
+          loadStats(langId);
+        }
       }
     } catch (e) {
-      print('DEBUG loadTerms: error $e');
+      ApiLogger.logError('loadTerms', e);
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
   }
@@ -153,27 +175,90 @@ class TermsNotifier extends Notifier<TermsState> {
   }
 
   void setLanguageFilter(int? langId) {
-    print('DEBUG setLanguageFilter: $langId');
     state = state.copyWith(selectedLangId: langId);
     loadTerms(reset: true);
     if (langId != null) {
-      loadStats(langId);
+      if (ref.read(settingsProvider).showTermStatsCard) {
+        loadStats(langId);
+      }
     }
   }
 
   Future<void> loadStats(int langId) async {
+    if (!ref.read(settingsProvider).showKnownTermsCount) {
+      return;
+    }
+    if (!ref.read(settingsProvider).showTermStatsCard) {
+      return;
+    }
     try {
-      final stats = await _repository.getTermStats(langId);
+      final repository = ref.read(termsRepositoryProvider);
+      final stats = await repository.getTermStats(langId);
       state = state.copyWith(stats: stats);
     } catch (e) {
-      print('DEBUG loadStats: error $e');
+      ApiLogger.logError('loadStats', e);
+    }
+  }
+
+  Future<void> loadStatus99Only(int langId) async {
+    if (!ref.read(settingsProvider).showKnownTermsCount) {
+      return;
+    }
+
+    _status99DebounceTimer?.cancel();
+    _status99DebounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _executeLoadStatus99(langId);
+    });
+  }
+
+  Future<void> _executeLoadStatus99(int langId) async {
+    final now = DateTime.now();
+    if (_status99LoadInProgress) {
+      return;
+    }
+    if (_lastStatus99LangId == langId &&
+        _lastStatus99LoadTime != null &&
+        now.difference(_lastStatus99LoadTime!).inSeconds < 3) {
+      return;
+    }
+
+    _status99LoadInProgress = true;
+    try {
+      final repository = ref.read(termsRepositoryProvider);
+      final count = await repository.contentService.getTermCount(
+        langId: langId,
+        statusMin: 99,
+        statusMax: 99,
+      );
+
+      final currentStats = state.stats;
+      final newStats = TermStats(
+        status1: currentStats.status1,
+        status2: currentStats.status2,
+        status3: currentStats.status3,
+        status4: currentStats.status4,
+        status5: currentStats.status5,
+        status99: count,
+        total:
+            currentStats.status1 +
+            currentStats.status2 +
+            currentStats.status3 +
+            currentStats.status4 +
+            currentStats.status5 +
+            count,
+      );
+      state = state.copyWith(stats: newStats);
+
+      _lastStatus99LangId = langId;
+      _lastStatus99LoadTime = DateTime.now();
+    } catch (e) {
+      ApiLogger.logError('loadStatus99Only', e);
+    } finally {
+      _status99LoadInProgress = false;
     }
   }
 
   void setStatusFilter(String? status) {
-    print(
-      'DEBUG setStatusFilter: $status, current selectedStatuses: ${state.selectedStatuses}',
-    );
     final newStatuses = Set<String?>.from(state.selectedStatuses);
     if (status == null) {
       final allDefaultSelected = {
@@ -209,13 +294,24 @@ class TermsNotifier extends Notifier<TermsState> {
 
   Future<void> deleteTerm(int termId) async {
     try {
-      await _repository.deleteTerm(termId);
+      final repository = ref.read(termsRepositoryProvider);
+      await repository.deleteTerm(termId);
       state = state.copyWith(
         terms: state.terms.where((t) => t.id != termId).toList(),
       );
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }
+  }
+
+  void updateTermInList(Term updatedTerm) {
+    final updatedTerms = state.terms.map((term) {
+      if (term.id == updatedTerm.id) {
+        return updatedTerm;
+      }
+      return term;
+    }).toList();
+    state = state.copyWith(terms: updatedTerms);
   }
 
   Future<void> refreshTerms() async {

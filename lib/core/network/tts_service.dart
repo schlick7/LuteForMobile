@@ -80,12 +80,26 @@ abstract class TTSService {
   void dispose();
   Stream<PlayerState> get playerStateStream;
   Future<Uint8List> getAudioBytes(String text);
+  bool get supportsBytesOutput;
 }
 
 class OnDeviceTTSService implements TTSService {
   final FlutterTts _flutterTts = FlutterTts();
   AudioPlayer? _audioPlayer;
   final _playerStateController = StreamController<PlayerState>.broadcast();
+
+  OnDeviceTTSService() {
+    _flutterTts.awaitSpeakCompletion(true);
+    _flutterTts.setStartHandler(() {
+      _playerStateController.add(PlayerState.playing);
+    });
+    _flutterTts.setCompletionHandler(() {
+      _playerStateController.add(PlayerState.completed);
+    });
+    _flutterTts.setErrorHandler((msg) {
+      _playerStateController.add(PlayerState.stopped);
+    });
+  }
 
   @override
   Future<void> speak(String text) async {
@@ -100,6 +114,7 @@ class OnDeviceTTSService implements TTSService {
   Future<void> stop() async {
     try {
       await _flutterTts.stop();
+      _playerStateController.add(PlayerState.stopped);
       if (_audioPlayer != null) {
         await _audioPlayer!.stop();
         await _audioPlayer!.release();
@@ -121,8 +136,26 @@ class OnDeviceTTSService implements TTSService {
   @override
   Future<void> setSettings(TTSSettingsConfig config) async {
     try {
-      if (config.voice != null) {
-        await _flutterTts.setVoice({'name': config.voice!});
+      String? voiceName = config.voice;
+      String? voiceLocale = config.voiceLocale;
+
+      debugPrint(
+        'Applying on-device TTS settings: voice=$voiceName, locale=$voiceLocale, rate=${config.rate}, pitch=${config.pitch}, volume=${config.volume}',
+      );
+
+      if (voiceLocale != null && voiceLocale.isNotEmpty) {
+        await _flutterTts.setLanguage(voiceLocale);
+      }
+
+      if (voiceName != null && voiceName.isNotEmpty) {
+        if (voiceLocale != null && voiceLocale.isNotEmpty) {
+          await _flutterTts.setVoice({
+            'name': voiceName,
+            'locale': voiceLocale,
+          });
+        } else {
+          await _flutterTts.setVoice({'name': voiceName});
+        }
       }
       if (config.rate != null) {
         await _flutterTts.setSpeechRate(config.rate!);
@@ -177,6 +210,9 @@ class OnDeviceTTSService implements TTSService {
   Future<Uint8List> getAudioBytes(String text) async {
     throw TTSException('On-device TTS does not support byte output');
   }
+
+  @override
+  bool get supportsBytesOutput => false;
 }
 
 class KokoroTTSService implements TTSService {
@@ -314,6 +350,9 @@ class KokoroTTSService implements TTSService {
     final audioBytes = response.data as List<int>;
     return Uint8List.fromList(audioBytes);
   }
+
+  @override
+  bool get supportsBytesOutput => true;
 }
 
 class OpenAITTSService implements TTSService {
@@ -427,6 +466,9 @@ class OpenAITTSService implements TTSService {
     final audioBytes = response.data as List<int>;
     return Uint8List.fromList(audioBytes);
   }
+
+  @override
+  bool get supportsBytesOutput => true;
 }
 
 class LocalOpenAITTSService implements TTSService {
@@ -548,6 +590,9 @@ class LocalOpenAITTSService implements TTSService {
     final audioBytes = response.data as List<int>;
     return Uint8List.fromList(audioBytes);
   }
+
+  @override
+  bool get supportsBytesOutput => true;
 }
 
 class NoTTSService implements TTSService {
@@ -587,6 +632,9 @@ class NoTTSService implements TTSService {
   Future<Uint8List> getAudioBytes(String text) async {
     throw TTSException('TTS is disabled');
   }
+
+  @override
+  bool get supportsBytesOutput => false;
 }
 
 class TTSException implements Exception {

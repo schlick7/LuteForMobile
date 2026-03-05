@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:async';
 import '../../../core/network/content_service.dart';
 import 'reader_provider.dart';
+import '../../../features/settings/providers/settings_provider.dart';
 
 class AudioPlayerState {
   final AudioPlayer audioPlayer;
@@ -55,25 +56,44 @@ class AudioPlayerState {
 }
 
 class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
-  late final AudioPlayer _audioPlayer;
+  AudioPlayer? _audioPlayer;
   Timer? _autoSaveTimer;
   int _bookId = 0;
   int _page = 0;
   late ContentService _contentService;
+  String? _previousServerUrl;
+
+  StreamSubscription? _playerStateSubscription;
+  StreamSubscription? _positionSubscription;
+  StreamSubscription? _durationSubscription;
+  StreamSubscription? _completeSubscription;
 
   @override
   AudioPlayerState build() {
+    _cancelSubscriptions();
+
     ref.onDispose(() {
       _autoSaveTimer?.cancel();
-      _audioPlayer.dispose();
+      _cancelSubscriptions();
+      _audioPlayer?.dispose();
+      _audioPlayer = null;
     });
 
-    _audioPlayer = AudioPlayer();
-    _audioPlayer.setReleaseMode(ReleaseMode.stop);
+    _audioPlayer ??= AudioPlayer();
+    _audioPlayer!.setReleaseMode(ReleaseMode.stop);
     _contentService = ref.read(readerRepositoryProvider).contentService;
+
+    final settings = ref.read(settingsProvider);
+    if (_previousServerUrl == null) {
+      _previousServerUrl = settings.serverUrl;
+    } else if (_previousServerUrl != settings.serverUrl) {
+      _previousServerUrl = settings.serverUrl;
+      _contentService = ref.read(readerRepositoryProvider).contentService;
+    }
+
     _setupPlayerListeners();
     return AudioPlayerState(
-      audioPlayer: _audioPlayer,
+      audioPlayer: _audioPlayer!,
       playerState: PlayerState.stopped,
       position: Duration.zero,
       duration: Duration.zero,
@@ -84,20 +104,29 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     );
   }
 
+  void _cancelSubscriptions() {
+    _playerStateSubscription?.cancel();
+    _positionSubscription?.cancel();
+    _durationSubscription?.cancel();
+    _completeSubscription?.cancel();
+  }
+
   void _setupPlayerListeners() {
-    _audioPlayer.onPlayerStateChanged.listen((playerState) {
+    _playerStateSubscription = _audioPlayer!.onPlayerStateChanged.listen((
+      playerState,
+    ) {
       state = state.copyWith(playerState: playerState);
     });
 
-    _audioPlayer.onPositionChanged.listen((position) {
+    _positionSubscription = _audioPlayer!.onPositionChanged.listen((position) {
       state = state.copyWith(position: position);
     });
 
-    _audioPlayer.onDurationChanged.listen((duration) {
+    _durationSubscription = _audioPlayer!.onDurationChanged.listen((duration) {
       state = state.copyWith(duration: duration);
     });
 
-    _audioPlayer.onPlayerComplete.listen((_) {
+    _completeSubscription = _audioPlayer!.onPlayerComplete.listen((_) {
       state = state.copyWith(
         playerState: PlayerState.stopped,
         position: Duration.zero,
@@ -112,6 +141,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     List<double>? bookmarks,
     Duration? audioCurrentPos,
   }) async {
+    _reset();
     try {
       state = state.copyWith(isLoading: true, errorMessage: null);
       _bookId = bookId;
@@ -126,16 +156,19 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
 
       state = state.copyWith(bookmarkDurations: bookmarkDurations);
 
-      await _audioPlayer.stop();
-      await _audioPlayer.setSourceUrl(audioUrl);
+      await _audioPlayer!.stop();
+      await _audioPlayer!.setSourceUrl(audioUrl);
 
       if (audioCurrentPos != null && audioCurrentPos > Duration.zero) {
-        await _audioPlayer.seek(audioCurrentPos);
+        await _audioPlayer!.seek(audioCurrentPos);
       }
 
       state = state.copyWith(isLoading: false);
 
-      _startAutoSave();
+      final settings = ref.read(settingsProvider);
+      if (settings.showAudioPlayer) {
+        _startAutoSave();
+      }
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
@@ -143,26 +176,26 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
 
   Future<void> play() async {
     try {
-      await _audioPlayer.resume();
+      await _audioPlayer!.resume();
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }
   }
 
   Future<void> pause() async {
-    await _audioPlayer.pause();
+    await _audioPlayer!.pause();
   }
 
   Future<void> seek(Duration position) async {
-    await _audioPlayer.seek(position);
+    await _audioPlayer!.seek(position);
     if (state.playerState == PlayerState.stopped) {
       await Future.delayed(Duration(milliseconds: 50));
-      await _audioPlayer.resume();
+      await _audioPlayer!.resume();
     }
   }
 
   Future<void> setPlaybackSpeed(double speed) async {
-    await _audioPlayer.setPlaybackRate(speed);
+    await _audioPlayer!.setPlaybackRate(speed);
     state = state.copyWith(playbackSpeed: speed);
   }
 
@@ -233,20 +266,37 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     });
   }
 
+  void _reset() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = null;
+    _bookId = 0;
+    _page = 0;
+    _stopSafely();
+  }
+
+  void reset() {
+    _reset();
+  }
+
   Future<void> playTTSAudio(BytesSource source) async {
+    if (_audioPlayer == null) return;
     try {
-      await _audioPlayer.stop();
-      await _audioPlayer.play(source);
+      await _audioPlayer!.stop();
+      await _audioPlayer!.play(source);
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }
   }
 
   Future<void> stop() async {
+    _stopSafely();
+  }
+
+  void _stopSafely() {
     try {
-      await _audioPlayer.stop();
-    } catch (e) {
-      state = state.copyWith(errorMessage: e.toString());
+      _audioPlayer?.stop();
+    } catch (_) {
+      // Player may be disposed
     }
   }
 

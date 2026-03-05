@@ -59,12 +59,24 @@ class _SentenceTranslationWidgetState
   final Set<int> _preloadedPages = {};
   bool _isPreloading = false;
   bool _isOriginalCollapsed = true;
+  int _popupHeight = DictionaryService.defaultPopupHeight;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: 0);
+    _loadPopupHeight();
     _loadDictionaries();
+  }
+
+  Future<void> _loadPopupHeight() async {
+    final height = await widget.dictionaryService
+        .getSentenceTranslationPopupHeight();
+    if (mounted) {
+      setState(() {
+        _popupHeight = height;
+      });
+    }
   }
 
   Future<void> _loadDictionaries() async {
@@ -81,12 +93,6 @@ class _SentenceTranslationWidgetState
     if (!mounted) return;
 
     int initialPage = 0;
-    if (lastUsed != null && dictionaries.isNotEmpty) {
-      final index = dictionaries.indexWhere((d) => d.name == lastUsed);
-      if (index >= 0) {
-        initialPage = index;
-      }
-    }
 
     final aiSettings = ref.read(aiSettingsProvider);
     final aiConfig = aiSettings.promptConfigs[AIPromptType.sentenceTranslation];
@@ -123,6 +129,13 @@ class _SentenceTranslationWidgetState
           aiType: AIType.virtualDictionary,
         ),
       );
+    }
+
+    if (lastUsed != null && allDictionaries.isNotEmpty) {
+      final index = allDictionaries.indexWhere((d) => d.name == lastUsed);
+      if (index >= 0) {
+        initialPage = index;
+      }
     }
 
     setState(() {
@@ -320,7 +333,10 @@ class _SentenceTranslationWidgetState
           const SizedBox(height: 16),
           _buildOriginalSentence(context),
           const SizedBox(height: 8),
-          SizedBox(height: 300, child: _buildDictionaryContent(context)),
+          SizedBox(
+            height: _popupHeight.toDouble(),
+            child: _buildDictionaryContent(context),
+          ),
           const SizedBox(height: 8),
           _buildCloseButton(context),
         ],
@@ -344,10 +360,20 @@ class _SentenceTranslationWidgetState
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, size: 20),
-            onPressed: null,
-            tooltip: 'Next dictionary',
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_right, size: 20),
+                onPressed: null,
+                tooltip: 'Next dictionary',
+              ),
+              IconButton(
+                icon: const Icon(Icons.settings, size: 20),
+                onPressed: () => _showHeightAdjustmentDialog(context),
+                tooltip: 'Adjust popup height',
+              ),
+            ],
           ),
         ],
       );
@@ -405,6 +431,13 @@ class _SentenceTranslationWidgetState
                   }
                 : null,
             tooltip: 'Next dictionary',
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings, size: 20),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+            onPressed: () => _showHeightAdjustmentDialog(context),
+            tooltip: 'Adjust popup height',
           ),
         ],
       ),
@@ -523,17 +556,16 @@ class _SentenceTranslationWidgetState
           _currentPage = index;
         });
         final currentDict = _dictionaries[index];
+        await widget.dictionaryService.rememberLastUsedSentenceDictionary(
+          widget.languageId,
+          _dictionaries[index].name,
+        );
         if (currentDict.isAI) {
           if (currentDict.aiType == AIType.virtualDictionary) {
             _fetchVirtualDictionary();
           } else {
             _fetchAITranslation();
           }
-        } else {
-          await widget.dictionaryService.rememberLastUsedSentenceDictionary(
-            widget.languageId,
-            _dictionaries[index].name,
-          );
         }
       },
       itemCount: _dictionaries.length,
@@ -778,6 +810,86 @@ class _SentenceTranslationWidgetState
     return SizedBox(
       width: double.infinity,
       child: TextButton(onPressed: widget.onClose, child: const Text('Close')),
+    );
+  }
+
+  void _showHeightAdjustmentDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _HeightAdjustmentDialog(
+        currentHeight: _popupHeight,
+        onHeightChanged: (newHeight) async {
+          await widget.dictionaryService.setSentenceTranslationPopupHeight(
+            newHeight,
+          );
+          if (mounted) {
+            setState(() {
+              _popupHeight = newHeight;
+            });
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _HeightAdjustmentDialog extends StatefulWidget {
+  final int currentHeight;
+  final Future<void> Function(int) onHeightChanged;
+
+  const _HeightAdjustmentDialog({
+    required this.currentHeight,
+    required this.onHeightChanged,
+  });
+
+  @override
+  State<_HeightAdjustmentDialog> createState() =>
+      _HeightAdjustmentDialogState();
+}
+
+class _HeightAdjustmentDialogState extends State<_HeightAdjustmentDialog> {
+  late double _height;
+
+  @override
+  void initState() {
+    super.initState();
+    _height = widget.currentHeight.toDouble();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Adjust Popup Height'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('${_height.round()} px'),
+          Slider(
+            value: _height,
+            min: DictionaryService.minPopupHeight.toDouble(),
+            max: DictionaryService.maxPopupHeight.toDouble(),
+            divisions:
+                (DictionaryService.maxPopupHeight -
+                    DictionaryService.minPopupHeight) ~/
+                DictionaryService.popupHeightStep,
+            label: '${_height.round()} px',
+            onChanged: (value) {
+              setState(() {
+                _height = value;
+              });
+            },
+            onChangeEnd: (value) {
+              widget.onHeightChanged(value.round());
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Done'),
+        ),
+      ],
     );
   }
 }

@@ -2,8 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
-import '../../../core/providers/initial_providers.dart';
 import '../../../shared/theme/theme_definitions.dart';
+import '../../../core/cache/providers/cache_manager_provider.dart';
+import '../../../features/reader/providers/reader_provider.dart';
+import '../../../core/services/termux_service.dart';
+import '../../../core/services/server_health_service.dart';
+import '../../books/providers/books_provider.dart';
+import '../../stats/providers/stats_provider.dart';
+import '../../terms/providers/terms_provider.dart';
+import '../../terms/repositories/terms_repository.dart';
+import '../../../shared/providers/server_status_provider.dart';
+import '../../../shared/providers/network_providers.dart';
 
 typedef DrawerSettingsBuilder =
     Widget Function(BuildContext context, WidgetRef ref);
@@ -17,7 +26,8 @@ class ViewDrawerSettings {
 }
 
 class SettingsNotifier extends Notifier<Settings> {
-  static const String _keyServerUrl = 'server_url';
+  static const String _keyLocalUrl = 'local_url';
+  static const String _keyUseTermux = 'use_termux';
   static const String _keyTranslationProvider = 'translation_provider';
   static const String _keyShowTags = 'show_tags';
   static const String _keyShowLastRead = 'show_last_read';
@@ -35,33 +45,53 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyPageTurnAnimations = 'page_turn_animations';
   static const String _keyEnableTooltipCaching = 'enable_tooltip_caching';
   static const String _keyShowStatsBar = 'show_stats_bar';
+  static const String _keyShowKnownTermsCount = 'show_known_terms_count';
+  static const String _keyShowTermStatsCard = 'show_term_stats_card';
   static const String _keyShowPageNumbers = 'show_page_numbers';
   static const String _keyEnableTripleTapToMarkKnown =
       'enable_triple_tap_to_mark_known';
+  static const String _keyEnablePagePreload = 'enable_page_preload';
+  static const String _keyTermuxIntegrationEnabled =
+      'termux_integration_enabled';
+  static const String _keyStatsCalcSampleSize = 'stats_calc_sample_size';
+  static const String _keyStats500SampleSize = 'stats_500_sample_size';
+  static const String _keyStatsRefreshBatchSize = 'stats_refresh_batch_size';
+  static const String _keyStatsRefreshCooldownHours =
+      'stats_refresh_cooldown_hours';
+  static const String _keyAlwaysRefreshBookDetails =
+      'always_refresh_book_details';
+  static const String _keyMaxConcurrentTooltipFetches =
+      'max_concurrent_tooltip_fetches';
+  static const String _keyAutoRefreshFullStats = 'auto_refresh_full_stats';
 
   @override
   Settings build() {
-    final serverUrl = ref.read(initialServerUrlProvider);
-    final settings = Settings.defaultSettings().copyWith(
+    _loadSettings();
+    return state;
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final localUrl = prefs.getString(_keyLocalUrl) ?? '';
+    final useTermux = prefs.getBool(_keyUseTermux) ?? false;
+    final serverUrl = useTermux ? Settings.termuxUrl : localUrl;
+
+    state = Settings.defaultSettings().copyWith(
+      localUrl: localUrl,
       serverUrl: serverUrl,
       isUrlValid: _isValidUrl(serverUrl),
     );
-    _loadOtherSettingsAsync();
-    return settings;
+
+    _loadOtherSettings(prefs);
   }
 
-  Future<void> _loadOtherSettingsAsync() async {
-    final prefs = await SharedPreferences.getInstance();
+  Future<void> _loadOtherSettings(SharedPreferences prefs) async {
     final translationProvider =
         prefs.getString(_keyTranslationProvider) ?? 'local';
     final showTags = prefs.getBool(_keyShowTags) ?? true;
     final showLastRead = prefs.getBool(_keyShowLastRead) ?? true;
     final languageFilter = prefs.getString(_keyLanguageFilter);
     final showAudioPlayer = prefs.getBool(_keyShowAudioPlayer) ?? true;
-    final currentBookId = prefs.getInt(_keyCurrentBookId);
-    final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
-    final currentBookPage = prefs.getInt(_keyCurrentBookPage);
-    final currentBookSentenceIndex = prefs.getInt(_keyCurrentBookSentenceIndex);
     final combineShortSentences = prefs.getInt(_keyCombineShortSentences) ?? 3;
     final showKnownTermsInSentenceReader =
         prefs.getBool(_keyShowKnownTermsInSentenceReader) ?? true;
@@ -70,9 +100,34 @@ class SettingsNotifier extends Notifier<Settings> {
     final enableTooltipCaching =
         prefs.getBool(_keyEnableTooltipCaching) ?? false;
     final showStatsBar = prefs.getBool(_keyShowStatsBar) ?? true;
+    final showKnownTermsCount = prefs.getBool(_keyShowKnownTermsCount) ?? false;
+    final showTermStatsCard = prefs.getBool(_keyShowTermStatsCard) ?? false;
     final showPageNumbers = prefs.getBool(_keyShowPageNumbers) ?? true;
     final enableTripleTapToMarkKnown =
         prefs.getBool(_keyEnableTripleTapToMarkKnown) ?? false;
+    final enablePagePreload = prefs.getBool(_keyEnablePagePreload) ?? false;
+    final termuxIntegrationEnabled =
+        prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
+    final statsCalcSampleSize = prefs.getInt(_keyStatsCalcSampleSize) ?? 5;
+    final stats500SampleSize = prefs.getInt(_keyStats500SampleSize) ?? 100;
+    final statsRefreshBatchSize = prefs.getInt(_keyStatsRefreshBatchSize) ?? 1;
+    final statsRefreshCooldownHours =
+        prefs.getInt(_keyStatsRefreshCooldownHours) ?? 48;
+    final alwaysRefreshBookDetails =
+        prefs.getBool(_keyAlwaysRefreshBookDetails) ?? true;
+    final maxConcurrentTooltipFetches =
+        prefs.getInt(_keyMaxConcurrentTooltipFetches) ?? 4;
+    final autoRefreshFullStats =
+        prefs.getBool(_keyAutoRefreshFullStats) ?? false;
+
+    final currentBookId = prefs.getInt(_keyCurrentBookId);
+    final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
+    final currentBookPage = prefs.getInt(_keyCurrentBookPage);
+    final currentBookSentenceIndex = prefs.getInt(_keyCurrentBookSentenceIndex);
+
+    print(
+      'DEBUG: _loadOtherSettings - SharedPreferences currentBookId=$currentBookId, page=$currentBookPage, langId=$currentBookLangId',
+    );
 
     state = state.copyWith(
       translationProvider: translationProvider,
@@ -90,17 +145,65 @@ class SettingsNotifier extends Notifier<Settings> {
       pageTurnAnimations: pageTurnAnimations,
       enableTooltipCaching: enableTooltipCaching,
       showStatsBar: showStatsBar,
+      showKnownTermsCount: showKnownTermsCount,
+      showTermStatsCard: showTermStatsCard,
       showPageNumbers: showPageNumbers,
       enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
+      enablePagePreload: enablePagePreload,
+      termuxIntegrationEnabled: termuxIntegrationEnabled,
+      statsCalcSampleSize: statsCalcSampleSize,
+      stats500SampleSize: stats500SampleSize,
+      statsRefreshBatchSize: statsRefreshBatchSize,
+      statsRefreshCooldownHours: statsRefreshCooldownHours,
+      alwaysRefreshBookDetails: alwaysRefreshBookDetails,
+      maxConcurrentTooltipFetches: maxConcurrentTooltipFetches,
+      autoRefreshFullStats: autoRefreshFullStats,
     );
   }
 
-  Future<void> updateServerUrl(String url) async {
-    final isValid = _isValidUrl(url);
-    state = state.copyWith(serverUrl: url, isUrlValid: isValid);
-
+  Future<void> updateLocalUrl(String url) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyServerUrl, url);
+    final previousServerUrl = state.serverUrl;
+    await prefs.setString(_keyLocalUrl, url);
+    final isValid = _isValidUrl(url);
+    final serverUrl = prefs.getBool(_keyUseTermux) ?? false
+        ? Settings.termuxUrl
+        : url;
+    state = state.copyWith(
+      localUrl: url,
+      serverUrl: serverUrl,
+      isUrlValid: isValid,
+    );
+
+    if (previousServerUrl != state.serverUrl) {
+      await ref.read(cacheManagerProvider).clearServerDependentCaches();
+      await clearCurrentBook();
+      ref.read(readerProvider.notifier).clearPageData();
+    }
+  }
+
+  Future<void> setServerSelection(bool useTermux) async {
+    final prefs = await SharedPreferences.getInstance();
+    final previousServerUrl = state.serverUrl;
+    await prefs.setBool(_keyUseTermux, useTermux);
+
+    if (useTermux) {
+      state = state.copyWith(serverUrl: Settings.termuxUrl, isUrlValid: true);
+      await TermuxService.startServer();
+    } else {
+      final localUrl = prefs.getString(_keyLocalUrl) ?? '';
+      final isValid = _isValidUrl(localUrl);
+      state = state.copyWith(serverUrl: localUrl, isUrlValid: isValid);
+    }
+
+    if (previousServerUrl != state.serverUrl) {
+      await ref.read(cacheManagerProvider).clearServerDependentCaches();
+      await clearCurrentBook();
+      ref.read(readerProvider.notifier).clearPageData();
+    }
+
+    final isReachable = await ServerHealthService.isReachable(state.serverUrl);
+    ServerStatusManager.setReachable(isReachable);
   }
 
   Future<void> updateTranslationProvider(String provider) async {
@@ -161,6 +264,9 @@ class SettingsNotifier extends Notifier<Settings> {
   }
 
   Future<void> updateCurrentBook(int bookId, [int? page, int? langId]) async {
+    print(
+      'DEBUG: updateCurrentBook - saving bookId=$bookId, page=$page, langId=$langId',
+    );
     state = state.copyWith(
       currentBookId: bookId,
       currentBookLangId: langId,
@@ -171,16 +277,15 @@ class SettingsNotifier extends Notifier<Settings> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyCurrentBookId, bookId);
     if (langId != null) {
-      await prefs.setInt(_keyCurrentBookLangId, langId!);
-    } else {
-      await prefs.remove(_keyCurrentBookLangId);
+      await prefs.setInt(_keyCurrentBookLangId, langId);
     }
     if (page != null) {
       await prefs.setInt(_keyCurrentBookPage, page);
-    } else {
-      await prefs.remove(_keyCurrentBookPage);
     }
     await prefs.remove(_keyCurrentBookSentenceIndex);
+    print(
+      'DEBUG: updateCurrentBook - saved to SharedPreferences: bookId=$bookId, page=$page, langId=$langId',
+    );
   }
 
   Future<void> clearCurrentBook() async {
@@ -248,6 +353,18 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyShowStatsBar, show);
   }
 
+  Future<void> updateShowKnownTermsCount(bool show) async {
+    state = state.copyWith(showKnownTermsCount: show);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowKnownTermsCount, show);
+  }
+
+  Future<void> updateShowTermStatsCard(bool show) async {
+    state = state.copyWith(showTermStatsCard: show);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowTermStatsCard, show);
+  }
+
   Future<void> updateShowPageNumbers(bool show) async {
     state = state.copyWith(showPageNumbers: show);
     final prefs = await SharedPreferences.getInstance();
@@ -258,6 +375,60 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(enableTripleTapToMarkKnown: enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyEnableTripleTapToMarkKnown, enabled);
+  }
+
+  Future<void> updateEnablePagePreload(bool enabled) async {
+    state = state.copyWith(enablePagePreload: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyEnablePagePreload, enabled);
+  }
+
+  Future<void> updateTermuxIntegrationEnabled(bool enabled) async {
+    state = state.copyWith(termuxIntegrationEnabled: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyTermuxIntegrationEnabled, enabled);
+  }
+
+  Future<void> updateStatsCalcSampleSize(int value) async {
+    state = state.copyWith(statsCalcSampleSize: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyStatsCalcSampleSize, value);
+  }
+
+  Future<void> updateStats500SampleSize(int value) async {
+    state = state.copyWith(stats500SampleSize: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyStats500SampleSize, value);
+  }
+
+  Future<void> updateStatsRefreshBatchSize(int value) async {
+    state = state.copyWith(statsRefreshBatchSize: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyStatsRefreshBatchSize, value);
+  }
+
+  Future<void> updateStatsRefreshCooldownHours(int value) async {
+    state = state.copyWith(statsRefreshCooldownHours: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyStatsRefreshCooldownHours, value);
+  }
+
+  Future<void> updateAlwaysRefreshBookDetails(bool value) async {
+    state = state.copyWith(alwaysRefreshBookDetails: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAlwaysRefreshBookDetails, value);
+  }
+
+  Future<void> updateMaxConcurrentTooltipFetches(int value) async {
+    state = state.copyWith(maxConcurrentTooltipFetches: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_keyMaxConcurrentTooltipFetches, value);
+  }
+
+  Future<void> updateAutoRefreshFullStats(bool value) async {
+    state = state.copyWith(autoRefreshFullStats: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAutoRefreshFullStats, value);
   }
 
   bool _isValidUrl(String url) {
@@ -273,7 +444,8 @@ class SettingsNotifier extends Notifier<Settings> {
 
   void resetSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyServerUrl);
+    await prefs.remove(_keyLocalUrl);
+    await prefs.remove(_keyUseTermux);
     await prefs.remove(_keyTranslationProvider);
     await prefs.remove(_keyShowTags);
     await prefs.remove(_keyShowLastRead);
@@ -287,8 +459,15 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyPageTurnAnimations);
     await prefs.remove(_keyEnableTooltipCaching);
     await prefs.remove(_keyShowStatsBar);
+    await prefs.remove(_keyShowKnownTermsCount);
+    await prefs.remove(_keyShowTermStatsCard);
     await prefs.remove(_keyShowPageNumbers);
     await prefs.remove(_keyEnableTripleTapToMarkKnown);
+    await prefs.remove(_keyStatsCalcSampleSize);
+    await prefs.remove(_keyStatsRefreshBatchSize);
+    await prefs.remove(_keyStatsRefreshCooldownHours);
+    await prefs.remove(_keyAlwaysRefreshBookDetails);
+    await prefs.remove(_keyAutoRefreshFullStats);
 
     state = Settings.defaultSettings();
   }
@@ -450,7 +629,7 @@ class TextFormattingSettings {
     this.fontWeight = FontWeight.w500,
     this.isItalic = false,
     this.fullscreenMode = false,
-    this.swipeNavigationEnabled = true,
+    this.swipeNavigationEnabled = false,
     this.swipeMarksRead = true,
   });
 
@@ -536,7 +715,7 @@ class TextFormattingSettingsNotifier extends Notifier<TextFormattingSettings> {
     final isItalic = prefs.getBool(_keyIsItalic) ?? false;
     final fullscreenMode = prefs.getBool(_keyFullscreenMode) ?? false;
     final swipeNavigationEnabled =
-        prefs.getBool(_keySwipeNavigationEnabled) ?? true;
+        prefs.getBool(_keySwipeNavigationEnabled) ?? false;
     final swipeMarksRead = prefs.getBool(_keySwipeMarksRead) ?? true;
 
     final fontWeightMap = [
@@ -678,16 +857,16 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     final loadedSettings = ThemeSettings(
       themeType: themeType,
       accentLabelColor: accentLabelColorValue != null
-          ? Color(accentLabelColorValue!)
+          ? Color(accentLabelColorValue)
           : ThemeSettings.defaultSettings.accentLabelColor,
       accentButtonColor: accentButtonColorValue != null
-          ? Color(accentButtonColorValue!)
+          ? Color(accentButtonColorValue)
           : ThemeSettings.defaultSettings.accentButtonColor,
       customAccentLabelColor: customAccentLabelColorValue != null
-          ? Color(customAccentLabelColorValue!)
+          ? Color(customAccentLabelColorValue)
           : null,
       customAccentButtonColor: customAccentButtonColorValue != null
-          ? Color(customAccentButtonColorValue!)
+          ? Color(customAccentButtonColorValue)
           : null,
     );
 
@@ -697,23 +876,18 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
   }
 
   Future<void> updateAccentLabelColor(Color color) async {
-    print('DEBUG: updateAccentLabelColor called with color: $color');
     state = state.copyWith(accentLabelColor: color);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentLabelColor, color.value);
-    print('DEBUG: Saved accentLabelColor.value = ${color.value}');
   }
 
   Future<void> updateAccentButtonColor(Color color) async {
-    print('DEBUG: updateAccentButtonColor called with color: $color');
     state = state.copyWith(accentButtonColor: color);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyAccentButtonColor, color.value);
-    print('DEBUG: Saved accentButtonColor.value = ${color.value}');
   }
 
   Future<void> updateCustomAccentLabelColor(Color color) async {
-    print('DEBUG: updateCustomAccentLabelColor called with color: $color');
     state = state.copyWith(
       customAccentLabelColor: color,
       accentLabelColor: color,
@@ -721,11 +895,9 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyCustomAccentLabelColor, color.value);
     await prefs.setInt(_keyAccentLabelColor, color.value);
-    print('DEBUG: Saved customAccentLabelColor.value = ${color.value}');
   }
 
   Future<void> updateCustomAccentButtonColor(Color color) async {
-    print('DEBUG: updateCustomAccentButtonColor called with color: $color');
     state = state.copyWith(
       customAccentButtonColor: color,
       accentButtonColor: color,
@@ -733,7 +905,6 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyCustomAccentButtonColor, color.value);
     await prefs.setInt(_keyAccentButtonColor, color.value);
-    print('DEBUG: Saved customAccentButtonColor.value = ${color.value}');
   }
 
   Future<void> updateThemeType(ThemeType themeType) async {

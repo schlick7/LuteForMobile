@@ -1,6 +1,7 @@
 import 'dart:developer' as developer;
 import 'package:openai_dart/openai_dart.dart';
 import 'package:dio/dio.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
 
 abstract class AIService {
@@ -419,6 +420,190 @@ class LocalOpenAIService implements AIService {
       developer.log(
         'Error getting term explanation: $e',
         name: 'LocalOpenAIService',
+      );
+      rethrow;
+    }
+  }
+}
+
+class GeminiService implements AIService {
+  final String apiKey;
+  final String? model;
+  final Map<AIPromptType, AIPromptConfig> promptConfigs;
+
+  late final GenerativeModel _generativeModel;
+
+  GeminiService({
+    required this.apiKey,
+    this.model,
+    required this.promptConfigs,
+  }) {
+    _generativeModel = GenerativeModel(
+      model: model ?? 'gemini-1.5-flash',
+      apiKey: apiKey,
+    );
+  }
+
+  @override
+  Future<String> translateTerm(
+    String term,
+    String language, {
+    String? sentence,
+  }) async {
+    try {
+      final prompt = getPromptForType(
+        AIPromptType.termTranslation,
+        sentence: sentence,
+        term: term,
+        language: language,
+      );
+
+      final response = await _generativeModel.generateContent([
+        Content.text(prompt),
+      ]);
+
+      return response.text ?? 'No translation available';
+    } catch (e) {
+      developer.log('Error translating term: $e', name: 'GeminiService');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<String> translateSentence(String sentence, String language) async {
+    try {
+      final prompt = getPromptForType(
+        AIPromptType.sentenceTranslation,
+        sentence: sentence,
+        language: language,
+      );
+
+      final response = await _generativeModel.generateContent([
+        Content.text(prompt),
+      ]);
+
+      return response.text ?? 'No translation available';
+    } catch (e) {
+      developer.log('Error translating sentence: $e', name: 'GeminiService');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<List<String>> fetchAvailableModels() async {
+    try {
+      // Use Dio to call the Google AI REST API to list models
+      final dio = Dio(
+        BaseOptions(baseUrl: 'https://generativelanguage.googleapis.com'),
+      );
+
+      final response = await dio.get(
+        '/v1beta/models',
+        queryParameters: {'key': apiKey},
+      );
+
+      final models = response.data['models'] as List;
+      return models
+          .map((m) => (m['name'] as String).replaceFirst('models/', ''))
+          .where((name) => name.contains('gemini'))
+          .toList();
+    } catch (e) {
+      developer.log('Error fetching models: $e', name: 'GeminiService');
+      // Return fallback list on error
+      return [
+        'gemini-1.5-flash',
+        'gemini-1.5-pro',
+        'gemini-1.0-pro',
+        'gemini-pro',
+      ];
+    }
+  }
+
+  @override
+  String getPromptForType(
+    AIPromptType type, {
+    String? sentence,
+    String? term,
+    String? language,
+  }) {
+    final config = promptConfigs[type];
+    final template = config?.customPrompt ?? AIPromptTemplates.getDefault(type);
+
+    if (config?.enabled != true) {
+      developer.log('Prompt type $type is disabled', name: 'GeminiService');
+      return AIPromptTemplates.getDefault(type);
+    }
+
+    return _replacePlaceholders(
+      template,
+      sentence: sentence,
+      term: term,
+      language: language,
+    );
+  }
+
+  String _replacePlaceholders(
+    String template, {
+    String? sentence,
+    String? term,
+    String? language,
+  }) {
+    var result = template;
+    if (sentence != null) result = result.replaceAll('[sentence]', sentence);
+    if (term != null) result = result.replaceAll('[term]', term);
+    if (language != null) result = result.replaceAll('[language]', language);
+    return result;
+  }
+
+  @override
+  Future<String> getVirtualDictionaryEntry(
+    String sentence,
+    String language,
+  ) async {
+    try {
+      final prompt = getPromptForType(
+        AIPromptType.virtualDictionary,
+        sentence: sentence,
+        language: language,
+      );
+
+      final response = await _generativeModel.generateContent([
+        Content.text(prompt),
+      ]);
+
+      return response.text ?? 'No dictionary entry available';
+    } catch (e) {
+      developer.log(
+        'Error getting virtual dictionary entry: $e',
+        name: 'GeminiService',
+      );
+      rethrow;
+    }
+  }
+
+  @override
+  Future<String> getTermExplanation(
+    String term,
+    String language, {
+    String? sentence,
+  }) async {
+    try {
+      final prompt = getPromptForType(
+        AIPromptType.termExplanation,
+        sentence: sentence,
+        term: term,
+        language: language,
+      );
+
+      final response = await _generativeModel.generateContent([
+        Content.text(prompt),
+      ]);
+
+      return response.text ?? 'No explanation available';
+    } catch (e) {
+      developer.log(
+        'Error getting term explanation: $e',
+        name: 'GeminiService',
       );
       rethrow;
     }

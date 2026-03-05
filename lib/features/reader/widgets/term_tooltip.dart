@@ -22,121 +22,197 @@ String _formatTranslation(String? translation) {
   return result.toString();
 }
 
+class _AnimatedTermTooltip extends StatefulWidget {
+  final TermTooltip termTooltip;
+  final VoidCallback onClose;
+  final Offset position;
+  final Key? widgetKey;
+
+  const _AnimatedTermTooltip({
+    required this.termTooltip,
+    required this.onClose,
+    required this.position,
+    this.widgetKey,
+  });
+
+  @override
+  State<_AnimatedTermTooltip> createState() => _AnimatedTermTooltipState();
+}
+
+class _AnimatedTermTooltipState extends State<_AnimatedTermTooltip>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.9,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      key: widget.widgetKey,
+      left: widget.position.dx,
+      top: widget.position.dy,
+      child: GestureDetector(
+        onTap: widget.onClose,
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: _TooltipContent(termTooltip: widget.termTooltip),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TooltipContent extends StatelessWidget {
+  final TermTooltip termTooltip;
+
+  const _TooltipContent({required this.termTooltip});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      elevation: 8,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 200),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              termTooltip.term,
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (termTooltip.translation != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                _formatTranslation(termTooltip.translation),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+            if (termTooltip.parents.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              ...termTooltip.parents.map(
+                (parent) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '(${parent.term})',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withValues(alpha: 1.0),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (parent.translation != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        _formatTranslation(parent.translation),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class TermTooltipClass {
   static OverlayEntry? _currentEntry;
   static Timer? _dismissTimer;
   static final GlobalKey _tooltipKey = GlobalKey();
   static bool _isHidden = false;
   static bool _makeVisibleRequested = false;
+  static Offset _tooltipPosition = Offset.zero;
 
   static void show(
     BuildContext context,
     TermTooltip termTooltip,
-    Offset position,
+    Rect termRect,
   ) {
     close();
     _makeVisibleRequested = false;
 
     final screenSize = MediaQuery.of(context).size;
-    _isHidden = true;
+    _isHidden = false;
 
     _currentEntry = OverlayEntry(
       builder: (ctx) => Positioned(
         left: -9999,
         top: -9999,
-        child: Opacity(
-          opacity: _isHidden ? 0.0 : 1.0,
-          child: GestureDetector(
-            onTap: close,
-            child: Material(
-              key: _tooltipKey,
-              elevation: 8,
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 200),
-                decoration: BoxDecoration(
-                  color: Theme.of(ctx).colorScheme.surface,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: Theme.of(
-                      ctx,
-                    ).colorScheme.outline.withValues(alpha: 0.2),
-                    width: 1,
-                  ),
-                ),
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      termTooltip.term,
-                      style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (termTooltip.translation != null) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        _formatTranslation(termTooltip.translation),
-                        style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                          fontStyle: FontStyle.italic,
-                          color: Theme.of(
-                            ctx,
-                          ).colorScheme.onSurface.withValues(alpha: 0.7),
-                        ),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    if (termTooltip.parents.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      ...termTooltip.parents.map(
-                        (parent) => Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '(${parent.term})',
-                              style: Theme.of(ctx).textTheme.bodySmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                    color: Theme.of(ctx).colorScheme.onSurface
-                                        .withValues(alpha: 1.0),
-                                  ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (parent.translation != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                _formatTranslation(parent.translation),
-                                style: Theme.of(ctx).textTheme.bodySmall
-                                    ?.copyWith(
-                                      fontStyle: FontStyle.italic,
-                                      color: Theme.of(ctx).colorScheme.onSurface
-                                          .withValues(alpha: 0.7),
-                                    ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
+        child: _AnimatedTermTooltip(
+          termTooltip: termTooltip,
+          onClose: close,
+          position: Offset.zero,
+          widgetKey: _tooltipKey,
         ),
       ),
     );
@@ -151,122 +227,31 @@ class TermTooltipClass {
         final tooltipWidth = tooltipSize.width;
         final tooltipHeight = tooltipSize.height;
 
-        double top = position.dy - tooltipHeight - 12;
-        double left = position.dx - tooltipWidth / 2;
+        const verticalOffset = 12.0;
+        const horizontalMargin = 8.0;
+
+        double left = termRect.center.dx - tooltipWidth / 2;
+        double top = termRect.top - tooltipHeight - verticalOffset;
+
+        if (left < horizontalMargin) {
+          left = horizontalMargin;
+        } else if (left + tooltipWidth > screenSize.width - horizontalMargin) {
+          left = screenSize.width - tooltipWidth - horizontalMargin;
+        }
 
         if (top < 0) {
-          top = position.dy + 30;
+          top = termRect.bottom + verticalOffset;
         }
 
-        if (left < 0) {
-          left = 8;
-        } else if (left + tooltipWidth > screenSize.width) {
-          left = screenSize.width - tooltipWidth - 8;
-        }
+        _tooltipPosition = Offset(left, top);
 
         _currentEntry?.remove();
         _currentEntry = OverlayEntry(
-          builder: (ctx) => Positioned(
-            top: top,
-            left: left,
-            child: Opacity(
-              opacity: _isHidden ? 0.0 : 1.0,
-              child: GestureDetector(
-                onTap: close,
-                child: Material(
-                  key: _tooltipKey,
-                  elevation: 8,
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 200),
-                    decoration: BoxDecoration(
-                      color: Theme.of(ctx).colorScheme.surface,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                      border: Border.all(
-                        color: Theme.of(
-                          ctx,
-                        ).colorScheme.outline.withValues(alpha: 0.2),
-                        width: 1,
-                      ),
-                    ),
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          termTooltip.term,
-                          style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (termTooltip.translation != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatTranslation(termTooltip.translation),
-                            style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                              fontStyle: FontStyle.italic,
-                              color: Theme.of(
-                                ctx,
-                              ).colorScheme.onSurface.withValues(alpha: 0.7),
-                            ),
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        if (termTooltip.parents.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          ...termTooltip.parents.map(
-                            (parent) => Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '(${parent.term})',
-                                  style: Theme.of(ctx).textTheme.bodySmall
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w500,
-                                        color: Theme.of(ctx)
-                                            .colorScheme
-                                            .onSurface
-                                            .withValues(alpha: 1.0),
-                                      ),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                if (parent.translation != null) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _formatTranslation(parent.translation),
-                                    style: Theme.of(ctx).textTheme.bodySmall
-                                        ?.copyWith(
-                                          fontStyle: FontStyle.italic,
-                                          color: Theme.of(ctx)
-                                              .colorScheme
-                                              .onSurface
-                                              .withValues(alpha: 0.6),
-                                        ),
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+          builder: (ctx) => _AnimatedTermTooltip(
+            termTooltip: termTooltip,
+            onClose: close,
+            position: _tooltipPosition,
+            widgetKey: _tooltipKey,
           ),
         );
         Overlay.of(context).insert(_currentEntry!);

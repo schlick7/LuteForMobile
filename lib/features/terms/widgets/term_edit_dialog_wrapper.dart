@@ -8,7 +8,7 @@ import '../../reader/widgets/term_form.dart' show TermFormWidget;
 class TermEditDialogWrapper extends ConsumerStatefulWidget {
   final Term term;
   final VoidCallback onDelete;
-  final VoidCallback? onSave;
+  final void Function(Term)? onSave;
 
   const TermEditDialogWrapper({
     super.key,
@@ -31,6 +31,19 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
   void initState() {
     super.initState();
     _loadTermForm();
+  }
+
+  Term _createTermFromForm(TermForm form) {
+    return Term(
+      id: form.termId!,
+      text: form.term,
+      translation: form.translation,
+      status: form.status,
+      langId: form.languageId,
+      language: widget.term.language,
+      tags: form.tags,
+      createdDate: widget.term.createdDate,
+    );
   }
 
   Future<void> _loadTermForm() async {
@@ -59,138 +72,137 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).appBarTheme.backgroundColor,
-            border: Border(
-              bottom: BorderSide(color: Theme.of(context).dividerColor),
-            ),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Edit Term',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
+    return AnimatedPadding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      duration: const Duration(milliseconds: 100),
+      curve: Curves.easeOut,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).appBarTheme.backgroundColor,
+              border: Border(
+                bottom: BorderSide(color: Theme.of(context).dividerColor),
               ),
-              if (_isSaving)
-                const Padding(
-                  padding: EdgeInsets.only(right: 12),
-                  child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Edit Term',
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
-              IconButton(
-                icon: const Icon(Icons.delete),
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Delete Term'),
-                      content: const Text(
-                        'Are you sure you want to delete this term?',
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            widget.onDelete();
-                          },
-                          child: const Text(
-                            'Delete',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ),
-                      ],
+                if (_isSaving)
+                  const Padding(
+                    padding: EdgeInsets.only(right: 12),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        Flexible(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(8),
-            child: TermFormWidget(
-              termForm: _termForm!,
-              onSave: (updatedForm) async {
-                try {
-                  final contentService = ref.read(contentServiceProvider);
-                  await contentService.editTerm(
-                    updatedForm.termId!,
-                    updatedForm.toFormData(),
-                  );
-                  if (mounted) {
-                    widget.onSave?.call();
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Term updated successfully'),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('Delete Term'),
+                        content: const Text(
+                          'Are you sure you want to delete this term?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              widget.onDelete();
+                            },
+                            child: const Text(
+                              'Delete',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
                       ),
                     );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to update term: $e')),
-                    );
-                  }
-                }
-              },
-              onUpdate: (updatedForm) async {
-                setState(() {
-                  _termForm = updatedForm;
-                });
-                try {
-                  setState(() {
-                    _isSaving = true;
-                  });
-                  final contentService = ref.read(contentServiceProvider);
-                  await contentService.editTerm(
-                    updatedForm.termId!,
-                    updatedForm.toFormData(),
-                  );
-                  if (mounted) {
-                    widget.onSave?.call();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Term updated successfully'),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Failed to update term: $e')),
-                    );
-                  }
-                } finally {
-                  if (mounted) {
-                    setState(() {
-                      _isSaving = false;
-                    });
-                  }
-                }
-              },
-              onCancel: () => Navigator.pop(context),
-              contentService: ref.read(contentServiceProvider),
-              dictionaryService: ref.read(dictionaryServiceProvider),
+                  },
+                ),
+              ],
             ),
           ),
-        ),
-      ],
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(8),
+              child: TermFormWidget(
+                termForm: _termForm!,
+                onSave: (updatedForm) async {
+                  try {
+                    final contentService = ref.read(contentServiceProvider);
+                    await contentService.editTerm(
+                      updatedForm.termId!,
+                      updatedForm.toFormData(),
+                    );
+                    if (mounted) {
+                      final updatedTerm = _createTermFromForm(updatedForm);
+                      widget.onSave?.call(updatedTerm);
+                      Navigator.pop(context);
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to update term: $e')),
+                      );
+                    }
+                  }
+                },
+                onUpdate: (updatedForm) async {
+                  setState(() {
+                    _termForm = updatedForm;
+                  });
+                  try {
+                    setState(() {
+                      _isSaving = true;
+                    });
+                    final contentService = ref.read(contentServiceProvider);
+                    await contentService.editTerm(
+                      updatedForm.termId!,
+                      updatedForm.toFormData(),
+                    );
+                    if (mounted) {
+                      final updatedTerm = _createTermFromForm(updatedForm);
+                      widget.onSave?.call(updatedTerm);
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to update term: $e')),
+                      );
+                    }
+                  } finally {
+                    if (mounted) {
+                      setState(() {
+                        _isSaving = false;
+                      });
+                    }
+                  }
+                },
+                onCancel: () => Navigator.pop(context),
+                contentService: ref.read(contentServiceProvider),
+                dictionaryService: ref.read(dictionaryServiceProvider),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

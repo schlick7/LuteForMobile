@@ -3,45 +3,48 @@
 - source myenv/bin/activate
   - python3 -m lute.main
   
-Lets do a performance review of this app starting with the ReadScreen 
-
-preferably we want this to load from cache and not a fetch if possible. 
 
 
-- Some way to trigger backups. 
-- When the app is opened we should somehow make sure that the backup system is triggered. Not a manual backup. The way the current Lute Webpage works is that when you open it for the first time that day it somehow triggers a backup to run. Our app never triggers that. Look into the @lute-v3 code and find out what is triggering this. 
+
+---
+https://wiki.termux.com/wiki/Main_Page
+https://github.com/termux/termux-packages/wiki/Mirrors
+https://github.com/termux/termux-tools/tree/master/mirrors
+
+# Termux
+- We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
+  - no idea how without creating a "micro service"
+
+---
 
 # Requests 
- 
+
+# Settings
+- 
+
 # Reader
-- Known words readstat is still not updating when i mark a term as known in the ReadScreen the statsscreen ALSO doesn't update this value! It seems that the value ONLY updates when i enter the TermsScreen. Does this update depend on something from the TermsScreen?
+- 
 
 # Sentence Reader
 -
 
 # TTS
-- 
+-
 
 # AI
-- 
+- done? gemini
 
 # Books Screen
 - 
 
 # Terms Screen
--
-
+- 
+ 
 # Statistics Screen  
 - 
 
 # Help Screen
-- 
-
-
-edge case? upside down '?' are at the start (and ? at the end as well) of spanish question words but the sentence parser doesn't pull them in if its at the start of new sentence and it stays on the last sentence. Any way to do this intelligently from the language settings that we have access to or would we need to hard code this in the parser. 
-
-Maybe fixed? When we combine sentences with the sentence parser lets make sure theres at least 1 space between the sentences
-
+- Can't copy text
 
 # Theme
 

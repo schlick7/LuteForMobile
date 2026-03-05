@@ -17,11 +17,11 @@ class BookCacheEntryAdapter extends TypeAdapter<BookCacheEntry> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return BookCacheEntry(
-      activeBooks: (fields[0] as List).cast<Book>(),
-      archivedBooks: (fields[1] as List).cast<Book>(),
-      timestamp: (fields[2] as num).toInt(),
-      cacheType: fields[3] == null ? 'full' : fields[3] as String,
-    );
+        timestamp: (fields[2] as num).toInt(),
+        cacheType: fields[3] == null ? 'full' : fields[3] as String,
+      )
+      ..activeBooksJson = fields[0] as String
+      ..archivedBooksJson = fields[1] as String;
   }
 
   @override
@@ -29,9 +29,9 @@ class BookCacheEntryAdapter extends TypeAdapter<BookCacheEntry> {
     writer
       ..writeByte(4)
       ..writeByte(0)
-      ..write(obj.activeBooks)
+      ..write(obj.activeBooksJson)
       ..writeByte(1)
-      ..write(obj.archivedBooks)
+      ..write(obj.archivedBooksJson)
       ..writeByte(2)
       ..write(obj.timestamp)
       ..writeByte(3)

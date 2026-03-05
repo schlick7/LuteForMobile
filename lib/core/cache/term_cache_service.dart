@@ -1,5 +1,6 @@
 import 'package:hive_ce/hive.dart';
 import 'models/term_cache_entry.dart';
+import 'cache_logger.dart';
 
 class TermCacheService {
   static const String _boxName = 'term_cache';
@@ -10,29 +11,17 @@ class TermCacheService {
   Box<TermCacheEntry>? _box;
   bool _isInitialized = false;
 
-  static TermCacheService? _instance;
-
-  static TermCacheService getInstance() {
-    _instance ??= TermCacheService._internal();
-    return _instance!;
-  }
-
-  TermCacheService._internal();
-
-  factory TermCacheService() {
-    return getInstance();
-  }
+  TermCacheService();
 
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      Hive.registerAdapter(TermCacheEntryAdapter());
-      await Hive.openBox<TermCacheEntry>(_boxName);
+      _box = await Hive.openBox<TermCacheEntry>(_boxName);
       _isInitialized = true;
-      print('Term cache initialized successfully');
+      CacheLogger.log('initialized');
     } catch (e) {
-      print('Error initializing term cache: $e');
+      CacheLogger.logError('initialize', e);
       rethrow;
     }
   }
@@ -49,16 +38,21 @@ class TermCacheService {
       final box = await _getBox();
       final entry = box.get(termId);
 
-      if (entry == null) return null;
-
-      if (entry.isExpired(_ttl)) {
-        await box.delete(termId);
+      if (entry == null) {
+        CacheLogger.logMiss(_boxName, termId);
         return null;
       }
 
+      if (entry.isExpired(_ttl)) {
+        await box.delete(termId);
+        CacheLogger.logMiss(_boxName, termId);
+        return null;
+      }
+
+      CacheLogger.logHit(_boxName, termId);
       return entry;
     } catch (e) {
-      print('Error getting term from cache: $e');
+      CacheLogger.logError('getTerm', e);
       return null;
     }
   }
@@ -78,7 +72,7 @@ class TermCacheService {
 
       return validEntries;
     } catch (e) {
-      print('Error getting all terms from cache: $e');
+      CacheLogger.logError('getAllTerms', e);
       return [];
     }
   }
@@ -98,7 +92,7 @@ class TermCacheService {
 
       return validEntries;
     } catch (e) {
-      print('Error getting terms by language from cache: $e');
+      CacheLogger.logError('getTermsByLanguage', e);
       return [];
     }
   }
@@ -123,7 +117,7 @@ class TermCacheService {
 
       return validEntries;
     } catch (e) {
-      print('Error searching terms in cache: $e');
+      CacheLogger.logError('searchTerms', e);
       return [];
     }
   }
@@ -133,9 +127,10 @@ class TermCacheService {
       final box = await _getBox();
       await _enforceSizeLimit(box);
       await box.put(entry.termId, entry);
+      CacheLogger.logSave(_boxName, entry.termId);
       return true;
     } catch (e) {
-      print('Error saving term to cache: $e');
+      CacheLogger.logError('saveTerm', e);
       return false;
     }
   }
@@ -149,9 +144,10 @@ class TermCacheService {
 
       final entriesMap = {for (final e in entries) e.termId: e};
       await box.putAll(entriesMap);
+      CacheLogger.log('bulk saved ${entries.length} terms');
       return true;
     } catch (e) {
-      print('Error saving terms to cache: $e');
+      CacheLogger.logError('saveTerms', e);
       return false;
     }
   }
@@ -162,7 +158,7 @@ class TermCacheService {
       await box.delete(termId);
       return true;
     } catch (e) {
-      print('Error removing term from cache: $e');
+      CacheLogger.logError('removeTerm', e);
       return false;
     }
   }
@@ -171,10 +167,10 @@ class TermCacheService {
     try {
       final box = await _getBox();
       await box.clear();
-      print('Term cache cleared successfully');
+      CacheLogger.logClear(_boxName);
       return true;
     } catch (e) {
-      print('Error clearing term cache: $e');
+      CacheLogger.logError('clearAll', e);
       return false;
     }
   }
@@ -228,7 +224,7 @@ class TermCacheService {
 
       return count;
     } catch (e) {
-      print('Error getting term count: $e');
+      CacheLogger.logError('getTermCount', e);
       return 0;
     }
   }
@@ -264,7 +260,7 @@ class TermCacheService {
         entriesWithTimestamps.remove(oldestKey);
       }
     } catch (e) {
-      print('Error enforcing size limit: $e');
+      CacheLogger.logError('enforceSizeLimit', e);
     }
   }
 
@@ -275,7 +271,7 @@ class TermCacheService {
       }
       _isInitialized = false;
     } catch (e) {
-      print('Error closing term cache: $e');
+      CacheLogger.logError('close', e);
     }
   }
 }

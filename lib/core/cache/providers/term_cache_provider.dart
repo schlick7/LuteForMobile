@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../term_cache_service.dart';
 
 final termCacheServiceProvider = Provider<TermCacheService>((ref) {
-  return TermCacheService.getInstance();
+  return TermCacheService();
 });
 
 final termCacheStatsProvider = FutureProvider<Map<String, dynamic>>((

@@ -7,26 +7,46 @@ class BooksRepository {
   final BooksCacheService _cacheService;
   Map<String, int>? _languageNameToIdMap;
 
-  BooksRepository({required this.contentService})
-    : _cacheService = BooksCacheService.getInstance();
+  BooksRepository({
+    required this.contentService,
+    required BooksCacheService cacheService,
+  }) : _cacheService = cacheService;
 
-  Future<List<Book>> getActiveBooks() async {
+  void resetLanguageMap() {
+    _languageNameToIdMap = null;
+  }
+
+  Future<List<Book>> getActiveBooks({
+    int page = 0,
+    int pageSize = 10,
+    String? search,
+  }) async {
     try {
       await _loadLanguageMapping();
-      final books = await contentService.getAllActiveBooks();
-      final enrichedBooks = _enrichBooksWithLanguageIds(books);
-      return await _enrichBooksWithAudio(enrichedBooks);
+      final books = await contentService.getActiveBooks(
+        start: page * pageSize,
+        length: pageSize,
+        search: search,
+      );
+      return _enrichBooksWithLanguageIds(books.data);
     } catch (e) {
       throw Exception('Failed to load active books: $e');
     }
   }
 
-  Future<List<Book>> getArchivedBooks() async {
+  Future<List<Book>> getArchivedBooks({
+    int page = 0,
+    int pageSize = 10,
+    String? search,
+  }) async {
     try {
       await _loadLanguageMapping();
-      final books = await contentService.getAllArchivedBooks();
-      final enrichedBooks = _enrichBooksWithLanguageIds(books);
-      return await _enrichBooksWithAudio(enrichedBooks);
+      final books = await contentService.getArchivedBooks(
+        start: page * pageSize,
+        length: pageSize,
+        search: search,
+      );
+      return _enrichBooksWithLanguageIds(books.data);
     } catch (e) {
       throw Exception('Failed to load archived books: $e');
     }
@@ -60,9 +80,6 @@ class BooksRepository {
     try {
       final languages = await contentService.getLanguagesWithIds();
       _languageNameToIdMap = {for (var lang in languages) lang.name: lang.id};
-      print(
-        'DEBUG: Loaded ${languages.length} languages: $_languageNameToIdMap',
-      );
     } catch (e) {
       print('Failed to load language mapping: $e');
       _languageNameToIdMap = {};
@@ -73,40 +90,17 @@ class BooksRepository {
     if (_languageNameToIdMap == null) return books;
 
     return books.map((book) {
+      if (book.langId != null) return book;
       final langId = _languageNameToIdMap![book.language];
-      print(
-        'DEBUG: Enriching book "${book.title}" (language: ${book.language}) with langId: $langId',
-      );
       return book.copyWith(langId: langId ?? 0);
     }).toList();
   }
 
-  Future<List<Book>> _enrichBooksWithAudio(List<Book> books) async {
-    final enrichedBooks = <Book>[];
-    for (final book in books) {
-      final audioFilename = await contentService.getBookAudioFilename(book.id);
-      enrichedBooks.add(book.copyWith(audioFilename: audioFilename));
-    }
-    return enrichedBooks;
-  }
-
-  Future<void> refreshBookStats(int bookId, {Duration? timeout}) async {
+  Future<void> invalidateAllBookStatsCache({Duration? timeout}) async {
     try {
-      await contentService.refreshBookStats(bookId, timeout: timeout);
+      await contentService.invalidateAllBookStatsCache(timeout: timeout);
     } catch (e) {
-      throw Exception('Failed to refresh book stats: $e');
-    }
-  }
-
-  Future<void> refreshAllBookStats(List<Book> books) async {
-    for (final book in books) {
-      if (!book.hasStats) {
-        try {
-          await refreshBookStats(book.id);
-        } catch (e) {
-          print('Failed to refresh stats for book ${book.id}: $e');
-        }
-      }
+      throw Exception('Failed to invalidate all book stats cache: $e');
     }
   }
 

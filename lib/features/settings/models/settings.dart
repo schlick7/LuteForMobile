@@ -5,6 +5,7 @@ import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
 
 @immutable
 class Settings {
+  final String localUrl;
   final String serverUrl;
   final String? aiServerUrl;
   final String? ttsServerUrl;
@@ -24,12 +25,26 @@ class Settings {
   final bool pageTurnAnimations;
   final bool enableTooltipCaching;
   final bool showStatsBar;
+  final bool showKnownTermsCount;
+  final bool showTermStatsCard;
   final bool showPageNumbers;
   final TTSProvider? ttsProvider;
   final AIProvider? aiProvider;
   final bool enableTripleTapToMarkKnown;
+  final bool enablePagePreload;
+  final bool termuxIntegrationEnabled;
+  final int statsCalcSampleSize;
+  final int stats500SampleSize;
+  final int statsRefreshBatchSize;
+  final int statsRefreshCooldownHours;
+  final bool alwaysRefreshBookDetails;
+  final int maxConcurrentTooltipFetches;
+  final bool autoRefreshFullStats;
+
+  static const String termuxUrl = 'http://127.0.0.1:5001';
 
   const Settings({
+    required this.localUrl,
     required this.serverUrl,
     this.aiServerUrl,
     this.ttsServerUrl,
@@ -49,13 +64,25 @@ class Settings {
     this.pageTurnAnimations = true,
     this.enableTooltipCaching = false,
     this.showStatsBar = true,
+    this.showKnownTermsCount = false,
+    this.showTermStatsCard = false,
     this.showPageNumbers = true,
     this.ttsProvider,
     this.aiProvider,
     this.enableTripleTapToMarkKnown = false,
+    this.enablePagePreload = false,
+    this.termuxIntegrationEnabled = false,
+    this.statsCalcSampleSize = 5,
+    this.stats500SampleSize = 100,
+    this.statsRefreshBatchSize = 1,
+    this.statsRefreshCooldownHours = 96,
+    this.alwaysRefreshBookDetails = true,
+    this.maxConcurrentTooltipFetches = 4,
+    this.autoRefreshFullStats = false,
   });
 
   Settings copyWith({
+    String? localUrl,
     String? serverUrl,
     String? aiServerUrl,
     String? ttsServerUrl,
@@ -77,12 +104,24 @@ class Settings {
     bool? pageTurnAnimations,
     bool? enableTooltipCaching,
     bool? showStatsBar,
+    bool? showKnownTermsCount,
+    bool? showTermStatsCard,
     bool? showPageNumbers,
     TTSProvider? ttsProvider,
     AIProvider? aiProvider,
     bool? enableTripleTapToMarkKnown,
+    bool? enablePagePreload,
+    bool? termuxIntegrationEnabled,
+    int? statsCalcSampleSize,
+    int? stats500SampleSize,
+    int? statsRefreshBatchSize,
+    int? statsRefreshCooldownHours,
+    bool? alwaysRefreshBookDetails,
+    int? maxConcurrentTooltipFetches,
+    bool? autoRefreshFullStats,
   }) {
     return Settings(
+      localUrl: localUrl ?? this.localUrl,
       serverUrl: serverUrl ?? this.serverUrl,
       aiServerUrl: aiServerUrl ?? this.aiServerUrl,
       ttsServerUrl: ttsServerUrl ?? this.ttsServerUrl,
@@ -113,16 +152,33 @@ class Settings {
       pageTurnAnimations: pageTurnAnimations ?? this.pageTurnAnimations,
       enableTooltipCaching: enableTooltipCaching ?? this.enableTooltipCaching,
       showStatsBar: showStatsBar ?? this.showStatsBar,
+      showKnownTermsCount: showKnownTermsCount ?? this.showKnownTermsCount,
+      showTermStatsCard: showTermStatsCard ?? this.showTermStatsCard,
       showPageNumbers: showPageNumbers ?? this.showPageNumbers,
       ttsProvider: ttsProvider ?? this.ttsProvider,
       aiProvider: aiProvider ?? this.aiProvider,
       enableTripleTapToMarkKnown:
           enableTripleTapToMarkKnown ?? this.enableTripleTapToMarkKnown,
+      enablePagePreload: enablePagePreload ?? this.enablePagePreload,
+      termuxIntegrationEnabled:
+          termuxIntegrationEnabled ?? this.termuxIntegrationEnabled,
+      statsCalcSampleSize: statsCalcSampleSize ?? this.statsCalcSampleSize,
+      stats500SampleSize: stats500SampleSize ?? this.stats500SampleSize,
+      statsRefreshBatchSize:
+          statsRefreshBatchSize ?? this.statsRefreshBatchSize,
+      statsRefreshCooldownHours:
+          statsRefreshCooldownHours ?? this.statsRefreshCooldownHours,
+      alwaysRefreshBookDetails:
+          alwaysRefreshBookDetails ?? this.alwaysRefreshBookDetails,
+      maxConcurrentTooltipFetches:
+          maxConcurrentTooltipFetches ?? this.maxConcurrentTooltipFetches,
+      autoRefreshFullStats: autoRefreshFullStats ?? this.autoRefreshFullStats,
     );
   }
 
   factory Settings.defaultSettings() {
     return const Settings(
+      localUrl: '',
       serverUrl: '',
       aiServerUrl: null,
       ttsServerUrl: null,
@@ -142,10 +198,21 @@ class Settings {
       pageTurnAnimations: true,
       enableTooltipCaching: false,
       showStatsBar: true,
+      showKnownTermsCount: false,
+      showTermStatsCard: false,
       showPageNumbers: true,
       ttsProvider: TTSProvider.onDevice,
       aiProvider: AIProvider.none,
       enableTripleTapToMarkKnown: false,
+      enablePagePreload: false,
+      termuxIntegrationEnabled: false,
+      statsCalcSampleSize: 5,
+      stats500SampleSize: 100,
+      statsRefreshBatchSize: 1,
+      statsRefreshCooldownHours: 48,
+      alwaysRefreshBookDetails: true,
+      maxConcurrentTooltipFetches: 4,
+      autoRefreshFullStats: false,
     );
   }
 
@@ -153,6 +220,7 @@ class Settings {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is Settings &&
+        other.localUrl == localUrl &&
         other.serverUrl == serverUrl &&
         other.aiServerUrl == aiServerUrl &&
         other.ttsServerUrl == ttsServerUrl &&
@@ -173,14 +241,25 @@ class Settings {
         other.pageTurnAnimations == pageTurnAnimations &&
         other.enableTooltipCaching == enableTooltipCaching &&
         other.showStatsBar == showStatsBar &&
+        other.showKnownTermsCount == showKnownTermsCount &&
+        other.showTermStatsCard == showTermStatsCard &&
         other.showPageNumbers == showPageNumbers &&
         other.ttsProvider == ttsProvider &&
         other.aiProvider == aiProvider &&
-        other.enableTripleTapToMarkKnown == enableTripleTapToMarkKnown;
+        other.enableTripleTapToMarkKnown == enableTripleTapToMarkKnown &&
+        other.enablePagePreload == enablePagePreload &&
+        other.termuxIntegrationEnabled == termuxIntegrationEnabled &&
+        other.statsCalcSampleSize == statsCalcSampleSize &&
+        other.statsRefreshBatchSize == statsRefreshBatchSize &&
+        other.statsRefreshCooldownHours == statsRefreshCooldownHours &&
+        other.alwaysRefreshBookDetails == alwaysRefreshBookDetails &&
+        other.maxConcurrentTooltipFetches == maxConcurrentTooltipFetches &&
+        other.autoRefreshFullStats == autoRefreshFullStats;
   }
 
   @override
   int get hashCode => Object.hashAll([
+    localUrl,
     serverUrl,
     aiServerUrl,
     ttsServerUrl,
@@ -200,10 +279,20 @@ class Settings {
     pageTurnAnimations,
     enableTooltipCaching,
     showStatsBar,
+    showKnownTermsCount,
+    showTermStatsCard,
     showPageNumbers,
     ttsProvider,
     aiProvider,
     enableTripleTapToMarkKnown,
+    enablePagePreload,
+    termuxIntegrationEnabled,
+    statsCalcSampleSize,
+    statsRefreshBatchSize,
+    statsRefreshCooldownHours,
+    alwaysRefreshBookDetails,
+    maxConcurrentTooltipFetches,
+    autoRefreshFullStats,
   ]);
 
   bool isValidServerUrl(String url) {

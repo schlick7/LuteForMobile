@@ -2,18 +2,21 @@ import 'dart:async';
 import 'package:dio/dio.dart' show DioException, DioExceptionType;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
+import '../../../core/logger/api_logger.dart';
+import '../../../core/network/content_service.dart';
 import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
 import '../models/language_sentence_settings.dart';
 import '../repositories/reader_repository.dart';
-import '../services/page_cache_service.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../../features/settings/providers/settings_provider.dart';
 
 import 'sentence_reader_provider.dart';
 import '../../../core/cache/providers/tooltip_cache_provider.dart';
+import '../../../core/cache/providers/page_cache_provider.dart';
 import '../../../features/terms/providers/terms_provider.dart';
+import '../../../shared/providers/app_startup_providers.dart';
 
 @immutable
 class ReaderState {
@@ -24,6 +27,7 @@ class ReaderState {
   final bool isTermFormLoading;
   final LanguageSentenceSettings? languageSentenceSettings;
   final bool isBackgroundRefreshing;
+  final bool isPreloadingTooltips;
 
   const ReaderState({
     this.isLoading = false,
@@ -33,6 +37,7 @@ class ReaderState {
     this.isTermFormLoading = false,
     this.languageSentenceSettings,
     this.isBackgroundRefreshing = false,
+    this.isPreloadingTooltips = false,
   });
 
   ReaderState copyWith({
@@ -43,6 +48,7 @@ class ReaderState {
     bool? isTermFormLoading,
     LanguageSentenceSettings? languageSentenceSettings,
     bool? isBackgroundRefreshing,
+    bool? isPreloadingTooltips,
   }) {
     return ReaderState(
       isLoading: isLoading ?? this.isLoading,
@@ -54,17 +60,46 @@ class ReaderState {
           languageSentenceSettings ?? this.languageSentenceSettings,
       isBackgroundRefreshing:
           isBackgroundRefreshing ?? this.isBackgroundRefreshing,
+      isPreloadingTooltips: isPreloadingTooltips ?? this.isPreloadingTooltips,
     );
   }
 }
 
 class ReaderNotifier extends Notifier<ReaderState> {
+  // Track the current page request to ignore stale responses
+  String _currentRequestKey = '';
+
+  // Sequential prefetch queue - ensures tooltip preloads happen in order
+  // and don't overlap (prevents duplicate fetches for shared terms)
+  Future<void>? _prefetchQueue;
+
   @override
   ReaderState build() {
     return const ReaderState();
   }
 
+  /// Adds a prefetch task to the sequential queue.
+  /// Ensures that prefetch operations don't overlap and cause duplicate fetches.
+  Future<void> _enqueuePrefetch(Future<void> Function() task) async {
+    ApiLogger.logRequest(
+      '_enqueuePrefetch',
+      details: 'queueActive=${_prefetchQueue != null}',
+    );
+    final future =
+        _prefetchQueue?.then((_) => task()).catchError((_) => task()) ?? task();
+    _prefetchQueue = future;
+    return future;
+  }
+
   ReaderRepository get _repository => ref.read(readerRepositoryProvider);
+
+  void clearPageData() {
+    state = const ReaderState();
+  }
+
+  String _getRequestKey(int bookId, int? pageNum) {
+    return '${bookId}_${pageNum ?? 0}';
+  }
 
   String _formatError(dynamic error) {
     if (error is DioException) {
@@ -120,8 +155,31 @@ class ReaderNotifier extends Notifier<ReaderState> {
       return;
     }
 
+    // Set the current request key to track this page load
+    final requestKey = _getRequestKey(bookId, pageNum);
+    _currentRequestKey = requestKey;
+
+    ApiLogger.logRequest(
+      'loadPage',
+      details:
+          'requestKey=$requestKey, useCache=$useCache, refreshStatuses=$refreshStatuses',
+    );
+
     if (updateReaderState && !refreshStatuses) {
       state = state.copyWith(isLoading: true, errorMessage: null);
+    }
+
+    // Safety timeout - if loading takes more than 15 seconds, force stop
+    Timer? safetyTimeout;
+    if (updateReaderState && !refreshStatuses) {
+      safetyTimeout = Timer(const Duration(seconds: 15), () {
+        if (state.isLoading) {
+          state = state.copyWith(
+            isLoading: false,
+            errorMessage: 'Loading timed out. Please try again.',
+          );
+        }
+      });
     }
 
     try {
@@ -134,26 +192,51 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
       if (updateReaderState) {
         if (refreshStatuses) {
+          // Background refresh mode: merge with current data
           final currentData = state.pageData;
-          if (currentData != null) {
+          if (currentData != null && pageData != null) {
             final mergedData = _mergePageStatuses(currentData, pageData);
             state = state.copyWith(
               isBackgroundRefreshing: false,
               pageData: mergedData,
             );
+          } else if (pageData != null) {
+            // No current data, just use the fresh data
+            state = state.copyWith(
+              isBackgroundRefreshing: false,
+              isLoading: false,
+              pageData: pageData,
+            );
           }
-        } else {
+        } else if (pageData != null) {
+          // Cache hit: update state with cached data
           state = state.copyWith(isLoading: false, pageData: pageData);
 
+          // Only background-refresh statuses when this load can actually come
+          // from cache (explicit page requests). For pageNum == null, the
+          // initial load already fetched fresh network data.
+          if (useCache && pageNum != null) {
+            _enqueuePrefetch(
+              () => _backgroundRefreshStatuses(bookId, pageNum, requestKey),
+            );
+          }
+          _enqueuePrefetch(() => preloadTooltipsForCurrentPage());
+
           if (pageData.currentPage < pageData.pageCount) {
-            preloadNextPage();
-            preloadTooltipsForNextPage(); // Preload tooltips for the next page
+            final settings = ref.read(settingsProvider);
+            if (settings.enablePagePreload) {
+              _enqueuePrefetch(() => preloadNextPage());
+              _enqueuePrefetch(() => preloadTooltipsForNextPage());
+            }
           }
 
-          // Preload tooltips for the current page to improve performance
-          preloadTooltipsForCurrentPage();
-
-          _backgroundRefreshStatuses();
+          // Signal that reader is ready for other operations to begin
+          if (updateReaderState && !refreshStatuses) {
+            ref.read(readerReadinessProvider.notifier).markReady();
+          }
+        } else {
+          // Cache miss: stay in loading state and trigger background refresh
+          await _backgroundRefreshStatuses(bookId, pageNum, requestKey);
         }
       }
     } catch (e) {
@@ -164,41 +247,107 @@ class ReaderNotifier extends Notifier<ReaderState> {
           errorMessage: _formatError(e),
         );
       } else if (updateReaderState) {
-        print('Navigation error (not showing full screen): $e');
+        ApiLogger.logError('loadPageNavigation', e);
         state = state.copyWith(isLoading: false, isBackgroundRefreshing: false);
       }
+    } finally {
+      // Always cancel the safety timeout
+      safetyTimeout?.cancel();
     }
   }
 
-  void _backgroundRefreshStatuses() {
-    Future.microtask(() {
-      if (state.pageData == null) return;
-      state = state.copyWith(isBackgroundRefreshing: true);
+  Future<void> _backgroundRefreshStatuses(
+    int bookId,
+    int? pageNum,
+    String requestKey,
+  ) async {
+    state = state.copyWith(isBackgroundRefreshing: true);
 
-      _repository
-          .getPage(
-            bookId: state.pageData!.bookId,
-            pageNum: state.pageData!.currentPage,
-            useCache: false,
-            forceRefresh: true,
-          )
-          .then((freshPage) async {
-            await _repository.savePageToCache(
-              state.pageData!.bookId,
-              state.pageData!.currentPage,
-              freshPage,
-            );
-            final mergedData = _mergePageStatuses(state.pageData!, freshPage);
-            state = state.copyWith(
-              isBackgroundRefreshing: false,
-              pageData: mergedData,
-            );
-          })
-          .catchError((e) {
-            print('Background status refresh error: $e');
-            state = state.copyWith(isBackgroundRefreshing: false);
-          });
-    });
+    const maxRetries = 3;
+    int attempt = 0;
+    PageData? freshPage;
+    Object? lastError;
+
+    while (attempt < maxRetries && freshPage == null) {
+      try {
+        freshPage = await _repository.getPage(
+          bookId: bookId,
+          pageNum: pageNum,
+          mode: ContentMode.reading,
+          useCache: false,
+          forceRefresh: true,
+        );
+      } catch (e) {
+        attempt++;
+        lastError = e;
+        ApiLogger.logBackground(
+          'statusRefresh',
+          details: 'attempt=$attempt failed',
+        );
+        if (attempt < maxRetries) {
+          await Future.delayed(Duration(milliseconds: 500 * attempt));
+        }
+      }
+    }
+
+    ApiLogger.logBackground(
+      'statusRefreshComplete',
+      details: 'requestKey=$requestKey, freshPage=${freshPage != null}',
+    );
+
+    // Check if this response is still valid (user hasn't navigated to a different page)
+    if (requestKey != _currentRequestKey) {
+      ApiLogger.logBackground(
+        'statusRefreshIgnored',
+        details: 'pageChanged from $requestKey to $_currentRequestKey',
+      );
+      return;
+    }
+
+    if (freshPage == null) {
+      final currentData = state.pageData;
+      if (currentData != null) {
+        state = state.copyWith(isBackgroundRefreshing: false, isLoading: false);
+      } else {
+        state = state.copyWith(
+          isBackgroundRefreshing: false,
+          isLoading: false,
+          errorMessage: lastError != null
+              ? 'Failed to load page: ${_formatError(lastError)}'
+              : 'Failed to load page',
+        );
+      }
+      return;
+    }
+
+    final currentData = state.pageData;
+    if (currentData == null) {
+      // No cached data, use fresh data directly and stop loading
+      state = state.copyWith(
+        isBackgroundRefreshing: false,
+        isLoading: false,
+        pageData: freshPage,
+      );
+    } else if (currentData.currentPage == freshPage.currentPage) {
+      // Same page - merge statuses with existing data
+      final mergedData = _mergePageStatuses(currentData, freshPage);
+      state = state.copyWith(
+        isBackgroundRefreshing: false,
+        isLoading: false,
+        pageData: mergedData,
+      );
+      ApiLogger.logBackground(
+        'statusRefresh',
+        details: 'failedAfter=$maxRetries attempts',
+      );
+    } else {
+      // Different page - use fresh data directly
+      state = state.copyWith(
+        isBackgroundRefreshing: false,
+        isLoading: false,
+        pageData: freshPage,
+      );
+    }
   }
 
   PageData _mergePageStatuses(PageData currentPage, PageData freshPage) {
@@ -235,34 +384,43 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
   Future<void> preloadNextPage() async {
     final currentPageData = state.pageData;
-    if (currentPageData == null) return;
+    if (currentPageData == null) {
+      ApiLogger.logRequest('preloadNextPage', details: 'SKIP - no page data');
+      return;
+    }
 
     final nextPageNum = currentPageData.currentPage + 1;
-    if (nextPageNum > currentPageData.pageCount) return;
-
-    int retryCount = 0;
-    const maxRetries = 3;
-
-    while (retryCount < maxRetries) {
-      try {
-        await _repository.getPage(
-          bookId: currentPageData.bookId,
-          pageNum: nextPageNum,
-          useCache: true,
-          forceRefresh: false,
-        );
-        return;
-      } catch (e) {
-        retryCount++;
-        if (retryCount < maxRetries) {
-          await Future.delayed(Duration(milliseconds: 100 * retryCount));
-        } else {
-          print(
-            'Preload error for page $nextPageNum after $maxRetries attempts: $e',
-          );
-        }
-      }
+    if (nextPageNum > currentPageData.pageCount) {
+      ApiLogger.logRequest(
+        'preloadNextPage',
+        details: 'SKIP - already at last page (${currentPageData.pageCount})',
+      );
+      return;
     }
+
+    ApiLogger.logRequest(
+      'preloadNextPage',
+      details: 'START - bookId=${currentPageData.bookId}, page=$nextPageNum',
+    );
+
+    // Get cached metadata from current page to reuse (avoids extra API call)
+    final cacheService = ref.read(pageCacheServiceProvider);
+    final cachedMetadata = await cacheService.getMetadataFromCache(
+      currentPageData.bookId,
+      currentPageData.currentPage,
+    );
+
+    // Use the dedicated preload method which checks cache first and fetches if needed
+    await _repository.preloadPage(
+      currentPageData.bookId,
+      nextPageNum,
+      cachedMetadataHtml: cachedMetadata,
+    );
+
+    ApiLogger.logRequest(
+      'preloadNextPage',
+      details: 'DONE - bookId=${currentPageData.bookId}, page=$nextPageNum',
+    );
   }
 
   /// Preload tooltips for terms on the current page if caching is enabled
@@ -273,6 +431,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
     final currentPageData = state.pageData;
     if (currentPageData == null) return;
 
+    state = state.copyWith(isPreloadingTooltips: true);
     try {
       // Extract unique term IDs from the current page
       final termIds = <int>{};
@@ -284,29 +443,104 @@ class ReaderNotifier extends Notifier<ReaderState> {
         }
       }
 
-      // Preload tooltips for these terms
-      final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
-      for (final termId in termIds) {
-        // Check if tooltip is already cached
-        final cachedEntry = await tooltipCacheService.getFromCache(termId);
-        if (cachedEntry == null) {
-          // Fetch and cache the tooltip
-          try {
-            final tooltip = await _repository.getTermTooltip(termId);
-            if (tooltip != null) {
-              final rawHtml = await _repository.contentService
-                  .getRawTermTooltipHtml(termId);
-              if (rawHtml != null) {
-                await tooltipCacheService.saveToCache(termId, rawHtml);
-              }
-            }
-          } catch (e) {
-            print('Error preloading tooltip for term $termId: $e');
-          }
-        }
+      await _preloadTooltipsForTerms(termIds, 'current');
+    } finally {
+      state = state.copyWith(isPreloadingTooltips: false);
+    }
+  }
+
+  /// Helper method to preload tooltips for a set of term IDs
+  /// Fetches in parallel based on maxConcurrentTooltipFetches setting
+  /// Uses concurrent queue pattern - maintains N concurrent requests,
+  /// starting a new one as soon as any completes
+  Future<void> _preloadTooltipsForTerms(
+    Set<int> termIds,
+    String pageLabel,
+  ) async {
+    if (termIds.isEmpty) return;
+
+    final settings = ref.read(settingsProvider);
+    if (!settings.enableTooltipCaching) return;
+
+    final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
+    final maxConcurrent = settings.maxConcurrentTooltipFetches.clamp(1, 10);
+    int fetchedCount = 0;
+    int cachedCount = 0;
+
+    // Phase 1: Check cache for ALL terms in parallel to identify misses
+    final cacheChecks = termIds.map((termId) async {
+      final cached = await tooltipCacheService.getFromCache(termId);
+      return {'termId': termId, 'cached': cached != null};
+    });
+    final cacheResults = await Future.wait(cacheChecks);
+
+    // Phase 2: Filter to uncached term IDs only
+    final uncachedTermIds = cacheResults
+        .where((r) => r['cached'] == false)
+        .map((r) => r['termId'] as int)
+        .toSet();
+
+    cachedCount = cacheResults.where((r) => r['cached'] == true).length;
+
+    if (uncachedTermIds.isEmpty) {
+      if (cachedCount > 0) {
+        ApiLogger.logCache(
+          'preloadTooltipsComplete',
+          details: '$pageLabel: fetched=0, cached=$cachedCount (all cached)',
+        );
       }
-    } catch (e) {
-      print('Error preloading tooltips for current page: $e');
+      return;
+    }
+
+    // Phase 3: Concurrent queue pattern - maintain N concurrent requests
+    // When any request completes, immediately start the next one
+    final queue = List<int>.from(uncachedTermIds);
+    int activeCount = 0;
+    final completer = Completer<void>();
+
+    Future<void> fetchNext() async {
+      if (queue.isEmpty) {
+        if (activeCount == 0 && !completer.isCompleted) {
+          completer.complete();
+        }
+        return;
+      }
+
+      activeCount++;
+      final termId = queue.removeAt(0);
+
+      try {
+        final result = await _repository.getTermTooltipWithHtml(termId);
+        if (result != null) {
+          final (tooltip, html) = result;
+          final htmlToCache = html.isEmpty ? ' ' : html;
+          await tooltipCacheService.saveToCache(termId, htmlToCache);
+          fetchedCount++;
+        }
+      } catch (e) {
+        ApiLogger.logError('preloadTooltip', e, details: 'termId=$termId');
+      } finally {
+        activeCount--;
+        fetchNext(); // Immediately trigger next request
+      }
+    }
+
+    // Start initial batch (up to maxConcurrent concurrent)
+    for (int i = 0; i < maxConcurrent && queue.isNotEmpty; i++) {
+      fetchNext();
+    }
+
+    // Wait for all to complete
+    if (queue.isNotEmpty || activeCount > 0) {
+      await completer.future;
+    }
+
+    if (fetchedCount > 0 || cachedCount > 0) {
+      ApiLogger.logCache(
+        'preloadTooltipsComplete',
+        details:
+            '$pageLabel: fetched=$fetchedCount, cached=$cachedCount, maxConcurrent=$maxConcurrent',
+      );
     }
   }
 
@@ -321,6 +555,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
     final nextPageNum = currentPageData.currentPage + 1;
     if (nextPageNum > currentPageData.pageCount) return;
 
+    state = state.copyWith(isPreloadingTooltips: true);
     try {
       // Get the next page data to identify terms that need tooltips
       final nextPageData = await _repository.getPage(
@@ -329,6 +564,8 @@ class ReaderNotifier extends Notifier<ReaderState> {
         useCache: true,
         forceRefresh: false,
       );
+
+      if (nextPageData == null) return;
 
       // Extract unique term IDs from the next page
       final termIds = <int>{};
@@ -340,29 +577,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
         }
       }
 
-      // Preload tooltips for these terms
-      final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
-      for (final termId in termIds) {
-        // Check if tooltip is already cached
-        final cachedEntry = await tooltipCacheService.getFromCache(termId);
-        if (cachedEntry == null) {
-          // Fetch and cache the tooltip
-          try {
-            final tooltip = await _repository.getTermTooltip(termId);
-            if (tooltip != null) {
-              final rawHtml = await _repository.contentService
-                  .getRawTermTooltipHtml(termId);
-              if (rawHtml != null) {
-                await tooltipCacheService.saveToCache(termId, rawHtml);
-              }
-            }
-          } catch (e) {
-            print('Error preloading tooltip for term $termId: $e');
-          }
-        }
-      }
+      await _preloadTooltipsForTerms(termIds, 'next');
     } catch (e) {
       print('Error preloading tooltips for next page: $e');
+    } finally {
+      state = state.copyWith(isPreloadingTooltips: false);
     }
   }
 
@@ -376,15 +595,15 @@ class ReaderNotifier extends Notifier<ReaderState> {
       final freshPage = await _repository.getPage(
         bookId: currentPageData.bookId,
         pageNum: currentPageData.currentPage,
+        mode: ContentMode.refresh,
         useCache: false,
         forceRefresh: true,
       );
 
-      await _repository.savePageToCache(
-        currentPageData.bookId,
-        currentPageData.currentPage,
-        freshPage,
-      );
+      if (freshPage == null) {
+        state = state.copyWith(isBackgroundRefreshing: false);
+        return;
+      }
 
       final mergedData = _mergePageStatuses(currentPageData, freshPage);
       state = state.copyWith(
@@ -392,7 +611,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
         pageData: mergedData,
       );
     } catch (e) {
-      print('Background refresh error: $e');
+      ApiLogger.logError('backgroundRefresh', e);
       state = state.copyWith(isBackgroundRefreshing: false);
     }
   }
@@ -433,33 +652,36 @@ class ReaderNotifier extends Notifier<ReaderState> {
           return tooltip;
         }
       } catch (e) {
-        print('Error getting tooltip from cache: $e');
-        // Continue to fetch from network if cache fails
+        ApiLogger.logError('getTooltipFromCache', e, details: 'termId=$termId');
       }
     }
 
     try {
-      // Fetch from network
-      final result = await _repository.getTermTooltip(termId);
+      // Fetch from network using single API call
+      final resultWithHtml = await _repository.getTermTooltipWithHtml(termId);
 
-      // If caching is enabled, save to cache
-      if (settings.enableTooltipCaching && result != null) {
-        try {
-          final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
+      if (resultWithHtml != null) {
+        final (tooltip, rawHtml) = resultWithHtml;
 
-          // We need to get the raw HTML that was used to create this result
-          // For this, we need to fetch the raw HTML again
-          final rawHtml = await _repository.contentService
-              .getRawTermTooltipHtml(termId);
-          if (rawHtml != null) {
-            await tooltipCacheService.saveToCache(termId, rawHtml);
+        // If caching is enabled, save to cache (including empty HTML as " " marker)
+        if (settings.enableTooltipCaching) {
+          try {
+            final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
+            final htmlToCache = rawHtml.isEmpty ? ' ' : rawHtml;
+            await tooltipCacheService.saveToCache(termId, htmlToCache);
+          } catch (e) {
+            ApiLogger.logError(
+              'saveTooltipToCache',
+              e,
+              details: 'termId=$termId',
+            );
           }
-        } catch (e) {
-          print('Error saving tooltip to cache: $e');
         }
+
+        return tooltip;
       }
 
-      return result;
+      return null;
     } catch (e) {
       return null;
     }
@@ -510,11 +732,10 @@ class ReaderNotifier extends Notifier<ReaderState> {
       final settings = ref.read(settingsProvider);
       if (settings.enableTooltipCaching) {
         try {
-          final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
           // Note: We don't have the termId here, so we can't invalidate the specific cache entry
           // The cache will be refreshed on next fetch
         } catch (e) {
-          print('Error invalidating tooltip cache after save: $e');
+          ApiLogger.logError('invalidateTooltipCache', e);
         }
       }
 
@@ -535,7 +756,11 @@ class ReaderNotifier extends Notifier<ReaderState> {
           final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
           await tooltipCacheService.removeFromCache(termId);
         } catch (e) {
-          print('Error invalidating tooltip cache after edit: $e');
+          ApiLogger.logError(
+            'invalidateTooltipCache',
+            e,
+            details: 'termId=$termId',
+          );
         }
       }
 
@@ -551,14 +776,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
         await _repository.editTerm(termForm.termId!, termForm.toFormData());
         await updateTermStatus(termForm.termId!, termForm.status);
 
-        final currentPageData = state.pageData;
-        if (currentPageData != null) {
-          await _repository.savePageToCache(
-            currentPageData.bookId,
-            currentPageData.currentPage,
-            currentPageData,
-          );
-        }
+        // No longer needed - getPageContent handles caching when fresh data is loaded
 
         if (termForm.status == '99') {
           final currentPageData = state.pageData;
@@ -575,7 +793,9 @@ class ReaderNotifier extends Notifier<ReaderState> {
             }
 
             if (langId != null) {
-              ref.read(termsProvider.notifier).loadStats(langId);
+              if (ref.read(settingsProvider).showStatsBar) {
+                ref.read(termsProvider.notifier).loadStatus99Only(langId);
+              }
             }
           }
         }
@@ -594,7 +814,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
               }
             }
           } catch (e) {
-            print('Error invalidating tooltip cache after saveTerm: $e');
+            ApiLogger.logError('invalidateTooltipCache', e);
           }
         }
       } else {
@@ -645,7 +865,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
           final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
           await tooltipCacheService.removeFromCache(termId);
         } catch (e) {
-          print('Error invalidating tooltip cache after updateTermStatus: $e');
+          ApiLogger.logError('invalidateTooltipCache', e);
         }
       }
     }
@@ -657,8 +877,7 @@ class ReaderNotifier extends Notifier<ReaderState> {
     try {
       return await _repository.getCurrentPageForBook(bookId);
     } catch (e) {
-      print('Error getting current page for book $bookId: $e');
-      // Return -1 to indicate error
+      ApiLogger.logError('getCurrentPageForBook', e, details: 'bookId=$bookId');
       return -1;
     }
   }
@@ -671,42 +890,14 @@ class ReaderNotifier extends Notifier<ReaderState> {
     await _repository.markPageKnown(bookId, pageNum);
   }
 
-  Future<void> clearPageCacheForBook(String serverUrl, int bookId) async {
-    final cacheService = PageCacheService();
-    await cacheService.clearBookCache(serverUrl, bookId);
+  Future<void> clearPageCacheForBook(int bookId) async {
+    final cacheService = ref.read(pageCacheServiceProvider);
+    await cacheService.clearBookCache(bookId);
   }
 
   Future<void> clearAllPageCache() async {
-    final cacheService = PageCacheService();
+    final cacheService = ref.read(pageCacheServiceProvider);
     await cacheService.clearAllCache();
-  }
-
-  /// Parse a TermTooltip from HTML representation
-  TermTooltip _parseTooltipFromHtml(String html) {
-    // This is a simplified implementation - in reality, you'd want to properly
-    // parse the HTML and reconstruct the TermTooltip object
-    // For now, we'll create a basic tooltip with the HTML as the term
-    return TermTooltip(
-      term: html, // This is just a placeholder
-      status: '0', // Default to unknown
-      sentences: [], // Empty list
-      parents: [], // Empty list
-      children: [], // Empty list
-    );
-  }
-
-  /// Create an HTML representation of a TermTooltip for caching
-  String _createHtmlRepresentation(TermTooltip tooltip) {
-    // Create a simple HTML representation of the tooltip
-    // In a real implementation, you'd want to serialize the tooltip properly
-    return '''
-<div class="tooltip-cache">
-  <div class="term">${tooltip.term}</div>
-  <div class="translation">${tooltip.translation ?? ''}</div>
-  <div class="status">${tooltip.status}</div>
-  <div class="language">${tooltip.language ?? ''}</div>
-</div>
-''';
   }
 }
 

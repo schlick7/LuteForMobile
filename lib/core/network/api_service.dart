@@ -1,8 +1,14 @@
-import 'dart:convert';
+import 'dart:async';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
+import 'queued_dio_interceptor.dart';
+import 'api_request_queue.dart';
 
 class ApiService {
   final Dio _dio;
+  static bool enableLogging = kDebugMode;
+  static final ApiRequestQueue _requestQueue = ApiRequestQueue();
 
   ApiService({required String baseUrl, Dio? dio})
     : _dio =
@@ -10,15 +16,34 @@ class ApiService {
           Dio(
             BaseOptions(
               baseUrl: baseUrl,
-              connectTimeout: const Duration(seconds: 5),
-              receiveTimeout: const Duration(seconds: 5),
-              sendTimeout: const Duration(seconds: 5),
+              connectTimeout: const Duration(seconds: 10),
+              receiveTimeout: const Duration(seconds: 10),
+              sendTimeout: const Duration(seconds: 10),
               headers: {'Content-Type': 'text/html'},
               followRedirects: false,
               validateStatus: (status) => status != null && status < 400,
             ),
           ) {
+    _requestQueue.initialize(baseUrl, _dio);
+    _dio.interceptors.add(QueuedDioInterceptor(_requestQueue));
     _addRetryInterceptor();
+    _addLoggingInterceptor();
+    _addStatusInterceptor();
+  }
+
+  void _addStatusInterceptor() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onResponse: (response, handler) {
+          ServerStatusManager.markSuccess();
+          return handler.next(response);
+        },
+        onError: (error, handler) {
+          ServerStatusManager.markError();
+          return handler.next(error);
+        },
+      ),
+    );
   }
 
   void _addRetryInterceptor() {
@@ -44,7 +69,42 @@ class ApiService {
     );
   }
 
+  void _addLoggingInterceptor() {
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (enableLogging) {
+            print('API REQUEST: ${options.method} ${options.uri}');
+            if (options.data != null) {
+              print('  Data: ${options.data}');
+            }
+          }
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          if (enableLogging) {
+            print(
+              'API RESPONSE: ${response.requestOptions.method} ${response.requestOptions.uri} - ${response.statusCode}',
+            );
+          }
+          return handler.next(response);
+        },
+        onError: (error, handler) {
+          if (enableLogging) {
+            print(
+              'API ERROR: ${error.requestOptions.method} ${error.requestOptions.uri} - ${error.type}',
+            );
+          }
+          return handler.next(error);
+        },
+      ),
+    );
+  }
+
   bool _shouldRetry(DioException error) {
+    if (error.requestOptions.extra['noRetry'] == true) {
+      return false;
+    }
     if (error.type == DioExceptionType.connectionError) {
       return true;
     }
@@ -71,7 +131,6 @@ class ApiService {
       return true;
     }
     if (error.type == DioExceptionType.cancel) {
-      // Sometimes requests get cancelled during app transitions
       return true;
     }
     return false;
@@ -139,13 +198,11 @@ class ApiService {
 
   Future<Response<String>> getTermTooltip(int termId) async {
     final url = '/read/termpopup/$termId';
-    print('DEBUG ApiService.getTermTooltip: Calling GET $url');
     return await _dio.get<String>(url);
   }
 
   Future<String> getRawTermTooltipHtml(int termId) async {
     final url = '/read/termpopup/$termId';
-    print('DEBUG ApiService.getRawTermTooltipHtml: Calling GET $url');
     final response = await _dio.get<String>(url);
     return response.data ?? '';
   }
@@ -164,7 +221,6 @@ class ApiService {
     String text,
     dynamic data,
   ) async {
-    final encodedText = Uri.encodeComponent(text);
     return await _dio.post<String>(
       '/term/datatables',
       data: data,
@@ -242,11 +298,12 @@ class ApiService {
       'search[regex]': 'false',
     };
 
-    return await _dio.post<String>(
+    final response = await _dio.post<String>(
       '/book/datatables/active',
       data: data,
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );
+    return response;
   }
 
   Future<Response<String>> getArchivedBooks({
@@ -311,15 +368,24 @@ class ApiService {
       'search[regex]': 'false',
     };
 
-    return await _dio.post<String>(
-      '/book/datatables/Archived',
+    final response = await _dio.post<String>(
+      '/book/datatables/archived',
       data: data,
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );
+    return response;
   }
 
-  Future<Response<String>> getBookStats(int bookId) async {
-    return await _dio.get<String>('/book/table_stats/$bookId');
+  Future<Response<String>> getBookStats(int bookId, {Duration? timeout}) async {
+    return await _dio.get<String>(
+      '/book/table_stats/$bookId',
+      options: Options(
+        connectTimeout: timeout,
+        receiveTimeout: timeout,
+        sendTimeout: timeout,
+        extra: {'noRetry': true},
+      ),
+    );
   }
 
   /// Gets full HTML page structure for a book page.
@@ -371,12 +437,9 @@ class ApiService {
     return await _dio.get<String>('/language/index');
   }
 
-  Future<Response<String>> refreshBookStats(
-    int bookId, {
-    Duration? timeout,
-  }) async {
-    return await _dio.get<String>(
-      '/book/table_stats/$bookId',
+  Future<void> invalidateAllBookStatsCache({Duration? timeout}) async {
+    await _dio.get<String>(
+      '/refresh_all_stats',
       options: Options(receiveTimeout: timeout, sendTimeout: timeout),
     );
   }
@@ -410,7 +473,7 @@ class ApiService {
     double position,
     List<double> bookmarks,
   ) async {
-    final bookmarksString = jsonEncode(bookmarks);
+    final bookmarksString = bookmarks.map((b) => b.toString()).join(';');
     return await _dio.post<String>(
       '/read/save_player_data',
       data: {
@@ -466,7 +529,7 @@ class ApiService {
     if (selectedStatuses != null && selectedStatuses.isNotEmpty) {
       final statusInts = selectedStatuses
           .where((s) => s != null)
-          .map((s) => int.tryParse(s!))
+          .map((s) => int.tryParse(s))
           .whereType<int>()
           .toList();
 
@@ -484,13 +547,6 @@ class ApiService {
       }
     }
 
-    print(
-      'DEBUG getTermsDatatables SENDING: filtLanguage=${data['filtLanguage']}, filtText=${data['filtText']}',
-    );
-    print(
-      'DEBUG getTermsDatatables SENDING: filtStatusNew=${data['filtStatusNew']}, filtStatus1=${data['filtStatus1']}, filtStatus2=${data['filtStatus2']}',
-    );
-
     return await _dio.post<String>(
       '/term/datatables',
       data: data,
@@ -500,6 +556,54 @@ class ApiService {
 
   Future<Response<String>> deleteTerm(int termId) async {
     return await _dio.post<String>('/term/delete/$termId');
+  }
+
+  Future<Response<String>> getTermCounts({
+    required int? langId,
+    int? statusMin,
+    int? statusMax,
+    String? search,
+    Duration? timeout,
+  }) async {
+    final data = {
+      'draw': 1,
+      'start': 0,
+      'length': 0,
+      'columns[0][data]': '0',
+      'columns[0][name]': 'WoText',
+      'columns[0][searchable]': 'true',
+      'columns[0][orderable]': 'true',
+      'columns[1][data]': '1',
+      'columns[1][name]': 'WoTranslation',
+      'columns[1][searchable]': 'true',
+      'columns[1][orderable]': 'true',
+      'columns[2][data]': '2',
+      'columns[2][name]': 'StID',
+      'columns[2][searchable]': 'true',
+      'columns[2][orderable]': 'true',
+      'search[value]': search ?? '',
+      'search[regex]': 'false',
+      'filtAgeMin': '0',
+      'filtAgeMax': '',
+      'filtStatusMin': (statusMin ?? 0).toString(),
+      'filtStatusMax': (statusMax ?? 99).toString(),
+      'filtLanguage': langId?.toString() ?? '0',
+      'filtText': search ?? '',
+      'filtTermIDs': '',
+      'parentags': '',
+      'included_parentags': '',
+      'excluded_parentags': '',
+    };
+
+    return await _dio.post<String>(
+      '/term/datatables',
+      data: data,
+      options: Options(
+        contentType: Headers.formUrlEncodedContentType,
+        sendTimeout: timeout,
+        receiveTimeout: timeout,
+      ),
+    );
   }
 
   Future<Response<String>> getStatsData() async {
@@ -553,11 +657,32 @@ class ApiService {
 
   Future<void> triggerAutoBackup() async {
     try {
-      await _dio.post(
-        '/backup/do_backup',
-        data: {'type': 'automatic'},
-        options: Options(contentType: Headers.formUrlEncodedContentType),
-      );
+      final response = await _dio.get('/settings/index');
+      if (response.statusCode != 200) return;
+
+      final html = response.data as String;
+
+      final autoBackupEnabled = html.contains('name="backup_auto" checked');
+
+      final lastBackupRegex = RegExp(r'name="lastbackup"\s+value="([^"]*)"');
+      final match = lastBackupRegex.firstMatch(html);
+
+      int? lastBackupTimestamp;
+      if (match != null) {
+        final dateStr = match.group(1);
+        if (dateStr != null && dateStr.isNotEmpty) {
+          lastBackupTimestamp = int.tryParse(dateStr);
+        }
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final twentyFourHoursAgo = now - (24 * 60 * 60);
+
+      if (autoBackupEnabled &&
+          (lastBackupTimestamp == null ||
+              lastBackupTimestamp < twentyFourHoursAgo)) {
+        await _dio.post('/backup/do_backup', data: {'type': 'automatic'});
+      }
     } catch (e) {
       // Silently fail on backup errors - don't block app launch
     }

@@ -3,8 +3,6 @@ import '../models/page_data.dart';
 import '../models/term_tooltip.dart';
 import '../models/term_form.dart';
 import '../models/language_sentence_settings.dart';
-import '../../../core/cache/tooltip_cache_service.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class ReaderRepository {
   final ContentService contentService;
@@ -12,19 +10,22 @@ class ReaderRepository {
   ReaderRepository({required ContentService contentService})
     : contentService = contentService;
 
-  Future<PageData> getPage({
+  Future<PageData?> getPage({
     required int bookId,
     int? pageNum,
+    ContentMode mode = ContentMode.reading,
     bool useCache = true,
     bool forceRefresh = false,
+    String? cachedMetadataHtml,
   }) async {
     try {
       return await contentService.getPageContent(
         bookId,
         pageNum: pageNum,
-        mode: ContentMode.reading,
+        mode: mode,
         useCache: useCache,
         forceRefresh: forceRefresh,
+        cachedMetadataHtml: cachedMetadataHtml,
       );
     } catch (e) {
       throw Exception('Failed to load page: $e');
@@ -36,6 +37,20 @@ class ReaderRepository {
       return await contentService.getTermTooltip(termId);
     } catch (e) {
       throw Exception('Failed to load term tooltip: $e');
+    }
+  }
+
+  /// Fetches a term tooltip and returns both the parsed object and raw HTML.
+  /// This is more efficient than calling getTermTooltip and getRawTermTooltipHtml
+  /// separately, as it only makes one API request.
+  Future<(TermTooltip tooltip, String html)?> getTermTooltipWithHtml(
+    int termId,
+  ) async {
+    try {
+      return await contentService.getTermTooltipWithHtml(termId);
+    } catch (e) {
+      print('Failed to load term tooltip with HTML: $e');
+      return null;
     }
   }
 
@@ -164,6 +179,28 @@ class ReaderRepository {
       await contentService.savePageToCache(bookId, pageNum, pageData);
     } catch (e) {
       print('Failed to save page to cache: $e');
+    }
+  }
+
+  /// Preloads a page by fetching it from the network and caching it.
+  /// Does nothing if the page is already cached.
+  /// This is used for precaching the next page for better UX.
+  ///
+  /// [cachedMetadataHtml] - Optional metadata from current page to reuse
+  Future<void> preloadPage(
+    int bookId,
+    int pageNum, {
+    String? cachedMetadataHtml,
+  }) async {
+    try {
+      await contentService.preloadPage(
+        bookId,
+        pageNum,
+        cachedMetadataHtml: cachedMetadataHtml,
+      );
+    } catch (e) {
+      // Silently fail - preloading is best effort
+      print('Failed to preload page $pageNum: $e');
     }
   }
 }

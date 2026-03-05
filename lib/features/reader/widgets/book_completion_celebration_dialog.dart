@@ -3,6 +3,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
+import 'package:lute_for_mobile/shared/providers/network_providers.dart';
 import 'package:lute_for_mobile/shared/widgets/status_distribution_bar.dart';
 import 'package:lute_for_mobile/app.dart';
 
@@ -19,6 +20,8 @@ class BookCompletionCelebrationDialog extends ConsumerStatefulWidget {
 class _BookCompletionCelebrationDialogState
     extends ConsumerState<BookCompletionCelebrationDialog> {
   late ConfettiController _confettiController;
+  Book? _bookWithStats;
+  bool _isLoadingStats = true;
 
   @override
   void initState() {
@@ -27,6 +30,31 @@ class _BookCompletionCelebrationDialogState
       duration: const Duration(seconds: 2),
     );
     _confettiController.play();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    try {
+      final contentService = ref.read(contentServiceProvider);
+      final statsBook = await contentService.getBookStats(widget.book.id);
+
+      if (mounted) {
+        setState(() {
+          _bookWithStats = widget.book.copyWith(
+            distinctTerms: statsBook.distinctTerms,
+            unknownPct: statsBook.unknownPct,
+            statusDistribution: statsBook.statusDistribution,
+          );
+          _isLoadingStats = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingStats = false;
+        });
+      }
+    }
   }
 
   @override
@@ -34,6 +62,8 @@ class _BookCompletionCelebrationDialogState
     _confettiController.dispose();
     super.dispose();
   }
+
+  Book get _displayBook => _bookWithStats ?? widget.book;
 
   @override
   Widget build(BuildContext context) {
@@ -174,6 +204,13 @@ class _BookCompletionCelebrationDialogState
   }
 
   Widget _buildStatsContainer(BuildContext context) {
+    if (_isLoadingStats) {
+      return const Padding(
+        padding: EdgeInsets.all(32),
+        child: CircularProgressIndicator(),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -193,25 +230,25 @@ class _BookCompletionCelebrationDialogState
               _buildStatItem(
                 context,
                 icon: Icons.menu_book,
-                value: widget.book.wordCount.toString(),
+                value: _displayBook.wordCount.toString(),
                 label: 'Words',
               ),
               _buildStatItem(
                 context,
                 icon: Icons.layers,
-                value: widget.book.totalPages.toString(),
+                value: _displayBook.totalPages.toString(),
                 label: 'Pages',
               ),
               _buildStatItem(
                 context,
                 icon: Icons.auto_stories,
-                value: (widget.book.distinctTerms ?? 0).toString(),
+                value: (_displayBook.distinctTerms ?? 0).toString(),
                 label: 'Terms',
               ),
             ],
           ),
           const SizedBox(height: 16),
-          if (widget.book.hasStats) ...[
+          if (_displayBook.hasStats) ...[
             const Divider(),
             const SizedBox(height: 12),
             Text(
@@ -221,7 +258,7 @@ class _BookCompletionCelebrationDialogState
               ),
             ),
             const SizedBox(height: 8),
-            StatusDistributionBar(book: widget.book, showLegend: true),
+            StatusDistributionBar(book: _displayBook, showLegend: true),
           ],
         ],
       ),

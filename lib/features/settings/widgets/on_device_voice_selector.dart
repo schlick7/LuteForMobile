@@ -5,11 +5,13 @@ import 'package:lute_for_mobile/core/network/tts_service.dart';
 
 class OnDeviceVoiceSelector extends ConsumerStatefulWidget {
   final String? selectedVoice;
-  final ValueChanged<String?> onVoiceChanged;
+  final String? selectedVoiceLocale;
+  final void Function(String? voiceName, String? voiceLocale) onVoiceChanged;
 
   const OnDeviceVoiceSelector({
     super.key,
     this.selectedVoice,
+    this.selectedVoiceLocale,
     required this.onVoiceChanged,
   });
 
@@ -160,7 +162,7 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
                                 )
                               : null,
                           onTap: () {
-                            widget.onVoiceChanged(voice.name);
+                            widget.onVoiceChanged(voice.name, voice.locale);
                             Navigator.of(context).pop();
                           },
                         );
@@ -186,13 +188,26 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
     );
   }
 
+  @override
+  void didUpdateWidget(OnDeviceVoiceSelector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedVoice != widget.selectedVoice) {
+      _fetchVoices();
+    }
+  }
+
   void _showManualInput() {
     showDialog(
       context: context,
       builder: (context) => _VoiceInputDialog(
         initialVoice: widget.selectedVoice,
-        onVoiceChanged: (value) {
-          widget.onVoiceChanged(value.isEmpty ? null : value);
+        initialLocale: widget.selectedVoiceLocale,
+        onVoiceChanged: (value, locale) {
+          final trimmedValue = (value ?? '').trim();
+          widget.onVoiceChanged(
+            trimmedValue.isEmpty ? null : trimmedValue,
+            locale,
+          );
         },
       ),
     );
@@ -231,10 +246,12 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
 
 class _VoiceInputDialog extends StatefulWidget {
   final String? initialVoice;
-  final ValueChanged<String> onVoiceChanged;
+  final String? initialLocale;
+  final void Function(String? voiceName, String? voiceLocale) onVoiceChanged;
 
   const _VoiceInputDialog({
     required this.initialVoice,
+    this.initialLocale,
     required this.onVoiceChanged,
   });
 
@@ -290,7 +307,9 @@ class _VoiceInputDialogState extends State<_VoiceInputDialog> {
           onPressed: () {
             final value = _controller.text.trim();
             if (value.isNotEmpty) {
-              widget.onVoiceChanged(value);
+              widget.onVoiceChanged(value, widget.initialLocale);
+            } else {
+              widget.onVoiceChanged(null, null);
             }
             Navigator.of(context).pop();
           },

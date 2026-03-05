@@ -1,26 +1,23 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
 
-class HelpScreen extends StatelessWidget {
+class HelpScreen extends ConsumerWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
+  static int _buildCount = 0;
 
   const HelpScreen({super.key, this.scaffoldKey});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    _buildCount++;
+    WidgetLogger.logRebuild('HelpScreen', _buildCount);
+
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (scaffoldKey != null && scaffoldKey!.currentState != null) {
-                scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
-        ),
+        leading: AppBarLeading(scaffoldKey: scaffoldKey),
         title: const Text('Help'),
         elevation: 2,
       ),
@@ -42,6 +39,12 @@ class HelpScreen extends StatelessWidget {
               _buildBooksScreenSection(context),
               const SizedBox(height: 8),
               _buildAIFeaturesSection(context),
+              const SizedBox(height: 8),
+              _buildPerformanceSection(context),
+              if (Platform.isAndroid) ...[
+                const SizedBox(height: 8),
+                _buildTermuxSection(context),
+              ],
               const SizedBox(height: 16),
             ]),
           ),
@@ -91,6 +94,12 @@ class HelpScreen extends StatelessWidget {
             Icons.fingerprint,
             'Double-tap word',
             'Open term form',
+          ),
+          _buildControlItem(
+            context,
+            Icons.touch_app,
+            'Triple-tap word',
+            'Mark word as Known (status 99). Must be enabled in Settings',
           ),
           _buildControlItem(
             context,
@@ -756,6 +765,166 @@ class HelpScreen extends StatelessWidget {
             Icons.code,
             'Sentence Translation',
             'These Prompts will need adjusted depending on the LLM model used -- Translate the following sentence from [language] to English: [sentence]',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPerformanceSection(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(
+            context,
+            'Performance & Troubleshooting',
+            Icons.bug_report,
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Book Stats Configuration'),
+          _buildControlItem(
+            context,
+            Icons.calculate,
+            'Calc Sample Size',
+            'Pages sampled when calculating book stats (1-500). Lower = faster. Lower this is you lose server connection on launch',
+          ),
+          _buildControlItem(
+            context,
+            Icons.layers,
+            'Pages to Process at Once',
+            'Batch size for stats refresh (1-5). Lower take long but reduce server load',
+          ),
+          _buildControlItem(
+            context,
+            Icons.timer,
+            'Cooldown Before Refresh',
+            'Hours between auto-refresh (1-336). Prevents excessive recalculation',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Tooltip Caching'),
+          _buildControlItem(
+            context,
+            Icons.cached,
+            'Enable Tooltip Caching',
+            'Cache term tooltips for 48 hours. Significantly speeds up tooltip loading, especially on slow connections',
+          ),
+          _buildControlItem(
+            context,
+            Icons.speed,
+            'Tooltip Batch Size',
+            'Max concurrent tooltip fetches (1-10). Higher = faster but more server load',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Known Terms Display'),
+          _buildControlItem(
+            context,
+            Icons.visibility,
+            'Show Known Terms Count',
+            'This is performance heavy, if you are having problems loading into books try disabling this',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Swipe Navigation'),
+          _buildControlItem(
+            context,
+            Icons.swipe,
+            'Enable Swipe Navigation',
+            'Toggle swipe gestures for page navigation. If you experience issues with pages turning unexpectedly between app launches, try disabling this',
+          ),
+          _buildControlItem(
+            context,
+            Icons.check_circle_outline,
+            'Mark Pages as Read When Swiping',
+            'Automatically mark pages as read when navigating via swipe gestures',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Location'),
+          _buildControlItem(
+            context,
+            Icons.settings,
+            'Settings',
+            'Book Stats: Settings > Book Stats Settings. Tooltip Caching & Batch Size & Known Terms: Settings > Reading Settings',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTermuxSection(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSectionHeader(context, 'Termux Integration', Icons.terminal),
+          const Divider(),
+          _buildSubsectionHeader(context, 'What is Termux'),
+          _buildControlItem(
+            context,
+            Icons.info,
+            'OnDevice Server',
+            'Terminal emulator for Android that runs Lute3 server locally on your device',
+          ),
+          _buildControlItem(
+            context,
+            Icons.offline_bolt,
+            '"Offline" Functionality',
+            'Full Lute3 features without needing an external computer',
+          ),
+          _buildControlItem(
+            context,
+            Icons.backup,
+            'Backup/Restore',
+            'Built-in backup and restore capabilities for your data',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Requirements'),
+          _buildControlItem(
+            context,
+            Icons.phone_android,
+            'Android Device',
+            'Termux integration is only available on Android APK',
+          ),
+          _buildControlItem(
+            context,
+            Icons.download,
+            'Termux App',
+            'Must be installed from F-Droid (not Play Store)',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Backup & Restore Locations'),
+          _buildControlItem(
+            context,
+            Icons.folder,
+            'Database Path',
+            '/data/data/com.termux/files/home/.local/share/Lute3/lute.db',
+          ),
+          _buildControlItem(
+            context,
+            Icons.backup,
+            'Backup Path',
+            'After Restoring a database file from another system it needs to be updated with the correct backup location. If it does not happen automatically then this is the default location: /data/data/com.termux/files/home/.local/share/Lute3/backups',
+          ),
+          _buildControlItem(
+            context,
+            Icons.computer,
+            'Desktop Path',
+            'Find in Lute3 under "About > Version and Software Info" (Data path line)',
+          ),
+          const Divider(),
+          _buildSubsectionHeader(context, 'Important Notes'),
+          _buildControlItem(
+            context,
+            Icons.warning,
+            'Switching to Desktop Server',
+            'To restore back to a computer server, manually overwrite lute.db with your backup. See: luteorg.github.io/lute-manual/backup/restore.html',
+          ),
+          _buildControlItem(
+            context,
+            Icons.settings,
+            'Setup',
+            'Go to Settings > Termux Integration for installation and configuration',
           ),
         ],
       ),

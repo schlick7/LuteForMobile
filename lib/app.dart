@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lute_for_mobile/core/logger/api_logger.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_drawer_settings.dart';
 import 'package:lute_for_mobile/features/reader/widgets/sentence_reader_screen.dart';
+import 'package:lute_for_mobile/features/reader/providers/audio_player_provider.dart';
 import 'package:lute_for_mobile/features/reader/providers/current_book_provider.dart';
 
 import 'package:lute_for_mobile/features/settings/widgets/settings_screen.dart';
@@ -14,9 +16,13 @@ import 'package:lute_for_mobile/features/stats/widgets/stats_screen.dart';
 import 'package:lute_for_mobile/shared/theme/app_theme.dart';
 import 'package:lute_for_mobile/shared/theme/theme_definitions.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
+import 'package:lute_for_mobile/features/settings/models/settings.dart';
 import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
 import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
+import 'package:lute_for_mobile/core/services/termux_service.dart';
+import 'package:lute_for_mobile/shared/providers/app_startup_providers.dart';
+import 'package:lute_for_mobile/shared/providers/network_providers.dart';
 
 class RestartWidget extends StatefulWidget {
   final Widget child;
@@ -87,8 +93,9 @@ class NavigationController {
   }
 
   void navigateToReader(int bookId, [int? pageNum]) {
-    print(
-      'DEBUG: NavigationController.navigateToReader called with bookId=$bookId, pageNum=$pageNum',
+    ApiLogger.logRequest(
+      'NavigationController.navigateToReader',
+      details: 'bookId=$bookId, pageNum=$pageNum',
     );
     try {
       for (final listener in _readerListeners) {
@@ -96,22 +103,21 @@ class NavigationController {
       }
       navigateToScreen('reader');
     } catch (e, stackTrace) {
-      print('ERROR: navigateToReader failed: $e');
-      print('Stack trace: $stackTrace');
+      ApiLogger.logError('navigateToReader', e, stackTrace: stackTrace);
     }
   }
 
   void navigateToScreen(String route) {
-    print(
-      'DEBUG: NavigationController.navigateToScreen called with route=$route',
-    );
     try {
       for (final listener in _screenListeners) {
         listener(route);
       }
     } catch (e, stackTrace) {
-      print('ERROR: navigateToScreen failed: $e');
-      print('Stack trace: $stackTrace');
+      ApiLogger.logError(
+        'NavigationController.navigateToScreen',
+        e,
+        stackTrace: stackTrace,
+      );
     }
   }
 }
@@ -122,11 +128,7 @@ class App extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeSettings = ref.watch(themeSettingsProvider);
-    print(
-      'DEBUG: App.build called, themeSettings.accentLabelColor: ${themeSettings.accentLabelColor}, themeType: ${themeSettings.themeType}',
-    );
 
-    // Determine theme based on ThemeSettings
     ThemeMode themeMode;
     switch (themeSettings.themeType) {
       case ThemeType.light:
@@ -165,23 +167,58 @@ class MainNavigation extends ConsumerStatefulWidget {
 
 class _MainNavigationState extends ConsumerState<MainNavigation> {
   int _currentIndex = 0;
+  String _currentRoute = 'reader';
   final GlobalKey<ReaderScreenState> _readerKey =
       GlobalKey<ReaderScreenState>();
+  final GlobalKey<State<StatefulWidget>> _booksKey =
+      GlobalKey<State<StatefulWidget>>();
+  final GlobalKey<State<StatefulWidget>> _statsKey =
+      GlobalKey<State<StatefulWidget>>();
+  final GlobalKey<State<StatefulWidget>> _settingsKey =
+      GlobalKey<State<StatefulWidget>>();
   final GlobalKey<SentenceReaderScreenState> _sentenceReaderKey =
       GlobalKey<SentenceReaderScreenState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late final NavigationController _navigationController;
+  final GlobalKey<State<StatefulWidget>> _termsKey =
+      GlobalKey<State<StatefulWidget>>();
+  final GlobalKey<State<StatefulWidget>> _helpKey =
+      GlobalKey<State<StatefulWidget>>();
+  bool _needsDataRefresh = false;
 
   @override
   void initState() {
     super.initState();
     _navigationController = ref.read(navigationProvider);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(currentScreenRouteProvider.notifier).setRoute('reader');
       _updateDrawerSettings();
+      _checkAndStartLute3IfNeeded();
       _loadLastReadBook();
     });
     _navigationController.addReaderListener(_handleNavigateToReader);
     _navigationController.addScreenListener(_handleNavigateToScreen);
+  }
+
+  Future<void> _checkAndStartLute3IfNeeded() async {
+    final settings = ref.read(settingsProvider);
+    if (settings.serverUrl == Settings.termuxUrl) {
+      for (int i = 0; i < 15; i++) {
+        final isRunning = await TermuxService.isServerRunning(
+          settings.serverUrl,
+        );
+        if (isRunning) {
+          if (_needsDataRefresh) {
+            _needsDataRefresh = false;
+            ref.read(booksProvider.notifier).loadBooks(forceRefresh: true);
+            _loadLastReadBook();
+          }
+          break;
+        }
+        await Future.delayed(const Duration(milliseconds: 500));
+      }
+    }
   }
 
   @override
@@ -192,11 +229,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   }
 
   void _handleNavigateToReader(int bookId, [int? pageNum]) {
-    print(
-      'DEBUG: _handleNavigateToReader called with bookId=$bookId, pageNum=$pageNum',
-    );
-    print('DEBUG: _readerKey.currentState=${_readerKey.currentState}');
-
     final booksState = ref.read(booksProvider);
     final allBooks = [...booksState.activeBooks, ...booksState.archivedBooks];
     final book = allBooks.firstWhere(
@@ -231,7 +263,10 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     if (_readerKey.currentState != null) {
       _readerKey.currentState!.loadBook(bookId, pageNum);
     } else {
-      print('ERROR: _readerKey.currentState is null!');
+      ApiLogger.logError(
+        '_handleNavigateToReader',
+        Exception('Reader not ready'),
+      );
     }
     _updateDrawerSettings();
   }
@@ -246,6 +281,11 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       'settings': 5,
       'sentence-reader': 6,
     };
+
+    if (_currentRoute == 'reader' && route != 'reader') {
+      ref.read(audioPlayerProvider.notifier).reset();
+    }
+    _currentRoute = route;
 
     final index = routeToIndex[route] ?? 0;
     setState(() {
@@ -262,33 +302,10 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
 
   void _loadLastReadBook() async {
     final settings = ref.read(settingsProvider);
-    if (settings.currentBookId != null) {
-      print('DEBUG: Loading last read book: bookId=${settings.currentBookId}');
+    if (settings.currentBookId == null) return;
 
-      try {
-        final book = await ref
-            .read(booksProvider.notifier)
-            .getUpdatedBook(settings.currentBookId!);
-
-        print(
-          'DEBUG: Loaded book from server: bookId=${book.id}, currentPage=${book.currentPage}',
-        );
-
-        ref
-            .read(settingsProvider.notifier)
-            .updateCurrentBook(book.id, null, book.langId);
-
-        ref.read(currentBookProvider.notifier).setBook(book);
-
-        if (_readerKey.currentState != null) {
-          _readerKey.currentState!.loadBook(book.id, book.currentPage);
-        }
-      } catch (e) {
-        print('DEBUG: Failed to load book from server: $e');
-        if (_readerKey.currentState != null) {
-          _readerKey.currentState!.loadBook(settings.currentBookId!);
-        }
-      }
+    if (_readerKey.currentState != null) {
+      await _readerKey.currentState!.loadBook(settings.currentBookId!);
     }
   }
 
@@ -321,8 +338,38 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     }
   }
 
+  bool _autoBackupTriggered = false;
+
+  void _triggerAutoBackup() {
+    final settings = ref.watch(settingsProvider);
+    if (settings.serverUrl.isNotEmpty && !_autoBackupTriggered) {
+      _autoBackupTriggered = true;
+      ref.read(apiServiceProvider).triggerAutoBackup();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Trigger auto backup if books already loaded, otherwise listen for it
+    final booksLoaded = ref.read(booksLoadingCompleteProvider);
+    if (booksLoaded) {
+      _triggerAutoBackup();
+    }
+
+    // Listen for books loading completion and trigger auto backup
+    ref.listen(booksLoadingCompleteProvider, (previous, next) {
+      if (next == true && previous != true) {
+        _triggerAutoBackup();
+      }
+    });
+
+    // Also listen for settings to load and trigger backup
+    ref.listen(settingsProvider, (previous, next) {
+      if (previous?.serverUrl.isEmpty == true && next.serverUrl.isNotEmpty) {
+        _triggerAutoBackup();
+      }
+    });
+
     return Scaffold(
       key: _scaffoldKey,
       drawer: AppDrawer(
@@ -332,39 +379,37 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
           if (route == 'reader' && _readerKey.currentState != null) {
             _readerKey.currentState!.reloadPage();
           }
-          if (route == 'books') {
-            await ref.read(booksProvider.notifier).loadBooks();
-          }
         },
       ),
-      body: _currentIndex == 2
-          ? TermsScreen(scaffoldKey: _scaffoldKey)
-          : _currentIndex == 4
-          ? HelpScreen(scaffoldKey: _scaffoldKey)
+      body: _currentIndex == 4
+          ? HelpScreen(key: _helpKey, scaffoldKey: _scaffoldKey)
+          : _currentIndex == 6
+          ? SentenceReaderScreen(
+              key: _sentenceReaderKey,
+              scaffoldKey: _scaffoldKey,
+            )
           : IndexedStack(
-              index: switch (_currentIndex) {
-                0 => 0,
-                1 => 1,
-                3 => 2,
-                5 => 3,
-                6 => 4,
-                _ => 0,
-              },
+              index: _currentIndex > 4 ? _currentIndex - 1 : _currentIndex,
               children: [
-                RepaintBoundary(
-                  child: ReaderScreen(
-                    key: _readerKey,
-                    scaffoldKey: _scaffoldKey,
-                  ),
+                Consumer(
+                  builder: (context, ref, child) =>
+                      ReaderScreen(key: _readerKey, scaffoldKey: _scaffoldKey),
                 ),
-                RepaintBoundary(child: BooksScreen(scaffoldKey: _scaffoldKey)),
-                RepaintBoundary(child: StatsScreen(scaffoldKey: _scaffoldKey)),
-                RepaintBoundary(
-                  child: SettingsScreen(scaffoldKey: _scaffoldKey),
+                Consumer(
+                  builder: (context, ref, child) =>
+                      BooksScreen(key: _booksKey, scaffoldKey: _scaffoldKey),
                 ),
-                RepaintBoundary(
-                  child: SentenceReaderScreen(
-                    key: _sentenceReaderKey,
+                Consumer(
+                  builder: (context, ref, child) =>
+                      TermsScreen(key: _termsKey, scaffoldKey: _scaffoldKey),
+                ),
+                Consumer(
+                  builder: (context, ref, child) =>
+                      StatsScreen(key: _statsKey, scaffoldKey: _scaffoldKey),
+                ),
+                Consumer(
+                  builder: (context, ref, child) => SettingsScreen(
+                    key: _settingsKey,
                     scaffoldKey: _scaffoldKey,
                   ),
                 ),

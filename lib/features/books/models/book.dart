@@ -4,7 +4,7 @@ class Book {
   final int id;
   final String title;
   final String language;
-  final int langId;
+  final int? langId;
   final int totalPages;
   final int currentPage;
   final int percent;
@@ -32,7 +32,7 @@ class Book {
     required this.id,
     required this.title,
     required this.language,
-    this.langId = 0,
+    this.langId,
     required this.totalPages,
     required this.currentPage,
     required this.percent,
@@ -108,7 +108,11 @@ class Book {
 
     List<int>? parsedStatusDist;
     if (statusDist is String && statusDist.isNotEmpty && statusDist != 'null') {
+      // Parse from server (JSON string format)
       parsedStatusDist = _parseStatusDist(statusDist);
+    } else if (statusDist is List) {
+      // Already a List (from cache)
+      parsedStatusDist = statusDist.map((e) => e as int).toList();
     }
 
     List<String>? parsedTags;
@@ -122,7 +126,7 @@ class Book {
       id: json['BkID'] as int,
       title: json['BkTitle'] as String,
       language: json['LgName'] as String,
-      langId: json['LgID'] as int? ?? 0,
+      langId: (json['LgID'] as num?)?.toInt(),
       totalPages: pageCount,
       currentPage: pageNum,
       percent: percent,
@@ -136,8 +140,28 @@ class Book {
           : null,
       isCompleted: isCompleted,
       audioFilename: audioFilename,
-      lastStatsRefresh: null,
+      lastStatsRefresh: json['lastStatsRefresh'] as int?,
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'BkID': id,
+      'BkTitle': title,
+      'LgName': language,
+      'LgID': langId,
+      'PageCount': totalPages,
+      'PageNum': currentPage,
+      'WordCount': wordCount,
+      'DistinctCount': distinctTerms,
+      'UnknownPercent': unknownPct,
+      'StatusDistribution': statusDistribution,
+      'IsCompleted': isCompleted ? 1 : 0,
+      'audio_filename': audioFilename,
+      'LastOpenedDate': lastRead,
+      'lastStatsRefresh': lastStatsRefresh,
+      'TagList': tags,
+    };
   }
 
   static List<int> _parseStatusDist(String dist) {

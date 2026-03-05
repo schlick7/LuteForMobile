@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../models/text_item.dart';
 import '../utils/sentence_parser.dart';
 import 'text_display.dart';
@@ -8,7 +9,7 @@ import 'term_tooltip.dart';
 
 class SentenceReaderDisplay extends ConsumerStatefulWidget {
   final CustomSentence? sentence;
-  final void Function(TextItem, Offset)? onTap;
+  final void Function(TextItem, BuildContext)? onTap;
   final void Function(TextItem)? onDoubleTap;
   final void Function(TextItem)? onLongPress;
   final double textSize;
@@ -16,6 +17,7 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
   final String fontFamily;
   final FontWeight fontWeight;
   final bool isItalic;
+  final int doubleTapTimeout;
 
   const SentenceReaderDisplay({
     super.key,
@@ -28,11 +30,13 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
     this.fontFamily = 'Roboto',
     this.fontWeight = FontWeight.normal,
     this.isItalic = false,
+    this.doubleTapTimeout = 300,
   });
 
   @override
-  ConsumerState<SentenceReaderDisplay> createState() =>
-      _SentenceReaderDisplayState();
+  ConsumerState<SentenceReaderDisplay> createState() {
+    return _SentenceReaderDisplayState();
+  }
 }
 
 class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
@@ -43,7 +47,7 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
   @override
   void initState() {
     super.initState();
-    print('DEBUG: SentenceReaderDisplay initialized');
+    WidgetLogger.logInit('SentenceReaderDisplay');
   }
 
   @override
@@ -52,34 +56,38 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
     super.dispose();
   }
 
-  void _handleTap(TextItem item, Offset tapPosition) {
+  void _handleTap(TextItem item, BuildContext context) {
     if (_lastTappedItem == item &&
         _doubleTapTimer != null &&
         _doubleTapTimer!.isActive) {
       _doubleTapTimer?.cancel();
+      TermTooltipClass.close();
       widget.onDoubleTap?.call(item);
       _doubleTapTimer = null;
       _lastTappedItem = null;
-      TermTooltipClass.close();
     } else {
       _lastTappedItem = item;
       _doubleTapTimer?.cancel();
 
-      widget.onTap?.call(item, tapPosition);
+      widget.onTap?.call(item, context);
 
-      _doubleTapTimer = Timer(const Duration(milliseconds: 300), () {
-        TermTooltipClass.makeVisible();
-        _doubleTapTimer = null;
-        _lastTappedItem = null;
-      });
+      _doubleTapTimer = Timer(
+        Duration(milliseconds: widget.doubleTapTimeout),
+        () {
+          _doubleTapTimer = null;
+          _lastTappedItem = null;
+        },
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     _buildCount++;
-    print(
-      'DEBUG: SentenceReaderDisplay rebuild #$_buildCount (sentence ${widget.sentence?.id ?? "null"})',
+    WidgetLogger.logRebuild(
+      'SentenceReaderDisplay',
+      _buildCount,
+      'sentence ${widget.sentence?.id ?? "null"}',
     );
     if (widget.sentence == null) return const SizedBox.shrink();
 
@@ -104,7 +112,7 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
       fontFamily: widget.fontFamily,
       fontWeight: widget.fontWeight,
       isItalic: widget.isItalic,
-      onTap: (item, position) => _handleTap(item, position),
+      onTap: (item, context) => _handleTap(item, context),
       onDoubleTap: (item) => widget.onDoubleTap?.call(item),
       onLongPress: (item) => widget.onLongPress?.call(item),
     );

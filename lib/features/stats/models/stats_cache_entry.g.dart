@@ -16,10 +16,8 @@ class StatsCacheEntryAdapter extends TypeAdapter<StatsCacheEntry> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return StatsCacheEntry(
-      stats: (fields[0] as Map).cast<String, LanguageReadingStats>(),
-      timestamp: (fields[1] as num).toInt(),
-    );
+    return StatsCacheEntry(timestamp: (fields[1] as num).toInt())
+      ..statsJson = fields[0] as String;
   }
 
   @override
@@ -27,7 +25,7 @@ class StatsCacheEntryAdapter extends TypeAdapter<StatsCacheEntry> {
     writer
       ..writeByte(2)
       ..writeByte(0)
-      ..write(obj.stats)
+      ..write(obj.statsJson)
       ..writeByte(1)
       ..write(obj.timestamp);
   }

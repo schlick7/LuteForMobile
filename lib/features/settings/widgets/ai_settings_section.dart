@@ -82,6 +82,8 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
         return 'Local OpenAI';
       case AIProvider.openAI:
         return 'OpenAI';
+      case AIProvider.gemini:
+        return 'Gemini';
       case AIProvider.none:
         return 'None';
     }
@@ -98,6 +100,8 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
         return _buildOpenAISettings(context, ref, config);
       case AIProvider.localOpenAI:
         return _buildLocalOpenAISettings(context, ref, config);
+      case AIProvider.gemini:
+        return _buildGeminiSettings(context, ref, config);
       case AIProvider.none:
         return const Text(
           'AI features are disabled',
@@ -172,6 +176,30 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
     );
   }
 
+  Widget _buildGeminiSettings(
+    BuildContext context,
+    WidgetRef ref,
+    AISettingsConfig? config,
+  ) {
+    return _GeminiSettings(
+      config: config,
+      onApiKeyChanged: (value) {
+        if (config != null) {
+          ref
+              .read(aiSettingsProvider.notifier)
+              .updateGeminiConfig(config.copyWith(apiKey: value));
+        }
+      },
+      onModelSelected: (value) {
+        if (config != null) {
+          ref
+              .read(aiSettingsProvider.notifier)
+              .updateGeminiConfig(config.copyWith(model: value));
+        }
+      },
+    );
+  }
+
   Widget _buildPromptSettings(
     BuildContext context,
     WidgetRef ref,
@@ -225,7 +253,6 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
     final config = settings.promptConfigs[type];
     final currentPrompt =
         config?.customPrompt ?? AIPromptTemplates.getDefault(type);
-    final isCustom = config?.customPrompt?.isNotEmpty ?? false;
     final placeholders = _getPlaceholders(type);
     final isExpanded = _promptExpanded[type] ?? false;
 
@@ -660,6 +687,73 @@ class _LocalOpenAISettingsState extends ConsumerState<_LocalOpenAISettings> {
           obscureText: true,
           controller: _apiKeyController,
           onSubmitted: widget.onApiKeyChanged,
+        ),
+      ],
+    );
+  }
+}
+
+class _GeminiSettings extends ConsumerStatefulWidget {
+  final AISettingsConfig? config;
+  final ValueChanged<String> onApiKeyChanged;
+  final ValueChanged<String?> onModelSelected;
+
+  const _GeminiSettings({
+    required this.config,
+    required this.onApiKeyChanged,
+    required this.onModelSelected,
+  });
+
+  @override
+  ConsumerState<_GeminiSettings> createState() => _GeminiSettingsState();
+}
+
+class _GeminiSettingsState extends ConsumerState<_GeminiSettings> {
+  late TextEditingController _apiKeyController;
+
+  @override
+  void initState() {
+    super.initState();
+    _apiKeyController = TextEditingController(
+      text: widget.config?.apiKey ?? '',
+    );
+  }
+
+  @override
+  void didUpdateWidget(_GeminiSettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.config?.apiKey != oldWidget.config?.apiKey &&
+        _apiKeyController.text != (widget.config?.apiKey ?? '')) {
+      _apiKeyController.text = widget.config?.apiKey ?? '';
+    }
+  }
+
+  @override
+  void dispose() {
+    _apiKeyController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          decoration: const InputDecoration(
+            labelText: 'API Key',
+            border: OutlineInputBorder(),
+          ),
+          obscureText: true,
+          controller: _apiKeyController,
+          onSubmitted: widget.onApiKeyChanged,
+        ),
+        const SizedBox(height: 16),
+        ModelSelector(
+          selectedModel: widget.config?.model,
+          labelText: 'Model',
+          hintText: 'e.g., gemini-1.5-flash',
+          onModelSelected: widget.onModelSelected,
         ),
       ],
     );

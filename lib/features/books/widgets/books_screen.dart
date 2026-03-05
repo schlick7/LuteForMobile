@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
+import '../../../shared/providers/network_providers.dart';
 import '../providers/books_provider.dart';
 import '../../settings/providers/settings_provider.dart';
-import '../../settings/models/settings.dart';
 import '../models/book.dart';
 import 'book_card.dart';
 import 'book_details_dialog.dart';
 import 'package:lute_for_mobile/app.dart';
-import '../../../core/providers/initial_providers.dart';
 
 class BooksScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -22,60 +23,45 @@ class BooksScreen extends ConsumerStatefulWidget {
 
 class _BooksScreenState extends ConsumerState<BooksScreen> {
   final TextEditingController _searchController = TextEditingController();
-  Settings? _lastSettings;
-  bool _hasTriggeredLoad = false;
+  final ScrollController _scrollController = ScrollController();
+  int _buildCount = 0;
 
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(_scrollListener);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      final state = ref.read(booksProvider);
+      if (state.showArchived) {
+        ref.read(booksProvider.notifier).loadMoreArchivedBooks();
+      } else {
+        ref.read(booksProvider.notifier).loadMoreActiveBooks();
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    WidgetLogger.logRebuild('BooksScreen', _buildCount);
+
     final state = ref.watch(booksProvider);
     final settings = ref.watch(settingsProvider);
 
-    if (_lastSettings == null &&
-        settings.serverUrl.isNotEmpty &&
-        !_hasTriggeredLoad) {
-      _lastSettings = settings;
-      _hasTriggeredLoad = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(booksProvider.notifier).loadBooks();
-      });
-    }
-    if (_lastSettings != null &&
-        _lastSettings!.serverUrl.isEmpty &&
-        settings.serverUrl.isNotEmpty &&
-        !_hasTriggeredLoad) {
-      _lastSettings = settings;
-      _hasTriggeredLoad = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(booksProvider.notifier).loadBooks();
-      });
-    }
-
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
-        ),
+        leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
         title: const Text('Books'),
         actions: [
           Padding(
@@ -91,7 +77,16 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(booksProvider.notifier).refreshBooks(),
+        onRefresh: () async {
+          final notifier = ref.read(booksProvider.notifier);
+          await notifier.loadBooks(
+            forceRefresh: true,
+            skipExpiredBookRefresh: true,
+          );
+          if (ref.read(settingsProvider).autoRefreshFullStats) {
+            await notifier.refreshExpiredBooks(forceRefreshAll: true);
+          }
+        },
         child: Column(
           children: [
             Padding(
@@ -135,9 +130,52 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
     );
   }
 
+  Widget _buildNoServerConfigured(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No Server Connection',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Please configure your Lute server in settings.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () =>
+                  ref.read(navigationProvider).navigateToScreen('settings'),
+              icon: const Icon(Icons.settings),
+              label: const Text('Open Settings'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBody(BuildContext context, BooksState state, settings) {
     if (state.isLoading) {
       return const LoadingIndicator(message: 'Loading books...');
+    }
+
+    final contentService = ref.watch(contentServiceProvider);
+    if (!contentService.isConfigured) {
+      return _buildNoServerConfigured(context);
     }
 
     if (state.errorMessage != null) {
@@ -149,7 +187,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
       );
     }
 
-    var books = state.filteredBooks;
+    var books = state.showArchived ? state.archivedBooks : state.activeBooks;
 
     if (settings.languageFilter != null) {
       books = books
@@ -187,29 +225,34 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
       );
     }
 
+    final hasMore = state.showArchived
+        ? state.hasMoreArchived
+        : state.hasMoreActive;
+
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.only(bottom: 16),
-      itemCount: books.length,
+      itemCount: books.length + (hasMore ? 1 : 0),
       itemBuilder: (context, index) {
-        final book = books[index];
-        return BookCard(
-          book: book,
-          onTap: () => _navigateToReader(context, book),
-          onLongPress: () => _showBookDetails(context, book),
-        );
+        if (index < books.length) {
+          final book = books[index];
+          return BookCard(
+            book: book,
+            onTap: () => _navigateToReader(context, book),
+            onLongPress: () => _showBookDetails(context, book),
+          );
+        } else {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
       },
     );
   }
 
-  void _navigateToReader(BuildContext context, Book book) async {
-    try {
-      final updatedBook = await ref
-          .read(booksProvider.notifier)
-          .getUpdatedBook(book.id);
-      ref.read(navigationProvider).navigateToReader(updatedBook.id);
-    } catch (e) {
-      ref.read(navigationProvider).navigateToReader(book.id);
-    }
+  void _navigateToReader(BuildContext context, Book book) {
+    ref.read(navigationProvider).navigateToReader(book.id, null);
   }
 
   void _showBookDetails(BuildContext context, Book book) {

@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:hive_ce/hive.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/sentence_cache_entry.dart';
 import '../utils/sentence_parser.dart';
+import '../../../core/cache/cache_logger.dart';
 
 class SentenceCacheService {
   static const String _boxName = 'sentence_cache';
@@ -9,18 +12,20 @@ class SentenceCacheService {
   static const int _maxCacheSizeBytes = 100 * 1024 * 1024;
   static const String _cachePrefix = 'sentence_cache_';
 
-  Box<SentenceCacheEntry>? _box;
   bool _isInitialized = false;
 
   Future<void> _initialize() async {
     if (_isInitialized) return;
 
     try {
-      Hive.registerAdapter(SentenceCacheEntryAdapter());
+      final cacheDir = await getApplicationCacheDirectory();
+      await Hive.initFlutter(cacheDir.path);
+
       await Hive.openBox<SentenceCacheEntry>(_boxName);
       _isInitialized = true;
+      CacheLogger.log('initialized');
     } catch (e) {
-      print('Error initializing sentence cache: $e');
+      CacheLogger.logError('initialize', e);
       _isInitialized = true;
     }
   }
@@ -30,18 +35,11 @@ class SentenceCacheService {
     return Hive.openBox<SentenceCacheEntry>(_boxName);
   }
 
-  String _getCacheKey(
-    String serverUrl,
-    int bookId,
-    int pageNum,
-    int langId,
-    int threshold,
-  ) {
-    return '$_cachePrefix${serverUrl.hashCode}_${bookId}_${pageNum}_${langId}_$threshold';
+  String _getCacheKey(int bookId, int pageNum, int langId, int threshold) {
+    return '$_cachePrefix${bookId}_${pageNum}_${langId}_$threshold';
   }
 
   Future<List<CustomSentence>?> getFromCache(
-    String serverUrl,
     int bookId,
     int pageNum,
     int langId,
@@ -49,34 +47,32 @@ class SentenceCacheService {
   ) async {
     try {
       final box = await _getBox();
-      final cacheKey = _getCacheKey(
-        serverUrl,
-        bookId,
-        pageNum,
-        langId,
-        threshold,
-      );
+      final cacheKey = _getCacheKey(bookId, pageNum, langId, threshold);
       final entry = box.get(cacheKey);
 
-      if (entry == null) return null;
+      if (entry == null) {
+        CacheLogger.logMiss(_boxName, cacheKey.hashCode);
+        return null;
+      }
 
       final now = DateTime.now().millisecondsSinceEpoch;
       final age = now - entry.timestamp;
 
       if (age > _ttl.inMilliseconds) {
         await box.delete(cacheKey);
+        CacheLogger.logMiss(_boxName, cacheKey.hashCode);
         return null;
       }
 
+      CacheLogger.logHit(_boxName, cacheKey.hashCode);
       return entry.sentences;
     } catch (e) {
-      print('Error getting from sentence cache: $e');
+      CacheLogger.logError('getFromCache', e);
       return null;
     }
   }
 
   Future<void> saveToCache(
-    String serverUrl,
     int bookId,
     int pageNum,
     int langId,
@@ -85,13 +81,7 @@ class SentenceCacheService {
   ) async {
     try {
       final box = await _getBox();
-      final cacheKey = _getCacheKey(
-        serverUrl,
-        bookId,
-        pageNum,
-        langId,
-        threshold,
-      );
+      final cacheKey = _getCacheKey(bookId, pageNum, langId, threshold);
 
       final sentencesJson = json.encode(
         sentences.map((s) => s.toJson()).toList(),
@@ -106,27 +96,32 @@ class SentenceCacheService {
 
       await _enforceSizeLimit(box);
       await box.put(cacheKey, entry);
+      CacheLogger.logSave(_boxName, cacheKey.hashCode);
     } catch (e) {
-      print('Error saving to sentence cache: $e');
+      CacheLogger.logError('saveToCache', e);
     }
   }
 
-  Future<void> clearBookCache(String serverUrl, int bookId) async {
+  Future<void> clearBookCache(int bookId) async {
     try {
       final box = await _getBox();
-      final serverHash = serverUrl.hashCode;
       final keysToDelete = <String>[];
 
       for (final key in box.keys) {
         final keyStr = key as String;
-        if (keyStr.startsWith('$_cachePrefix${serverHash}_${bookId}_')) {
+        if (keyStr.startsWith('$_cachePrefix${bookId}_')) {
           keysToDelete.add(keyStr);
         }
       }
 
-      await box.deleteAll(keysToDelete);
+      if (keysToDelete.isNotEmpty) {
+        await box.deleteAll(keysToDelete);
+        CacheLogger.log(
+          'cleared ${keysToDelete.length} entries for book $bookId',
+        );
+      }
     } catch (e) {
-      print('Error clearing book sentence cache: $e');
+      CacheLogger.logError('clearBookCache', e);
     }
   }
 
@@ -134,8 +129,9 @@ class SentenceCacheService {
     try {
       final box = await _getBox();
       await box.clear();
+      CacheLogger.logClear(_boxName);
     } catch (e) {
-      print('Error clearing all sentence cache: $e');
+      CacheLogger.logError('clearAllCache', e);
     }
   }
 
@@ -203,7 +199,7 @@ class SentenceCacheService {
         entriesWithTimestamps.remove(oldestKey);
       }
     } catch (e) {
-      print('Error enforcing size limit: $e');
+      CacheLogger.logError('enforceSizeLimit', e);
     }
   }
 }

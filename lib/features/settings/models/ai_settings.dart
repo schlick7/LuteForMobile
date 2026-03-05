@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-enum AIProvider { localOpenAI, openAI, none }
+enum AIProvider { localOpenAI, openAI, gemini, none }
 
 enum AIPromptType {
   termTranslation,

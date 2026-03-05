@@ -3,7 +3,6 @@ import '../models/text_item.dart';
 import '../models/term_tooltip.dart';
 import '../utils/sentence_parser.dart';
 import '../../../shared/theme/theme_extensions.dart';
-import '../../../shared/theme/app_theme.dart';
 
 String _formatTranslation(String? translation) {
   if (translation == null) return '';
@@ -32,7 +31,7 @@ List<TextItem> extractUniqueTerms(
   if (sentence == null) return [];
 
   final Map<int, TextItem> uniqueTerms = {};
-  for (final item in sentence!.textItems) {
+  for (final item in sentence.textItems) {
     if (item.wordId != null) {
       final statusMatch = RegExp(r'status(\d+)').firstMatch(item.statusClass);
       final status = statusMatch?.group(1) ?? '0';
@@ -56,7 +55,7 @@ List<TextItem> extractUniqueTerms(
 
 class TermListDisplay extends StatelessWidget {
   final CustomSentence? sentence;
-  final void Function(TextItem, Offset)? onTermTap;
+  final void Function(TextItem, BuildContext)? onTermTap;
   final void Function(TextItem)? onTermDoubleTap;
   final Map<int, TermTooltip> tooltips;
   final bool showKnownTerms;
@@ -211,15 +210,17 @@ class TermListDisplay extends StatelessWidget {
       alignment: Alignment.centerLeft,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 2),
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (details) => onTermTap?.call(term, details.globalPosition),
-          onDoubleTap: () => onTermDoubleTap?.call(term),
-          child: Chip(
-            backgroundColor: backgroundColor,
-            label: Row(mainAxisSize: MainAxisSize.min, children: children),
-            visualDensity: VisualDensity.compact,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        child: Builder(
+          builder: (context) => GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onTermTap?.call(term, context),
+            onDoubleTap: () => onTermDoubleTap?.call(term),
+            child: Chip(
+              backgroundColor: backgroundColor,
+              label: Row(mainAxisSize: MainAxisSize.min, children: children),
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            ),
           ),
         ),
       ),

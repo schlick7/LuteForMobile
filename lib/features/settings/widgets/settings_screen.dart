@@ -1,15 +1,101 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
+import '../../../core/logger/widget_logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
+import '../../../shared/widgets/app_bar_leading.dart';
 import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../models/settings.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../app.dart';
 import 'theme_selector_screen.dart';
 import 'tts_settings_section.dart';
 import 'ai_settings_section.dart';
+import 'termux_screen.dart';
+
+class NumberField extends StatefulWidget {
+  final String label;
+  final String initialValue;
+  final String hint;
+  final int minValue;
+  final int maxValue;
+  final Function(String) onChanged;
+
+  const NumberField({
+    super.key,
+    required this.label,
+    required this.initialValue,
+    required this.hint,
+    required this.minValue,
+    required this.maxValue,
+    required this.onChanged,
+  });
+
+  @override
+  State<NumberField> createState() => _NumberFieldState();
+}
+
+class _NumberFieldState extends State<NumberField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void didUpdateWidget(NumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialValue != widget.initialValue &&
+        _controller.text != widget.initialValue) {
+      _controller.text = widget.initialValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(widget.label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 8),
+        TextField(
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 8,
+            ),
+            hintText: widget.hint,
+          ),
+          controller: _controller,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          onChanged: (value) {
+            final intValue = int.tryParse(value);
+            if (intValue != null &&
+                intValue >= widget.minValue &&
+                intValue <= widget.maxValue) {
+              widget.onChanged(value);
+            }
+          },
+        ),
+      ],
+    );
+  }
+}
 
 class SettingsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -22,10 +108,13 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _serverUrlController;
+  final _localUrlController = TextEditingController();
+  int _buildCount = 0;
   bool _isTesting = false;
   String? _connectionStatus;
   bool _connectionTestPassed = false;
+  bool _bookStatsExpanded = false;
+  bool _readerExpanded = false;
 
   static const List<Color> _accentColorOptions = [
     Color(0xFF1976D2), // Blue
@@ -44,13 +133,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void initState() {
     super.initState();
-    final initialUrl = ref.read(settingsProvider).serverUrl;
-    _serverUrlController = TextEditingController(text: initialUrl);
+    SharedPreferences.getInstance().then((prefs) {
+      final savedUrl = prefs.getString('local_url') ?? '';
+      if (mounted) {
+        _localUrlController.text = savedUrl;
+      }
+    });
   }
 
   @override
   void dispose() {
-    _serverUrlController.dispose();
+    _localUrlController.dispose();
     super.dispose();
   }
 
@@ -63,7 +156,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _connectionTestPassed = false;
     });
 
-    final url = _serverUrlController.text.trim();
+    final url = _localUrlController.text.trim();
     try {
       final dio = Dio();
       final response = await dio.get(
@@ -99,7 +192,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _saveSettings() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final newUrl = _serverUrlController.text.trim();
+    final newUrl = _localUrlController.text.trim();
 
     await _testConnection();
 
@@ -107,12 +200,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return;
     }
 
-    final oldUrl = ref.read(settingsProvider).serverUrl;
+    final prefs = await SharedPreferences.getInstance();
+    final oldUrl = prefs.getString('local_url') ?? '';
 
     if (oldUrl != newUrl) {
-      // Clear current book BEFORE updating URL to prevent race conditions
       await ref.read(settingsProvider.notifier).clearCurrentBook();
-      await ref.read(settingsProvider.notifier).updateServerUrl(newUrl);
+      await ref.read(settingsProvider.notifier).updateLocalUrl(newUrl);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -122,8 +215,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
       RestartWidget.restartApp(context);
     } else {
-      // Update URL without changing (no book clearing needed)
-      await ref.read(settingsProvider.notifier).updateServerUrl(newUrl);
+      await ref.read(settingsProvider.notifier).updateLocalUrl(newUrl);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -139,40 +231,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    WidgetLogger.logRebuild('SettingsScreen', _buildCount);
+
     final settings = ref.watch(settingsProvider);
     final themeSettings = ref.watch(themeSettingsProvider);
     final textSettings = ref.watch(textFormattingSettingsProvider);
 
-    ref.listen(settingsProvider, (previous, next) {
-      if (previous?.serverUrl != next.serverUrl &&
-          _serverUrlController.text != next.serverUrl) {
-        final currentSelection = _serverUrlController.selection;
-        _serverUrlController.value = TextEditingValue(
-          text: next.serverUrl,
-          selection: currentSelection.baseOffset <= next.serverUrl.length
-              ? currentSelection
-              : TextSelection.collapsed(offset: next.serverUrl.length),
-        );
-        _connectionTestPassed = false;
-        _connectionStatus = null;
-      }
-    });
-
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
-        ),
+        leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
         title: const Text('Settings'),
         elevation: 2,
       ),
@@ -194,13 +262,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
-                      controller: _serverUrlController,
+                      controller: _localUrlController,
                       decoration: InputDecoration(
-                        labelText: 'Server URL',
+                        labelText: 'Local URL',
                         hintText: 'http://192.168.1.100:5001',
                         labelStyle: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
-                              color: context.customColors.accentLabelColor,
+                              color: settings.serverUrl == Settings.termuxUrl
+                                  ? Theme.of(context).colorScheme.onSurface
+                                        .withValues(alpha: 0.4)
+                                  : context.customColors.accentLabelColor,
                             ),
                         border: const OutlineInputBorder(),
                         errorText: settings.isUrlValid
@@ -238,6 +309,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 color: Theme.of(context).colorScheme.error,
                               ),
                       ),
+                      style: settings.serverUrl == Settings.termuxUrl
+                          ? TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurface.withValues(alpha: 0.5),
+                            )
+                          : null,
                       keyboardType: TextInputType.url,
                       onChanged: (_) {
                         _connectionTestPassed = false;
@@ -354,10 +432,132 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         ),
                       ),
                     ],
+                    if (Platform.isAndroid) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Termux Integration',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  'Enable Termux server features',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Transform.scale(
+                            scale: 0.8,
+                            child: Switch(
+                              value: settings.termuxIntegrationEnabled,
+                              onChanged: (value) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .updateTermuxIntegrationEnabled(value);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (settings.termuxIntegrationEnabled) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Server Selection',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  'Use Termux server (localhost)',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Transform.scale(
+                            scale: 0.8,
+                            child: Switch(
+                              value: settings.serverUrl == Settings.termuxUrl,
+                              onChanged: (value) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .setServerSelection(value);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
+            if (settings.termuxIntegrationEnabled) ...[
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Termux Integration',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          TextButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const TermuxScreen(),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.phone_android),
+                            label: const Text('Open'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Run Lute3 server locally on your device using Termux',
+                        style: TextStyle(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Card(
               elevation: 2,
@@ -372,6 +572,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     _buildSettingRow('Server URL', settings.serverUrl),
+                    if (settings.serverUrl == Settings.termuxUrl)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'Using Termux (localhost)',
+                            style: TextStyle(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimaryContainer,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -379,243 +605,507 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 16),
             Card(
               elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Reading',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text('Sentence Combining in Sentence Reader '),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Text('Combine sentences with'),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${settings.combineShortSentences ?? 3} terms or less',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Slider(
-                      value: (settings.combineShortSentences ?? 3).toDouble(),
-                      min: 1,
-                      max: 10,
-                      divisions: 9,
-                      label: (settings.combineShortSentences ?? 3).toString(),
-                      onChanged: (value) {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .updateCombineShortSentences(value.toInt());
-                      },
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Sentences with this many terms or fewer will be combined to handle fragmentation from PDF/EPUB sources.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Double Tap Timeout'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Text('Timeout duration'),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${settings.doubleTapTimeout}ms',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Slider(
-                      value: settings.doubleTapTimeout.toDouble(),
-                      min: 200,
-                      max: 400,
-                      divisions: 8,
-                      label: '${settings.doubleTapTimeout}ms',
-                      onChanged: (value) {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .updateDoubleTapTimeout(value.toInt());
-                      },
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'The lower the value the faster the tooltip opens and the harder it is to open the Term Form',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Page Navigation'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Text('Enable swipe navigation'),
-                        const Spacer(),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: textSettings.swipeNavigationEnabled,
-                            onChanged: (value) {
-                              ref
-                                  .read(textFormattingSettingsProvider.notifier)
-                                  .updateSwipeNavigationEnabled(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Text('Mark pages as read when swiping'),
-                        const Spacer(),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: textSettings.swipeMarksRead,
-                            onChanged: (value) {
-                              ref
-                                  .read(textFormattingSettingsProvider.notifier)
-                                  .updateSwipeMarksRead(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Page Turn Animations'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Text('Enable page turn animations'),
-                        const Spacer(),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: settings.pageTurnAnimations,
-                            onChanged: (value) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updatePageTurnAnimations(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    const Text('Tooltip Caching'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Enable tooltip caching',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                'Cache tooltips for faster loading (48 hour expiry)',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: settings.enableTooltipCaching,
-                            onChanged: (value) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updateEnableTooltipCaching(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        const Text('Show stats bar in reader'),
-                        const Spacer(),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: settings.showStatsBar,
-                            onChanged: (value) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updateShowStatsBar(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Triple-tap to mark as known',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              Text(
-                                'Quickly mark words as known by tapping three times',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface
-                                      .withValues(alpha: 0.6),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: settings.enableTripleTapToMarkKnown,
-                            onChanged: (value) {
-                              ref
-                                  .read(settingsProvider.notifier)
-                                  .updateEnableTripleTapToMarkKnown(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+              child: ExpansionTile(
+                title: const Text(
+                  'Reading',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
+                initiallyExpanded: _readerExpanded,
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    _readerExpanded = expanded;
+                  });
+                },
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Sentence Combining in Sentence Reader '),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Text('Combine sentences with'),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${settings.combineShortSentences ?? 3} terms or less',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Slider(
+                          value: (settings.combineShortSentences ?? 3)
+                              .toDouble(),
+                          min: 1,
+                          max: 10,
+                          divisions: 9,
+                          label: (settings.combineShortSentences ?? 3)
+                              .toString(),
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateCombineShortSentences(value.toInt());
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Sentences with this many terms or fewer will be combined to handle fragmentation from PDF/EPUB sources.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Double Tap Timeout'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Text('Timeout duration'),
+                            const SizedBox(width: 8),
+                            Text(
+                              '${settings.doubleTapTimeout}ms',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Slider(
+                          value: settings.doubleTapTimeout.toDouble(),
+                          min: 200,
+                          max: 400,
+                          divisions: 8,
+                          label: '${settings.doubleTapTimeout}ms',
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateDoubleTapTimeout(value.toInt());
+                          },
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'The lower the value the faster the tooltip opens and the harder it is to open the Term Form',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Page Navigation'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Text('Enable swipe navigation'),
+                            const Spacer(),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: textSettings.swipeNavigationEnabled,
+                                onChanged: (value) {
+                                  ref
+                                      .read(
+                                        textFormattingSettingsProvider.notifier,
+                                      )
+                                      .updateSwipeNavigationEnabled(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            const Text('Mark pages as read when swiping'),
+                            const Spacer(),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: textSettings.swipeMarksRead,
+                                onChanged: (value) {
+                                  ref
+                                      .read(
+                                        textFormattingSettingsProvider.notifier,
+                                      )
+                                      .updateSwipeMarksRead(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Page Turn Animations'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Text('Enable page turn animations'),
+                            const Spacer(),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.pageTurnAnimations,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updatePageTurnAnimations(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Page Preloading'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Enable page preloading',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Preload next page for faster navigation',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.enablePagePreload,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updateEnablePagePreload(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        const Text('Tooltip Caching'),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Enable tooltip caching',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Cache tooltips for faster loading (48 hour expiry)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.enableTooltipCaching,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updateEnableTooltipCaching(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (settings.enableTooltipCaching) ...[
+                          const SizedBox(height: 16),
+                          NumberField(
+                            label: 'Max Concurrent Tooltip Fetches',
+                            initialValue: settings.maxConcurrentTooltipFetches
+                                .toString(),
+                            hint: '1-10',
+                            minValue: 1,
+                            maxValue: 10,
+                            onChanged: (value) {
+                              final intValue = int.tryParse(value);
+                              if (intValue != null) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .updateMaxConcurrentTooltipFetches(
+                                      intValue,
+                                    );
+                              }
+                            },
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            const Text('Show stats bar in reader'),
+                            const Spacer(),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.showStatsBar,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updateShowStatsBar(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Show known terms count',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Display known terms count in stats bar (requires API calls)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.showKnownTermsCount,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updateShowKnownTermsCount(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Triple-tap to mark as known',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Quickly mark words as known by tapping three times',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.enableTripleTapToMarkKnown,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updateEnableTripleTapToMarkKnown(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              child: ExpansionTile(
+                title: const Text(
+                  'Terms',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                initiallyExpanded: false,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SwitchListTile(
+                          title: const Text('Show Term Stats Card'),
+                          value: settings.showTermStatsCard,
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateShowTermStatsCard(value);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
             const TTSSettingsSection(),
             const SizedBox(height: 16),
             const AISettingsSection(),
+            const SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              child: ExpansionTile(
+                title: const Text(
+                  'Book Stats Settings',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                initiallyExpanded: _bookStatsExpanded,
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    _bookStatsExpanded = expanded;
+                  });
+                },
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        NumberField(
+                          label: 'Calc Sample Size',
+                          initialValue: settings.statsCalcSampleSize.toString(),
+                          hint: '1-500',
+                          minValue: 1,
+                          maxValue: 500,
+                          onChanged: (value) {
+                            final intValue = int.tryParse(value);
+                            if (intValue != null) {
+                              ref
+                                  .read(settingsProvider.notifier)
+                                  .updateStatsCalcSampleSize(intValue);
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        SwitchListTile(
+                          title: const Text('Auto Refresh Full Stats'),
+                          value: settings.autoRefreshFullStats,
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateAutoRefreshFullStats(value);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        if (settings.autoRefreshFullStats) ...[
+                          const SizedBox(height: 8),
+                          NumberField(
+                            label: 'Books to Process at Once',
+                            initialValue: settings.statsRefreshBatchSize
+                                .toString(),
+                            hint: '1-5',
+                            minValue: 1,
+                            maxValue: 5,
+                            onChanged: (value) {
+                              final intValue = int.tryParse(value);
+                              if (intValue != null) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .updateStatsRefreshBatchSize(intValue);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          NumberField(
+                            label: 'Cooldown Before Refresh (hours)',
+                            initialValue: settings.statsRefreshCooldownHours
+                                .toString(),
+                            hint: '1-336 (14 days)',
+                            minValue: 1,
+                            maxValue: 336,
+                            onChanged: (value) {
+                              final intValue = int.tryParse(value);
+                              if (intValue != null) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .updateStatsRefreshCooldownHours(intValue);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          NumberField(
+                            label: 'Full Refresh Sample Size',
+                            initialValue: settings.stats500SampleSize
+                                .toString(),
+                            hint: '1-500',
+                            minValue: 1,
+                            maxValue: 500,
+                            onChanged: (value) {
+                              final intValue = int.tryParse(value);
+                              if (intValue != null) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .updateStats500SampleSize(intValue);
+                              }
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
             Card(
               elevation: 2,
@@ -742,7 +1232,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ref
                                         .read(settingsProvider.notifier)
                                         .resetSettings();
-                                    _serverUrlController.text = ref
+                                    _localUrlController.text = ref
                                         .read(settingsProvider)
                                         .serverUrl;
                                     _connectionStatus = null;

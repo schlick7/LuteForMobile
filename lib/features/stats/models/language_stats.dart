@@ -11,7 +11,7 @@ class LanguageReadingStats {
     required this.dailyStats,
   });
 
-  int get totalWords => dailyStats.isEmpty ? 0 : dailyStats.last.runningTotal;
+  int get totalWords => dailyStats.fold(0, (sum, stat) => sum + stat.wordcount);
 
   int get totalDays => dailyStats.length;
 

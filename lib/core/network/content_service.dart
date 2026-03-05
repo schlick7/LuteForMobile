@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:html/dom.dart' as html;
+import '../../core/logger/api_logger.dart';
 import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
@@ -15,72 +16,93 @@ import '../../core/cache/term_cache_service.dart';
 import '../../core/cache/models/term_cache_entry.dart';
 import 'api_service.dart';
 import 'html_parser.dart';
+import 'concurrent_queue.dart';
 
-enum ContentMode { reading, peeking, refresh }
+enum ContentMode { reading, peeking, refresh, statusOnly }
 
 class ContentService {
   final ApiService _apiService;
   final HtmlParser parser;
   final PageCacheService _pageCacheService;
   final TermCacheService _termCacheService;
+  final ConcurrentQueue<TermParent> _parentFetchQueue;
+  late ConcurrentQueue<Book> _bookStatsQueue;
 
-  ContentService({required ApiService apiService, HtmlParser? htmlParser})
-    : _apiService = apiService,
-      parser = htmlParser ?? HtmlParser(),
-      _pageCacheService = PageCacheService(),
-      _termCacheService = TermCacheService.getInstance();
+  // 5-second cache for languages to prevent redundant API calls
+  List<Language>? _cachedLanguages;
+  DateTime? _languagesCacheTime;
+  static const _languagesCacheTtl = Duration(seconds: 5);
+
+  ContentService({
+    required ApiService apiService,
+    HtmlParser? htmlParser,
+    required PageCacheService pageCacheService,
+    required TermCacheService termCacheService,
+  }) : _apiService = apiService,
+       parser = htmlParser ?? HtmlParser(),
+       _pageCacheService = pageCacheService,
+       _termCacheService = termCacheService,
+       _parentFetchQueue = ConcurrentQueue<TermParent>(
+         maxConcurrent: 2,
+         name: 'parentFetch',
+       ) {
+    _bookStatsQueue = ConcurrentQueue<Book>(
+      maxConcurrent: 2,
+      name: 'bookStats',
+    );
+  }
+
+  void setBookStatsBatchSize(int size) {
+    _bookStatsQueue.dispose();
+    _bookStatsQueue = ConcurrentQueue<Book>(
+      maxConcurrent: size,
+      name: 'bookStats',
+    );
+  }
 
   bool get isConfigured => _apiService.isConfigured;
 
-  Future<PageData> getPageContent(
+  Future<PageData?> getPageContent(
     int bookId, {
     int? pageNum,
     ContentMode mode = ContentMode.reading,
     bool useCache = true,
     bool forceRefresh = false,
+    String? cachedMetadataHtml,
   }) async {
     String pageMetadataHtml;
     String pageTextHtml;
 
-    if (useCache && !forceRefresh) {
-      final cached = await _pageCacheService.getFromCache(
-        _apiService.baseUrl,
-        bookId,
-        pageNum ?? 1,
-      );
+    if (useCache && !forceRefresh && pageNum != null) {
+      // Cache-only mode: return cached data or null if not found
+      final cached = await _pageCacheService.getFromCache(bookId, pageNum);
       if (cached != null) {
         pageMetadataHtml = cached.metadataHtml;
         pageTextHtml = cached.pageTextHtml;
       } else {
-        pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
-        final metadataDocument = html_parser.parse(pageMetadataHtml);
-        final actualPageNum =
-            pageNum ?? _extractPageNumFromMetadata(metadataDocument);
-        pageTextHtml = await _fetchPageTextHtml(bookId, actualPageNum, mode);
-        await _pageCacheService.saveToCache(
-          _apiService.baseUrl,
-          bookId,
-          actualPageNum,
-          pageMetadataHtml,
-          pageTextHtml,
-        );
+        // Cache miss - return null immediately without fetching
+        return null;
       }
     } else {
-      pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
+      // Network mode: fetch from server and cache the result
+      if (mode == ContentMode.statusOnly && cachedMetadataHtml != null) {
+        // Use cached metadata, only fetch text
+        pageMetadataHtml = cachedMetadataHtml;
+      } else {
+        pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
+      }
       final metadataDocument = html_parser.parse(pageMetadataHtml);
       final actualPageNum =
           pageNum ?? _extractPageNumFromMetadata(metadataDocument);
       pageTextHtml = await _fetchPageTextHtml(bookId, actualPageNum, mode);
 
-      if (useCache) {
-        await _pageCacheService.saveToCache(
-          _apiService.baseUrl,
-          bookId,
-          actualPageNum,
-          pageMetadataHtml,
-          pageTextHtml,
-        );
-      }
+      // Always cache fresh data when we fetch it from server
+      await _pageCacheService.saveToCache(
+        bookId,
+        actualPageNum,
+        pageMetadataHtml,
+        pageTextHtml,
+      );
     }
 
     return parser.parsePage(pageTextHtml, pageMetadataHtml, bookId: bookId);
@@ -116,7 +138,20 @@ class ContentService {
   Future<PageData> markPageDone(int bookId, int pageNum, bool restKnown) async {
     await _apiService.postPageDone(bookId, pageNum, restKnown);
 
-    return getPageContent(bookId, pageNum: pageNum, mode: ContentMode.reading);
+    // Load from cache first for instant UX, then let background refresh update statuses
+    final pageData = await getPageContent(
+      bookId,
+      pageNum: pageNum,
+      mode: ContentMode.reading,
+      useCache: true,
+      forceRefresh: false,
+    );
+
+    if (pageData == null) {
+      throw Exception('Page not found in cache after marking as done');
+    }
+
+    return pageData;
   }
 
   Future<void> markPageReadOnly(int bookId, int pageNum) async {
@@ -125,6 +160,72 @@ class ContentService {
 
   Future<void> markPageKnownOnly(int bookId, int pageNum) async {
     await _apiService.postPageDone(bookId, pageNum, true);
+  }
+
+  /// Preloads a page by fetching it from the network and caching it.
+  /// Does nothing if the page is already cached.
+  /// This is used for precaching the next page for better UX.
+  ///
+  /// [cachedMetadataHtml] - Optional metadata from current page to reuse
+  /// (avoids extra API call for metadata since it's mostly static)
+  Future<void> preloadPage(
+    int bookId,
+    int pageNum, {
+    String? cachedMetadataHtml,
+  }) async {
+    // Check if already cached - skip if it is
+    final cached = await _pageCacheService.getFromCache(bookId, pageNum);
+    if (cached != null) {
+      ApiLogger.logCache(
+        'preloadPage',
+        details: 'CACHED - bookId=$bookId, page=$pageNum',
+      );
+      return;
+    }
+
+    // Not cached - fetch and cache it
+    ApiLogger.logRequest(
+      'preloadPage',
+      details: 'FETCHING - bookId=$bookId, page=$pageNum',
+    );
+
+    try {
+      // Use cached metadata from current page (or fetch if not provided)
+      String pageMetadataHtml;
+      if (cachedMetadataHtml != null && cachedMetadataHtml.isNotEmpty) {
+        // Update the page number in the cached metadata
+        pageMetadataHtml = _updatePageNumInMetadata(
+          cachedMetadataHtml,
+          pageNum,
+        );
+      } else {
+        pageMetadataHtml = await _fetchMetadataHtml(bookId, pageNum);
+      }
+
+      // Use refresh_page for text content (no session creation)
+      final pageTextHtml = await _apiService.refreshBookPage(bookId, pageNum);
+      final pageText = pageTextHtml.data ?? '';
+
+      // Cache the fetched data
+      await _pageCacheService.saveToCache(
+        bookId,
+        pageNum,
+        pageMetadataHtml,
+        pageText,
+      );
+    } catch (e) {
+      ApiLogger.logError('preloadPage', e, details: 'pageNum=$pageNum');
+    }
+  }
+
+  /// Updates the page number in metadata HTML string
+  String _updatePageNumInMetadata(String metadataHtml, int newPageNum) {
+    // Simple string replacement for the page number input value
+    // The metadata contains: <input id="page_num" value="67" type="text">
+    return metadataHtml.replaceFirst(
+      RegExp(r'id="page_num"[^>]*value="(\d*)"'),
+      'id="page_num" value="$newPageNum"',
+    );
   }
 
   Future<Response<String>> _getPageHtml(
@@ -139,6 +240,8 @@ class ContentService {
         return await _apiService.peekBookPage(bookId, pageNum);
       case ContentMode.refresh:
         return await _apiService.refreshBookPage(bookId, pageNum);
+      case ContentMode.statusOnly:
+        return await _apiService.refreshBookPage(bookId, pageNum);
     }
   }
 
@@ -148,12 +251,25 @@ class ContentService {
     return parser.parseTermTooltip(htmlContent);
   }
 
+  /// Fetches a term tooltip and returns both the parsed TermTooltip object
+  /// and the raw HTML string in a single API request.
+  /// This is more efficient than calling getTermTooltip and getRawTermTooltipHtml
+  /// separately when both are needed (e.g., during prefetching).
+  Future<(TermTooltip tooltip, String html)> getTermTooltipWithHtml(
+    int termId,
+  ) async {
+    final response = await _apiService.getTermTooltip(termId);
+    final htmlContent = response.data ?? '';
+    final tooltip = parser.parseTermTooltip(htmlContent);
+    return (tooltip, htmlContent);
+  }
+
   Future<String?> getRawTermTooltipHtml(int termId) async {
     try {
       final htmlContent = await _apiService.getRawTermTooltipHtml(termId);
       return htmlContent;
     } catch (e) {
-      print('Error getting raw term tooltip HTML: $e');
+      ApiLogger.logError('getRawTermTooltipHtml', e, details: 'termId=$termId');
       return null;
     }
   }
@@ -196,25 +312,26 @@ class ContentService {
     if (termForm.parents.isEmpty) {
       return termForm;
     }
-    final parentsWithDetails = <TermParent>[];
-    for (final parent in termForm.parents) {
-      final searchResults = await searchTerms(parent.term, langId);
-      if (searchResults.isNotEmpty) {
-        final result = searchResults.first;
-        parentsWithDetails.add(
-          TermParent(
+
+    final fetchFutures = termForm.parents.map((parent) {
+      return _parentFetchQueue.enqueue(() async {
+        final searchResults = await searchTerms(parent.term, langId);
+        if (searchResults.isNotEmpty) {
+          final result = searchResults.first;
+          return TermParent(
             id: result.id,
             term: result.text,
             translation: result.translation,
             status: result.status,
             syncStatus: result.syncStatus,
-          ),
-        );
-      } else {
-        parentsWithDetails.add(parent);
-      }
-    }
-    return termForm.copyWith(parents: parentsWithDetails);
+          );
+        }
+        return parent;
+      });
+    }).toList();
+
+    final parentsWithDetails = await Future.wait(fetchFutures);
+    return termForm.copyWith(parents: parentsWithDetails.cast<TermParent>());
   }
 
   Future<TermForm> getTermFormByIdWithParentDetails(int termId) async {
@@ -222,25 +339,29 @@ class ContentService {
     if (termForm.parents.isEmpty) {
       return termForm;
     }
-    final parentsWithDetails = <TermParent>[];
-    for (final parent in termForm.parents) {
-      final searchResults = await searchTerms(parent.term, termForm.languageId);
-      if (searchResults.isNotEmpty) {
-        final result = searchResults.first;
-        parentsWithDetails.add(
-          TermParent(
+
+    final fetchFutures = termForm.parents.map((parent) {
+      return _parentFetchQueue.enqueue(() async {
+        final searchResults = await searchTerms(
+          parent.term,
+          termForm.languageId,
+        );
+        if (searchResults.isNotEmpty) {
+          final result = searchResults.first;
+          return TermParent(
             id: result.id,
             term: result.text,
             translation: result.translation,
             status: result.status,
             syncStatus: result.syncStatus,
-          ),
-        );
-      } else {
-        parentsWithDetails.add(parent);
-      }
-    }
-    return termForm.copyWith(parents: parentsWithDetails);
+          );
+        }
+        return parent;
+      });
+    }).toList();
+
+    final parentsWithDetails = await Future.wait(fetchFutures);
+    return termForm.copyWith(parents: parentsWithDetails.cast<TermParent>());
   }
 
   Future<int?> createTerm(int langId, String term) async {
@@ -258,7 +379,7 @@ class ContentService {
 
       return null;
     } catch (e) {
-      print('Error creating term: $e');
+      ApiLogger.logError('createTerm', e);
       return null;
     }
   }
@@ -270,7 +391,7 @@ class ContentService {
 
   Future<DataTablesResponse<Book>> getActiveBooks({
     int start = 0,
-    int length = 100,
+    int length = 10,
     String? search,
     int draw = 1,
   }) async {
@@ -288,7 +409,7 @@ class ContentService {
 
   Future<DataTablesResponse<Book>> getArchivedBooks({
     int start = 0,
-    int length = 100,
+    int length = 10,
     String? search,
     int draw = 1,
   }) async {
@@ -314,8 +435,67 @@ class ContentService {
     return response.data;
   }
 
-  Future<void> refreshBookStats(int bookId, {Duration? timeout}) async {
-    await _apiService.refreshBookStats(bookId, timeout: timeout);
+  Future<void> invalidateAllBookStatsCache({Duration? timeout}) async {
+    await _apiService.invalidateAllBookStatsCache(timeout: timeout);
+  }
+
+  Future<Book> getBookStats(int bookId, {Duration? timeout}) async {
+    return _bookStatsQueue.enqueue(() async {
+      final response = await _apiService.getBookStats(bookId, timeout: timeout);
+      final jsonString = response.data ?? '';
+
+      try {
+        final jsonData = json.decode(jsonString) as Map<String, dynamic>;
+
+        Map<String, dynamic> statusDistMap = {};
+        if (jsonData['status_distribution'] != null &&
+            jsonData['status_distribution'] != '') {
+          try {
+            statusDistMap = json.decode(jsonData['status_distribution']);
+          } catch (e) {
+            ApiLogger.logError('parseStatusDistribution', e);
+          }
+        }
+
+        List<int>? statusDistribution;
+        if (statusDistMap.isNotEmpty) {
+          statusDistribution = [
+            statusDistMap['0'] ?? 0,
+            statusDistMap['1'] ?? 0,
+            statusDistMap['2'] ?? 0,
+            statusDistMap['3'] ?? 0,
+            statusDistMap['4'] ?? 0,
+            statusDistMap['5'] ?? 0,
+            statusDistMap['98'] ?? 0,
+            statusDistMap['99'] ?? 0,
+          ];
+        }
+
+        return Book(
+          id: bookId,
+          title: '',
+          language: '',
+          langId: null,
+          totalPages: 0,
+          currentPage: 0,
+          percent: 0,
+          wordCount: 0,
+          distinctTerms: jsonData['distinctterms'],
+          unknownPct: (jsonData['unknownpercent'] is num)
+              ? (jsonData['unknownpercent'] as num).toDouble()
+              : null,
+          statusDistribution: statusDistribution,
+          tags: null,
+          lastRead: null,
+          isCompleted: false,
+          audioFilename: null,
+          lastStatsRefresh: DateTime.now().millisecondsSinceEpoch,
+        );
+      } catch (e) {
+        ApiLogger.logError('getBookStats', e);
+        rethrow;
+      }
+    });
   }
 
   Future<void> archiveBook(int bookId) async {
@@ -330,28 +510,6 @@ class ContentService {
     await _apiService.deleteBook(bookId);
   }
 
-  Future<String?> getBookAudioFilename(int bookId) async {
-    try {
-      final response = await _apiService.getBookEdit(bookId);
-      final htmlContent = response.data ?? '';
-
-      final document = html_parser.parse(htmlContent);
-
-      final audioInput = document.querySelector('input[name="audio_filename"]');
-      if (audioInput != null) {
-        final audioValue = audioInput.attributes['value'];
-        if (audioValue != null && audioValue.isNotEmpty) {
-          return audioValue;
-        }
-      }
-
-      return null;
-    } catch (e) {
-      print('Error getting book audio filename: $e');
-      return null;
-    }
-  }
-
   Future<void> saveAudioPlayerData({
     required int bookId,
     required int page,
@@ -362,16 +520,24 @@ class ContentService {
     await _apiService.postPlayerData(bookId, position, bookmarks);
   }
 
-  Future<List<String>> getAllLanguages() async {
-    final response = await _apiService.getLanguages();
-    final htmlContent = response.data ?? '';
-    return parser.parseLanguages(htmlContent);
-  }
-
   Future<List<Language>> getLanguagesWithIds() async {
+    // Check if we have a valid cached result (< 5 seconds old)
+    if (_cachedLanguages != null && _languagesCacheTime != null) {
+      final age = DateTime.now().difference(_languagesCacheTime!);
+      if (age < _languagesCacheTtl) {
+        return _cachedLanguages!;
+      }
+    }
+
+    // Fetch from API and cache the result
     final response = await _apiService.getLanguages();
     final htmlContent = response.data ?? '';
-    return parser.parseLanguagesWithIds(htmlContent);
+    final languages = parser.parseLanguagesWithIds(htmlContent);
+
+    _cachedLanguages = languages;
+    _languagesCacheTime = DateTime.now();
+
+    return languages;
   }
 
   Future<Language?> getLanguageById(int languageId) async {
@@ -407,52 +573,72 @@ class ContentService {
     await _apiService.deleteTerm(termId);
   }
 
-  Future<String> getSettingsPageHtml() async {
-    final response = await _apiService.getSettingsPage();
-    return response.data ?? '';
+  Future<int> getTermCount({
+    int? langId,
+    int? statusMin,
+    int? statusMax,
+    String? search,
+    Duration? timeout,
+  }) async {
+    final response = await _apiService.getTermCounts(
+      langId: langId,
+      statusMin: statusMin,
+      statusMax: statusMax,
+      search: search,
+      timeout: timeout,
+    );
+    try {
+      final decoded = jsonDecode(response.data ?? '') as Map<String, dynamic>;
+      return decoded['recordsFiltered'] as int? ?? 0;
+    } catch (e) {
+      ApiLogger.logError('getTermCount', e);
+      return 0;
+    }
   }
 
-  Future<int> getStatsSampleSize() async {
+  /// Fetches and parses all user settings from the settings page.
+  /// This makes a single API call and returns a map of all settings,
+  /// avoiding multiple redundant requests when different callers need
+  /// different settings values.
+  Future<Map<String, dynamic>> getUserSettings() async {
     try {
-      final html = await getSettingsPageHtml();
+      final response = await _apiService.getSettingsPage();
+      final html = response.data ?? '';
+
       final match = RegExp(
         r'LUTE_USER_SETTINGS\s*=\s*(\{.*?)(?=\n\s*const LUTE_USER_HOTKEYS)',
         dotAll: true,
       ).firstMatch(html);
+
       if (match != null && match.groupCount >= 1) {
         final jsonStr = match.group(1)!;
-        final Map<String, dynamic> settings = jsonDecode(jsonStr);
-        return int.tryParse(
-              settings['stats_calc_sample_size']?.toString() ?? '',
-            ) ??
-            5;
+        return jsonDecode(jsonStr) as Map<String, dynamic>;
       }
     } catch (e) {
-      print('Error parsing stats sample size: $e');
+      ApiLogger.logError('getUserSettings', e);
     }
-    return 5;
+    return {};
+  }
+
+  /// Gets a single user setting value by key.
+  /// Consider using [getUserSettings()] if you need multiple values
+  /// to avoid redundant API calls.
+  Future<String?> getUserSetting(String key) async {
+    final settings = await getUserSettings();
+    return settings[key]?.toString();
+  }
+
+  /// Gets the stats sample size setting.
+  /// Consider using [getUserSettings()] if you need multiple values
+  /// to avoid redundant API calls.
+  Future<int> getStatsSampleSize() async {
+    final settings = await getUserSettings();
+    return int.tryParse(settings['stats_calc_sample_size']?.toString() ?? '') ??
+        5;
   }
 
   Future<void> setUserSetting(String key, String value) async {
     await _apiService.setUserSetting(key, value);
-  }
-
-  Future<String?> getUserSetting(String key) async {
-    try {
-      final html = await getSettingsPageHtml();
-      final match = RegExp(
-        r'LUTE_USER_SETTINGS\s*=\s*(\{.*?)(?=\n\s*const LUTE_USER_HOTKEYS)',
-        dotAll: true,
-      ).firstMatch(html);
-      if (match != null && match.groupCount >= 1) {
-        final jsonStr = match.group(1)!;
-        final Map<String, dynamic> settings = jsonDecode(jsonStr);
-        return settings[key]?.toString();
-      }
-    } catch (e) {
-      print('Error parsing user setting: $e');
-    }
-    return null;
   }
 
   Future<LanguageSentenceSettings> getLanguageSentenceSettings(
@@ -519,7 +705,7 @@ class ContentService {
       }
       return 1; // Default to page 1 if parsing fails
     } catch (e) {
-      print('Error getting current page for book $bookId: $e');
+      ApiLogger.logError('getCurrentPageForBook', e, details: 'bookId=$bookId');
       return 1; // Default to page 1 on error
     }
   }
@@ -565,9 +751,9 @@ class ContentService {
         }
       }
 
-      print('Term cache warmed with $start terms');
+      ApiLogger.logCache('TermCacheWarmed', details: '$start terms');
     } catch (e) {
-      print('Error warming term cache: $e');
+      ApiLogger.logError('warmTermCache', e);
     }
   }
 
@@ -576,7 +762,7 @@ class ContentService {
       await _termCacheService.initialize();
       return await _termCacheService.getAllTerms();
     } catch (e) {
-      print('Error getting cached terms: $e');
+      ApiLogger.logError('getCachedTerms', e);
       return [];
     }
   }
@@ -586,7 +772,7 @@ class ContentService {
       await _termCacheService.initialize();
       return await _termCacheService.searchTerms(query);
     } catch (e) {
-      print('Error searching cached terms: $e');
+      ApiLogger.logError('searchCachedTerms', e, details: 'query=$query');
       return [];
     }
   }
@@ -596,7 +782,7 @@ class ContentService {
       await _termCacheService.initialize();
       return await _termCacheService.getTerm(termId);
     } catch (e) {
-      print('Error getting cached term: $e');
+      ApiLogger.logError('getCachedTerm', e, details: 'termId=$termId');
       return null;
     }
   }
@@ -610,22 +796,6 @@ class ContentService {
     int pageNum,
     PageData pageData,
   ) async {
-    try {
-      final metadataHtml = await _apiService.getBookPageStructure(bookId);
-      final pageTextHtml = await _apiService.loadBookPageForReading(
-        bookId,
-        pageNum,
-      );
-
-      await _pageCacheService.saveToCache(
-        _apiService.baseUrl,
-        bookId,
-        pageNum,
-        metadataHtml.data ?? '',
-        pageTextHtml.data ?? '',
-      );
-    } catch (e) {
-      print('Error saving page to cache: $e');
-    }
+    ApiLogger.logState('savePageToCache', details: 'deprecated method called');
   }
 }

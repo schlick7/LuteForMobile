@@ -47,7 +47,6 @@ class TermFormWidget extends ConsumerStatefulWidget {
 
 class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   late TextEditingController _translationController;
-  late TextEditingController _tagsController;
   late TextEditingController _romanizationController;
   late String _selectedStatus;
   late DictionaryService _dictionaryService;
@@ -64,9 +63,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     );
     _romanizationController = TextEditingController(
       text: widget.termForm.romanization ?? '',
-    );
-    _tagsController = TextEditingController(
-      text: widget.termForm.tags?.join(', ') ?? '',
     );
     _selectedStatus = widget.termForm.status;
     _loadDictionaries();
@@ -95,12 +91,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         _romanizationController.text != (widget.termForm.romanization ?? '')) {
       _romanizationController.text = widget.termForm.romanization ?? '';
     }
-    if (oldWidget.termForm.tags != widget.termForm.tags) {
-      final newTagsText = widget.termForm.tags?.join(', ') ?? '';
-      if (_tagsController.text != newTagsText) {
-        _tagsController.text = newTagsText;
-      }
-    }
     if (oldWidget.termForm.status != widget.termForm.status) {
       _selectedStatus = widget.termForm.status;
     }
@@ -112,7 +102,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   @override
   void dispose() {
     _translationController.dispose();
-    _tagsController.dispose();
     _romanizationController.dispose();
     super.dispose();
   }
@@ -121,12 +110,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     final updatedForm = widget.termForm.copyWith(
       translation: _translationController.text.trim(),
       status: _selectedStatus,
-      tags: _tagsController.text
-          .trim()
-          .split(',')
-          .map((tag) => tag.trim())
-          .where((tag) => tag.isNotEmpty)
-          .toList(),
       romanization: _romanizationController.text.trim(),
       parents: widget.termForm.parents,
     );
@@ -140,12 +123,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     final updatedForm = widget.termForm.copyWith(
       translation: _translationController.text.trim(),
       status: newStatus,
-      tags: _tagsController.text
-          .trim()
-          .split(',')
-          .map((tag) => tag.trim())
-          .where((tag) => tag.isNotEmpty)
-          .toList(),
       romanization: _romanizationController.text.trim(),
       parents: widget.termForm.parents,
     );
@@ -299,7 +276,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                     ],
                     if (settings.showTags) ...[
                       const SizedBox(height: 12),
-                      _buildTagsField(context),
+                      _buildTagsSection(context),
                     ],
                     const SizedBox(height: 12),
                     _buildParentsSection(context),
@@ -362,6 +339,14 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               ],
             ),
             actions: [
+              TextButton(
+                onPressed: () {
+                  termEditController.text = termEditController.text
+                      .toLowerCase();
+                  setDialogState(() {});
+                },
+                child: const Icon(Icons.format_size),
+              ),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
                 child: const Text('Cancel'),
@@ -698,24 +683,135 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     );
   }
 
-  Widget _buildTagsField(BuildContext context) {
-    return TextFormField(
-      controller: _tagsController,
-      decoration: InputDecoration(
-        labelText: 'Tags',
-        labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: context.customColors.accentLabelColor,
-          fontWeight: FontWeight.w600,
+  Widget _buildTagsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Tags',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: context.customColors.accentLabelColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => _showAddTagDialog(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Add Tag'),
+            ),
+          ],
         ),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        hintText: 'Enter tags separated by commas',
-        hintStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
-      onChanged: (_) => _updateForm(),
+        const SizedBox(height: 4),
+        if (widget.termForm.tags != null && widget.termForm.tags!.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: widget.termForm.tags!.map((tag) {
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: _buildTagChip(context, tag),
+                );
+              }).toList(),
+            ),
+          ),
+      ],
     );
+  }
+
+  Widget _buildTagChip(BuildContext context, String tag) {
+    return GestureDetector(
+      onLongPress: () => _showDeleteTagConfirmation(context, tag),
+      child: Chip(
+        label: Text(tag),
+        deleteIcon: const Icon(Icons.close, size: 18),
+        onDeleted: null,
+      ),
+    );
+  }
+
+  void _showAddTagDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Add Tag'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Enter tag name'),
+          onSubmitted: (value) {
+            if (value.trim().isNotEmpty) {
+              _addTag(value.trim());
+              Navigator.of(context).pop();
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (controller.text.trim().isNotEmpty) {
+                _addTag(controller.text.trim());
+                Navigator.of(context).pop();
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addTag(String tag) {
+    if (widget.termForm.tags == null) {
+      final updatedForm = widget.termForm.copyWith(tags: [tag]);
+      widget.onUpdate(updatedForm);
+    } else {
+      if (!widget.termForm.tags!.contains(tag)) {
+        final updatedForm = widget.termForm.copyWith(
+          tags: [...widget.termForm.tags!, tag],
+        );
+        widget.onUpdate(updatedForm);
+      }
+    }
+  }
+
+  void _showDeleteTagConfirmation(BuildContext context, String tag) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remove Tag'),
+        content: Text('Remove tag "$tag"?'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _removeTag(tag);
+              Navigator.of(context).pop();
+            },
+            child: const Text('Remove'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _removeTag(String tag) {
+    if (widget.termForm.tags != null) {
+      final updatedForm = widget.termForm.copyWith(
+        tags: widget.termForm.tags!.where((t) => t != tag).toList(),
+      );
+      widget.onUpdate(updatedForm);
+    }
   }
 
   Widget _buildParentsSection(BuildContext context) {

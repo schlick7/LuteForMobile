@@ -7,6 +7,7 @@ class AISettingsNotifier extends Notifier<AISettings> {
   static const String _providerKey = 'ai_provider';
   static const String _openaiConfigKey = 'openai_config';
   static const String _localOpenaiConfigKey = 'local_openai_config';
+  static const String _geminiConfigKey = 'gemini_config';
   static const String _promptConfigsKey = 'ai_prompt_configs';
   bool _isInitialized = false;
 
@@ -28,6 +29,7 @@ class AISettingsNotifier extends Notifier<AISettings> {
           endpointUrl: '',
           model: 'gpt-4o',
         ),
+        AIProvider.gemini: const AISettingsConfig(model: 'gemini-1.5-flash'),
         AIProvider.none: const AISettingsConfig(),
       },
       promptConfigs: {
@@ -64,6 +66,7 @@ class AISettingsNotifier extends Notifier<AISettings> {
 
     final openaiConfig = await _loadConfig(prefs, _openaiConfigKey);
     final localOpenaiConfig = await _loadConfig(prefs, _localOpenaiConfigKey);
+    final geminiConfig = await _loadConfig(prefs, _geminiConfigKey);
     final promptConfigs = await _loadPromptConfigs(prefs);
 
     final loadedSettings = AISettings(
@@ -73,6 +76,8 @@ class AISettingsNotifier extends Notifier<AISettings> {
             openaiConfig ?? state.providerConfigs[AIProvider.openAI]!,
         AIProvider.localOpenAI:
             localOpenaiConfig ?? state.providerConfigs[AIProvider.localOpenAI]!,
+        AIProvider.gemini:
+            geminiConfig ?? state.providerConfigs[AIProvider.gemini]!,
         AIProvider.none: state.providerConfigs[AIProvider.none]!,
       },
       promptConfigs: promptConfigs ?? state.promptConfigs,
@@ -148,6 +153,12 @@ class AISettingsNotifier extends Notifier<AISettings> {
     final prefs = await SharedPreferences.getInstance();
     await _saveConfig(prefs, _localOpenaiConfigKey, config);
     state = state.updateProviderConfig(AIProvider.localOpenAI, config);
+  }
+
+  Future<void> updateGeminiConfig(AISettingsConfig config) async {
+    final prefs = await SharedPreferences.getInstance();
+    await _saveConfig(prefs, _geminiConfigKey, config);
+    state = state.updateProviderConfig(AIProvider.gemini, config);
   }
 
   Future<void> updatePromptConfig(

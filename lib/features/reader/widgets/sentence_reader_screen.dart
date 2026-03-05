@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
@@ -18,9 +20,8 @@ import '../widgets/sentence_ai_translation_button.dart';
 import '../widgets/sentence_ai_translation_widget.dart';
 import '../utils/sentence_parser.dart';
 import '../../../core/network/dictionary_service.dart';
+import '../../../shared/providers/network_providers.dart';
 import '../../../features/settings/providers/settings_provider.dart';
-import '../../../features/settings/providers/ai_settings_provider.dart';
-import '../../../features/settings/models/ai_settings.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
@@ -162,49 +163,27 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _isLastPageMarkedDone = false;
   SentenceTTSNotifier? _ttsNotifier;
   bool _isNavigatingForward = true;
-  Key? _sentenceKey;
-  bool _isNavigating = false;
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
+  bool _checkServerPageInProgress = false;
+  int _splitRatio = DictionaryService.defaultSplitRatio;
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    _lastLifecycleState = state;
-
-    if (state == AppLifecycleState.resumed) {
-      // App has resumed from background/sleep
-      // Check if the server's current page matches the reader's page
-      _checkServerPage();
-    }
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    Future.delayed(Duration.zero, _loadLanguageMapping);
+    Future.delayed(Duration.zero, _loadStatsIfNeeded);
+    Future.delayed(Duration.zero, _loadSplitRatio);
   }
 
-  /// Checks if the server's current page matches the reader's page
-  /// If they don't match, navigate to the server's page
-  Future<void> _checkServerPage() async {
-    final pageData = ref.read(readerProvider).pageData;
-    if (pageData != null) {
-      try {
-        final serverPage = await ref
-            .read(readerProvider.notifier)
-            .getCurrentPageForBook(pageData.bookId);
-
-        // If we got a valid page number from server and it's different from current page
-        if (serverPage != -1 && serverPage != pageData.currentPage) {
-          // Navigate to the server's page
-          ref
-              .read(readerProvider.notifier)
-              .loadPage(
-                bookId: pageData.bookId,
-                pageNum: serverPage,
-                showFullPageError:
-                    false, // Don't show full page error for navigation
-              );
-        }
-      } catch (e) {
-        print('Error checking server page: $e');
-        // Don't show error, just continue with current page
-      }
+  Future<void> _loadSplitRatio() async {
+    final dictionaryService = ref.read(dictionaryServiceProvider);
+    final ratio = await dictionaryService.getSentenceReaderSplitRatio();
+    if (mounted) {
+      setState(() {
+        _splitRatio = ratio;
+      });
     }
   }
 
@@ -215,10 +194,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     super.dispose();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    _loadLanguageMapping();
+  void _loadStatsIfNeeded() {
+    final statsState = ref.read(statsProvider);
+    if (statsState.value == null && !statsState.isLoading) {
+      ref.read(statsProvider.notifier).loadStats();
+    }
   }
 
   Future<void> _loadLanguageMapping() async {
@@ -229,12 +209,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         _languageIdToName = {for (var lang in languages) lang.id: lang.name};
       });
     } catch (e) {
-      print('DEBUG: Failed to load language mapping: $e');
+      // Failed to load language mapping
     }
-  }
-
-  void _setupAppLifecycleListener() {
-    WidgetsBinding.instance.addObserver(this);
   }
 
   bool _canPreload() {
@@ -251,20 +227,62 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   @override
-  Widget build(BuildContext context) {
-    _mainBuildCount++;
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    _lastLifecycleState = state;
 
+    if (state == AppLifecycleState.resumed) {
+      if (!_checkServerPageInProgress) {
+        _checkServerPage();
+      }
+    }
+  }
+
+  Future<void> _checkServerPage() async {
+    if (_checkServerPageInProgress) {
+      return;
+    }
+    _checkServerPageInProgress = true;
+
+    final pageData = ref.read(readerProvider).pageData;
+    if (pageData != null) {
+      try {
+        final serverPage = await ref
+            .read(readerProvider.notifier)
+            .getCurrentPageForBook(pageData.bookId);
+
+        if (serverPage != -1 && serverPage != pageData.currentPage) {
+          ref
+              .read(readerProvider.notifier)
+              .loadPage(
+                bookId: pageData.bookId,
+                pageNum: serverPage,
+                showFullPageError: false,
+              );
+        }
+      } catch (e) {
+        print('Error checking server page: $e');
+      }
+    }
+
+    _checkServerPageInProgress = false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final currentScreenRoute = ref.watch(currentScreenRouteProvider);
     final isVisible = currentScreenRoute == 'sentence-reader';
 
-    print(
-      'DEBUG: SentenceReaderScreen build #$_mainBuildCount, isVisible=$isVisible, _hasInitialized=$_hasInitialized',
-    );
-
-    final statsState = ref.watch(statsProvider);
-    if (statsState.value == null) {
-      ref.read(statsProvider.notifier).loadStats();
+    if (!isVisible) {
+      return const SizedBox.shrink();
     }
+
+    _mainBuildCount++;
+    WidgetLogger.logRebuild(
+      'SentenceReaderScreen',
+      _mainBuildCount,
+      'isVisible=$isVisible',
+    );
 
     final pageTitle = ref.watch(
       readerProvider.select((state) => state.pageData?.title),
@@ -276,7 +294,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     if (currentSentence != null && _currentSentenceId != currentSentence.id) {
       setState(() {
         _currentSentenceId = currentSentence.id;
-        _sentenceKey = ValueKey('sentence-$currentSentence.id');
       });
     }
 
@@ -286,9 +303,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
       if (_lastInitializedBookId != bookId ||
           _lastInitializedPageNum != pageNum) {
-        print(
-          'DEBUG: Page changed from bookId=$_lastInitializedBookId, pageNum=$_lastInitializedPageNum to bookId=$bookId, pageNum=$pageNum - forcing reinitialization',
-        );
+        // Page changed - forcing reinitialization
         _hasInitialized = false;
         _lastInitializedBookId = bookId;
         _lastInitializedPageNum = pageNum;
@@ -297,36 +312,24 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
       if (!_hasInitialized) {
         final langId = _getLangId(readerState);
-        print(
-          'DEBUG: SentenceReaderScreen: Initializing sentence parsing for bookId=$bookId, pageNum=$pageNum, langId=$langId',
-        );
 
         if (_lastTooltipsBookId != bookId) {
           _termTooltips.clear();
           _lastTooltipsBookId = bookId;
         }
 
-        if (_isParsing) {
-          print('DEBUG: Already parsing, skipping duplicate call');
-        } else {
+        if (!_isParsing) {
           final sentenceReader = ref.read(sentenceReaderProvider);
-          final reader = ref.read(readerProvider);
 
           if (sentenceReader.lastParsedBookId == bookId &&
               sentenceReader.lastParsedPageNum == pageNum &&
               sentenceReader.customSentences.isNotEmpty) {
-            print(
-              'DEBUG: Sentences already loaded for this page, skipping initialization',
-            );
             ref.read(sentenceReaderProvider.notifier).syncStatusFromPageData();
             _hasInitialized = true;
             _initializationFailed = false;
             ref.read(sentenceReaderProvider.notifier).loadSavedPosition();
             _loadTooltipsForCurrentSentence();
           } else {
-            print(
-              'DEBUG: reader.languageSentenceSettings=${reader.languageSentenceSettings != null}, langId=$langId',
-            );
             _isParsing = true;
             Future(() {
               ref
@@ -336,21 +339,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                     if (mounted) {
                       _isParsing = false;
                       final sentenceReader = ref.read(sentenceReaderProvider);
-                      print(
-                        'DEBUG: Sentences loaded: ${sentenceReader.customSentences.length}',
-                      );
+
                       if (sentenceReader.customSentences.isNotEmpty) {
                         _hasInitialized = true;
                         _initializationFailed = false;
-                        print(
-                          'DEBUG: Initialization successful, _hasInitialized=$_hasInitialized',
-                        );
                       } else {
                         _hasInitialized = false;
                         _initializationFailed = true;
-                        print(
-                          'DEBUG: Initialization failed - no sentences loaded',
-                        );
                       }
                       ref
                           .read(sentenceReaderProvider.notifier)
@@ -359,8 +354,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                     }
                   })
                   .catchError((e, stackTrace) {
-                    print('DEBUG: Error during parsing: $e');
-                    print('DEBUG: Stack trace: $stackTrace');
                     if (mounted) {
                       _isParsing = false;
                       _hasInitialized = false;
@@ -374,12 +367,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     }
 
     if (isVisible && _hasInitialized && !_settingsListenerSetup) {
-      print('DEBUG: About to setup settings listener');
       _setupSettingsListener();
     }
 
     if (isVisible && _initializationFailed && !_isParsing) {
-      print('DEBUG: Retrying failed initialization...');
       _hasInitialized = false;
       _initializationFailed = false;
     }
@@ -388,9 +379,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         _hasInitialized &&
         currentSentence != null &&
         currentSentence.id != _currentSentenceId) {
-      print(
-        'DEBUG: Build method detected sentence change: $_currentSentenceId -> ${currentSentence.id}',
-      );
       _currentSentenceId = currentSentence.id;
       _loadTooltipsForCurrentSentence();
     }
@@ -497,19 +485,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
     return Scaffold(
       appBar: AppBar(
-        leading: Builder(
-          builder: (context) => IconButton(
-            icon: const Icon(Icons.menu),
-            onPressed: () {
-              if (widget.scaffoldKey != null &&
-                  widget.scaffoldKey!.currentState != null) {
-                widget.scaffoldKey!.currentState!.openDrawer();
-              } else {
-                Scaffold.of(context).openDrawer();
-              }
-            },
-          ),
-        ),
+        leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
         title: Text(pageTitle ?? 'Sentence Reader'),
         actions: [
           IconButton(
@@ -527,11 +503,15 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                 key: ValueKey('column-${currentSentence?.id ?? "null"}'),
                 children: [
                   Expanded(
-                    flex: 3,
-                    child: _buildTopSection(textSettings, currentSentence),
+                    flex: 10 - _splitRatio,
+                    child: _buildTopSection(
+                      textSettings,
+                      settings,
+                      currentSentence,
+                    ),
                   ),
                   Expanded(
-                    flex: 7,
+                    flex: _splitRatio,
                     child: _buildBottomSection(currentSentence),
                   ),
                 ],
@@ -541,10 +521,17 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
               key: ValueKey('column-${currentSentence?.id ?? "null"}'),
               children: [
                 Expanded(
-                  flex: 3,
-                  child: _buildTopSection(textSettings, currentSentence),
+                  flex: 10 - _splitRatio,
+                  child: _buildTopSection(
+                    textSettings,
+                    settings,
+                    currentSentence,
+                  ),
                 ),
-                Expanded(flex: 7, child: _buildBottomSection(currentSentence)),
+                Expanded(
+                  flex: _splitRatio,
+                  child: _buildBottomSection(currentSentence),
+                ),
               ],
             ),
       bottomNavigationBar: Column(
@@ -559,9 +546,14 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   Widget _buildTopSection(
     dynamic textSettings,
+    dynamic settings,
     CustomSentence? currentSentence,
   ) {
     _topSectionBuildCount++;
+    WidgetLogger.logRebuild(
+      'SentenceReaderScreen._buildTopSection',
+      _topSectionBuildCount,
+    );
 
     if (currentSentence == null) {
       return const Center(child: Text('No sentence available'));
@@ -614,7 +606,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           ),
           child: SentenceReaderDisplay(
             sentence: currentSentence,
-            onTap: (item, position) => _handleTap(item, position),
+            onTap: (item, context) => _handleTap(item, context),
             onDoubleTap: (item) => _handleDoubleTap(item),
             onLongPress: (item) => _handleLongPress(item),
             textSize: textSettings.textSize,
@@ -622,6 +614,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             fontFamily: textSettings.fontFamily,
             fontWeight: textSettings.fontWeight,
             isItalic: textSettings.isItalic,
+            doubleTapTimeout: settings.doubleTapTimeout,
           ),
         ),
       ),
@@ -630,6 +623,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   Widget _buildBottomSection(CustomSentence? currentSentence) {
     _bottomSectionBuildCount++;
+    WidgetLogger.logRebuild(
+      'SentenceReaderScreen._buildBottomSection',
+      _bottomSectionBuildCount,
+    );
 
     final settings = ref.watch(settingsProvider);
 
@@ -676,27 +673,31 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             child: Row(
               children: [
                 Text('Terms', style: Theme.of(context).textTheme.titleLarge),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.settings, size: 20),
+                  onPressed: () => _showSplitRatioDialog(context),
+                  tooltip: 'Adjust split ratio',
+                ),
                 const Spacer(),
                 if (currentSentence != null) ...[
                   SentenceAITranslationButton(
-                    text: currentSentence!.textItems
+                    text: currentSentence.textItems
                         .map((item) => item.text)
                         .join(),
-                    sentenceId: currentSentence!.id,
-                    languageId: currentSentence!.textItems.first.langId ?? 0,
+                    sentenceId: currentSentence.id,
+                    languageId: currentSentence.textItems.first.langId ?? 0,
                     language: 'English',
                     onTranslationRequested: () => _showAITranslation(
-                      currentSentence!.textItems
-                          .map((item) => item.text)
-                          .join(),
-                      currentSentence!.textItems.first.langId ?? 0,
+                      currentSentence.textItems.map((item) => item.text).join(),
+                      currentSentence.textItems.first.langId ?? 0,
                     ),
                   ),
                   SentenceTTSButton(
-                    text: currentSentence!.textItems
+                    text: currentSentence.textItems
                         .map((item) => item.text)
                         .join(),
-                    sentenceId: currentSentence!.id,
+                    sentenceId: currentSentence.id,
                   ),
                 ],
               ],
@@ -706,7 +707,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             child: TermListDisplay(
               sentence: currentSentence,
               tooltips: _termTooltips,
-              onTermTap: (item, position) => _handleTap(item, position),
+              onTermTap: (item, context) => _handleTap(item, context),
               onTermDoubleTap: (item) => _handleDoubleTap(item),
               showKnownTerms: settings.showKnownTermsInSentenceReader,
             ),
@@ -783,15 +784,18 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       langId = currentSentence.textItems.first.langId;
     }
 
-    final languageName = langId != null && langId != 0
+    final languageName = langId != null
         ? (_languageIdToName[langId] ?? '')
         : '';
-
-    if (langId != null && langId != 0 && langId != _lastStatsLangId) {
+    if (languageName.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    if (langId != null && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
       Future.microtask(() {
-        if (mounted) {
-          ref.read(termsProvider.notifier).loadStats(langId!);
+        final settings = ref.read(settingsProvider);
+        if (mounted && settings.showStatsBar && settings.showKnownTermsCount) {
+          ref.read(termsProvider.notifier).loadStatus99Only(langId!);
         }
       });
     }
@@ -829,6 +833,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         }
 
         final theme = Theme.of(context);
+        final showKnownTermsCount = ref
+            .read(settingsProvider)
+            .showKnownTermsCount;
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -843,7 +850,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                 style: theme.textTheme.bodySmall,
               ),
               const Spacer(),
-              Text("Known: $status99Count", style: theme.textTheme.bodySmall),
+              if (showKnownTermsCount)
+                Text("Known: $status99Count", style: theme.textTheme.bodySmall),
             ],
           ),
         );
@@ -859,7 +867,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       settingsProvider.select((s) => s.showKnownTermsInSentenceReader),
       (previous, next) {
         if (previous != next) {
-          print('DEBUG: Show known terms toggle changed: $previous -> $next');
           _loadTooltipsForCurrentSentence();
         }
       },
@@ -880,11 +887,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       showKnownTerms: settings.showKnownTermsInSentenceReader,
     );
 
-    print('DEBUG: Loading tooltips for sentence ID: ${currentSentence.id}');
-    print(
-      'DEBUG: Terms needing tooltips: ${termsNeedingTooltips.length} (out of ${currentSentence.uniqueTerms.length} total)',
-    );
-
     _tooltipsLoadInProgress = true;
 
     try {
@@ -896,17 +898,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           .toList();
 
       if (termsToFetch.isEmpty) {
-        print('DEBUG: All tooltips already cached');
         _tooltipsLoadInProgress = false;
         if (_canPreload()) {
           _preloadNextSentence();
         }
         return;
       }
-
-      print(
-        'DEBUG: Concurrently fetching ${termsToFetch.length} tooltips for sentence ID: ${currentSentence.id}',
-      );
 
       final futures = termsToFetch.map((term) async {
         if (term.wordId == null) return null;
@@ -916,7 +913,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
               .fetchTermTooltip(term.wordId!);
           return termTooltip;
         } catch (e) {
-          print('DEBUG: Failed to fetch tooltip for wordId=${term.wordId}: $e');
           return null;
         }
       }).toList();
@@ -928,7 +924,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         final tooltip = results[i];
         final wordId = termsToFetch[i].wordId;
         if (tooltip != null && wordId != null && tooltip.hasData) {
-          newTooltips[wordId!] = tooltip;
+          newTooltips[wordId] = tooltip;
         }
       }
 
@@ -985,7 +981,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   Future<void> _preloadNextSentence() async {
     if (_preloadInProgress) {
-      print('DEBUG: Preload already in progress, skipping');
       return;
     }
 
@@ -994,13 +989,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final settings = ref.read(settingsProvider);
 
     if (!sentenceReaderNotifier.canGoNext) {
-      print('DEBUG: No next sentence to preload');
       return;
     }
 
     final nextIndex = sentenceReaderState.currentSentenceIndex + 1;
     if (nextIndex >= sentenceReaderState.customSentences.length) {
-      print('DEBUG: Next index out of bounds');
       return;
     }
 
@@ -1030,25 +1023,20 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         .toList();
 
     if (termsToFetch.isEmpty) {
-      print('DEBUG: All next sentence tooltips already cached');
       return;
     }
 
     if (!_canPreload()) {
-      print('DEBUG: Stopping preload - not visible');
       return;
     }
 
     _preloadInProgress = true;
 
     try {
-      print('DEBUG: Concurrently preloading ${termsToFetch.length} tooltips');
-
       final futures = termsToFetch.map((term) async {
         if (term.wordId == null) return null;
         try {
           if (!_canPreload()) {
-            print('DEBUG: Canceling preload - not visible');
             return null;
           }
           final termTooltip = await ref
@@ -1070,7 +1058,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         final tooltip = results[i];
         final wordId = termsToFetch[i].wordId;
         if (tooltip != null && wordId != null && tooltip.hasData) {
-          newTooltips[wordId!] = tooltip;
+          newTooltips[wordId] = tooltip;
         }
       }
 
@@ -1083,8 +1071,6 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           _termTooltips.addAll(newTooltips);
         });
       }
-
-      print('DEBUG: Finished preloading next sentence');
     } finally {
       _preloadInProgress = false;
     }
@@ -1163,10 +1149,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   Future<void> _goNext() async {
-    print('DEBUG: _goNext called');
     setState(() {
       _isNavigatingForward = true;
-      _isNavigating = true;
     });
     await ref.read(sentenceReaderProvider.notifier).nextSentence();
     _saveSentencePosition();
@@ -1185,45 +1169,25 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       });
     }
 
-    if (currentSentence != null) {
-      final newKey = ValueKey('sentence-${currentSentence.id}');
-      print('DEBUG: Updating _sentenceKey from $_sentenceKey to $newKey');
-      setState(() {
-        _sentenceKey = newKey;
-      });
-    }
+    if (currentSentence != null) {}
 
     await Future.delayed(const Duration(milliseconds: 350));
-    setState(() {
-      _isNavigating = false;
-    });
 
     _loadTooltipsForCurrentSentence();
     ref.read(statsProvider.notifier).loadStats();
   }
 
   Future<void> _goPrevious() async {
-    print('DEBUG: _goPrevious called');
     setState(() {
       _isNavigatingForward = false;
-      _isNavigating = true;
     });
     await ref.read(sentenceReaderProvider.notifier).previousSentence();
     _saveSentencePosition();
 
     final currentSentence = ref.read(sentenceReaderProvider).currentSentence;
-    if (currentSentence != null) {
-      final newKey = ValueKey('sentence-${currentSentence.id}');
-      print('DEBUG: Updating _sentenceKey from $_sentenceKey to $newKey');
-      setState(() {
-        _sentenceKey = newKey;
-      });
-    }
+    if (currentSentence != null) {}
 
     await Future.delayed(const Duration(milliseconds: 350));
-    setState(() {
-      _isNavigating = false;
-    });
 
     _loadTooltipsForCurrentSentence();
     ref.read(statsProvider.notifier).loadStats();
@@ -1270,18 +1234,21 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     }
   }
 
-  void _handleTap(TextItem item, Offset position) async {
+  void _handleTap(TextItem item, BuildContext context) async {
     if (item.isSpace) return;
     TermTooltipClass.close();
 
     try {
       if (item.wordId == null) return;
 
+      final renderBox = context.findRenderObject() as RenderBox;
+      final termRect = renderBox.localToGlobal(Offset.zero) & renderBox.size;
+
       final termTooltip = await ref
           .read(readerProvider.notifier)
           .fetchTermTooltip(item.wordId!);
       if (termTooltip != null && termTooltip.hasData && mounted) {
-        TermTooltipClass.show(context, termTooltip, position);
+        TermTooltipClass.show(context, termTooltip, termRect);
       }
     } catch (e) {
       return;
@@ -1289,6 +1256,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   }
 
   void _handleDoubleTap(TextItem item) async {
+    TermTooltipClass.close();
+
     if (item.wordId == null) return;
     if (item.langId == null) return;
 
@@ -1459,7 +1428,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                       }
                     },
                     onStatus99Changed: (langId) async {
-                      await ref.read(termsProvider.notifier).loadStats(langId);
+                      if (ref.read(settingsProvider).showStatsBar) {
+                        await ref
+                            .read(termsProvider.notifier)
+                            .loadStats(langId);
+                      }
                     },
                   ),
                 );
@@ -1620,7 +1593,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                       }
                     },
                     onStatus99Changed: (langId) async {
-                      await ref.read(termsProvider.notifier).loadStats(langId);
+                      if (ref.read(settingsProvider).showStatsBar) {
+                        await ref
+                            .read(termsProvider.notifier)
+                            .loadStats(langId);
+                      }
                     },
                   ),
                 );
@@ -1693,30 +1670,18 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final bookId = reader.pageData!.bookId;
     final pageNum = reader.pageData!.currentPage;
     final langId = _getLangId(reader);
-    final serverUrl = ref.read(settingsProvider).serverUrl;
 
-    print(
-      'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Clearing cache for bookId=$bookId',
-    );
-    await ref
-        .read(sentenceCacheServiceProvider)
-        .clearBookCache(serverUrl, bookId);
+    await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
 
     _termTooltips.clear();
     _lastTooltipsBookId = null;
 
-    print(
-      'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Reloading page bookId=$bookId, pageNum=$pageNum',
-    );
     await ref
         .read(readerProvider.notifier)
         .loadPage(bookId: bookId, pageNum: pageNum, updateReaderState: true);
 
     final freshReader = ref.read(readerProvider);
     if (freshReader.pageData != null) {
-      print(
-        'DEBUG SentenceReaderScreen.flushCacheAndRebuild: Parsing sentences for langId=$langId',
-      );
       await ref
           .read(sentenceReaderProvider.notifier)
           .parseSentencesForPage(langId, initialIndex: 0);
@@ -1725,5 +1690,85 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       _currentSentenceId = null;
       _loadTooltipsForCurrentSentence();
     }
+  }
+
+  void _showSplitRatioDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => _SplitRatioDialog(
+        currentRatio: _splitRatio,
+        onRatioChanged: (newRatio) async {
+          final dictionaryService = ref.read(dictionaryServiceProvider);
+          await dictionaryService.setSentenceReaderSplitRatio(newRatio);
+          if (mounted) {
+            setState(() {
+              _splitRatio = newRatio;
+            });
+          }
+        },
+      ),
+    );
+  }
+}
+
+class _SplitRatioDialog extends StatefulWidget {
+  final int currentRatio;
+  final Future<void> Function(int) onRatioChanged;
+
+  const _SplitRatioDialog({
+    required this.currentRatio,
+    required this.onRatioChanged,
+  });
+
+  @override
+  State<_SplitRatioDialog> createState() => _SplitRatioDialogState();
+}
+
+class _SplitRatioDialogState extends State<_SplitRatioDialog> {
+  late double _ratio;
+
+  @override
+  void initState() {
+    super.initState();
+    _ratio = widget.currentRatio.toDouble();
+  }
+
+  int get _topFlex => (10 - _ratio).round();
+  int get _bottomFlex => _ratio.round();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Adjust Split Ratio'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Top: $_topFlex / Bottom: $_bottomFlex'),
+          Slider(
+            value: _ratio,
+            min: DictionaryService.minSplitRatio.toDouble(),
+            max: DictionaryService.maxSplitRatio.toDouble(),
+            divisions:
+                DictionaryService.maxSplitRatio -
+                DictionaryService.minSplitRatio,
+            label: '$_topFlex / $_bottomFlex',
+            onChanged: (value) {
+              setState(() {
+                _ratio = value;
+              });
+            },
+            onChangeEnd: (value) {
+              widget.onRatioChanged(value.round());
+            },
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Done'),
+        ),
+      ],
+    );
   }
 }

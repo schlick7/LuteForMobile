@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:hive_ce/hive.dart';
+import 'package:hive_ce_flutter/hive_ce_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/page_cache_entry.dart';
+import '../../../core/cache/cache_logger.dart';
 
 class PageCacheService {
   static const String _boxName = 'page_cache';
@@ -8,18 +11,22 @@ class PageCacheService {
   static const int _maxCacheSizeBytes = 100 * 1024 * 1024;
   static const String _cachePrefix = 'page_cache_';
 
-  Box<PageCacheEntry>? _box;
   bool _isInitialized = false;
+
+  PageCacheService();
 
   Future<void> _initialize() async {
     if (_isInitialized) return;
 
     try {
-      Hive.registerAdapter(PageCacheEntryAdapter());
+      final cacheDir = await getApplicationCacheDirectory();
+      await Hive.initFlutter(cacheDir.path);
+
       await Hive.openBox<PageCacheEntry>(_boxName);
       _isInitialized = true;
+      CacheLogger.log('initialized');
     } catch (e) {
-      print('Error initializing page cache: $e');
+      CacheLogger.logError('initialize', e);
       _isInitialized = true;
     }
   }
@@ -29,39 +36,45 @@ class PageCacheService {
     return Hive.openBox<PageCacheEntry>(_boxName);
   }
 
-  String _getCacheKey(String serverUrl, int bookId, int pageNum) {
-    return '$_cachePrefix${serverUrl.hashCode}_${bookId}_$pageNum';
+  String _getCacheKey(int bookId, int pageNum) {
+    return '$_cachePrefix${bookId}_$pageNum';
   }
 
-  Future<PageCacheEntry?> getFromCache(
-    String serverUrl,
-    int bookId,
-    int pageNum,
-  ) async {
+  Future<PageCacheEntry?> getFromCache(int bookId, int pageNum) async {
     try {
       final box = await _getBox();
-      final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
+      final cacheKey = _getCacheKey(bookId, pageNum);
       final entry = box.get(cacheKey);
 
-      if (entry == null) return null;
+      if (entry == null) {
+        CacheLogger.logMiss(_boxName, cacheKey.hashCode);
+        return null;
+      }
 
       final now = DateTime.now().millisecondsSinceEpoch;
       final age = now - entry.timestamp;
 
       if (age > _ttl.inMilliseconds) {
         await box.delete(cacheKey);
+        CacheLogger.logMiss(_boxName, cacheKey.hashCode);
         return null;
       }
 
+      CacheLogger.logHit(_boxName, cacheKey.hashCode);
       return entry;
     } catch (e) {
-      print('Error getting from page cache: $e');
+      CacheLogger.logError('getFromCache', e);
       return null;
     }
   }
 
+  /// Gets just the metadata HTML from cache (without full entry)
+  Future<String?> getMetadataFromCache(int bookId, int pageNum) async {
+    final entry = await getFromCache(bookId, pageNum);
+    return entry?.metadataHtml;
+  }
+
   Future<void> saveToCache(
-    String serverUrl,
     int bookId,
     int pageNum,
     String metadataHtml,
@@ -69,7 +82,7 @@ class PageCacheService {
   ) async {
     try {
       final box = await _getBox();
-      final cacheKey = _getCacheKey(serverUrl, bookId, pageNum);
+      final cacheKey = _getCacheKey(bookId, pageNum);
 
       final metadataBytes = utf8.encode(metadataHtml).length;
       final pageTextBytes = utf8.encode(pageTextHtml).length;
@@ -84,27 +97,32 @@ class PageCacheService {
 
       await _enforceSizeLimit(box);
       await box.put(cacheKey, entry);
+      CacheLogger.logSave(_boxName, cacheKey.hashCode);
     } catch (e) {
-      print('Error saving to page cache: $e');
+      CacheLogger.logError('saveToCache', e);
     }
   }
 
-  Future<void> clearBookCache(String serverUrl, int bookId) async {
+  Future<void> clearBookCache(int bookId) async {
     try {
       final box = await _getBox();
-      final serverHash = serverUrl.hashCode;
       final keysToDelete = <String>[];
 
       for (final key in box.keys) {
         final keyStr = key as String;
-        if (keyStr.startsWith('$_cachePrefix${serverHash}_${bookId}_')) {
+        if (keyStr.startsWith('$_cachePrefix${bookId}_')) {
           keysToDelete.add(keyStr);
         }
       }
 
-      await box.deleteAll(keysToDelete);
+      if (keysToDelete.isNotEmpty) {
+        await box.deleteAll(keysToDelete);
+        CacheLogger.log(
+          'cleared ${keysToDelete.length} entries for book $bookId',
+        );
+      }
     } catch (e) {
-      print('Error clearing book page cache: $e');
+      CacheLogger.logError('clearBookCache', e);
     }
   }
 
@@ -112,8 +130,9 @@ class PageCacheService {
     try {
       final box = await _getBox();
       await box.clear();
+      CacheLogger.logClear(_boxName);
     } catch (e) {
-      print('Error clearing all page cache: $e');
+      CacheLogger.logError('clearAllCache', e);
     }
   }
 
@@ -181,7 +200,7 @@ class PageCacheService {
         entriesWithTimestamps.remove(oldestKey);
       }
     } catch (e) {
-      print('Error enforcing size limit: $e');
+      CacheLogger.logError('enforceSizeLimit', e);
     }
   }
 }

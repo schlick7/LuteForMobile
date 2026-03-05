@@ -2,13 +2,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/logger/widget_logger.dart';
+import '../../../core/logger/api_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
+import '../../../shared/widgets/app_bar_leading.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
 import '../../../features/settings/providers/settings_provider.dart';
+import '../../../features/settings/models/settings.dart';
 import '../../../features/terms/providers/terms_provider.dart';
 import '../../../features/stats/providers/stats_provider.dart';
 import '../../../features/stats/models/stats_data.dart';
+import '../../../core/services/termux_service.dart';
+import '../../../shared/providers/server_status_provider.dart';
 import '../models/text_item.dart';
 import '../models/term_form.dart';
 import '../models/page_data.dart';
@@ -136,16 +142,8 @@ class _PageTransitionState extends State<_PageTransition>
 
 class ReaderScreenState extends ConsumerState<ReaderScreen>
     with WidgetsBindingObserver {
-  double _tempTextSize = 18.0;
-  double _tempLineSpacing = 1.5;
-  String? _tempFont;
-  double _tempFontWeight = 2.0;
-  bool? _tempIsItalic;
-  TermForm? _currentTermForm;
   int _buildCount = 0;
-  bool _isDictionaryOpen = false;
-  AppLifecycleState? _lastLifecycleState;
-  bool _hasInitialized = false;
+  TermForm? _currentTermForm;
   bool _isUiVisible = true;
   bool _lastFullscreenMode = false;
   Timer? _hideUiTimer;
@@ -153,11 +151,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   int? _highlightedWordId;
   int? _highlightedParagraphId;
   int? _highlightedOrder;
-  int? _originalWordId;
   TextItem? _originalTextItem;
   ScrollController _scrollController = ScrollController();
   double _lastScrollPosition = 0.0;
-  DateTime? _lastMarkPageTime;
   bool _isLastPageMarkedDone = false;
   int? _lastAttemptedBookId;
   int? _lastAttemptedPageNum;
@@ -165,43 +161,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Key _pageKey = const ValueKey('page');
   Map<int, String> _languageIdToName = {};
   int? _lastStatsLangId;
-  final List<String> _availableFonts = [
-    'Roboto',
-    'AtkinsonHyperlegibleNext',
-    'Vollkorn',
-    'LinBiolinum',
-    'Literata',
-  ];
-  final List<FontWeight> _availableWeights = [
-    FontWeight.w200,
-    FontWeight.w300,
-    FontWeight.normal,
-    FontWeight.w500,
-    FontWeight.w600,
-    FontWeight.bold,
-    FontWeight.w800,
-  ];
-  final List<String> _weightLabels = [
-    'Extra Light',
-    'Light',
-    'Regular',
-    'Medium',
-    'Semi Bold',
-    'Bold',
-    'Extra Bold',
-  ];
-
-  FontWeight _getWeightFromIndex(double index) {
-    final idx = index.round().clamp(0, _availableWeights.length - 1);
-    return _availableWeights[idx];
-  }
-
-  String _getWeightLabel(double index) {
-    final idx = index.round().clamp(0, _weightLabels.length - 1);
-    return _weightLabels[idx];
-  }
+  bool _checkServerPageInProgress = false;
+  int? _lastAudioBookId;
 
   Future<void> _loadLanguageMapping() async {
+    if (_languageIdToName.isNotEmpty) return;
+
     final repository = ref.read(readerRepositoryProvider);
     try {
       final languages = await repository.contentService.getLanguagesWithIds();
@@ -209,7 +174,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         _languageIdToName = {for (var lang in languages) lang.id: lang.name};
       });
     } catch (e) {
-      print('DEBUG: Failed to load language mapping: $e');
+      ApiLogger.logError('loadLanguageMapping', e);
+    }
+  }
+
+  void _loadStatsIfNeeded() {
+    final statsState = ref.read(statsProvider);
+    if (statsState.value == null && !statsState.isLoading) {
+      ref.read(statsProvider.notifier).loadStats();
     }
   }
 
@@ -217,9 +189,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _hasInitialized = true;
     _scrollController.addListener(_handleScrollPosition);
-    _loadLanguageMapping();
+
+    Future.delayed(Duration.zero, _loadLanguageMapping);
+    Future.delayed(Duration.zero, _loadStatsIfNeeded);
   }
 
   @override
@@ -229,48 +202,69 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     _glowTimer?.cancel();
     _scrollController.removeListener(_handleScrollPosition);
     _scrollController.dispose();
+    ref.read(audioPlayerProvider.notifier).reset();
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    _lastLifecycleState = state;
 
     if (state == AppLifecycleState.resumed) {
-      // App has resumed from background/sleep
-      // Check if the server's current page matches the reader's page
-      _checkServerPage();
+      _checkAndStartLute3IfNeeded();
+      if (!_checkServerPageInProgress) {
+        _checkServerPage();
+      }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      ref.read(audioPlayerProvider.notifier).reset();
+    }
+  }
+
+  Future<void> _checkAndStartLute3IfNeeded() async {
+    final settings = ref.read(settingsProvider);
+    if (settings.serverUrl == Settings.termuxUrl) {
+      final isRunning = await TermuxService.isServerRunning(settings.serverUrl);
+      if (!isRunning) {
+        await TermuxService.startServer();
+      }
     }
   }
 
   /// Checks if the server's current page matches the reader's page
   /// If they don't match, navigate to the server's page
   Future<void> _checkServerPage() async {
+    if (_checkServerPageInProgress) {
+      return;
+    }
+    _checkServerPageInProgress = true;
+
     final pageData = ref.read(readerProvider).pageData;
     if (pageData != null) {
       try {
         final serverPage = await ref
             .read(readerProvider.notifier)
-            .getCurrentPageForBook(pageData.bookId);
+            .getCurrentPageForBook(pageData!.bookId);
 
         // If we got a valid page number from server and it's different from current page
-        if (serverPage != -1 && serverPage != pageData.currentPage) {
+        if (serverPage != -1 && serverPage != pageData!.currentPage) {
           // Navigate to the server's page
           ref
               .read(readerProvider.notifier)
               .loadPage(
-                bookId: pageData.bookId,
+                bookId: pageData!.bookId,
                 pageNum: serverPage,
                 showFullPageError:
                     false, // Don't show full page error for navigation
               );
         }
       } catch (e) {
-        print('Error checking server page: $e');
+        ApiLogger.logError('checkServerPage', e);
         // Don't show error, just continue with current page
       }
     }
+
+    _checkServerPageInProgress = false;
   }
 
   void _handleScrollPosition() {
@@ -328,18 +322,27 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.read(readerProvider).pageData;
     final settings = ref.read(settingsProvider);
 
-    if (pageData == null || !settings.showAudioPlayer) return;
+    if (pageData == null || !settings.showAudioPlayer) {
+      ref.read(audioPlayerProvider.notifier).reset();
+      _lastAudioBookId = null;
+      return;
+    }
+
+    if (_lastAudioBookId == pageData!.bookId) return;
+
+    _lastAudioBookId = pageData!.bookId;
+    ref.read(audioPlayerProvider.notifier).reset();
 
     if (pageData.hasAudio) {
       final audioUrl =
-          '${settings.serverUrl}/useraudio/stream/${pageData.bookId}';
+          '${settings.serverUrl}/useraudio/stream/${pageData!.bookId}';
       await ref
           .read(audioPlayerProvider.notifier)
           .loadAudio(
             audioUrl: audioUrl,
-            bookId: pageData.bookId,
-            page: pageData.currentPage,
-            bookmarks: pageData.audioBookmarks,
+            bookId: pageData!.bookId,
+            page: pageData!.currentPage,
+            bookmarks: pageData!.audioBookmarks,
             audioCurrentPos: pageData.audioCurrentPos,
           );
     }
@@ -349,17 +352,17 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.read(readerProvider).pageData;
     if (pageData != null) {
       setState(() {
-        _pageKey = ValueKey('${pageData.bookId}-${pageData.currentPage}');
+        _pageKey = ValueKey('${pageData!.bookId}-${pageData!.currentPage}');
         _isLastPageMarkedDone = false;
       });
       await ref
           .read(readerProvider.notifier)
-          .loadPage(bookId: pageData.bookId, pageNum: pageData.currentPage);
+          .loadPage(bookId: pageData!.bookId, pageNum: pageData!.currentPage);
 
       int? langId;
       for (final paragraph in pageData.paragraphs) {
         for (final item in paragraph.textItems) {
-          if (item.langId != null && item.langId != 0) {
+          if (item.langId != null) {
             langId = item.langId;
             break;
           }
@@ -368,7 +371,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       }
 
       if (langId != null) {
-        ref.read(termsProvider.notifier).loadStats(langId);
+        if (ref.read(settingsProvider).showStatsBar) {
+          ref.read(termsProvider.notifier).loadStatus99Only(langId);
+        }
       }
 
       _loadAudioIfNeeded();
@@ -376,12 +381,13 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Future<void> loadBook(int bookId, [int? pageNum]) async {
-    print('DEBUG: loadBook called with bookId=$bookId, pageNum=$pageNum');
+    ApiLogger.logLoading('loadBook', details: 'bookId=$bookId, page=$pageNum');
     setState(() {
       _pageKey = ValueKey('$bookId-${pageNum ?? 1}');
       _isLastPageMarkedDone = false;
       _lastAttemptedBookId = bookId;
       _lastAttemptedPageNum = pageNum;
+      _lastAudioBookId = null;
     });
     try {
       await ref
@@ -402,14 +408,20 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         }
 
         if (langId != null) {
-          ref.read(termsProvider.notifier).loadStats(langId);
+          if (ref.read(settingsProvider).showStatsBar) {
+            ref.read(termsProvider.notifier).loadStatus99Only(langId);
+          }
         }
       }
 
       _loadAudioIfNeeded();
+
+      // Force rebuild to ensure UI reflects loaded book content
+      if (mounted) {
+        setState(() {});
+      }
     } catch (e, stackTrace) {
-      print('ERROR: loadBook failed: $e');
-      print('Stack trace: $stackTrace');
+      ApiLogger.logError('loadBook', e, stackTrace: stackTrace);
 
       final settings = ref.read(settingsProvider);
       if (settings.currentBookId == bookId) {
@@ -420,6 +432,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
   @override
   Widget build(BuildContext context) {
+    _buildCount++;
+    WidgetLogger.logRebuild('ReaderScreen', _buildCount);
+
     final isLoading = ref.watch(readerProvider.select((s) => s.isLoading));
     final errorMessage = ref.watch(
       readerProvider.select((s) => s.errorMessage),
@@ -439,40 +454,44 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       _isUiVisible = true;
     }
 
-    final statsState = ref.watch(statsProvider);
-    if (statsState.value == null) {
-      ref.read(statsProvider.notifier).loadStats();
-    }
+    // Check if reader is the active screen
+    final isVisible = ref.watch(currentScreenRouteProvider) == 'reader';
 
-    _buildCount++;
-
-    return Scaffold(
-      appBar: _buildAppBar(context, pageData, textSettings.fullscreenMode),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              if (settings.showAudioPlayer && pageData?.hasAudio == true)
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeInOut,
-                  margin: EdgeInsets.only(
-                    top: textSettings.fullscreenMode && !_isUiVisible
-                        ? MediaQuery.of(context).padding.top + kToolbarHeight
-                        : 0,
+    return AbsorbPointer(
+      absorbing: !isVisible,
+      child: Scaffold(
+        appBar: _buildAppBar(
+          context,
+          pageData,
+          textSettings.fullscreenMode,
+          ref.watch(serverStatusProvider).isReachable,
+        ),
+        body: Stack(
+          children: [
+            Column(
+              children: [
+                if (settings.showAudioPlayer && pageData?.hasAudio == true)
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeInOut,
+                    margin: EdgeInsets.only(
+                      top: textSettings.fullscreenMode && !_isUiVisible
+                          ? MediaQuery.of(context).padding.top + kToolbarHeight
+                          : 0,
+                    ),
+                    child: AudioPlayerWidget(
+                      audioUrl:
+                          '${settings.serverUrl}/useraudio/stream/${pageData!.bookId}',
+                      bookId: pageData!.bookId,
+                      page: pageData!.currentPage,
+                      bookmarks: pageData!.audioBookmarks,
+                    ),
                   ),
-                  child: AudioPlayerWidget(
-                    audioUrl:
-                        '${settings.serverUrl}/useraudio/stream/${pageData!.bookId}',
-                    bookId: pageData!.bookId,
-                    page: pageData!.currentPage,
-                    bookmarks: pageData?.audioBookmarks,
-                  ),
-                ),
-              Expanded(child: _buildBody(isLoading, errorMessage, pageData)),
-            ],
-          ),
-        ],
+                Expanded(child: _buildBody(isLoading, errorMessage, pageData)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -481,6 +500,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     BuildContext context,
     PageData? pageData,
     bool fullscreenMode,
+    bool serverReachable,
   ) {
     final settings = ref.read(settingsProvider);
 
@@ -495,22 +515,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           curve: Curves.easeInOut,
           height: _isUiVisible ? kToolbarHeight + topPadding : 0,
           child: AppBar(
-            leading: Builder(
-              builder: (context) => IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () {
-                  if (widget.scaffoldKey != null &&
-                      widget.scaffoldKey!.currentState != null) {
-                    widget.scaffoldKey!.currentState!.openDrawer();
-                  } else {
-                    Scaffold.of(context).openDrawer();
-                  }
-                },
-              ),
-            ),
+            leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
             title: Text(pageData?.title ?? 'Reader'),
             actions: [
-              if (pageData != null && pageData!.pageCount > 1)
+              if (pageData != null && pageData.pageCount > 1)
                 Padding(
                   padding: const EdgeInsets.only(right: 16),
                   child: Row(
@@ -532,12 +540,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                             padding: const EdgeInsets.symmetric(
                               horizontal: 8.0,
                             ),
-                            child: Text(pageData!.pageIndicator),
+                            child: Text(pageData.pageIndicator),
                           ),
                         ),
                       IconButton(
                         icon: const Icon(Icons.chevron_right),
-                        onPressed: pageData!.currentPage < pageData!.pageCount
+                        onPressed: pageData!.currentPage < pageData.pageCount
                             ? () => _loadPageWithoutMarkingRead(
                                 pageData!.currentPage + 1,
                               )
@@ -554,22 +562,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     return AppBar(
-      leading: Builder(
-        builder: (context) => IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () {
-            if (widget.scaffoldKey != null &&
-                widget.scaffoldKey!.currentState != null) {
-              widget.scaffoldKey!.currentState!.openDrawer();
-            } else {
-              Scaffold.of(context).openDrawer();
-            }
-          },
-        ),
-      ),
+      leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
       title: Text(pageData?.title ?? 'Reader'),
       actions: [
-        if (pageData != null && pageData!.pageCount > 1)
+        if (pageData != null && pageData.pageCount > 1)
           Padding(
             padding: const EdgeInsets.only(right: 16),
             child: Row(
@@ -589,12 +585,12 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                     onLongPress: () => _showPageNavigationSlider(),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Text(pageData!.pageIndicator),
+                      child: Text(pageData.pageIndicator),
                     ),
                   ),
                 IconButton(
                   icon: const Icon(Icons.chevron_right),
-                  onPressed: pageData!.currentPage < pageData!.pageCount
+                  onPressed: pageData!.currentPage < pageData.pageCount
                       ? () => _loadPageWithoutMarkingRead(
                           pageData!.currentPage + 1,
                         )
@@ -615,7 +611,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     if (pageData != null) {
       for (final paragraph in pageData.paragraphs) {
         for (final textItem in paragraph.textItems) {
-          if (textItem.langId != null && textItem.langId != 0) {
+          if (textItem.langId != null) {
             langId = textItem.langId;
             break;
           }
@@ -624,13 +620,17 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       }
     }
 
-    final languageName = langId != null && langId != 0
+    final languageName = langId != null
         ? (_languageIdToName[langId] ?? '')
         : '';
-
-    if (langId != null && langId != 0 && langId != _lastStatsLangId) {
+    if (languageName.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    if (langId != null && langId != _lastStatsLangId) {
       _lastStatsLangId = langId;
-      ref.read(termsProvider.notifier).loadStats(langId);
+      if (ref.read(settingsProvider).showStatsBar) {
+        ref.read(termsProvider.notifier).loadStatus99Only(langId);
+      }
     }
 
     return Consumer(
@@ -666,6 +666,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         }
 
         final theme = Theme.of(context);
+        final showKnownTermsCount = ref
+            .read(settingsProvider)
+            .showKnownTermsCount;
 
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -680,7 +683,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 style: theme.textTheme.bodySmall,
               ),
               const Spacer(),
-              Text("Known: $status99Count", style: theme.textTheme.bodySmall),
+              if (showKnownTermsCount)
+                Text("Known: $status99Count", style: theme.textTheme.bodySmall),
             ],
           ),
         );
@@ -689,9 +693,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   Widget _buildPageControls(BuildContext context, PageData pageData) {
-    final isLastPage = pageData.currentPage == pageData.pageCount;
+    final isLastPage = pageData!.currentPage == pageData.pageCount;
     final theme = Theme.of(context);
-    final settings = ref.read(settingsProvider);
+    final settings = ref.watch(settingsProvider);
     final showStatsBar = settings.showStatsBar;
 
     return Align(
@@ -722,8 +726,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   const SizedBox(width: 24),
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
-                    onPressed: pageData.currentPage > 1
-                        ? () => _goToPage(pageData.currentPage - 1)
+                    onPressed: pageData!.currentPage > 1
+                        ? () => _goToPage(pageData!.currentPage - 1)
                         : null,
                     tooltip: 'Previous page',
                   ),
@@ -749,7 +753,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   else
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
-                      onPressed: () => _goToPage(pageData.currentPage + 1),
+                      onPressed: () => _goToPage(pageData!.currentPage + 1),
                       tooltip: 'Next page',
                     ),
                 ],
@@ -765,6 +769,45 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   Widget _buildBody(bool isLoading, String? errorMessage, PageData? pageData) {
     if (isLoading) {
       return const LoadingIndicator(message: 'Loading content...');
+    }
+
+    final settings = ref.watch(settingsProvider);
+    if (!settings.isUrlValid) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.cloud_off,
+                size: 64,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No Server Connection',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please configure your Lute server in settings.',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () =>
+                    ref.read(navigationProvider).navigateToScreen('settings'),
+                icon: const Icon(Icons.settings),
+                label: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     if (errorMessage != null) {
@@ -785,46 +828,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     if (pageData == null) {
-      final settings = ref.read(settingsProvider);
-
-      if (!settings.isUrlValid) {
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.cloud_off,
-                  size: 64,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'No Server Connection',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Please configure your Lute server in settings.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () =>
-                      ref.read(navigationProvider).navigateToScreen('settings'),
-                  icon: const Icon(Icons.settings),
-                  label: const Text('Open Settings'),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -863,20 +866,19 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
-    final settings = ref.watch(settingsProvider);
 
     final hasGestureNav = MediaQuery.of(context).systemGestureInsets.bottom > 0;
     final textDisplay = TextDisplay(
       key: _pageKey,
-      paragraphs: pageData!.paragraphs,
+      paragraphs: pageData.paragraphs,
       scrollController: _scrollController,
       topPadding: textSettings.fullscreenMode && !_isUiVisible
           ? MediaQuery.of(context).padding.top * 0.5
           : 0.0,
       bottomPadding: hasGestureNav ? 128 : 0,
       bottomControlWidget: _buildPageControls(context, pageData),
-      onTap: (item, position) {
-        _handleTap(item, position);
+      onTap: (item, context) {
+        _handleTap(item, context);
       },
       onDoubleTap: (item) {
         _handleDoubleTap(item);
@@ -901,57 +903,68 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
     return Stack(
       children: [
-        GestureDetector(
-          onTapDown: (_) => TermTooltipClass.close(),
-          onTap: () {
-            if (textSettings.fullscreenMode) {
-              if (!_isUiVisible) {
-                _showUi();
-              } else {
-                _resetHideTimer();
+        NotificationListener<ScrollNotification>(
+          onNotification: (scrollNotification) {
+            if (scrollNotification is ScrollUpdateNotification) {
+              if (scrollNotification.scrollDelta != null &&
+                  scrollNotification.scrollDelta!.abs() > 5) {
+                TermTooltipClass.close();
               }
             }
+            return false;
           },
-          onHorizontalDragEnd: (details) async {
-            if (pageData!.pageCount <= 1) return;
-
-            final currentTextSettings = ref.read(
-              textFormattingSettingsProvider,
-            );
-
-            if (!currentTextSettings.swipeNavigationEnabled) return;
-
-            final velocity = details.primaryVelocity ?? 0;
-            const minSwipeVelocity = 300.0;
-
-            if (velocity.abs() < minSwipeVelocity) return;
-
-            if (velocity > 0) {
-              if (pageData!.currentPage > 1) {
-                _loadPageWithoutMarkingRead(pageData!.currentPage - 1);
-              }
-            } else if (velocity < 0) {
-              if (pageData!.currentPage < pageData!.pageCount) {
-                final currentTextSettings = ref.read(
-                  textFormattingSettingsProvider,
-                );
-
-                if (currentTextSettings.swipeMarksRead) {
-                  ref
-                      .read(readerProvider.notifier)
-                      .markPageRead(pageData!.bookId, pageData!.currentPage);
+          child: GestureDetector(
+            onTapDown: (_) => TermTooltipClass.close(),
+            onTap: () {
+              if (textSettings.fullscreenMode) {
+                if (!_isUiVisible) {
+                  _showUi();
+                } else {
+                  _resetHideTimer();
                 }
-
-                _loadPageWithoutMarkingRead(pageData!.currentPage + 1);
               }
-            }
-          },
-          child: settings.pageTurnAnimations
-              ? _PageTransition(
-                  isForward: _isNavigatingForward,
-                  child: textDisplay,
-                )
-              : textDisplay,
+            },
+            onHorizontalDragEnd: (details) async {
+              if (pageData.pageCount <= 1) return;
+
+              final currentTextSettings = ref.read(
+                textFormattingSettingsProvider,
+              );
+
+              if (!currentTextSettings.swipeNavigationEnabled) return;
+
+              final velocity = details.primaryVelocity ?? 0;
+              const minSwipeVelocity = 300.0;
+
+              if (velocity.abs() < minSwipeVelocity) return;
+
+              if (velocity > 0) {
+                if (pageData!.currentPage > 1) {
+                  _loadPageWithoutMarkingRead(pageData!.currentPage - 1);
+                }
+              } else if (velocity < 0) {
+                if (pageData!.currentPage < pageData.pageCount) {
+                  final currentTextSettings = ref.read(
+                    textFormattingSettingsProvider,
+                  );
+
+                  if (currentTextSettings.swipeMarksRead) {
+                    ref
+                        .read(readerProvider.notifier)
+                        .markPageRead(pageData!.bookId, pageData!.currentPage);
+                  }
+
+                  _loadPageWithoutMarkingRead(pageData!.currentPage + 1);
+                }
+              }
+            },
+            child: settings.pageTurnAnimations
+                ? _PageTransition(
+                    isForward: _isNavigatingForward,
+                    child: textDisplay,
+                  )
+                : textDisplay,
+          ),
         ),
         if (hasGestureNav)
           Positioned(
@@ -976,7 +989,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     );
   }
 
-  void _handleTap(TextItem item, Offset position) async {
+  void _handleTap(TextItem item, BuildContext context) async {
     if (item.isSpace) return;
 
     TermTooltipClass.close();
@@ -984,11 +997,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     try {
       if (item.wordId == null) return;
 
+      final renderBox = context.findRenderObject() as RenderBox;
+      final termRect = renderBox.localToGlobal(Offset.zero) & renderBox.size;
+
       final termTooltip = await ref
           .read(readerProvider.notifier)
           .fetchTermTooltip(item.wordId!);
       if (termTooltip != null && termTooltip.hasData && mounted) {
-        TermTooltipClass.show(context, termTooltip, position);
+        TermTooltipClass.show(context, termTooltip, termRect);
       }
     } catch (e) {
       return;
@@ -996,19 +1012,21 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _handleDoubleTap(TextItem item) async {
+    TermTooltipClass.close();
+
     // Only handle double tap for terms from the server (items with wordId)
     if (item.wordId == null) return;
     if (item.langId == null) return;
 
     // Store original identifiers before opening term form
-    _originalWordId = item.wordId;
     _originalTextItem = item;
     _highlightedWordId = null;
     _highlightedParagraphId = null;
     _highlightedOrder = null;
 
-    print(
-      '_handleDoubleTap: text="${item.text}", wordId=${item.wordId}, langId=${item.langId}',
+    ApiLogger.logState(
+      '_handleDoubleTap',
+      details: 'wordId=${item.wordId}, langId=${item.langId}',
     );
 
     try {
@@ -1016,13 +1034,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           .read(readerProvider.notifier)
           .fetchTermFormById(item.wordId!);
       if (termForm != null && mounted) {
-        print(
-          'Got termForm: term="${termForm.term}", termId=${termForm.termId}',
+        ApiLogger.logState(
+          '_handleDoubleTap',
+          details: 'termId=${termForm.termId}',
         );
         _showTermForm(termForm);
       }
     } catch (e) {
-      print('_handleDoubleTap error: $e');
+      ApiLogger.logError('_handleDoubleTap', e);
       return;
     }
   }
@@ -1067,6 +1086,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _handleTripleTap(TextItem item) async {
+    TermTooltipClass.close();
+
     // Only handle triple tap for terms from the server (items with wordId)
     if (item.wordId == null) return;
     if (item.langId == null) return;
@@ -1114,7 +1135,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         throw Exception('Could not fetch term form');
       }
     } catch (e) {
-      print('Error marking term as known: $e');
+      ApiLogger.logError('markTermAsKnown', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1148,7 +1169,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _showTermForm(TermForm termForm) {
     _currentTermForm = termForm;
-    _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
       context: context,
@@ -1235,9 +1255,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
-                      setState(() {
-                        _isDictionaryOpen = isOpen;
-                      });
                       setModalState(() {});
                     },
                     onParentDoubleTap: (parent) async {
@@ -1260,7 +1277,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       }
                     },
                     onStatus99Changed: (langId) async {
-                      await ref.read(termsProvider.notifier).loadStats(langId);
+                      if (ref.read(settingsProvider).showStatsBar) {
+                        await ref
+                            .read(termsProvider.notifier)
+                            .loadStats(langId);
+                      }
                     },
                   ),
                 );
@@ -1280,7 +1301,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     TermForm termForm, {
     void Function(List<TermParent>)? onParentUpdated,
   }) {
-    _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
       context: context,
@@ -1364,9 +1384,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
-                      setState(() {
-                        _isDictionaryOpen = isOpen;
-                      });
                       setModalState(() {});
                     },
                     onParentDoubleTap: (parent) async {
@@ -1389,7 +1406,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       }
                     },
                     onStatus99Changed: (langId) async {
-                      await ref.read(termsProvider.notifier).loadStats(langId);
+                      if (ref.read(settingsProvider).showStatsBar) {
+                        await ref
+                            .read(termsProvider.notifier)
+                            .loadStats(langId);
+                      }
                     },
                   ),
                 );
@@ -1436,30 +1457,36 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.read(readerProvider).pageData;
     if (pageData == null) return;
 
+    // Log page change for debugging
+    ApiLogger.logRequest(
+      'ReaderScreen._goToPage',
+      details:
+          'from=${pageData!.currentPage}, to=$pageNum, bookId=${pageData!.bookId}',
+    );
+
     setState(() {
-      _isNavigatingForward = pageNum > pageData.currentPage;
-      _pageKey = ValueKey('${pageData.bookId}-$pageNum');
+      _isNavigatingForward = pageNum > pageData!.currentPage;
+      _pageKey = ValueKey('${pageData!.bookId}-$pageNum');
       _isLastPageMarkedDone = false;
-      _lastAttemptedBookId = pageData.bookId;
+      _lastAttemptedBookId = pageData!.bookId;
       _lastAttemptedPageNum = pageNum;
       _highlightedWordId = null;
-      _originalWordId = null;
     });
 
-    if (pageNum > pageData.currentPage) {
+    if (pageNum > pageData!.currentPage) {
       try {
         await ref
             .read(readerProvider.notifier)
-            .markPageRead(pageData.bookId, pageData.currentPage);
+            .markPageRead(pageData!.bookId, pageData!.currentPage);
       } catch (e) {
-        print('Error marking page as read: $e');
+        ApiLogger.logError('markPageRead', e);
       }
     }
 
     await ref
         .read(readerProvider.notifier)
         .loadPage(
-          bookId: pageData.bookId,
+          bookId: pageData!.bookId,
           pageNum: pageNum,
           showFullPageError: false,
           useCache: true,
@@ -1472,202 +1499,32 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.read(readerProvider).pageData;
     if (pageData == null) return;
 
+    // Log page change for debugging
+    ApiLogger.logRequest(
+      'ReaderScreen._loadPageWithoutMarkingRead',
+      details:
+          'pageNum=$pageNum, currentPage=${pageData!.currentPage}, bookId=${pageData!.bookId}',
+    );
+
     setState(() {
-      _isNavigatingForward = pageNum > pageData.currentPage;
-      _pageKey = ValueKey('${pageData.bookId}-$pageNum');
+      _isNavigatingForward = pageNum > pageData!.currentPage;
+      _pageKey = ValueKey('${pageData!.bookId}-$pageNum');
       _isLastPageMarkedDone = false;
-      _lastAttemptedBookId = pageData.bookId;
+      _lastAttemptedBookId = pageData!.bookId;
       _lastAttemptedPageNum = pageNum;
       _highlightedWordId = null;
-      _originalWordId = null;
     });
 
     await ref
         .read(readerProvider.notifier)
         .loadPage(
-          bookId: pageData.bookId,
+          bookId: pageData!.bookId,
           pageNum: pageNum,
           showFullPageError: false,
           useCache: true,
         );
 
     ref.read(statsProvider.notifier).loadStats();
-  }
-
-  void _showTextFormattingOptions() {
-    final settings = ref.read(textFormattingSettingsProvider);
-
-    _tempTextSize = settings.textSize;
-    _tempLineSpacing = settings.lineSpacing;
-    _tempFont = settings.fontFamily;
-    _tempFontWeight = _availableWeights.indexOf(settings.fontWeight).toDouble();
-    _tempIsItalic = settings.isItalic;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, dialogSetState) {
-            return Dialog(
-              child: Container(
-                width: 300,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header with close button
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Text Formatting',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Text size slider
-                    const Text('Text Size'),
-                    Slider(
-                      value: _tempTextSize,
-                      min: 12,
-                      max: 30,
-                      divisions: 18,
-                      label: _tempTextSize.round().toString(),
-                      onChanged: (value) {
-                        dialogSetState(() {
-                          _tempTextSize = value;
-                        });
-                      },
-                      onChangeEnd: (value) {
-                        ref
-                            .read(textFormattingSettingsProvider.notifier)
-                            .updateTextSize(value);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Line spacing slider
-                    const Text('Line Spacing'),
-                    Slider(
-                      value: _tempLineSpacing,
-                      min: 0.6,
-                      max: 2.0,
-                      divisions: 14,
-                      label: _tempLineSpacing.toStringAsFixed(1),
-                      onChanged: (value) {
-                        dialogSetState(() {
-                          _tempLineSpacing = value;
-                        });
-                      },
-                      onChangeEnd: (value) {
-                        ref
-                            .read(textFormattingSettingsProvider.notifier)
-                            .updateLineSpacing(value);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Font dropdown
-                    const Text('Font'),
-                    DropdownButton<String>(
-                      value: _tempFont ?? 'Roboto',
-                      isExpanded: true,
-                      items: _availableFonts.map((String font) {
-                        return DropdownMenuItem<String>(
-                          value: font,
-                          child: Text(font),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        if (newValue != null) {
-                          dialogSetState(() {
-                            _tempFont = newValue;
-                          });
-                          ref
-                              .read(textFormattingSettingsProvider.notifier)
-                              .updateFontFamily(newValue);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Font weight slider
-                    const Text('Weight'),
-                    Slider(
-                      value: _tempFontWeight,
-                      min: 0,
-                      max: _availableWeights.length - 1,
-                      divisions: _availableWeights.length - 1,
-                      label: _getWeightLabel(_tempFontWeight),
-                      onChanged: (value) {
-                        dialogSetState(() {
-                          _tempFontWeight = value;
-                        });
-                      },
-                      onChangeEnd: (value) {
-                        ref
-                            .read(textFormattingSettingsProvider.notifier)
-                            .updateFontWeight(_getWeightFromIndex(value));
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Italic toggle
-                    Row(
-                      children: [
-                        const Text('Italic'),
-                        const Spacer(),
-                        Transform.scale(
-                          scale: 0.8,
-                          child: Switch(
-                            value: _tempIsItalic ?? false,
-                            onChanged: (value) {
-                              dialogSetState(() {
-                                _tempIsItalic = value;
-                              });
-                              ref
-                                  .read(textFormattingSettingsProvider.notifier)
-                                  .updateIsItalic(value);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Apply button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Formatting applied!'),
-                            ),
-                          );
-                        },
-                        child: const Text('Apply'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
   }
 
   Future<void> _markPageKnown() async {
@@ -1688,19 +1545,19 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
         );
       }
 
-      if (pageData.currentPage < pageData.pageCount) {
-        _goToPage(pageData.currentPage + 1);
+      if (pageData!.currentPage < pageData.pageCount) {
+        _goToPage(pageData!.currentPage + 1);
       } else {
         ref
             .read(readerProvider.notifier)
             .loadPage(
-              bookId: pageData.bookId,
-              pageNum: pageData.currentPage,
+              bookId: pageData!.bookId,
+              pageNum: pageData!.currentPage,
               showFullPageError: false,
             );
       }
     } catch (e) {
-      print('Error marking page as known: $e');
+      ApiLogger.logError('markPageAsKnown', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1716,7 +1573,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     try {
       await ref
           .read(readerProvider.notifier)
-          .markPageRead(pageData.bookId, pageData.currentPage);
+          .markPageRead(pageData!.bookId, pageData!.currentPage);
 
       if (mounted) {
         setState(() {
@@ -1749,7 +1606,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       }
       ref.read(statsProvider.notifier).loadStats();
     } catch (e) {
-      print('Error marking page as done: $e');
+      ApiLogger.logError('markPageAsDone', e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1765,7 +1622,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     final pageData = ref.read(readerProvider).pageData;
     if (pageData == null) return;
 
-    double tempPage = pageData.currentPage.toDouble();
+    double tempPage = pageData!.currentPage.toDouble();
 
     showDialog(
       context: context,
