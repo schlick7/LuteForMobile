@@ -6,18 +6,6 @@
 
 
 
-
----
-1) Partially fixed? When books are archived, they still show up in the normal view. Maybe this has to do with my sync/stats settings, but seems like that should be independent?
-
----
-
-
-fix backup location after restore
-/data/data/com.termux/files/home/.local/share/Lute3/backups
-- We need to save and restore the entire settings page for this
-
-
 ---
 https://wiki.termux.com/wiki/Main_Page
 https://github.com/termux/termux-packages/wiki/Mirrors
@@ -26,7 +14,7 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 # Termux
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
   - no idea how without creating a "micro service"
-- Termux never actually shuts down. Stays in the silent notifications with 1 task forever. Can we actually set up a sleep timer? Lets check the termux docs. https://wiki.termux.com/wiki/Main_Page
+
 ---
 
 # Requests 
@@ -35,30 +23,28 @@ https://github.com/termux/termux-tools/tree/master/mirrors
 - 
 
 # Reader
--
+- 
 
 # Sentence Reader
 -
 
 # TTS
-- Needs to default to off/none
+-
 
 # AI
-- 
+- done? gemini
 
 # Books Screen
 - 
 
 # Terms Screen
-- Add toggle to hide stats card and therby not make the calls for it either. 
+- 
  
 # Statistics Screen  
 - 
 
 # Help Screen
-- Tooltip batch size
-- Show known terms issue under performance
-
+- Can't copy text
 
 # Theme
 
