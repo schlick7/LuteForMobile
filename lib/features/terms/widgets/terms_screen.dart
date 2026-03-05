@@ -6,6 +6,7 @@ import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/app_bar_leading.dart';
 import '../../../shared/providers/language_data_provider.dart';
 import '../../../shared/models/language.dart';
+import '../../settings/providers/settings_provider.dart';
 import '../providers/terms_provider.dart';
 import '../models/term.dart';
 import 'term_card.dart';
@@ -143,6 +144,10 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
           SliverToBoxAdapter(
             child: Consumer(
               builder: (context, ref, child) {
+                final settings = ref.watch(settingsProvider);
+                if (!settings.showTermStatsCard) {
+                  return const SizedBox.shrink();
+                }
                 final languageListAsync = ref.watch(languageListProvider);
                 final languageList = languageListAsync.value ?? [];
                 final language = languageList.cast<Language?>().firstWhere(

@@ -46,6 +46,7 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyEnableTooltipCaching = 'enable_tooltip_caching';
   static const String _keyShowStatsBar = 'show_stats_bar';
   static const String _keyShowKnownTermsCount = 'show_known_terms_count';
+  static const String _keyShowTermStatsCard = 'show_term_stats_card';
   static const String _keyShowPageNumbers = 'show_page_numbers';
   static const String _keyEnableTripleTapToMarkKnown =
       'enable_triple_tap_to_mark_known';
@@ -102,6 +103,7 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getBool(_keyEnableTooltipCaching) ?? false;
     final showStatsBar = prefs.getBool(_keyShowStatsBar) ?? true;
     final showKnownTermsCount = prefs.getBool(_keyShowKnownTermsCount) ?? false;
+    final showTermStatsCard = prefs.getBool(_keyShowTermStatsCard) ?? false;
     final showPageNumbers = prefs.getBool(_keyShowPageNumbers) ?? true;
     final enableTripleTapToMarkKnown =
         prefs.getBool(_keyEnableTripleTapToMarkKnown) ?? false;
@@ -148,6 +150,7 @@ class SettingsNotifier extends Notifier<Settings> {
       enableTooltipCaching: enableTooltipCaching,
       showStatsBar: showStatsBar,
       showKnownTermsCount: showKnownTermsCount,
+      showTermStatsCard: showTermStatsCard,
       showPageNumbers: showPageNumbers,
       enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
       enablePagePreload: enablePagePreload,
@@ -361,6 +364,12 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyShowKnownTermsCount, show);
   }
 
+  Future<void> updateShowTermStatsCard(bool show) async {
+    state = state.copyWith(showTermStatsCard: show);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowTermStatsCard, show);
+  }
+
   Future<void> updateShowPageNumbers(bool show) async {
     state = state.copyWith(showPageNumbers: show);
     final prefs = await SharedPreferences.getInstance();
@@ -462,6 +471,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyEnableTooltipCaching);
     await prefs.remove(_keyShowStatsBar);
     await prefs.remove(_keyShowKnownTermsCount);
+    await prefs.remove(_keyShowTermStatsCard);
     await prefs.remove(_keyShowPageNumbers);
     await prefs.remove(_keyEnableTripleTapToMarkKnown);
     await prefs.remove(_keyTermuxAutoLaunchEnabled);

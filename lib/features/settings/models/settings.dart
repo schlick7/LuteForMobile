@@ -26,6 +26,7 @@ class Settings {
   final bool enableTooltipCaching;
   final bool showStatsBar;
   final bool showKnownTermsCount;
+  final bool showTermStatsCard;
   final bool showPageNumbers;
   final TTSProvider? ttsProvider;
   final AIProvider? aiProvider;
@@ -65,6 +66,7 @@ class Settings {
     this.enableTooltipCaching = false,
     this.showStatsBar = true,
     this.showKnownTermsCount = false,
+    this.showTermStatsCard = false,
     this.showPageNumbers = true,
     this.ttsProvider,
     this.aiProvider,
@@ -105,6 +107,7 @@ class Settings {
     bool? enableTooltipCaching,
     bool? showStatsBar,
     bool? showKnownTermsCount,
+    bool? showTermStatsCard,
     bool? showPageNumbers,
     TTSProvider? ttsProvider,
     AIProvider? aiProvider,
@@ -153,6 +156,7 @@ class Settings {
       enableTooltipCaching: enableTooltipCaching ?? this.enableTooltipCaching,
       showStatsBar: showStatsBar ?? this.showStatsBar,
       showKnownTermsCount: showKnownTermsCount ?? this.showKnownTermsCount,
+      showTermStatsCard: showTermStatsCard ?? this.showTermStatsCard,
       showPageNumbers: showPageNumbers ?? this.showPageNumbers,
       ttsProvider: ttsProvider ?? this.ttsProvider,
       aiProvider: aiProvider ?? this.aiProvider,
@@ -200,6 +204,7 @@ class Settings {
       enableTooltipCaching: false,
       showStatsBar: true,
       showKnownTermsCount: false,
+      showTermStatsCard: false,
       showPageNumbers: true,
       ttsProvider: TTSProvider.onDevice,
       aiProvider: AIProvider.none,
@@ -243,6 +248,7 @@ class Settings {
         other.enableTooltipCaching == enableTooltipCaching &&
         other.showStatsBar == showStatsBar &&
         other.showKnownTermsCount == showKnownTermsCount &&
+        other.showTermStatsCard == showTermStatsCard &&
         other.showPageNumbers == showPageNumbers &&
         other.ttsProvider == ttsProvider &&
         other.aiProvider == aiProvider &&
@@ -281,6 +287,7 @@ class Settings {
     enableTooltipCaching,
     showStatsBar,
     showKnownTermsCount,
+    showTermStatsCard,
     showPageNumbers,
     ttsProvider,
     aiProvider,

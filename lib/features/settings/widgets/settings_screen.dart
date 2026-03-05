@@ -967,6 +967,37 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            Card(
+              elevation: 2,
+              child: ExpansionTile(
+                title: const Text(
+                  'Terms',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                initiallyExpanded: false,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SwitchListTile(
+                          title: const Text('Show Term Stats Card'),
+                          value: settings.showTermStatsCard,
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateShowTermStatsCard(value);
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             const TTSSettingsSection(),
             const SizedBox(height: 16),
             const AISettingsSection(),

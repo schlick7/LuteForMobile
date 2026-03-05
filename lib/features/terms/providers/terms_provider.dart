@@ -152,7 +152,9 @@ class TermsNotifier extends Notifier<TermsState> {
       );
 
       if (langId != null && reset) {
-        loadStats(langId);
+        if (ref.read(settingsProvider).showTermStatsCard) {
+          loadStats(langId);
+        }
       }
     } catch (e) {
       ApiLogger.logError('loadTerms', e);
@@ -176,12 +178,17 @@ class TermsNotifier extends Notifier<TermsState> {
     state = state.copyWith(selectedLangId: langId);
     loadTerms(reset: true);
     if (langId != null) {
-      loadStats(langId);
+      if (ref.read(settingsProvider).showTermStatsCard) {
+        loadStats(langId);
+      }
     }
   }
 
   Future<void> loadStats(int langId) async {
     if (!ref.read(settingsProvider).showKnownTermsCount) {
+      return;
+    }
+    if (!ref.read(settingsProvider).showTermStatsCard) {
       return;
     }
     try {
