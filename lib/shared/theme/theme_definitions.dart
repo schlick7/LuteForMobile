@@ -251,14 +251,6 @@ class StatusColors {
   final Color status99;
   final Color highlightedText;
   final Color wordGlowColor;
-  final bool isTransparent0;
-  final bool isTransparent1;
-  final bool isTransparent2;
-  final bool isTransparent3;
-  final bool isTransparent4;
-  final bool isTransparent5;
-  final bool isTransparent98;
-  final bool isTransparent99;
 
   const StatusColors({
     required this.status0,
@@ -271,14 +263,6 @@ class StatusColors {
     required this.status99,
     required this.highlightedText,
     required this.wordGlowColor,
-    this.isTransparent0 = false,
-    this.isTransparent1 = false,
-    this.isTransparent2 = false,
-    this.isTransparent3 = false,
-    this.isTransparent4 = false,
-    this.isTransparent5 = false,
-    this.isTransparent98 = false,
-    this.isTransparent99 = false,
   });
 
   StatusColors copyWith({
@@ -292,14 +276,6 @@ class StatusColors {
     Color? status99,
     Color? highlightedText,
     Color? wordGlowColor,
-    bool? isTransparent0,
-    bool? isTransparent1,
-    bool? isTransparent2,
-    bool? isTransparent3,
-    bool? isTransparent4,
-    bool? isTransparent5,
-    bool? isTransparent98,
-    bool? isTransparent99,
   }) {
     return StatusColors(
       status0: status0 ?? this.status0,
@@ -312,14 +288,6 @@ class StatusColors {
       status99: status99 ?? this.status99,
       highlightedText: highlightedText ?? this.highlightedText,
       wordGlowColor: wordGlowColor ?? this.wordGlowColor,
-      isTransparent0: isTransparent0 ?? this.isTransparent0,
-      isTransparent1: isTransparent1 ?? this.isTransparent1,
-      isTransparent2: isTransparent2 ?? this.isTransparent2,
-      isTransparent3: isTransparent3 ?? this.isTransparent3,
-      isTransparent4: isTransparent4 ?? this.isTransparent4,
-      isTransparent5: isTransparent5 ?? this.isTransparent5,
-      isTransparent98: isTransparent98 ?? this.isTransparent98,
-      isTransparent99: isTransparent99 ?? this.isTransparent99,
     );
   }
 
@@ -336,15 +304,7 @@ class StatusColors {
         other.status98 == status98 &&
         other.status99 == status99 &&
         other.highlightedText == highlightedText &&
-        other.wordGlowColor == wordGlowColor &&
-        other.isTransparent0 == isTransparent0 &&
-        other.isTransparent1 == isTransparent1 &&
-        other.isTransparent2 == isTransparent2 &&
-        other.isTransparent3 == isTransparent3 &&
-        other.isTransparent4 == isTransparent4 &&
-        other.isTransparent5 == isTransparent5 &&
-        other.isTransparent98 == isTransparent98 &&
-        other.isTransparent99 == isTransparent99;
+        other.wordGlowColor == wordGlowColor;
   }
 
   @override
@@ -359,14 +319,6 @@ class StatusColors {
     status99,
     highlightedText,
     wordGlowColor,
-    isTransparent0,
-    isTransparent1,
-    isTransparent2,
-    isTransparent3,
-    isTransparent4,
-    isTransparent5,
-    isTransparent98,
-    isTransparent99,
   );
 }
 

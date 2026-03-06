@@ -116,30 +116,7 @@ extension BuildContextExtension on BuildContext {
   }
 
   bool _isStatusHiddenInReader(int statusNum, Color statusColor) {
-    return statusColor.a == 0 || _isLegacyTransparentStatus(statusNum);
-  }
-
-  bool _isLegacyTransparentStatus(int statusNum) {
-    switch (statusNum) {
-      case 0:
-        return appColorScheme.status.isTransparent0;
-      case 1:
-        return appColorScheme.status.isTransparent1;
-      case 2:
-        return appColorScheme.status.isTransparent2;
-      case 3:
-        return appColorScheme.status.isTransparent3;
-      case 4:
-        return appColorScheme.status.isTransparent4;
-      case 5:
-        return appColorScheme.status.isTransparent5;
-      case 98:
-        return appColorScheme.status.isTransparent98;
-      case 99:
-        return appColorScheme.status.isTransparent99;
-      default:
-        return false;
-    }
+    return statusColor.a == 0;
   }
 }
 

@@ -50,14 +50,6 @@ class ThemeSerialization {
         'status99': _colorToJson(scheme.status.status99),
         'highlightedText': _colorToJson(scheme.status.highlightedText),
         'wordGlowColor': _colorToJson(scheme.status.wordGlowColor),
-        'isTransparent0': scheme.status.isTransparent0,
-        'isTransparent1': scheme.status.isTransparent1,
-        'isTransparent2': scheme.status.isTransparent2,
-        'isTransparent3': scheme.status.isTransparent3,
-        'isTransparent4': scheme.status.isTransparent4,
-        'isTransparent5': scheme.status.isTransparent5,
-        'isTransparent98': scheme.status.isTransparent98,
-        'isTransparent99': scheme.status.isTransparent99,
       },
       'border': {
         'outline': _colorToJson(scheme.border.outline),
@@ -155,14 +147,6 @@ class ThemeSerialization {
           status99: _jsonToColor(status['status99']),
           highlightedText: _jsonToColor(status['highlightedText']),
           wordGlowColor: _jsonToColor(status['wordGlowColor']),
-          isTransparent0: status['isTransparent0'] as bool? ?? false,
-          isTransparent1: status['isTransparent1'] as bool? ?? false,
-          isTransparent2: status['isTransparent2'] as bool? ?? false,
-          isTransparent3: status['isTransparent3'] as bool? ?? false,
-          isTransparent4: status['isTransparent4'] as bool? ?? false,
-          isTransparent5: status['isTransparent5'] as bool? ?? false,
-          isTransparent98: status['isTransparent98'] as bool? ?? false,
-          isTransparent99: status['isTransparent99'] as bool? ?? false,
         ),
         border: BorderColors(
           outline: _jsonToColor(border['outline']),
@@ -248,6 +232,7 @@ class ThemeSerialization {
   }
 
   static int _colorToJson(Color color) => color.toARGB32();
+
   static Color _jsonToColor(dynamic value) {
     if (value is int) {
       return Color(value);
