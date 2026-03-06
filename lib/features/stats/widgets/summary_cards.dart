@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/language_stats.dart';
 import '../models/stats_data.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class SummaryCards extends StatelessWidget {
   final List<LanguageReadingStats> languages;
@@ -26,7 +27,7 @@ class SummaryCards extends StatelessWidget {
                 label: 'Today',
                 value: _formatNumber(todayStats.wordcount),
                 subtitle: '${todayStats.days} days active',
-                iconColor: Theme.of(context).colorScheme.primary,
+                iconColor: context.appColorScheme.material3.primary,
               ),
             ),
             const SizedBox(width: 12),
@@ -37,7 +38,7 @@ class SummaryCards extends StatelessWidget {
                 label: 'This Week',
                 value: _formatNumber(weekStats.wordcount),
                 subtitle: '${weekStats.days} days active',
-                iconColor: Theme.of(context).colorScheme.secondary,
+                iconColor: context.appColorScheme.material3.secondary,
               ),
             ),
           ],
@@ -60,7 +61,7 @@ class SummaryCards extends StatelessWidget {
           value: _formatNumber(totalStats.wordcount),
           subtitle:
               '${totalStats.days} days across ${languages.length} language${languages.length != 1 ? 's' : ''}',
-          iconColor: Theme.of(context).colorScheme.tertiary,
+          iconColor: context.appColorScheme.material3.tertiary,
           isLarge: true,
         ),
       ],
@@ -221,7 +222,7 @@ class SummaryCards extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: context.appColorScheme.text.secondary,
                   ),
                 ),
               ],
@@ -238,7 +239,7 @@ class SummaryCards extends StatelessWidget {
             Text(
               subtitle,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: context.appColorScheme.text.secondary,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

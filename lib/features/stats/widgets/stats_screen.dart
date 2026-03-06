@@ -4,6 +4,7 @@ import '../../../core/logger/widget_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/app_bar_leading.dart';
+import '../../../shared/theme/theme_extensions.dart';
 import '../providers/stats_provider.dart';
 import 'summary_cards.dart';
 import 'period_filter_widget.dart';
@@ -64,7 +65,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             Icon(
               Icons.bar_chart,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: context.appColorScheme.text.secondary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -75,7 +76,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             Text(
               'Start reading to see your statistics',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: context.appColorScheme.text.secondary,
               ),
             ),
           ],

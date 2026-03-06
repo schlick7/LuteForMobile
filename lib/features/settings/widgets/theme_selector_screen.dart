@@ -5,6 +5,7 @@ import '../models/settings.dart';
 import '../providers/settings_provider.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../shared/theme/app_theme.dart';
+import '../../../shared/theme/theme_extensions.dart';
 import 'custom_theme_editor.dart';
 import 'new_theme_dialog.dart';
 
@@ -235,7 +236,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
-                  ? Theme.of(context).colorScheme.primary
+                  ? context.appColorScheme.material3.primary
                   : Colors.transparent,
               width: 2,
             ),
@@ -268,7 +269,7 @@ class ThemeSelectorScreen extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
+                        color: context.appColorScheme.text.primary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -276,9 +277,9 @@ class ThemeSelectorScreen extends ConsumerWidget {
                       _getThemeDescription(themeType),
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.7),
+                        color: context.appColorScheme.text.primary.withValues(
+                          alpha: 0.7,
+                        ),
                       ),
                     ),
                   ],
@@ -287,10 +288,10 @@ class ThemeSelectorScreen extends ConsumerWidget {
               Icon(
                 isSelected ? Icons.check_circle : Icons.circle_outlined,
                 color: isSelected
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withValues(alpha: 0.5),
+                    ? context.appColorScheme.material3.primary
+                    : context.appColorScheme.text.primary.withValues(
+                        alpha: 0.5,
+                      ),
                 size: 24,
               ),
             ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../providers/audio_player_provider.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class AudioPlayerWidget extends ConsumerStatefulWidget {
   final String audioUrl;
@@ -59,8 +60,13 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).primaryColor,
-        border: Border(bottom: BorderSide(color: Colors.grey[400]!, width: 1)),
+        color: context.audioPlayerBackground,
+        border: Border(
+          bottom: BorderSide(
+            color: context.appColorScheme.border.outline,
+            width: 1,
+          ),
+        ),
       ),
       padding: EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 4.0),
       child: Column(
@@ -71,10 +77,10 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
               width: double.infinity,
               padding: EdgeInsets.all(8.0),
               margin: EdgeInsets.only(bottom: 4.0),
-              color: Colors.red[100],
+              color: context.audioErrorBackground,
               child: Text(
                 'Error: ${audioPlayerState.errorMessage}',
-                style: TextStyle(color: Colors.red[700]),
+                style: TextStyle(color: context.audioError),
               ),
             ),
           _buildProgressBar(context, ref, audioPlayerState),
@@ -154,7 +160,7 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
                     child: Container(
                       width: 4.0,
                       decoration: BoxDecoration(
-                        color: Colors.yellow[700],
+                        color: context.audioBookmark,
                         borderRadius: BorderRadius.circular(2.0),
                       ),
                     ),
@@ -173,12 +179,14 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
                 child: Text(
                   '${_formatDuration(state.position)} / ${_formatDuration(state.duration)}',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: context.audioPlayerIcon,
                     fontSize: 12,
                     shadows: [
                       Shadow(
                         blurRadius: 3.0,
-                        color: Colors.black.withOpacity(0.7),
+                        color: context.appColorScheme.text.disabled.withValues(
+                          alpha: 0.7,
+                        ),
                         offset: Offset(0, 0),
                       ),
                     ],
@@ -221,11 +229,15 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
         children: [
           Container(
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.05),
+              color: context.appColorScheme.border.outline.withValues(
+                alpha: 0.1,
+              ),
               borderRadius: BorderRadius.circular(8),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: context.appColorScheme.border.outline.withValues(
+                    alpha: 0.2,
+                  ),
                   blurRadius: 4,
                   offset: Offset(0, 2),
                 ),
@@ -241,7 +253,7 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
                         .read(audioPlayerProvider.notifier)
                         .goToPreviousBookmark();
                   },
-                  color: Colors.white,
+                  color: context.audioPlayerIcon,
                   iconSize: 22,
                   tooltip: 'Previous bookmark',
                   padding: EdgeInsets.all(4),
@@ -257,7 +269,9 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
                       ref.read(audioPlayerProvider.notifier).addBookmark();
                     }
                   },
-                  color: isAtBookmark ? Colors.yellow[700] : Colors.white,
+                  color: isAtBookmark
+                      ? context.audioBookmark
+                      : context.audioPlayerIcon,
                   iconSize: 22,
                   tooltip: isAtBookmark ? 'Remove bookmark' : 'Add bookmark',
                   padding: EdgeInsets.all(4),
@@ -267,7 +281,7 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
                   onPressed: () {
                     ref.read(audioPlayerProvider.notifier).goToNextBookmark();
                   },
-                  color: Colors.white,
+                  color: context.audioPlayerIcon,
                   iconSize: 22,
                   tooltip: 'Next bookmark',
                   padding: EdgeInsets.all(4),
@@ -284,13 +298,13 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
                   : newPosition;
               ref.read(audioPlayerProvider.notifier).seek(clampedPosition);
             },
-            color: Colors.white,
+            color: context.audioPlayerIcon,
             iconSize: 28,
           ),
           IconButton(
             icon: Icon(playPauseIcon),
             onPressed: playPauseAction,
-            color: Colors.white,
+            color: context.audioPlayerIcon,
             iconSize: 32,
           ),
           IconButton(
@@ -302,7 +316,7 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
                   : newPosition;
               ref.read(audioPlayerProvider.notifier).seek(clampedPosition);
             },
-            color: Colors.white,
+            color: context.audioPlayerIcon,
             iconSize: 28,
           ),
           SizedBox(width: 8),
@@ -322,7 +336,7 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
             child: Text(
               '${state.playbackSpeed.toStringAsFixed(1)}x',
               style: TextStyle(
-                color: Colors.white,
+                color: context.audioPlayerIcon,
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),

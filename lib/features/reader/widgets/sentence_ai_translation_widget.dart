@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers/ai_provider.dart';
+import '../../../shared/theme/theme_extensions.dart';
 import '../providers/sentence_tts_provider.dart';
 
 class SentenceAITranslationWidget extends ConsumerStatefulWidget {
@@ -87,7 +88,7 @@ class _SentenceAITranslationWidgetState
       ),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: context.appColorScheme.background.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -106,7 +107,7 @@ class _SentenceAITranslationWidgetState
 
   Widget _buildHeader(BuildContext context) {
     final ttsState = ref.watch(sentenceTTSProvider);
-    final errorColor = Theme.of(context).colorScheme.error;
+    final errorColor = context.appColorScheme.error.error;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (ttsState.hasError && ttsState.errorMessage != null && mounted) {
@@ -116,7 +117,7 @@ class _SentenceAITranslationWidgetState
             backgroundColor: errorColor,
             action: SnackBarAction(
               label: 'Retry',
-              textColor: Colors.white,
+              textColor: context.appColorScheme.error.onError,
               onPressed: () {
                 ref.read(sentenceTTSProvider.notifier).clearError();
                 ref
@@ -152,12 +153,12 @@ class _SentenceAITranslationWidgetState
         break;
       case SentenceTTSStatus.loading:
         ttsIcon = Icons.hourglass_empty;
-        ttsColor = Theme.of(context).colorScheme.primary;
+        ttsColor = context.appColorScheme.material3.primary;
         ttsOnPressed = null;
         break;
       case SentenceTTSStatus.idle:
         ttsIcon = Icons.volume_up;
-        ttsColor = Theme.of(context).colorScheme.primary;
+        ttsColor = context.appColorScheme.material3.primary;
         ttsOnPressed = () => ref
             .read(sentenceTTSProvider.notifier)
             .speakSentence(widget.sentence, widget.sentenceId ?? 0);
@@ -221,7 +222,7 @@ class _SentenceAITranslationWidgetState
               Text(
                 'Translation:',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.primary,
+                  color: context.appColorScheme.material3.primary,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -243,7 +244,7 @@ class _SentenceAITranslationWidgetState
               Icon(
                 Icons.error_outline,
                 size: 48,
-                color: Theme.of(context).colorScheme.error,
+                color: context.appColorScheme.error.error,
               ),
               const SizedBox(height: 16),
               Text(
@@ -254,7 +255,7 @@ class _SentenceAITranslationWidgetState
               Text(
                 _errorMessage ?? 'An unknown error occurred',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
+                  color: context.appColorScheme.error.error,
                 ),
                 textAlign: TextAlign.center,
               ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/logger/widget_logger.dart';
+import 'theme/theme_extensions.dart';
 
 class HomeScreen extends ConsumerWidget {
   static int _buildCount = 0;
@@ -14,7 +15,7 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('LuteForMobile'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: context.m3PrimaryContainer,
       ),
       body: Center(
         child: ElevatedButton(

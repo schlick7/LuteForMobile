@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/settings.dart';
 import '../providers/settings_provider.dart';
 import '../../../shared/theme/theme_definitions.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class CustomThemeEditor extends ConsumerStatefulWidget {
   final String themeId;
@@ -747,7 +748,7 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+          color: context.appColorScheme.border.outline.withValues(alpha: 0.2),
         ),
         borderRadius: BorderRadius.circular(8),
       ),
@@ -840,7 +841,7 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
                               borderRadius: BorderRadius.circular(6),
                               border: Border.all(
                                 color: previewColor == color
-                                    ? Theme.of(context).colorScheme.primary
+                                    ? context.appColorScheme.material3.primary
                                     : Colors.black26,
                                 width: previewColor == color ? 2 : 1,
                               ),

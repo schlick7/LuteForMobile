@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/language.dart';
 import '../../../shared/models/language_card_settings.dart';
 import '../../../shared/providers/network_providers.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class LanguageSettingsCard extends ConsumerStatefulWidget {
   const LanguageSettingsCard({super.key});
@@ -530,7 +531,7 @@ class _LanguageSettingsCardState extends ConsumerState<LanguageSettingsCard> {
               padding: const EdgeInsets.only(bottom: 12),
               child: Text(
                 _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                style: TextStyle(color: context.appColorScheme.error.error),
               ),
             ),
           const Divider(height: 16),

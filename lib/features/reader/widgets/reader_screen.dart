@@ -7,6 +7,7 @@ import '../../../core/logger/api_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/app_bar_leading.dart';
+import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
 import '../../../features/settings/providers/settings_provider.dart';
 import '../../../features/settings/models/settings.dart';
@@ -782,7 +783,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               Icon(
                 Icons.cloud_off,
                 size: 64,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: context.appColorScheme.text.secondary,
               ),
               const SizedBox(height: 16),
               Text(
@@ -793,7 +794,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               Text(
                 'Please configure your Lute server in settings.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: context.appColorScheme.text.secondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -837,7 +838,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               Icon(
                 Icons.menu_book,
                 size: 64,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: context.appColorScheme.text.secondary,
               ),
               const SizedBox(height: 16),
               Text(
@@ -848,7 +849,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               Text(
                 'Select a book from the books screen to start reading.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: context.appColorScheme.text.secondary,
                 ),
                 textAlign: TextAlign.center,
               ),

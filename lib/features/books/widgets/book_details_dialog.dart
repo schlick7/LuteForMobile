@@ -150,9 +150,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                       }
                     },
                     tooltip: 'Delete',
-                    style: IconButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.error,
-                    ),
+                    style: IconButton.styleFrom(foregroundColor: context.error),
                   ),
                 ],
               ),
@@ -167,7 +165,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                   Text(
                     book.language,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: context.appColorScheme.text.secondary,
                     ),
                   ),
                 ],
@@ -225,9 +223,8 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                               horizontal: 8,
                               vertical: 4,
                             ),
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primaryContainer,
+                            backgroundColor:
+                                context.appColorScheme.background.surface,
                           ),
                         )
                         .toList(),
@@ -289,16 +286,12 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
   ) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-        ),
+        Icon(icon, size: 20, color: context.appColorScheme.text.secondary),
         const SizedBox(width: 12),
         Text(
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: context.appColorScheme.text.secondary,
           ),
         ),
         const Spacer(),
@@ -336,7 +329,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                       : context.getStatusColor(statusNum.toString()),
                   borderRadius: BorderRadius.circular(2),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: context.appColorScheme.text.secondary,
                     width: 1,
                   ),
                 ),
@@ -346,7 +339,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                         'x',
                         style: TextStyle(
                           fontSize: 10,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: context.appColorScheme.text.secondary,
                           fontWeight: FontWeight.bold,
                           height: 1,
                         ),
@@ -390,9 +383,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
-            ),
+            style: TextButton.styleFrom(foregroundColor: context.error),
             child: const Text('Confirm'),
           ),
         ],

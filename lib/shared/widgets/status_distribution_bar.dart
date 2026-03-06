@@ -44,7 +44,7 @@ class StatusDistributionBar extends StatelessWidget {
     ];
 
     final borderSide = BorderSide(
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      color: context.appColorScheme.text.secondary,
       width: 1,
     );
 
@@ -89,7 +89,7 @@ class StatusDistributionBar extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         border: Border.all(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          color: context.appColorScheme.text.secondary,
           width: 1,
         ),
         borderRadius: BorderRadius.circular(height / 2),
@@ -161,7 +161,7 @@ class StatusDistributionBar extends StatelessWidget {
         Text(
           '$label: $count',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: context.appColorScheme.text.secondary,
           ),
         ),
       ],

@@ -289,7 +289,7 @@ class _SentenceTranslationWidgetState
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: context.appColorScheme.background.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: const Center(child: CircularProgressIndicator()),
@@ -300,7 +300,7 @@ class _SentenceTranslationWidgetState
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: context.appColorScheme.background.surface,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -322,7 +322,7 @@ class _SentenceTranslationWidgetState
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: context.appColorScheme.background.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
@@ -385,9 +385,12 @@ class _SentenceTranslationWidgetState
       padding: const EdgeInsets.symmetric(horizontal: 8),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: context.appColorScheme.background.surfaceContainerHighest,
         border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1),
+          bottom: BorderSide(
+            color: context.appColorScheme.border.dividerColor,
+            width: 1,
+          ),
         ),
       ),
       child: Row(
@@ -508,16 +511,16 @@ class _SentenceTranslationWidgetState
 
                     if (isCurrentSentence && ttsState.isLoading) {
                       icon = Icons.hourglass_empty;
-                      color = Theme.of(context).colorScheme.primary;
+                      color = context.m3Primary;
                       onPressed = null;
                     } else if (isCurrentSentence && ttsState.isPlaying) {
                       icon = Icons.stop;
-                      color = Theme.of(context).colorScheme.error;
+                      color = context.error;
                       onPressed = () =>
                           ref.read(sentenceTTSProvider.notifier).stop();
                     } else {
                       icon = Icons.volume_up;
-                      color = Theme.of(context).colorScheme.primary;
+                      color = context.m3Primary;
                       onPressed = () => ref
                           .read(sentenceTTSProvider.notifier)
                           .speakSentence(widget.sentence, 0);
@@ -627,11 +630,7 @@ class _SentenceTranslationWidgetState
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 48,
-                color: Theme.of(context).colorScheme.error,
-              ),
+              Icon(Icons.error_outline, size: 48, color: context.error),
               const SizedBox(height: 16),
               Text(
                 'Virtual Dictionary Failed',
@@ -640,9 +639,9 @@ class _SentenceTranslationWidgetState
               const SizedBox(height: 8),
               Text(
                 _virtualDictionaryError!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: context.error),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -666,7 +665,7 @@ class _SentenceTranslationWidgetState
             Text(
               'Dictionary Entry:',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
+                color: context.m3Primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -704,11 +703,7 @@ class _SentenceTranslationWidgetState
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 48,
-                color: Theme.of(context).colorScheme.error,
-              ),
+              Icon(Icons.error_outline, size: 48, color: context.error),
               const SizedBox(height: 16),
               Text(
                 'AI Translation Failed',
@@ -717,9 +712,9 @@ class _SentenceTranslationWidgetState
               const SizedBox(height: 8),
               Text(
                 _aiErrorMessage!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: context.error),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -743,7 +738,7 @@ class _SentenceTranslationWidgetState
             Text(
               'Translation:',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
+                color: context.m3Primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -771,12 +766,11 @@ class _SentenceTranslationWidgetState
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+        color: context.appColorScheme.background.surfaceContainerHighest
+            .withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+          color: context.appColorScheme.border.outline.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -786,17 +780,15 @@ class _SentenceTranslationWidgetState
             Icon(
               Icons.menu_book,
               size: 48,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.4),
+              color: context.appColorScheme.text.primary.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 8),
             Text(
               'No dictionaries configured',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: context.appColorScheme.text.primary.withValues(
+                  alpha: 0.6,
+                ),
               ),
               textAlign: TextAlign.center,
             ),

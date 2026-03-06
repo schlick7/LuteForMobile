@@ -9,6 +9,7 @@ import '../../settings/models/ai_settings.dart';
 import '../../settings/providers/ai_settings_provider.dart';
 import '../../../core/providers/ai_provider.dart';
 import '../providers/current_book_provider.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 enum DictionaryTabType { dictionary, ai }
 
@@ -302,10 +303,10 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
         Container(
           height: 48,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            color: context.appColorScheme.background.surfaceContainerHighest,
             border: Border(
               bottom: BorderSide(
-                color: Theme.of(context).dividerColor,
+                color: context.appColorScheme.border.dividerColor,
                 width: 1,
               ),
             ),
@@ -334,7 +335,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+        color: context.appColorScheme.background.surface.withValues(alpha: 0.5),
       ),
       child: Row(
         children: [
@@ -366,8 +367,8 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
           color: isSelected
-              ? Theme.of(context).colorScheme.primary
-              : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              ? context.m3Primary
+              : context.appColorScheme.text.primary.withValues(alpha: 0.6),
         ),
       ),
     );
@@ -387,9 +388,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Colors.transparent,
+              color: isSelected ? context.m3Primary : Colors.transparent,
               width: 2,
             ),
           ),
@@ -399,10 +398,8 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
             fontWeight: FontWeight.w600,
             color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                ? context.m3Primary
+                : context.appColorScheme.text.primary.withValues(alpha: 0.6),
           ),
         ),
       ),
@@ -446,11 +443,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 48,
-                color: Theme.of(context).colorScheme.error,
-              ),
+              Icon(Icons.error_outline, size: 48, color: context.error),
               const SizedBox(height: 16),
               Text(
                 'Virtual Dictionary Failed',
@@ -459,9 +452,9 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
               const SizedBox(height: 8),
               Text(
                 _virtualDictionaryError!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: context.error),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -484,10 +477,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.auto_stories,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                Icon(Icons.auto_stories, color: context.m3Primary),
                 const SizedBox(width: 8),
                 Text(
                   'AI Explanation',
@@ -501,14 +491,11 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                color: context.appColorScheme.background.surfaceContainerHighest
+                    .withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.3),
+                  color: context.m3Primary.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -562,11 +549,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.error_outline,
-                size: 48,
-                color: Theme.of(context).colorScheme.error,
-              ),
+              Icon(Icons.error_outline, size: 48, color: context.error),
               const SizedBox(height: 16),
               Text(
                 'AI Translation Failed',
@@ -575,9 +558,9 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
               const SizedBox(height: 8),
               Text(
                 _aiErrorMessage!,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.error,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodySmall?.copyWith(color: context.error),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
@@ -608,7 +591,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
             Text(
               'AI Translation:',
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
+                color: context.m3Primary,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -616,14 +599,12 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.08),
+                color: context.appColorScheme.text.primary.withValues(
+                  alpha: 0.08,
+                ),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.primary.withValues(alpha: 0.3),
+                  color: context.m3Primary.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -664,17 +645,15 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
             Icon(
               Icons.menu_book,
               size: 48,
-              color: Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.4),
+              color: context.appColorScheme.text.primary.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 16),
             Text(
               'No dictionaries configured',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: context.appColorScheme.text.primary.withValues(
+                  alpha: 0.6,
+                ),
               ),
               textAlign: TextAlign.center,
             ),
@@ -699,9 +678,12 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: context.appColorScheme.background.surfaceContainerHighest,
         border: Border(
-          bottom: BorderSide(color: Theme.of(context).dividerColor, width: 1),
+          bottom: BorderSide(
+            color: context.appColorScheme.border.dividerColor,
+            width: 1,
+          ),
         ),
       ),
       child: Row(

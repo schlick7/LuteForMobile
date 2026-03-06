@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/language_stats.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class WordsReadChart extends StatelessWidget {
   final List<LanguageReadingStats> languages;
@@ -57,10 +58,10 @@ class WordsReadChart extends StatelessWidget {
                     show: true,
                     border: Border(
                       bottom: BorderSide(
-                        color: Theme.of(context).colorScheme.outline,
+                        color: context.appColorScheme.border.outline,
                       ),
                       left: BorderSide(
-                        color: Theme.of(context).colorScheme.outline,
+                        color: context.appColorScheme.border.outline,
                       ),
                     ),
                   ),
@@ -70,8 +71,10 @@ class WordsReadChart extends StatelessWidget {
                   maxY: _calculateMaxY(lineBarsData),
                   lineTouchData: LineTouchData(
                     touchTooltipData: LineTouchTooltipData(
-                      getTooltipColor: (touchedSpot) =>
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      getTooltipColor: (touchedSpot) => context
+                          .appColorScheme
+                          .background
+                          .surfaceContainerHighest,
                       tooltipPadding: const EdgeInsets.all(8),
                       getTooltipItems: (touchedSpots) {
                         return touchedSpots.map((spot) {

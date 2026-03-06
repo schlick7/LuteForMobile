@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
+import '../theme/theme_extensions.dart';
 
 class AppDrawer extends ConsumerWidget {
   final String currentRoute;
@@ -38,7 +39,7 @@ class AppDrawer extends ConsumerWidget {
     return Container(
       width: 80,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: context.appColorScheme.background.surfaceContainerHighest,
       ),
       child: Column(
         children: [
@@ -60,9 +61,9 @@ class AppDrawer extends ConsumerWidget {
                     snapshot.data!.version,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontSize: 10,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.6),
+                      color: context.appColorScheme.text.primary.withValues(
+                        alpha: 0.6,
+                      ),
                     ),
                   ),
                 );
@@ -89,8 +90,8 @@ class AppDrawer extends ConsumerWidget {
           IconButton(
             icon: Icon(icon),
             color: isSelected
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.onSurface,
+                ? context.m3Primary
+                : context.appColorScheme.text.primary,
             onPressed: () {
               onNavigate(route);
               Navigator.of(context).pop();

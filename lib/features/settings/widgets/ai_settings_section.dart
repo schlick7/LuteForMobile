@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/ai_settings_provider.dart';
 import 'package:lute_for_mobile/features/settings/widgets/model_selector.dart';
+import 'package:lute_for_mobile/shared/theme/theme_extensions.dart';
 
 class AISettingsSection extends ConsumerStatefulWidget {
   const AISettingsSection({super.key});
@@ -415,7 +416,7 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
     List<PlaceholderInfo> placeholders,
   ) {
     return Card(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: context.appColorScheme.background.surfaceContainerHighest,
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(

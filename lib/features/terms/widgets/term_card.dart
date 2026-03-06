@@ -62,7 +62,7 @@ class TermCard extends StatelessWidget {
                     Icon(
                       Icons.tag,
                       size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: context.appColorScheme.text.secondary,
                     ),
                   if (term.tags != null && term.tags!.isNotEmpty)
                     const SizedBox(width: 4),

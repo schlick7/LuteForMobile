@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/term_tooltip.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 String _formatTranslation(String? translation) {
   if (translation == null) return '';
@@ -102,7 +103,7 @@ class _TooltipContent extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(maxWidth: 200),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
+          color: context.appColorScheme.background.surface,
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.2),
@@ -111,7 +112,7 @@ class _TooltipContent extends StatelessWidget {
             ),
           ],
           border: Border.all(
-            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+            color: context.appColorScheme.border.outline.withValues(alpha: 0.2),
             width: 1,
           ),
           borderRadius: BorderRadius.circular(8),
