@@ -48,6 +48,7 @@ void main() {
         statusModes: {
           0: StatusMode.text,
           1: StatusMode.background,
+          5: StatusMode.none,
           99: StatusMode.text,
         },
       );

@@ -86,13 +86,9 @@ void main() {
         expect(state.userThemes.length, 1);
         expect(state.selectedUserTheme?.colorScheme, darkThemePreset);
 
-        await notifier.updateThemeStatusMode(
-          createdId,
-          0,
-          StatusMode.background,
-        );
+        await notifier.updateThemeStatusMode(createdId, 0, StatusMode.none);
         state = container.read(themeSettingsProvider);
-        expect(state.selectedUserTheme!.statusModes[0], StatusMode.background);
+        expect(state.selectedUserTheme!.statusModes[0], StatusMode.none);
 
         await notifier.duplicateTheme(createdId);
         state = container.read(themeSettingsProvider);
