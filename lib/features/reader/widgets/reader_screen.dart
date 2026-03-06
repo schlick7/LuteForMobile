@@ -1174,7 +1174,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      // Keep sheet backgrounds transparent so child widgets render card styling.
+      backgroundColor: const Color(0x00000000),
       transitionAnimationController: AnimationController(
         duration: const Duration(milliseconds: 100),
         vsync: Navigator.of(context),
@@ -1306,7 +1307,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0x00000000),
       transitionAnimationController: AnimationController(
         duration: const Duration(milliseconds: 100),
         vsync: Navigator.of(context),
@@ -1433,7 +1434,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0x00000000),
       transitionAnimationController: AnimationController(
         duration: const Duration(milliseconds: 100),
         vsync: Navigator.of(context),

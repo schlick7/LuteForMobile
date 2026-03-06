@@ -1,5 +1,30 @@
 # Theme System Expansion - v1 Plan
 
+## 2026-03-06 Reconciliation Notes
+
+This file is now historical planning context. Current implementation status:
+
+- `v1 objective` is implemented and exceeded.
+- Built-in themes are implemented: `dark`, `light`, and `blackAndWhite`.
+- Theme selector UI is implemented and wired in settings flow.
+- Theme application in app (`lib/app.dart`) is implemented (the old "Phase 5 pending" section is no longer current).
+- v2 custom theme library/editor work has also landed, so "custom theme editor deferred to v2" is no longer an open item.
+
+### Implemented (from v1)
+- Theme data structures and presets.
+- App theme + extension integration.
+- Theme settings/provider persistence wiring.
+- Theme selector and settings navigation integration.
+- App-level theme mode application.
+
+### Deviations From Original v1 Plan
+- `ThemeType` now includes `blackAndWhite` in addition to `dark`/`light`.
+- Theme system moved beyond single preset switching into a user theme library model (`selectedThemeId` + `userThemes`).
+
+### Remaining Work (outside original v1 scope)
+- Analyzer/lint cleanup backlog in touched files.
+- Release/changelog summary updates.
+
 
 ## **Objective**
 Add Light Mode theme alongside existing Dark Mode, with theme selector UI. Accent colors remain separate from theme selection.

@@ -147,6 +147,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.dispose();
   }
 
+  Color _onColorForSwatch(Color background) {
+    return background.computeLuminance() > 0.5
+        ? const Color(0xFF1C1B1F)
+        : const Color(0xFFFFFFFF);
+  }
+
   Future<void> _testConnection() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -1278,13 +1284,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     border: Border.all(
                       color: isSelected
                           ? context.appColorScheme.text.primary
-                          : Colors.transparent,
+                          : context.appColorScheme.text.primary.withValues(
+                              alpha: 0.0,
+                            ),
                       width: 2,
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
+                              color: context.appColorScheme.text.primary
+                                  .withValues(alpha: 0.2),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -1292,7 +1301,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         : null,
                   ),
                   child: isSelected
-                      ? const Icon(Icons.check, color: Colors.white)
+                      ? Icon(Icons.check, color: _onColorForSwatch(color))
                       : null,
                 ),
               );
@@ -1337,13 +1346,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           border: Border.all(
             color: isSelected
                 ? context.appColorScheme.text.primary
-                : Colors.transparent,
+                : context.appColorScheme.text.primary.withValues(alpha: 0.0),
             width: 2,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
+                    color: context.appColorScheme.text.primary.withValues(
+                      alpha: 0.2,
+                    ),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -1353,10 +1364,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: Stack(
           children: [
             if (isSelected)
-              const Positioned(
+              Positioned(
                 top: 8,
                 left: 8,
-                child: Icon(Icons.check, color: Colors.white, size: 20),
+                child: Icon(
+                  Icons.check,
+                  color: _onColorForSwatch(displayColor),
+                  size: 20,
+                ),
               ),
             Positioned(
               bottom: 4,
@@ -1365,11 +1380,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 width: 20,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.appColorScheme.background.surface,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
+                      color: context.appColorScheme.text.primary.withValues(
+                        alpha: 0.2,
+                      ),
                       blurRadius: 2,
                     ),
                   ],
@@ -1382,10 +1399,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       onCustomColorSelected,
                     );
                   },
-                  child: const Icon(
+                  child: Icon(
                     Icons.settings,
                     size: 14,
-                    color: Colors.black87,
+                    color: context.appColorScheme.text.primary.withValues(
+                      alpha: 0.85,
+                    ),
                   ),
                 ),
               ),
@@ -1451,7 +1470,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 decoration: BoxDecoration(
                   color: previewColor,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey),
+                  border: Border.all(
+                    color: context.appColorScheme.border.outline,
+                  ),
                 ),
               ),
             ],

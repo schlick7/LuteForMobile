@@ -122,6 +122,7 @@ class _BookCompletionCelebrationDialogState
               emissionFrequency: 0.05,
               numberOfParticles: 20,
               gravity: 0.2,
+              // Intentional celebratory palette (not theme-derived).
               colors: const [
                 Colors.green,
                 Colors.blue,

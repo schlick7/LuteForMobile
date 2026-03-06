@@ -57,7 +57,7 @@ final AppThemeColorScheme darkThemePreset = AppThemeColorScheme(
   ),
   audio: const AudioColors(
     background: Color(0xFF6750A4),
-    icon: Colors.white,
+    icon: Color(0xFFFFFFFF),
     bookmark: Color(0xFFFFA000),
     error: Color(0xFFD32F2F),
     errorBackground: Color(0x33FFCDD2),
@@ -132,7 +132,7 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
   ),
   audio: const AudioColors(
     background: Color(0xFF6750A4),
-    icon: Colors.white,
+    icon: Color(0xFFFFFFFF),
     bookmark: Color(0xFFFFA000),
     error: Color(0xFFD32F2F),
     errorBackground: Color(0x33FFCDD2),
@@ -207,7 +207,7 @@ final AppThemeColorScheme blackAndWhiteThemePreset = AppThemeColorScheme(
   ),
   audio: const AudioColors(
     background: Color(0xFF000000),
-    icon: Colors.white,
+    icon: Color(0xFFFFFFFF),
     bookmark: Color(0xFF333333),
     error: Color(0xFF000000),
     errorBackground: Color(0x11000000),

@@ -325,7 +325,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                 height: 12,
                 decoration: BoxDecoration(
                   color: isIgnored
-                      ? Colors.transparent
+                      ? const Color(0x00000000)
                       : context.getStatusColor(statusNum.toString()),
                   borderRadius: BorderRadius.circular(2),
                   border: Border.all(

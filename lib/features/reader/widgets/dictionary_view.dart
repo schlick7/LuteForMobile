@@ -388,7 +388,9 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
         decoration: BoxDecoration(
           border: Border(
             bottom: BorderSide(
-              color: isSelected ? context.m3Primary : Colors.transparent,
+              color: isSelected
+                  ? context.m3Primary
+                  : context.m3Primary.withValues(alpha: 0.0),
               width: 2,
             ),
           ),

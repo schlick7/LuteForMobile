@@ -1,5 +1,31 @@
 # Theme System Expansion - v2 Plan
 
+## 2026-03-06 Reconciliation Notes
+
+This file is now historical planning context. Current implementation status:
+
+- Core v2 objective is implemented: custom theme creation/editing/persistence is live.
+- Theme library model is implemented (`selectedThemeId`, `userThemes`, CRUD flows).
+- `New Theme` initialization modes are implemented (`fromDark`, `fromLight`, `fromBlackAndWhite`, `fromCurrent`, `blank`).
+- Theme serialization is implemented with compatibility/fallback handling.
+- Widget and unit test coverage was added for serialization/provider and key theme UI flows.
+
+### Implemented (from v2)
+- Full custom theme editor behavior (including picker + inline previews).
+- Status mode configuration and persistence.
+- Theme duplication/rename/delete/reset flows.
+- Preset-based and current-theme-based initialization.
+
+### Structural Deviations From Original v2 Plan
+- Original plan proposed a more fragmented editor file structure.
+- Actual implementation is intentionally consolidated in:
+  - `lib/features/settings/widgets/custom_theme_editor.dart`
+- This is a structure deviation only; functional parity is present.
+
+### Remaining Work
+- Dedicated analyzer warning cleanup pass (`use_build_context_synchronously`, deprecated APIs, etc.).
+- Plan/doc and changelog final pass for release notes.
+
 
 ## **Objective**
 Add comprehensive custom theme editor allowing users to customize all colors in the application, with live previews and intuitive organization.

@@ -1299,7 +1299,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      // Keep sheet backgrounds transparent so child widgets render card styling.
+      backgroundColor: const Color(0x00000000),
       builder: (context) {
         final repository = ref.read(readerRepositoryProvider);
         final settings = ref.read(termFormSettingsProvider);
@@ -1453,7 +1454,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0x00000000),
       builder: (context) {
         final repository = ref.read(readerRepositoryProvider);
         final settings = ref.read(termFormSettingsProvider);
@@ -1615,7 +1616,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0x00000000),
       builder: (context) {
         return SentenceTranslationWidget(
           sentence: sentence,
@@ -1643,7 +1644,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      backgroundColor: const Color(0x00000000),
       builder: (context) {
         return SentenceAITranslationWidget(
           sentence: sentence,

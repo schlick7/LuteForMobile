@@ -240,7 +240,9 @@ class ThemeSelectorScreen extends ConsumerWidget {
             border: Border.all(
               color: isSelected
                   ? context.appColorScheme.material3.primary
-                  : Colors.transparent,
+                  : context.appColorScheme.material3.primary.withValues(
+                      alpha: 0.0,
+                    ),
               width: 2,
             ),
           ),

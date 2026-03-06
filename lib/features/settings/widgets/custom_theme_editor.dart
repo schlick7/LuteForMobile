@@ -31,6 +31,12 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
     super.dispose();
   }
 
+  Color _onColorForPreview(Color background) {
+    return background.computeLuminance() > 0.5
+        ? const Color(0xFF1C1B1F)
+        : const Color(0xFFFFFFFF);
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(themeSettingsProvider);
@@ -682,7 +688,11 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
       label: label,
       color: color,
       description: '$label semantic color',
-      preview: _chipPreview(bg: color, fg: Colors.white, text: label),
+      preview: _chipPreview(
+        bg: color,
+        fg: _onColorForPreview(color),
+        text: label,
+      ),
       onChanged: onChanged,
     );
   }
@@ -759,7 +769,11 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
             height: 28,
             decoration: BoxDecoration(
               color: color,
-              border: Border.all(color: Colors.black26),
+              border: Border.all(
+                color: context.appColorScheme.border.outline.withValues(
+                  alpha: 0.35,
+                ),
+              ),
               borderRadius: BorderRadius.circular(6),
             ),
           ),
@@ -796,6 +810,7 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
   ) async {
     Color previewColor = current;
     final controller = TextEditingController(text: _hex(current));
+    // Intentional fixed palette for quick-pick colors in the editor UI.
     final presetColors = <Color>[
       Colors.black,
       Colors.white,
@@ -842,7 +857,8 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
                               border: Border.all(
                                 color: previewColor == color
                                     ? context.appColorScheme.material3.primary
-                                    : Colors.black26,
+                                    : context.appColorScheme.border.outline
+                                          .withValues(alpha: 0.35),
                                 width: previewColor == color ? 2 : 1,
                               ),
                             ),
@@ -874,7 +890,10 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
                       decoration: BoxDecoration(
                         color: previewColor,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.black26),
+                        border: Border.all(
+                          color: context.appColorScheme.border.outline
+                              .withValues(alpha: 0.35),
+                        ),
                       ),
                     ),
                   ],
@@ -922,7 +941,9 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.black26),
+        border: Border.all(
+          color: context.appColorScheme.border.outline.withValues(alpha: 0.35),
+        ),
       ),
     );
   }

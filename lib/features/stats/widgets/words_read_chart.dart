@@ -208,6 +208,7 @@ class WordsReadChart extends StatelessWidget {
   }
 
   List<Color> _getLanguageColors() {
+    // Intentional fixed palette to keep language series visually distinct.
     return [
       Colors.blue,
       Colors.green,

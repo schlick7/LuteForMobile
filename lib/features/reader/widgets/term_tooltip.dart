@@ -106,7 +106,7 @@ class _TooltipContent extends StatelessWidget {
           color: context.appColorScheme.background.surface,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
+              color: context.appColorScheme.text.primary.withValues(alpha: 0.2),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
