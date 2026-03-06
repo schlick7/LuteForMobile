@@ -3,14 +3,14 @@
 - source myenv/bin/activate
   - python3 -m lute.main
   
----
 
-During first launch and setting the localurl the first time the app is in a partially broken state. The shortcut to choose a book doesn't work and selecting a book to read also doesn't work. Restarting the app makes everything function correctly. 
+I want a New theme button in the theme selection. I want this to open a window to add a theme. With the ability to prefill the options from a current theme or start from completely scratch. We want Examples of each theme option next to the color value (add a color picker as well). Does the theme plans cover this? 
 
----
-https://wiki.termux.com/wiki/Main_Page
-https://github.com/termux/termux-packages/wiki/Mirrors
-https://github.com/termux/termux-tools/tree/master/mirrors
+All terms status themes(0,1,2,3,4,5,98,99) should support either text,background, or none. whichever the theme creator wants. Opacity is fully controlled by the theme as well for the status colors. 0% opacity should be considered hidden in reader, but there are a few places (like stats screen) that will need to still show these
+
+Is the alpha for terms statuses still hardcoded? if not is the proper themes updated with the transparency instead?
+
+Change the color picker to same type of better color selected so users can pick on a "map" this should include a slider for opacity. Show the selected colors hex value still
 
 # Termux
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
