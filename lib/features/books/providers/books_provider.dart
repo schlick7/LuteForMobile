@@ -910,6 +910,15 @@ class BooksNotifier extends Notifier<BooksState> {
     return newBookId;
   }
 
+  Future<BookEditFormData> getBookEditForm(int bookId) async {
+    return await _repository.getBookEditForm(bookId);
+  }
+
+  Future<void> editBook(BookEditRequest request) async {
+    await _repository.editBook(request);
+    await loadBooks(forceRefresh: true, skipExpiredBookRefresh: true);
+  }
+
   Future<void> invalidateCacheForBookLanguage(int bookId) async {
     final book = state.activeBooks.firstWhere(
       (b) => b.id == bookId,

@@ -490,6 +490,17 @@ class ApiService {
     return await _dio.get<String>('/book/edit/$bookId');
   }
 
+  Future<Response<String>> postBookEdit(int bookId, dynamic data) async {
+    if (data is FormData) {
+      return await _dio.post<String>('/book/edit/$bookId', data: data);
+    }
+    return await _dio.post<String>(
+      '/book/edit/$bookId',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+  }
+
   Future<Response<String>> postPlayerData(
     int bookId,
     double position,

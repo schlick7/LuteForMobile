@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 import '../providers/books_provider.dart';
+import 'edit_book_dialog.dart';
 
 import 'package:lute_for_mobile/app.dart';
 
@@ -98,18 +98,12 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                   IconButton(
                     icon: const Icon(Icons.edit, size: 20),
                     onPressed: () async {
-                      final confirmed = await _showEditConfirmDialog(context);
-                      if (confirmed && context.mounted) {
-                        final serverUrl = ref.read(settingsProvider).serverUrl;
-                        final editUrl = Uri.parse(
-                          '$serverUrl/book/edit/${book.id}',
-                        );
-                        if (await canLaunchUrl(editUrl)) {
-                          await launchUrl(
-                            editUrl,
-                            mode: LaunchMode.externalApplication,
-                          );
-                        }
+                      final edited = await showDialog<bool>(
+                        context: context,
+                        builder: (_) => EditBookDialog(bookId: book.id),
+                      );
+                      if (edited == true && context.mounted) {
+                        Navigator.of(context).pop();
                       }
                     },
                     tooltip: 'Edit',
@@ -400,27 +394,6 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
             child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
-  }
-
-  Future<bool> _showEditConfirmDialog(BuildContext context) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Book'),
-        content: const Text('Open book editor in external browser?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Open'),
           ),
         ],
       ),

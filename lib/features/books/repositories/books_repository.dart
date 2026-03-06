@@ -144,4 +144,20 @@ class BooksRepository {
       throw Exception('Failed to create book: $e');
     }
   }
+
+  Future<BookEditFormData> getBookEditForm(int bookId) async {
+    try {
+      return await contentService.getBookEditForm(bookId);
+    } catch (e) {
+      throw Exception('Failed to load book edit form: $e');
+    }
+  }
+
+  Future<void> editBook(BookEditRequest request) async {
+    try {
+      await contentService.editBook(request);
+    } catch (e) {
+      throw Exception('Failed to edit book: $e');
+    }
+  }
 }

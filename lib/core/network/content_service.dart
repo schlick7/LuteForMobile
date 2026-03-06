@@ -584,6 +584,67 @@ class ContentService {
     throw Exception('Book creation failed: server did not return a book ID.');
   }
 
+  Future<BookEditFormData> getBookEditForm(int bookId) async {
+    final response = await _apiService.getBookEdit(bookId);
+    final htmlContent = response.data ?? '';
+    final document = html_parser.parse(htmlContent);
+
+    final title =
+        document.querySelector('#title')?.attributes['value']?.trim() ?? '';
+    final sourceUri =
+        document.querySelector('#source_uri')?.attributes['value']?.trim() ??
+        '';
+    final audioFilename =
+        document
+            .querySelector('#audio_filename')
+            ?.attributes['value']
+            ?.trim() ??
+        '';
+    final rawTags =
+        document.querySelector('#book_tags')?.attributes['value']?.trim() ?? '';
+
+    final errors = _extractFlashErrors(document);
+    if (errors.isNotEmpty) {
+      throw Exception(errors.join('\n'));
+    }
+
+    return BookEditFormData(
+      title: title,
+      sourceUri: sourceUri,
+      tags: _parseTagifyTags(rawTags),
+      audioFilename: audioFilename,
+    );
+  }
+
+  Future<void> editBook(BookEditRequest request) async {
+    dynamic payload = request.toFormFields();
+    if (request.hasAudioFile) {
+      final fields = request.toFormFields();
+      payload = FormData.fromMap({
+        ...fields,
+        'audiofile': await MultipartFile.fromFile(
+          request.audioFilePath!,
+          filename: _filenameFromPath(request.audioFilePath!),
+        ),
+      });
+    }
+
+    final response = await _apiService.postBookEdit(request.bookId, payload);
+    final location = response.headers.value('location');
+    if (location != null && location.trim().isNotEmpty) {
+      return;
+    }
+
+    final htmlContent = response.data ?? '';
+    if (htmlContent.isNotEmpty) {
+      final document = html_parser.parse(htmlContent);
+      final errors = _extractFlashErrors(document);
+      if (errors.isNotEmpty) {
+        throw Exception(errors.join('\n'));
+      }
+    }
+  }
+
   List<String> _extractFlashErrors(html.Document document) {
     final messages = document
         .querySelectorAll('.flash-notice-narrow, .flash-notice')
@@ -598,6 +659,29 @@ class ContentService {
     final segments = normalized.split('/');
     if (segments.isEmpty) return path;
     return segments.last;
+  }
+
+  List<String> _parseTagifyTags(String rawValue) {
+    if (rawValue.isEmpty) return const [];
+
+    try {
+      final parsed = jsonDecode(rawValue);
+      if (parsed is List) {
+        return parsed
+            .whereType<Map>()
+            .map((item) => item['value']?.toString().trim() ?? '')
+            .where((tag) => tag.isNotEmpty)
+            .toList();
+      }
+    } catch (_) {
+      // Fallback below.
+    }
+
+    return rawValue
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
   }
 
   Future<void> saveAudioPlayerData({
