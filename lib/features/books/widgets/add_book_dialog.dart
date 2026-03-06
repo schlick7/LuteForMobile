@@ -54,6 +54,11 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
     try {
       final contentService = ref.read(contentServiceProvider);
       final languages = await contentService.getLanguagesWithIds();
+      final uniqueLanguagesById = <int, Language>{};
+      for (final language in languages) {
+        uniqueLanguagesById.putIfAbsent(language.id, () => language);
+      }
+      final uniqueLanguages = uniqueLanguagesById.values.toList();
       int? currentLanguageId;
       final currentLanguageSetting = await contentService.getUserSetting(
         'current_language_id',
@@ -62,12 +67,16 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
         currentLanguageId = int.tryParse(currentLanguageSetting);
       }
 
+      final hasCurrentLanguage =
+          currentLanguageId != null &&
+          uniqueLanguages.any((lang) => lang.id == currentLanguageId);
+
       if (!mounted) return;
       setState(() {
-        _languages = languages;
-        _selectedLanguageId =
-            currentLanguageId ??
-            (languages.isNotEmpty ? languages.first.id : null);
+        _languages = uniqueLanguages;
+        _selectedLanguageId = hasCurrentLanguage
+            ? currentLanguageId
+            : (uniqueLanguages.isNotEmpty ? uniqueLanguages.first.id : null);
         _isLoadingLanguages = false;
       });
     } catch (_) {
@@ -255,10 +264,14 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final dialogWidth = screenWidth * 0.94;
+
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
       title: const Text('Add Book'),
       content: SizedBox(
-        width: 560,
+        width: dialogWidth,
         child: _isLoadingLanguages
             ? const SizedBox(
                 height: 180,
@@ -297,7 +310,10 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<int>(
-                        initialValue: _selectedLanguageId,
+                        initialValue:
+                            _languages.any((l) => l.id == _selectedLanguageId)
+                            ? _selectedLanguageId
+                            : null,
                         decoration: const InputDecoration(
                           labelText: 'Language',
                         ),

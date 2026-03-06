@@ -531,7 +531,7 @@ class HtmlParser {
       'table tbody tr a[href^="/language/edit/"]',
     );
 
-    return languageLinks
+    final parsedLanguages = languageLinks
         .map((link) {
           final href = link.attributes['href'] ?? '';
           final idMatch = RegExp(r'/language/edit/(\d+)').firstMatch(href);
@@ -547,6 +547,14 @@ class HtmlParser {
         })
         .whereType<Language>()
         .toList();
+
+    // Keep only one entry per ID to avoid invalid dropdown states when
+    // upstream HTML contains duplicate language links.
+    final uniqueById = <int, Language>{};
+    for (final language in parsedLanguages) {
+      uniqueById.putIfAbsent(language.id, () => language);
+    }
+    return uniqueById.values.toList();
   }
 
   List<DictionarySource> parseLanguageDictionaries(String htmlContent) {
