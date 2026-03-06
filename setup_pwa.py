@@ -5,10 +5,34 @@ Automates deploying PWA files to your Lute server installation.
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+
+
+def _fix_base_href(index_html_path, base_href="/static/luteformobile/"):
+    """Rewrite <base href="..."> to match deployed static subpath."""
+    with open(index_html_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    updated, count = re.subn(
+        r'<base\s+href="[^"]*"\s*/?>',
+        f'<base href="{base_href}" />',
+        content,
+        count=1,
+        flags=re.IGNORECASE,
+    )
+
+    # Fallback for unexpected templates where the <base> tag may be missing.
+    if count == 0:
+        updated = content.replace(
+            "<head>", f'<head>\n    <base href="{base_href}" />', 1
+        )
+
+    with open(index_html_path, "w", encoding="utf-8") as f:
+        f.write(updated)
 
 
 def find_lute_installation():
@@ -121,6 +145,9 @@ def deploy_to_venv(lute_info, pwa_path):
         "icons",
         "index.html",
         "main.dart.js",
+        "main.dart.mjs",
+        "main.dart.wasm",
+        "main.dart.wasm.map",
         "favicon.png",
         "flutter.js",
         "flutter_bootstrap.js",
@@ -145,19 +172,7 @@ def deploy_to_venv(lute_info, pwa_path):
     index_html = dest_path / "index.html"
     if index_html.exists():
         print("🔧 Fixing base href...")
-        with open(index_html, "r") as f:
-            content = f.read()
-        content = content.replace(
-            '<base href="">', '<base href="/static/luteformobile/">'
-        )
-        content = content.replace(
-            '<base href="/">', '<base href="/static/luteformobile/">'
-        )
-        content = content.replace(
-            '<base href="/luteformobile/">', '<base href="/static/luteformobile/">'
-        )
-        with open(index_html, "w") as f:
-            f.write(content)
+        _fix_base_href(index_html)
         print("   ✅ Base href set to: /static/luteformobile/")
 
     return True
@@ -212,6 +227,9 @@ def deploy_to_docker(lute_info, pwa_path):
         "icons",
         "index.html",
         "main.dart.js",
+        "main.dart.mjs",
+        "main.dart.wasm",
+        "main.dart.wasm.map",
         "favicon.png",
         "flutter.js",
         "flutter_bootstrap.js",
@@ -238,8 +256,9 @@ def deploy_to_docker(lute_info, pwa_path):
             "exec",
             container_name,
             "sed",
+            "-E",
             "-i",
-            's|<base href=".*">|<base href="/static/luteformobile/">|',
+            r's|<base[[:space:]]+href="[^"]*"[[:space:]]*/?>|<base href="/static/luteformobile/" />|',
             f"{dest_path}/index.html",
         ],
         check=True,
@@ -274,6 +293,9 @@ def deploy_to_source(lute_info, pwa_path):
         "icons",
         "index.html",
         "main.dart.js",
+        "main.dart.mjs",
+        "main.dart.wasm",
+        "main.dart.wasm.map",
         "favicon.png",
         "flutter.js",
         "flutter_bootstrap.js",
@@ -298,19 +320,7 @@ def deploy_to_source(lute_info, pwa_path):
     index_html = dest_path / "index.html"
     if index_html.exists():
         print("🔧 Fixing base href...")
-        with open(index_html, "r") as f:
-            content = f.read()
-        content = content.replace(
-            '<base href="">', '<base href="/static/luteformobile/">'
-        )
-        content = content.replace(
-            '<base href="/">', '<base href="/static/luteformobile/">'
-        )
-        content = content.replace(
-            '<base href="/luteformobile/">', '<base href="/static/luteformobile/">'
-        )
-        with open(index_html, "w") as f:
-            f.write(content)
+        _fix_base_href(index_html)
         print("   ✅ Base href set to: /static/luteformobile/")
 
     return True
