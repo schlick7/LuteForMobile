@@ -69,32 +69,50 @@ class TermStatusChart extends ConsumerWidget {
       '1': TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.bold,
-        color: context.getStatusTextColor('1'),
+        color: _statusLabelTextColor(
+          context,
+          statusColors['1'] ?? context.appColorScheme.text.secondary,
+        ),
       ),
       '2': TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.bold,
-        color: context.getStatusTextColor('2'),
+        color: _statusLabelTextColor(
+          context,
+          statusColors['2'] ?? context.appColorScheme.text.secondary,
+        ),
       ),
       '3': TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.bold,
-        color: context.getStatusTextColor('3'),
+        color: _statusLabelTextColor(
+          context,
+          statusColors['3'] ?? context.appColorScheme.text.secondary,
+        ),
       ),
       '4': TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.bold,
-        color: context.getStatusTextColor('4'),
+        color: _statusLabelTextColor(
+          context,
+          statusColors['4'] ?? context.appColorScheme.text.secondary,
+        ),
       ),
       '5': TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.bold,
-        color: context.getStatusTextColor('5'),
+        color: _statusLabelTextColor(
+          context,
+          statusColors['5'] ?? context.appColorScheme.text.secondary,
+        ),
       ),
       '99': TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.bold,
-        color: context.getStatusTextColor('99'),
+        color: _statusLabelTextColor(
+          context,
+          statusColors['99'] ?? context.appColorScheme.text.secondary,
+        ),
       ),
     };
 
@@ -146,13 +164,19 @@ class TermStatusChart extends ConsumerWidget {
 
   Map<String, Color> _getStatusColors(BuildContext context) {
     return {
-      '1': context.status1,
-      '2': context.status2,
-      '3': context.status3,
-      '4': context.status4,
-      '5': context.status5,
-      '99': context.status99,
+      '1': context.getStatusColorForVisualization('1'),
+      '2': context.getStatusColorForVisualization('2'),
+      '3': context.getStatusColorForVisualization('3'),
+      '4': context.getStatusColorForVisualization('4'),
+      '5': context.getStatusColorForVisualization('5'),
+      '99': context.getStatusColorForVisualization('99'),
     };
+  }
+
+  Color _statusLabelTextColor(BuildContext context, Color background) {
+    return background.computeLuminance() > 0.5
+        ? context.appColorScheme.text.primary
+        : context.appColorScheme.status.highlightedText;
   }
 
   Widget _buildLegend(BuildContext context, TermStats stats) {

@@ -69,7 +69,7 @@ class TermStatsCard extends StatelessWidget {
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
-                    color: context.getStatusColor(status),
+                    color: context.getStatusColorForVisualization(status),
                     borderRadius: BorderRadius.circular(2),
                     border: Border.all(
                       color: context.appColorScheme.text.secondary,

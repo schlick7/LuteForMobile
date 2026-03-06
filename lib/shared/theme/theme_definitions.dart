@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 enum ThemeType { dark, light, blackAndWhite }
 
-enum StatusMode { text, background }
+enum StatusMode { text, background, none }
 
 Map<int, StatusMode> defaultStatusModes() {
   return {

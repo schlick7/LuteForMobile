@@ -699,22 +699,31 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
 
   Widget _statusRow(int status, Color color, ValueChanged<Color> onChanged) {
     final mode = _workingModes![status] ?? StatusMode.background;
+    final modeDescription = switch (mode) {
+      StatusMode.background => 'Used as highlight background',
+      StatusMode.text => 'Used as text color',
+      StatusMode.none => 'No status styling in reader',
+    };
+    final preview = switch (mode) {
+      StatusMode.background => _chipPreview(
+        bg: color,
+        fg: _workingScheme!.status.highlightedText,
+        text: 'Status $status',
+      ),
+      StatusMode.text => Text('Status $status', style: TextStyle(color: color)),
+      StatusMode.none => Text(
+        'Status $status',
+        style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
+      ),
+    };
     return Column(
       children: [
         _colorRow(
           context,
           label: 'Status $status',
           color: color,
-          description: mode == StatusMode.background
-              ? 'Used as highlight background'
-              : 'Used as text color',
-          preview: mode == StatusMode.background
-              ? _chipPreview(
-                  bg: color,
-                  fg: _workingScheme!.status.highlightedText,
-                  text: 'Status $status',
-                )
-              : Text('Status $status', style: TextStyle(color: color)),
+          description: modeDescription,
+          preview: preview,
           onChanged: onChanged,
         ),
         Row(
@@ -729,6 +738,7 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
                   label: Text('Background'),
                 ),
                 ButtonSegment(value: StatusMode.text, label: Text('Text')),
+                ButtonSegment(value: StatusMode.none, label: Text('None')),
               ],
               selected: {mode},
               onSelectionChanged: (selected) {
@@ -809,6 +819,8 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
     ValueChanged<Color> onChanged,
   ) async {
     Color previewColor = current;
+    HSVColor hsv = HSVColor.fromColor(current.withValues(alpha: 1.0));
+    double alpha = current.a;
     final controller = TextEditingController(text: _hex(current));
     // Intentional fixed palette for quick-pick colors in the editor UI.
     final presetColors = <Color>[
@@ -826,6 +838,13 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
       const Color(0xFF1976D2),
     ];
 
+    void updateFromHsvAndAlpha(StateSetter setState) {
+      setState(() {
+        previewColor = hsv.toColor().withValues(alpha: alpha);
+        controller.text = _hex(previewColor);
+      });
+    }
+
     await showDialog<void>(
       context: context,
       builder: (context) {
@@ -836,7 +855,42 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    _SaturationValuePicker(
+                      hue: hsv.hue,
+                      saturation: hsv.saturation,
+                      value: hsv.value,
+                      onChanged: (saturation, value) {
+                        hsv = hsv.withSaturation(saturation).withValue(value);
+                        updateFromHsvAndAlpha(setState);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Text('Hue', style: Theme.of(context).textTheme.bodySmall),
+                    Slider(
+                      value: hsv.hue,
+                      min: 0,
+                      max: 360,
+                      onChanged: (value) {
+                        hsv = hsv.withHue(value);
+                        updateFromHsvAndAlpha(setState);
+                      },
+                    ),
+                    Text(
+                      'Opacity',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    Slider(
+                      value: alpha,
+                      min: 0,
+                      max: 1,
+                      onChanged: (value) {
+                        alpha = value;
+                        updateFromHsvAndAlpha(setState);
+                      },
+                    ),
+                    const SizedBox(height: 4),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
@@ -844,8 +898,11 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
                         return InkWell(
                           onTap: () {
                             setState(() {
-                              previewColor = color;
-                              controller.text = _hex(color);
+                              previewColor = color.withValues(alpha: alpha);
+                              hsv = HSVColor.fromColor(
+                                color.withValues(alpha: 1.0),
+                              );
+                              controller.text = _hex(previewColor);
                             });
                           },
                           child: Container(
@@ -871,7 +928,7 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
                       controller: controller,
                       decoration: const InputDecoration(
                         labelText: 'Hex',
-                        hintText: '#RRGGBB',
+                        hintText: '#AARRGGBB',
                         border: OutlineInputBorder(),
                       ),
                       onChanged: (value) {
@@ -879,6 +936,10 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
                         if (parsed != null) {
                           setState(() {
                             previewColor = parsed;
+                            alpha = parsed.a;
+                            hsv = HSVColor.fromColor(
+                              parsed.withValues(alpha: 1.0),
+                            );
                           });
                         }
                       },
@@ -968,15 +1029,109 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
   }
 
   String _hex(Color color) {
-    return '#${color.toARGB32().toRadixString(16).substring(2).toUpperCase()}';
+    return '#${color.toARGB32().toRadixString(16).toUpperCase().padLeft(8, '0')}';
   }
 
   Color? _parseColor(String raw) {
     final value = raw.trim();
     final sanitized = value.startsWith('#') ? value.substring(1) : value;
-    if (sanitized.length != 6) return null;
+    if (sanitized.length != 6 && sanitized.length != 8) return null;
     final parsed = int.tryParse(sanitized, radix: 16);
     if (parsed == null) return null;
-    return Color(0xFF000000 + parsed);
+    if (sanitized.length == 8) return Color(parsed);
+    return Color(0xFF000000 | parsed);
+  }
+}
+
+class _SaturationValuePicker extends StatelessWidget {
+  final double hue;
+  final double saturation;
+  final double value;
+  final void Function(double saturation, double value) onChanged;
+
+  const _SaturationValuePicker({
+    required this.hue,
+    required this.saturation,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.maxWidth.isFinite
+            ? constraints.maxWidth.clamp(200.0, 320.0).toDouble()
+            : 260.0;
+        return SizedBox(
+          width: size,
+          height: size,
+          child: GestureDetector(
+            onPanDown: (details) => _handleGesture(details.localPosition, size),
+            onPanUpdate: (details) =>
+                _handleGesture(details.localPosition, size),
+            child: Stack(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withValues(alpha: 0.35),
+                    ),
+                    color: HSVColor.fromAHSV(1.0, hue, 1.0, 1.0).toColor(),
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    gradient: const LinearGradient(
+                      colors: [Colors.white, Colors.transparent],
+                    ),
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    gradient: const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.black],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: saturation * size - 8,
+                  top: (1 - value) * size - 8,
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.4),
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleGesture(Offset position, double size) {
+    final clampedX = position.dx.clamp(0.0, size);
+    final clampedY = position.dy.clamp(0.0, size);
+    final nextSaturation = clampedX / size;
+    final nextValue = 1 - (clampedY / size);
+    onChanged(nextSaturation, nextValue);
   }
 }
