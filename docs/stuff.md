@@ -3,8 +3,9 @@
 - source myenv/bin/activate
   - python3 -m lute.main
   
+---
 
-
+During first launch and setting the localurl the first time the app is in a partially broken state. The shortcut to choose a book doesn't work and selecting a book to read also doesn't work. Restarting the app makes everything function correctly. 
 
 ---
 https://wiki.termux.com/wiki/Main_Page
