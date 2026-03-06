@@ -406,6 +406,95 @@ class _LanguageSettingsCardState extends ConsumerState<LanguageSettingsCard> {
     });
   }
 
+  Future<void> _showNewLanguageDialog() async {
+    String? selected = _selectedPredefinedLanguage;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('New Language'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_isLoadingPredefined)
+                    const Center(child: CircularProgressIndicator())
+                  else if (_predefinedLanguageNames.isNotEmpty)
+                    DropdownButtonFormField<String>(
+                      initialValue: selected,
+                      decoration: const InputDecoration(
+                        labelText: 'Predefined Language',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _predefinedLanguageNames
+                          .map(
+                            (name) => DropdownMenuItem<String>(
+                              value: name,
+                              child: Text(name),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        setDialogState(() {
+                          selected = value;
+                        });
+                      },
+                    )
+                  else
+                    const Text('No predefined languages found on server.'),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _startCreateLanguage();
+                        },
+                        child: const Text('Custom New'),
+                      ),
+                      ElevatedButton(
+                        onPressed: selected == null
+                            ? null
+                            : () {
+                                Navigator.of(context).pop();
+                                _startCreateLanguage(templateName: selected);
+                              },
+                        child: const Text('Prefill Template'),
+                      ),
+                      ElevatedButton(
+                        onPressed: selected == null || _isQuickLoadingPredefined
+                            ? null
+                            : () async {
+                                Navigator.of(context).pop();
+                                setState(() {
+                                  _selectedPredefinedLanguage = selected;
+                                });
+                                await _quickLoadPredefinedLanguage();
+                              },
+                        child: const Text('Quick Load Predefined'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = _settings;
@@ -424,9 +513,17 @@ class _LanguageSettingsCardState extends ConsumerState<LanguageSettingsCard> {
           'Language Settings',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        subtitle: const Text('Collapsed by default'),
         childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ElevatedButton.icon(
+              onPressed: _showNewLanguageDialog,
+              icon: const Icon(Icons.add),
+              label: const Text('New Language'),
+            ),
+          ),
           const SizedBox(height: 8),
           if (_error != null)
             Padding(
@@ -436,81 +533,10 @@ class _LanguageSettingsCardState extends ConsumerState<LanguageSettingsCard> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
-          _buildAddLanguageSection(context),
-          const Divider(height: 24),
+          const Divider(height: 16),
           _buildEditorSection(context, settings, parserOptions),
         ],
       ),
-    );
-  }
-
-  Widget _buildAddLanguageSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Add Language', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        if (_isLoadingPredefined)
-          const Center(child: CircularProgressIndicator())
-        else if (_predefinedLanguageNames.isNotEmpty)
-          DropdownButtonFormField<String>(
-            initialValue: _selectedPredefinedLanguage,
-            decoration: const InputDecoration(
-              labelText: 'Predefined Language',
-              border: OutlineInputBorder(),
-            ),
-            items: _predefinedLanguageNames
-                .map(
-                  (name) =>
-                      DropdownMenuItem<String>(value: name, child: Text(name)),
-                )
-                .toList(),
-            onChanged: (value) {
-              setState(() {
-                _selectedPredefinedLanguage = value;
-              });
-            },
-          ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ElevatedButton.icon(
-              onPressed: _isLoadingSettings
-                  ? null
-                  : () => _startCreateLanguage(),
-              icon: const Icon(Icons.add),
-              label: const Text('Custom New'),
-            ),
-            ElevatedButton.icon(
-              onPressed:
-                  (_selectedPredefinedLanguage == null || _isLoadingSettings)
-                  ? null
-                  : () => _startCreateLanguage(
-                      templateName: _selectedPredefinedLanguage,
-                    ),
-              icon: const Icon(Icons.tune),
-              label: const Text('Prefill Template'),
-            ),
-            ElevatedButton.icon(
-              onPressed:
-                  (_selectedPredefinedLanguage == null ||
-                      _isQuickLoadingPredefined)
-                  ? null
-                  : _quickLoadPredefinedLanguage,
-              icon: _isQuickLoadingPredefined
-                  ? const SizedBox(
-                      height: 16,
-                      width: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.download),
-              label: const Text('Quick Load Predefined'),
-            ),
-          ],
-        ),
-      ],
     );
   }
 
