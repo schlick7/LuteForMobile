@@ -18,8 +18,16 @@ extension BuildContextExtension on BuildContext {
     return extension?.colorScheme ?? darkThemePreset;
   }
 
+  Map<int, StatusMode> get statusModes {
+    final extension = Theme.of(this).extension<AppThemeColorExtension>();
+    return extension?.statusModes ?? defaultStatusModes();
+  }
+
   Color get audioPlayerBackground => appColorScheme.audio.background;
   Color get audioPlayerIcon => appColorScheme.audio.icon;
+  Color get audioBookmark => appColorScheme.audio.bookmark;
+  Color get audioError => appColorScheme.audio.error;
+  Color get audioErrorBackground => appColorScheme.audio.errorBackground;
 
   Color get status1 => appColorScheme.status.status1;
   Color get status2 => appColorScheme.status.status2;
@@ -50,36 +58,47 @@ extension BuildContextExtension on BuildContext {
   Color get m3TertiaryContainer => appColorScheme.material3.tertiaryContainer;
 
   Color getStatusTextColor(String status) {
+    final statusNum = int.tryParse(status) ?? 0;
+    final mode = statusModes[statusNum] ?? StatusMode.background;
+    if (mode == StatusMode.text) {
+      return getStatusColor(status);
+    }
     switch (status) {
       case '1':
-        if (appColorScheme.status.isTransparent1) {
+        if (appColorScheme.status.isTransparent1 ||
+            (statusModes[1] ?? StatusMode.background) == StatusMode.text) {
           return appColorScheme.text.primary;
         }
         return appColorScheme.status.highlightedText;
       case '2':
-        if (appColorScheme.status.isTransparent2) {
+        if (appColorScheme.status.isTransparent2 ||
+            (statusModes[2] ?? StatusMode.background) == StatusMode.text) {
           return appColorScheme.text.primary;
         }
         return appColorScheme.status.highlightedText;
       case '3':
-        if (appColorScheme.status.isTransparent3) {
+        if (appColorScheme.status.isTransparent3 ||
+            (statusModes[3] ?? StatusMode.background) == StatusMode.text) {
           return appColorScheme.text.primary;
         }
         return appColorScheme.status.highlightedText;
       case '4':
-        if (appColorScheme.status.isTransparent4) {
+        if (appColorScheme.status.isTransparent4 ||
+            (statusModes[4] ?? StatusMode.background) == StatusMode.text) {
           return appColorScheme.text.primary;
         }
         return appColorScheme.status.highlightedText;
       case '5':
-        if (appColorScheme.status.isTransparent5) {
+        if (appColorScheme.status.isTransparent5 ||
+            (statusModes[5] ?? StatusMode.background) == StatusMode.text) {
           return appColorScheme.text.primary;
         }
         return appColorScheme.status.highlightedText;
       case '98':
         return appColorScheme.text.primary;
       case '99':
-        if (appColorScheme.status.isTransparent99) {
+        if (appColorScheme.status.isTransparent99 ||
+            (statusModes[99] ?? StatusMode.background) == StatusMode.text) {
           return appColorScheme.text.primary;
         }
         return appColorScheme.status.highlightedText;
@@ -90,6 +109,9 @@ extension BuildContextExtension on BuildContext {
   }
 
   Color? getStatusBackgroundColor(String status) {
+    final statusNum = int.tryParse(status) ?? 0;
+    final mode = statusModes[statusNum] ?? StatusMode.background;
+    if (mode == StatusMode.text) return null;
     switch (status) {
       case '1':
         if (appColorScheme.status.isTransparent1) return null;

@@ -2,6 +2,21 @@ import 'package:flutter/material.dart';
 
 enum ThemeType { dark, light, blackAndWhite }
 
+enum StatusMode { text, background }
+
+Map<int, StatusMode> defaultStatusModes() {
+  return {
+    0: StatusMode.text,
+    1: StatusMode.background,
+    2: StatusMode.background,
+    3: StatusMode.background,
+    4: StatusMode.background,
+    5: StatusMode.background,
+    98: StatusMode.background,
+    99: StatusMode.background,
+  };
+}
+
 @immutable
 class TextColors {
   final Color primary;

@@ -308,23 +308,105 @@ class Settings {
 }
 
 @immutable
+class UserThemeDefinition {
+  final String id;
+  final String name;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final AppThemeColorScheme colorScheme;
+  final Map<int, StatusMode> statusModes;
+
+  UserThemeDefinition({
+    required this.id,
+    required this.name,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.colorScheme,
+    Map<int, StatusMode>? statusModes,
+  }) : statusModes = Map.unmodifiable(statusModes ?? defaultStatusModes());
+
+  UserThemeDefinition copyWith({
+    String? id,
+    String? name,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    AppThemeColorScheme? colorScheme,
+    Map<int, StatusMode>? statusModes,
+  }) {
+    return UserThemeDefinition(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      colorScheme: colorScheme ?? this.colorScheme,
+      statusModes: statusModes ?? this.statusModes,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is UserThemeDefinition &&
+        other.id == id &&
+        other.name == name &&
+        other.createdAt == createdAt &&
+        other.updatedAt == updatedAt &&
+        other.colorScheme == colorScheme &&
+        _statusModeMapEquals(other.statusModes, statusModes);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    createdAt,
+    updatedAt,
+    colorScheme,
+    Object.hashAll(statusModes.entries.map((e) => Object.hash(e.key, e.value))),
+  );
+}
+
+enum ThemeInitMode {
+  fromDark,
+  fromLight,
+  fromBlackAndWhite,
+  fromCurrent,
+  blank,
+}
+
+@immutable
 class ThemeSettings {
   final ThemeType themeType;
+  final String? selectedThemeId;
+  final List<UserThemeDefinition> userThemes;
   final Color accentLabelColor;
   final Color accentButtonColor;
   final Color? customAccentLabelColor;
   final Color? customAccentButtonColor;
 
-  const ThemeSettings({
+  ThemeSettings({
     this.themeType = ThemeType.dark,
+    this.selectedThemeId,
+    List<UserThemeDefinition>? userThemes,
     this.accentLabelColor = const Color(0xFF1976D2),
     this.accentButtonColor = const Color(0xFF6750A4),
     this.customAccentLabelColor,
     this.customAccentButtonColor,
-  });
+  }) : userThemes = List.unmodifiable(userThemes ?? const []);
+
+  UserThemeDefinition? get selectedUserTheme {
+    if (selectedThemeId == null) return null;
+    for (final theme in userThemes) {
+      if (theme.id == selectedThemeId) return theme;
+    }
+    return null;
+  }
 
   ThemeSettings copyWith({
     ThemeType? themeType,
+    String? selectedThemeId,
+    bool clearSelectedThemeId = false,
+    List<UserThemeDefinition>? userThemes,
     Color? accentLabelColor,
     Color? accentButtonColor,
     Color? customAccentLabelColor,
@@ -332,6 +414,10 @@ class ThemeSettings {
   }) {
     return ThemeSettings(
       themeType: themeType ?? this.themeType,
+      selectedThemeId: clearSelectedThemeId
+          ? null
+          : (selectedThemeId ?? this.selectedThemeId),
+      userThemes: userThemes ?? this.userThemes,
       accentLabelColor: accentLabelColor ?? this.accentLabelColor,
       accentButtonColor: accentButtonColor ?? this.accentButtonColor,
       customAccentLabelColor:
@@ -346,6 +432,8 @@ class ThemeSettings {
     if (identical(this, other)) return true;
     return other is ThemeSettings &&
         other.themeType == themeType &&
+        other.selectedThemeId == selectedThemeId &&
+        _userThemeListEquals(other.userThemes, userThemes) &&
         other.accentLabelColor.hashCode == accentLabelColor.hashCode &&
         other.accentButtonColor.hashCode == accentButtonColor.hashCode &&
         other.customAccentLabelColor?.hashCode ==
@@ -357,13 +445,34 @@ class ThemeSettings {
   @override
   int get hashCode => Object.hash(
     themeType,
+    selectedThemeId,
+    Object.hashAll(userThemes),
     accentLabelColor.hashCode,
     accentButtonColor.hashCode,
     customAccentLabelColor?.hashCode,
     customAccentButtonColor?.hashCode,
   );
 
-  static const ThemeSettings defaultSettings = ThemeSettings();
+  static final ThemeSettings defaultSettings = ThemeSettings();
+}
+
+bool _userThemeListEquals(
+  List<UserThemeDefinition> a,
+  List<UserThemeDefinition> b,
+) {
+  if (a.length != b.length) return false;
+  for (int i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+bool _statusModeMapEquals(Map<int, StatusMode> a, Map<int, StatusMode> b) {
+  if (a.length != b.length) return false;
+  for (final key in a.keys) {
+    if (!b.containsKey(key) || b[key] != a[key]) return false;
+  }
+  return true;
 }
 
 @immutable

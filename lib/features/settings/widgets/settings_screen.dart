@@ -1176,13 +1176,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             );
                           },
                           icon: const Icon(Icons.tune),
-                          label: Text(_getThemeLabel(themeSettings.themeType)),
+                          label: Text(_getThemeLabel(themeSettings)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _getThemeDescription(themeSettings.themeType),
+                      _getThemeDescription(themeSettings),
                       style: TextStyle(
                         color: Theme.of(
                           context,
@@ -1522,7 +1522,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  String _getThemeLabel(ThemeType themeType) {
+  String _getThemeLabel(ThemeSettings themeSettings) {
+    if (themeSettings.selectedUserTheme != null) {
+      return themeSettings.selectedUserTheme!.name;
+    }
+    final themeType = themeSettings.themeType;
     switch (themeType) {
       case ThemeType.light:
         return 'Light';
@@ -1533,7 +1537,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  String _getThemeDescription(ThemeType themeType) {
+  String _getThemeDescription(ThemeSettings themeSettings) {
+    if (themeSettings.selectedUserTheme != null) {
+      return 'Custom theme';
+    }
+    final themeType = themeSettings.themeType;
     switch (themeType) {
       case ThemeType.light:
         return 'Bright, clean interface';
