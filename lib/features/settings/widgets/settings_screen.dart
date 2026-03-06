@@ -17,6 +17,7 @@ import 'theme_selector_screen.dart';
 import 'tts_settings_section.dart';
 import 'ai_settings_section.dart';
 import 'termux_screen.dart';
+import 'language_settings_card.dart';
 
 class NumberField extends StatefulWidget {
   final String label;
@@ -603,6 +604,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            const LanguageSettingsCard(),
             const SizedBox(height: 16),
             Card(
               elevation: 2,

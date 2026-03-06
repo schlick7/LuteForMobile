@@ -13,6 +13,7 @@ import '../../features/books/models/book_create.dart';
 import '../../features/books/models/datatables_response.dart';
 import '../../features/terms/models/term.dart';
 import '../../shared/models/language.dart';
+import '../../shared/models/language_card_settings.dart';
 import '../../core/cache/term_cache_service.dart';
 import '../../core/cache/models/term_cache_entry.dart';
 import 'api_service.dart';
@@ -388,6 +389,79 @@ class ContentService {
   Future<String> getLanguageSettingsHtml(int langId) async {
     final response = await _apiService.getLanguageSettings(langId);
     return response.data ?? '';
+  }
+
+  Future<LanguageCardSettings> getLanguageCardSettings(int langId) async {
+    final html = await getLanguageSettingsHtml(langId);
+    return parser.parseLanguageCardSettings(html, langId);
+  }
+
+  Future<void> saveLanguageCardSettings(LanguageCardSettings settings) async {
+    final data = _languageSettingsPayload(settings);
+    await _apiService.postLanguageSettings(settings.languageId, data);
+  }
+
+  Future<LanguageCardSettings> getNewLanguageCardSettings({
+    String? templateName,
+  }) async {
+    final response = await _apiService.getNewLanguageSettings(
+      templateName: templateName,
+    );
+    final html = response.data ?? '';
+    return parser.parseLanguageCardSettings(html, 0);
+  }
+
+  Future<void> createLanguageCardSettings(
+    LanguageCardSettings settings, {
+    String? templateName,
+  }) async {
+    final data = _languageSettingsPayload(settings);
+    await _apiService.postNewLanguageSettings(data, templateName: templateName);
+  }
+
+  Future<List<String>> getPredefinedLanguageNames() async {
+    final response = await _apiService.getNewLanguageSettings();
+    final html = response.data ?? '';
+    return parser.parsePredefinedLanguageNames(html);
+  }
+
+  Future<void> loadPredefinedLanguage(String languageName) async {
+    await _apiService.loadPredefinedLanguage(languageName);
+  }
+
+  Future<void> deleteLanguage(int languageId) async {
+    await _apiService.deleteLanguage(languageId);
+  }
+
+  Map<String, dynamic> _languageSettingsPayload(LanguageCardSettings settings) {
+    final data = <String, dynamic>{
+      'name': settings.name,
+      'parser_type': settings.parserType,
+      'character_substitutions': settings.characterSubstitutions,
+      'regexp_split_sentences': settings.regexpSplitSentences,
+      'exceptions_split_sentences': settings.exceptionsSplitSentences,
+      'word_characters': settings.wordCharacters,
+    };
+
+    if (settings.showRomanization) {
+      data['show_romanization'] = 'y';
+    }
+    if (settings.rightToLeft) {
+      data['right_to_left'] = 'y';
+    }
+
+    for (var i = 0; i < settings.dictionaries.length; i++) {
+      final dict = settings.dictionaries[i];
+      data['dictionaries-$i-usefor'] = dict.useFor;
+      data['dictionaries-$i-dicttype'] = dict.dictType;
+      data['dictionaries-$i-dicturi'] = dict.dictUri;
+      data['dictionaries-$i-sort_order'] = (i + 1).toString();
+      if (dict.isActive) {
+        data['dictionaries-$i-is_active'] = 'y';
+      }
+    }
+
+    return data;
   }
 
   Future<DataTablesResponse<Book>> getActiveBooks({

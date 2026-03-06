@@ -8,6 +8,7 @@ import '../../features/reader/models/page_data.dart';
 import '../../features/reader/models/term_tooltip.dart';
 import '../../features/reader/models/term_form.dart';
 import '../../shared/models/language.dart';
+import '../../shared/models/language_card_settings.dart';
 import '../../features/terms/models/term.dart';
 import 'dictionary_service.dart';
 
@@ -555,6 +556,136 @@ class HtmlParser {
       uniqueById.putIfAbsent(language.id, () => language);
     }
     return uniqueById.values.toList();
+  }
+
+  LanguageCardSettings parseLanguageCardSettings(
+    String htmlContent,
+    int languageId,
+  ) {
+    final document = html_parser.parse(htmlContent);
+
+    final name =
+        document.querySelector('#name')?.attributes['value']?.trim() ?? '';
+    final showRomanization =
+        document.querySelector('#show_romanization')?.attributes['checked'] !=
+        null;
+    final rightToLeft =
+        document.querySelector('#right_to_left')?.attributes['checked'] != null;
+
+    final parserOptions = document
+        .querySelectorAll('#parser_type option')
+        .map((option) => option.attributes['value']?.trim() ?? '')
+        .where((value) => value.isNotEmpty)
+        .toList();
+
+    final selectedParser = _getSelectedOptionValue(
+      document.querySelector('#parser_type'),
+    );
+    final parserType =
+        selectedParser ??
+        (parserOptions.isNotEmpty ? parserOptions.first : 'spacedel');
+
+    final characterSubstitutions =
+        document
+            .querySelector('#character_substitutions')
+            ?.attributes['value']
+            ?.trim() ??
+        '';
+    final regexpSplitSentences =
+        document
+            .querySelector('#regexp_split_sentences')
+            ?.attributes['value']
+            ?.trim() ??
+        '';
+    final exceptionsSplitSentences =
+        document
+            .querySelector('#exceptions_split_sentences')
+            ?.attributes['value']
+            ?.trim() ??
+        '';
+    final wordCharacters =
+        document
+            .querySelector('#word_characters')
+            ?.attributes['value']
+            ?.trim() ??
+        '';
+
+    final dictionaries = document
+        .querySelectorAll('.dict_entry')
+        .map((entry) {
+          final uriInput = entry.querySelector('input[name*="dicturi"]');
+          if (uriInput == null) return null;
+
+          final uri = uriInput.attributes['value']?.trim() ?? '';
+          if (uri.isEmpty || uri == '__TEMPLATE__') return null;
+
+          final useFor =
+              _getSelectedOptionValue(
+                entry.querySelector('select.dict-usefor'),
+              ) ??
+              'terms';
+          final dictType =
+              _getSelectedOptionValue(
+                entry.querySelector('select.dict-type'),
+              ) ??
+              'embeddedhtml';
+          final isActive =
+              entry
+                  .querySelector('input[name*="is_active"]')
+                  ?.attributes['checked'] !=
+              null;
+          final sortOrder = int.tryParse(
+            entry
+                    .querySelector('input[name*="sort_order"]')
+                    ?.attributes['value'] ??
+                '',
+          );
+
+          return LanguageDictionarySetting(
+            useFor: useFor,
+            dictType: dictType,
+            dictUri: uri,
+            isActive: isActive,
+            sortOrder: sortOrder ?? 0,
+          );
+        })
+        .whereType<LanguageDictionarySetting>()
+        .toList();
+
+    return LanguageCardSettings(
+      languageId: languageId,
+      name: name,
+      showRomanization: showRomanization,
+      rightToLeft: rightToLeft,
+      parserType: parserType,
+      parserTypeOptions: parserOptions,
+      characterSubstitutions: characterSubstitutions,
+      regexpSplitSentences: regexpSplitSentences,
+      exceptionsSplitSentences: exceptionsSplitSentences,
+      wordCharacters: wordCharacters,
+      dictionaries: dictionaries,
+    );
+  }
+
+  String? _getSelectedOptionValue(html.Element? selectElement) {
+    if (selectElement == null) return null;
+    final options = selectElement.querySelectorAll('option');
+    for (final option in options) {
+      if (option.attributes.containsKey('selected')) {
+        return option.attributes['value']?.trim();
+      }
+    }
+    if (options.isEmpty) return null;
+    return options.first.attributes['value']?.trim();
+  }
+
+  List<String> parsePredefinedLanguageNames(String htmlContent) {
+    final document = html_parser.parse(htmlContent);
+    return document
+        .querySelectorAll('#predefined option')
+        .map((option) => option.attributes['value']?.trim() ?? '')
+        .where((value) => value.isNotEmpty && value != '-')
+        .toList();
   }
 
   List<DictionarySource> parseLanguageDictionaries(String htmlContent) {
