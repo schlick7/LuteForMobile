@@ -9,6 +9,7 @@ import '../../features/reader/models/term_form.dart';
 import '../../features/reader/models/language_sentence_settings.dart';
 import '../../features/reader/services/page_cache_service.dart';
 import '../../features/books/models/book.dart';
+import '../../features/books/models/book_create.dart';
 import '../../features/books/models/datatables_response.dart';
 import '../../features/terms/models/term.dart';
 import '../../shared/models/language.dart';
@@ -508,6 +509,63 @@ class ContentService {
 
   Future<void> deleteBook(int bookId) async {
     await _apiService.deleteBook(bookId);
+  }
+
+  Future<BookImportPreview> previewBookImportFromUrl(String importUrl) async {
+    final response = await _apiService.getBookNew(importUrl: importUrl);
+    final htmlContent = response.data ?? '';
+    final document = html_parser.parse(htmlContent);
+
+    final title =
+        document.querySelector('#title')?.attributes['value']?.trim() ?? '';
+    final sourceUri =
+        document.querySelector('#source_uri')?.attributes['value']?.trim() ??
+        '';
+    final text = document.querySelector('#text')?.text.trim() ?? '';
+
+    final errorMessages = _extractFlashErrors(document);
+
+    if (errorMessages.isNotEmpty) {
+      throw Exception(errorMessages.join('\n'));
+    }
+
+    return BookImportPreview(title: title, text: text, sourceUri: sourceUri);
+  }
+
+  Future<int> createBook(BookCreateRequest request) async {
+    final response = await _apiService.createBook(request.toFormData());
+
+    final location = response.headers.value('location');
+    if (location != null) {
+      final match = RegExp(r'/read/(\d+)/page/\d+').firstMatch(location);
+      if (match != null) {
+        final id = int.tryParse(match.group(1) ?? '');
+        if (id != null) {
+          return id;
+        }
+      }
+    }
+
+    final htmlContent = response.data ?? '';
+    if (htmlContent.isNotEmpty) {
+      final document = html_parser.parse(htmlContent);
+      final errorMessages = _extractFlashErrors(document);
+
+      if (errorMessages.isNotEmpty) {
+        throw Exception(errorMessages.join('\n'));
+      }
+    }
+
+    throw Exception('Book creation failed: server did not return a book ID.');
+  }
+
+  List<String> _extractFlashErrors(html.Document document) {
+    final messages = document
+        .querySelectorAll('.flash-notice-narrow, .flash-notice')
+        .map((element) => element.text.trim())
+        .where((message) => message.isNotEmpty)
+        .toList();
+    return messages.toSet().toList();
   }
 
   Future<void> saveAudioPlayerData({

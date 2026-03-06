@@ -10,6 +10,7 @@ import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 import 'book_card.dart';
 import 'book_details_dialog.dart';
+import 'add_book_dialog.dart';
 import 'package:lute_for_mobile/app.dart';
 
 class BooksScreen extends ConsumerStatefulWidget {
@@ -64,6 +65,11 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
         leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
         title: const Text('Books'),
         actions: [
+          IconButton(
+            tooltip: 'Add Book',
+            icon: const Icon(Icons.add),
+            onPressed: _showAddBookDialog,
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
@@ -253,6 +259,28 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
 
   void _navigateToReader(BuildContext context, Book book) {
     ref.read(navigationProvider).navigateToReader(book.id, null);
+  }
+
+  Future<void> _showAddBookDialog() async {
+    final contentService = ref.read(contentServiceProvider);
+    if (!contentService.isConfigured) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Configure your Lute server in Settings first.'),
+        ),
+      );
+      return;
+    }
+
+    final newBookId = await showDialog<int>(
+      context: context,
+      builder: (_) => const AddBookDialog(),
+    );
+
+    if (newBookId != null && mounted) {
+      ref.read(navigationProvider).navigateToReader(newBookId, null);
+    }
   }
 
   void _showBookDetails(BuildContext context, Book book) {

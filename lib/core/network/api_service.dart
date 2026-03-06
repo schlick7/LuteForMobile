@@ -437,6 +437,24 @@ class ApiService {
     return await _dio.get<String>('/language/index');
   }
 
+  Future<Response<String>> getBookNew({String? importUrl}) async {
+    if (importUrl != null && importUrl.trim().isNotEmpty) {
+      return await _dio.get<String>(
+        '/book/new',
+        queryParameters: {'importurl': importUrl.trim()},
+      );
+    }
+    return await _dio.get<String>('/book/new');
+  }
+
+  Future<Response<String>> createBook(dynamic data) async {
+    return await _dio.post<String>(
+      '/book/new',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+  }
+
   Future<void> invalidateAllBookStatsCache({Duration? timeout}) async {
     await _dio.get<String>(
       '/refresh_all_stats',

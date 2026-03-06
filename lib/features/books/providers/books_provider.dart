@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:meta/meta.dart';
 import '../../../core/logger/api_logger.dart';
 import '../models/book.dart';
+import '../models/book_create.dart';
 import '../repositories/books_repository.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../settings/providers/settings_provider.dart';
@@ -895,6 +896,18 @@ class BooksNotifier extends Notifier<BooksState> {
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }
+  }
+
+  Future<BookImportPreview> previewBookImportFromUrl(String importUrl) async {
+    return await _repository.previewBookImportFromUrl(importUrl);
+  }
+
+  Future<int> createBook(BookCreateRequest request) async {
+    final newBookId = await _repository.createBook(request);
+
+    await loadBooks(forceRefresh: true, skipExpiredBookRefresh: true);
+
+    return newBookId;
   }
 
   Future<void> invalidateCacheForBookLanguage(int bookId) async {
