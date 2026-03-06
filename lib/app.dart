@@ -73,11 +73,18 @@ final currentScreenRouteProvider =
     });
 
 class NavigationController {
+  NavigationController._internal();
+  static final NavigationController _instance =
+      NavigationController._internal();
+  factory NavigationController() => _instance;
+
   final List<Function(int, int?)> _readerListeners = [];
   final List<Function(String)> _screenListeners = [];
 
   void addReaderListener(Function(int, int?) listener) {
-    _readerListeners.add(listener);
+    if (!_readerListeners.contains(listener)) {
+      _readerListeners.add(listener);
+    }
   }
 
   void removeReaderListener(Function(int, int?) listener) {
@@ -85,7 +92,9 @@ class NavigationController {
   }
 
   void addScreenListener(Function(String) listener) {
-    _screenListeners.add(listener);
+    if (!_screenListeners.contains(listener)) {
+      _screenListeners.add(listener);
+    }
   }
 
   void removeScreenListener(Function(String) listener) {
@@ -97,27 +106,31 @@ class NavigationController {
       'NavigationController.navigateToReader',
       details: 'bookId=$bookId, pageNum=$pageNum',
     );
-    try {
-      for (final listener in _readerListeners) {
+    for (final listener in List<Function(int, int?)>.from(_readerListeners)) {
+      try {
         listener(bookId, pageNum);
+      } catch (e, stackTrace) {
+        ApiLogger.logError(
+          'navigateToReader.listener',
+          e,
+          stackTrace: stackTrace,
+        );
       }
-      navigateToScreen('reader');
-    } catch (e, stackTrace) {
-      ApiLogger.logError('navigateToReader', e, stackTrace: stackTrace);
     }
+    navigateToScreen('reader');
   }
 
   void navigateToScreen(String route) {
-    try {
-      for (final listener in _screenListeners) {
+    for (final listener in List<Function(String)>.from(_screenListeners)) {
+      try {
         listener(route);
+      } catch (e, stackTrace) {
+        ApiLogger.logError(
+          'NavigationController.navigateToScreen.listener',
+          e,
+          stackTrace: stackTrace,
+        );
       }
-    } catch (e, stackTrace) {
-      ApiLogger.logError(
-        'NavigationController.navigateToScreen',
-        e,
-        stackTrace: stackTrace,
-      );
     }
   }
 }
