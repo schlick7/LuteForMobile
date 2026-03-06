@@ -81,7 +81,12 @@ class TermCard extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(BuildContext context) {
-    final color = context.getStatusColor(term.status.toString());
+    final color = context.getStatusColorForVisualization(
+      term.status.toString(),
+    );
+    final textColor = color.computeLuminance() > 0.5
+        ? context.appColorScheme.text.primary
+        : context.appColorScheme.status.highlightedText;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -91,7 +96,7 @@ class TermCard extends StatelessWidget {
       child: Text(
         term.statusLabel,
         style: TextStyle(
-          color: context.getStatusTextColor(term.status.toString()),
+          color: textColor,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),

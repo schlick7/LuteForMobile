@@ -36,7 +36,7 @@ final AppThemeColorScheme darkThemePreset = AppThemeColorScheme(
     localProvider: Color(0xFF1976D2),
   ),
   status: const StatusColors(
-    status0: Color(0x008095FF),
+    status0: Color(0xFF8095FF),
     status1: Color(0x99b46b7a),
     status2: Color(0x99BA8050),
     status3: Color(0x99BD9C7B),
@@ -108,7 +108,7 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
     localProvider: Color(0xFF1976D2),
   ),
   status: const StatusColors(
-    status0: Color(0x008095FF),
+    status0: Color(0xCC8095FF),
     status1: Color(0x88b46b7a),
     status2: Color(0x88BA8050),
     status3: Color(0x88BD9C7B),
@@ -180,7 +180,7 @@ final AppThemeColorScheme blackAndWhiteThemePreset = AppThemeColorScheme(
     localProvider: Color(0xFF000000),
   ),
   status: const StatusColors(
-    status0: Color(0x00999999),
+    status0: Color(0xFF999999),
     status1: Color(0xFF000000),
     status2: Color(0xFF333333),
     status3: Color(0xFF666666),

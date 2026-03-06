@@ -62,9 +62,8 @@ extension BuildContextExtension on BuildContext {
     if (statusNum == null) return appColorScheme.text.primary;
     final mode = statusModes[statusNum] ?? StatusMode.background;
     final statusColor = getStatusColor(status);
-    final isHidden = _isStatusHiddenInReader(statusNum, statusColor);
 
-    if (mode == StatusMode.none || isHidden) {
+    if (mode == StatusMode.none) {
       return appColorScheme.text.primary;
     }
     if (mode == StatusMode.text) {
@@ -74,13 +73,10 @@ extension BuildContextExtension on BuildContext {
   }
 
   Color? getStatusBackgroundColor(String status) {
-    final statusNum = int.tryParse(status);
-    if (statusNum == null) return null;
+    final statusNum = int.tryParse(status) ?? 0;
     final mode = statusModes[statusNum] ?? StatusMode.background;
     if (mode != StatusMode.background) return null;
-    final statusColor = getStatusColor(status);
-    if (_isStatusHiddenInReader(statusNum, statusColor)) return null;
-    return statusColor;
+    return getStatusColor(status);
   }
 
   Color getStatusColor(String status) {
@@ -113,10 +109,6 @@ extension BuildContextExtension on BuildContext {
   Color getStatusColorForVisualization(String status) {
     final color = getStatusColor(status);
     return color.a == 0 ? color.withValues(alpha: 1.0) : color;
-  }
-
-  bool _isStatusHiddenInReader(int statusNum, Color statusColor) {
-    return statusColor.a == 0;
   }
 }
 

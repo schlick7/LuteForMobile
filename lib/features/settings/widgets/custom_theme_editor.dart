@@ -116,6 +116,84 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
             decoration: const InputDecoration(labelText: 'Theme name'),
           ),
           const SizedBox(height: 16),
+          _buildSectionCard(context, 'Status Colors', [
+            _statusRow(0, _workingScheme!.status.status0, (c) {
+              _updateScheme(
+                (s) => s.copyWith(status: s.status.copyWith(status0: c)),
+              );
+            }),
+            _statusRow(1, _workingScheme!.status.status1, (c) {
+              _updateScheme(
+                (s) => s.copyWith(status: s.status.copyWith(status1: c)),
+              );
+            }),
+            _statusRow(2, _workingScheme!.status.status2, (c) {
+              _updateScheme(
+                (s) => s.copyWith(status: s.status.copyWith(status2: c)),
+              );
+            }),
+            _statusRow(3, _workingScheme!.status.status3, (c) {
+              _updateScheme(
+                (s) => s.copyWith(status: s.status.copyWith(status3: c)),
+              );
+            }),
+            _statusRow(4, _workingScheme!.status.status4, (c) {
+              _updateScheme(
+                (s) => s.copyWith(status: s.status.copyWith(status4: c)),
+              );
+            }),
+            _statusRow(5, _workingScheme!.status.status5, (c) {
+              _updateScheme(
+                (s) => s.copyWith(status: s.status.copyWith(status5: c)),
+              );
+            }),
+            _statusRow(98, _workingScheme!.status.status98, (c) {
+              _updateScheme(
+                (s) => s.copyWith(status: s.status.copyWith(status98: c)),
+              );
+            }),
+            _statusRow(99, _workingScheme!.status.status99, (c) {
+              _updateScheme(
+                (s) => s.copyWith(status: s.status.copyWith(status99: c)),
+              );
+            }),
+            _colorRow(
+              context,
+              label: 'Status Highlighted Text',
+              color: _workingScheme!.status.highlightedText,
+              description: 'Text color on status highlights',
+              preview: _chipPreview(
+                bg: _workingScheme!.status.status3,
+                fg: _workingScheme!.status.highlightedText,
+                text: 'Highlighted',
+              ),
+              onChanged: (c) => _updateScheme(
+                (s) =>
+                    s.copyWith(status: s.status.copyWith(highlightedText: c)),
+              ),
+            ),
+            _colorRow(
+              context,
+              label: 'Word Glow',
+              color: _workingScheme!.status.wordGlowColor,
+              description: 'Glow color for focused words',
+              preview: Text(
+                'Glow',
+                style: TextStyle(
+                  color: _workingScheme!.status.wordGlowColor,
+                  shadows: [
+                    Shadow(
+                      blurRadius: 8,
+                      color: _workingScheme!.status.wordGlowColor,
+                    ),
+                  ],
+                ),
+              ),
+              onChanged: (c) => _updateScheme(
+                (s) => s.copyWith(status: s.status.copyWith(wordGlowColor: c)),
+              ),
+            ),
+          ]),
           _buildSectionCard(context, 'Text Colors', [
             _colorRow(
               context,
@@ -364,84 +442,6 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
                   ),
                 );
               },
-            ),
-          ]),
-          _buildSectionCard(context, 'Status Colors', [
-            _statusRow(0, _workingScheme!.status.status0, (c) {
-              _updateScheme(
-                (s) => s.copyWith(status: s.status.copyWith(status0: c)),
-              );
-            }),
-            _statusRow(1, _workingScheme!.status.status1, (c) {
-              _updateScheme(
-                (s) => s.copyWith(status: s.status.copyWith(status1: c)),
-              );
-            }),
-            _statusRow(2, _workingScheme!.status.status2, (c) {
-              _updateScheme(
-                (s) => s.copyWith(status: s.status.copyWith(status2: c)),
-              );
-            }),
-            _statusRow(3, _workingScheme!.status.status3, (c) {
-              _updateScheme(
-                (s) => s.copyWith(status: s.status.copyWith(status3: c)),
-              );
-            }),
-            _statusRow(4, _workingScheme!.status.status4, (c) {
-              _updateScheme(
-                (s) => s.copyWith(status: s.status.copyWith(status4: c)),
-              );
-            }),
-            _statusRow(5, _workingScheme!.status.status5, (c) {
-              _updateScheme(
-                (s) => s.copyWith(status: s.status.copyWith(status5: c)),
-              );
-            }),
-            _statusRow(98, _workingScheme!.status.status98, (c) {
-              _updateScheme(
-                (s) => s.copyWith(status: s.status.copyWith(status98: c)),
-              );
-            }),
-            _statusRow(99, _workingScheme!.status.status99, (c) {
-              _updateScheme(
-                (s) => s.copyWith(status: s.status.copyWith(status99: c)),
-              );
-            }),
-            _colorRow(
-              context,
-              label: 'Status Highlighted Text',
-              color: _workingScheme!.status.highlightedText,
-              description: 'Text color on status highlights',
-              preview: _chipPreview(
-                bg: _workingScheme!.status.status3,
-                fg: _workingScheme!.status.highlightedText,
-                text: 'Highlighted',
-              ),
-              onChanged: (c) => _updateScheme(
-                (s) =>
-                    s.copyWith(status: s.status.copyWith(highlightedText: c)),
-              ),
-            ),
-            _colorRow(
-              context,
-              label: 'Word Glow',
-              color: _workingScheme!.status.wordGlowColor,
-              description: 'Glow color for focused words',
-              preview: Text(
-                'Glow',
-                style: TextStyle(
-                  color: _workingScheme!.status.wordGlowColor,
-                  shadows: [
-                    Shadow(
-                      blurRadius: 8,
-                      color: _workingScheme!.status.wordGlowColor,
-                    ),
-                  ],
-                ),
-              ),
-              onChanged: (c) => _updateScheme(
-                (s) => s.copyWith(status: s.status.copyWith(wordGlowColor: c)),
-              ),
             ),
           ]),
           _buildSectionCard(context, 'Border Colors', [
@@ -726,32 +726,66 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
           preview: preview,
           onChanged: onChanged,
         ),
-        Row(
-          children: [
-            const SizedBox(width: 8),
-            const Text('Mode:'),
-            const SizedBox(width: 8),
-            SegmentedButton<StatusMode>(
-              segments: const [
-                ButtonSegment(
-                  value: StatusMode.background,
-                  label: Text('Background'),
-                ),
-                ButtonSegment(value: StatusMode.text, label: Text('Text')),
-                ButtonSegment(value: StatusMode.none, label: Text('None')),
-              ],
-              selected: {mode},
-              onSelectionChanged: (selected) {
-                final next = selected.first;
-                setState(() {
-                  _workingModes![status] = next;
-                });
-              },
-            ),
-          ],
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  _buildStatusModeChip(
+                    label: 'Background',
+                    selected: mode == StatusMode.background,
+                    onTap: () {
+                      setState(() {
+                        _workingModes![status] = StatusMode.background;
+                      });
+                    },
+                  ),
+                  _buildStatusModeChip(
+                    label: 'Text',
+                    selected: mode == StatusMode.text,
+                    onTap: () {
+                      setState(() {
+                        _workingModes![status] = StatusMode.text;
+                      });
+                    },
+                  ),
+                  _buildStatusModeChip(
+                    label: 'None',
+                    selected: mode == StatusMode.none,
+                    onTap: () {
+                      setState(() {
+                        _workingModes![status] = StatusMode.none;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
       ],
+    );
+  }
+
+  Widget _buildStatusModeChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      showCheckmark: false,
+      labelPadding: const EdgeInsets.symmetric(horizontal: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      visualDensity: VisualDensity.compact,
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 
@@ -1058,72 +1092,65 @@ class _SaturationValuePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final size = constraints.maxWidth.isFinite
-            ? constraints.maxWidth.clamp(200.0, 320.0).toDouble()
-            : 260.0;
-        return SizedBox(
-          width: size,
-          height: size,
-          child: GestureDetector(
-            onPanDown: (details) => _handleGesture(details.localPosition, size),
-            onPanUpdate: (details) =>
-                _handleGesture(details.localPosition, size),
-            child: Stack(
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outline.withValues(alpha: 0.35),
-                    ),
-                    color: HSVColor.fromAHSV(1.0, hue, 1.0, 1.0).toColor(),
-                  ),
+    const size = 260.0;
+    return SizedBox(
+      width: size,
+      height: size,
+      child: GestureDetector(
+        onPanDown: (details) => _handleGesture(details.localPosition, size),
+        onPanUpdate: (details) => _handleGesture(details.localPosition, size),
+        child: Stack(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.35),
                 ),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    gradient: const LinearGradient(
-                      colors: [Colors.white, Colors.transparent],
-                    ),
-                  ),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [Colors.transparent, Colors.black],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: saturation * size - 8,
-                  top: (1 - value) * size - 8,
-                  child: Container(
-                    width: 16,
-                    height: 16,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.4),
-                          blurRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+                color: HSVColor.fromAHSV(1.0, hue, 1.0, 1.0).toColor(),
+              ),
             ),
-          ),
-        );
-      },
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                gradient: const LinearGradient(
+                  colors: [Colors.white, Colors.transparent],
+                ),
+              ),
+            ),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black],
+                ),
+              ),
+            ),
+            Positioned(
+              left: saturation * size - 8,
+              top: (1 - value) * size - 8,
+              child: Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.4),
+                      blurRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
