@@ -533,7 +533,32 @@ class ContentService {
   }
 
   Future<int> createBook(BookCreateRequest request) async {
-    final response = await _apiService.createBook(request.toFormData());
+    dynamic payload = request.toFormFields();
+
+    if (request.hasTextFile || request.hasAudioFile) {
+      final fields = request.toFormFields();
+      final multipartData = <String, dynamic>{...fields};
+
+      if (request.hasTextFile) {
+        final textPath = request.textFilePath!;
+        multipartData['textfile'] = await MultipartFile.fromFile(
+          textPath,
+          filename: _filenameFromPath(textPath),
+        );
+      }
+
+      if (request.hasAudioFile) {
+        final audioPath = request.audioFilePath!;
+        multipartData['audiofile'] = await MultipartFile.fromFile(
+          audioPath,
+          filename: _filenameFromPath(audioPath),
+        );
+      }
+
+      payload = FormData.fromMap(multipartData);
+    }
+
+    final response = await _apiService.createBook(payload);
 
     final location = response.headers.value('location');
     if (location != null) {
@@ -566,6 +591,13 @@ class ContentService {
         .where((message) => message.isNotEmpty)
         .toList();
     return messages.toSet().toList();
+  }
+
+  String _filenameFromPath(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final segments = normalized.split('/');
+    if (segments.isEmpty) return path;
+    return segments.last;
   }
 
   Future<void> saveAudioPlayerData({

@@ -448,6 +448,10 @@ class ApiService {
   }
 
   Future<Response<String>> createBook(dynamic data) async {
+    if (data is FormData) {
+      return await _dio.post<String>('/book/new', data: data);
+    }
+
     return await _dio.post<String>(
       '/book/new',
       data: data,

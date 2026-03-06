@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/models/language.dart';
@@ -27,6 +28,10 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
   bool _isLoadingLanguages = true;
   bool _isSaving = false;
   bool _isImporting = false;
+  String? _textFilePath;
+  String? _textFileName;
+  String? _audioFilePath;
+  String? _audioFileName;
 
   @override
   void initState() {
@@ -107,6 +112,66 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
     }
   }
 
+  Future<void> _pickTextFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['txt', 'epub', 'pdf', 'srt', 'vtt'],
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.single;
+      if (file.path == null || file.path!.isEmpty) {
+        _showError('Could not access selected file path.');
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _textFilePath = file.path;
+        _textFileName = file.name;
+        if (_titleController.text.trim().isEmpty) {
+          _titleController.text = _filenameWithoutExtension(file.name);
+        }
+      });
+    } catch (e) {
+      _showError(e.toString());
+    }
+  }
+
+  Future<void> _pickAudioFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const [
+          'mp3',
+          'm4a',
+          'wav',
+          'ogg',
+          'opus',
+          'aac',
+          'flac',
+          'webm',
+        ],
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.single;
+      if (file.path == null || file.path!.isEmpty) {
+        _showError('Could not access selected file path.');
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _audioFilePath = file.path;
+        _audioFileName = file.name;
+      });
+    } catch (e) {
+      _showError(e.toString());
+    }
+  }
+
   Future<void> _save() async {
     if (_isSaving) return;
     if (!_formKey.currentState!.validate()) return;
@@ -120,6 +185,19 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
     final threshold = int.tryParse(_thresholdController.text.trim());
     if (threshold == null || threshold < 1 || threshold > 1500) {
       _showError('Words per page must be between 1 and 1500.');
+      return;
+    }
+
+    final hasText = _textController.text.trim().isNotEmpty;
+    final hasTextFile = _textFilePath != null && _textFilePath!.isNotEmpty;
+
+    if (hasText && hasTextFile) {
+      _showError('Both Text and Text file are set, please only specify one.');
+      return;
+    }
+
+    if (!hasText && !hasTextFile) {
+      _showError('Please specify either Text or Text file.');
       return;
     }
 
@@ -137,6 +215,8 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
       tags: tags,
       splitBy: _splitBy,
       thresholdPageTokens: threshold,
+      textFilePath: _textFilePath,
+      audioFilePath: _audioFilePath,
     );
 
     setState(() {
@@ -158,6 +238,12 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
         });
       }
     }
+  }
+
+  String _filenameWithoutExtension(String filename) {
+    final dot = filename.lastIndexOf('.');
+    if (dot <= 0) return filename;
+    return filename.substring(0, dot);
   }
 
   void _showError(String message) {
@@ -249,12 +335,70 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
                         ),
                         minLines: 6,
                         maxLines: 12,
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Text is required';
-                          }
-                          return null;
-                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _textFileName == null
+                                  ? 'Text file: none selected'
+                                  : 'Text file: $_textFileName',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                            onPressed: _pickTextFile,
+                            child: const Text('Pick Text File'),
+                          ),
+                          if (_textFilePath != null) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              tooltip: 'Clear',
+                              onPressed: () {
+                                setState(() {
+                                  _textFilePath = null;
+                                  _textFileName = null;
+                                });
+                              },
+                              icon: const Icon(Icons.clear),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _audioFileName == null
+                                  ? 'Audio file: none selected'
+                                  : 'Audio file: $_audioFileName',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                            onPressed: _pickAudioFile,
+                            child: const Text('Pick Audio File'),
+                          ),
+                          if (_audioFilePath != null) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              tooltip: 'Clear',
+                              onPressed: () {
+                                setState(() {
+                                  _audioFilePath = null;
+                                  _audioFileName = null;
+                                });
+                              },
+                              icon: const Icon(Icons.clear),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 12),
                       TextFormField(

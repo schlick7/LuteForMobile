@@ -8,6 +8,8 @@ class BookCreateRequest {
   final List<String> tags;
   final String splitBy;
   final int thresholdPageTokens;
+  final String? textFilePath;
+  final String? audioFilePath;
 
   const BookCreateRequest({
     required this.languageId,
@@ -17,9 +19,11 @@ class BookCreateRequest {
     this.tags = const [],
     this.splitBy = 'paragraphs',
     this.thresholdPageTokens = 250,
+    this.textFilePath,
+    this.audioFilePath,
   });
 
-  Map<String, dynamic> toFormData() {
+  Map<String, dynamic> toFormFields() {
     final encodedTags = jsonEncode(
       tags
           .map((tag) => tag.trim())
@@ -38,6 +42,9 @@ class BookCreateRequest {
       'threshold_page_tokens': thresholdPageTokens.toString(),
     };
   }
+
+  bool get hasTextFile => textFilePath != null && textFilePath!.isNotEmpty;
+  bool get hasAudioFile => audioFilePath != null && audioFilePath!.isNotEmpty;
 }
 
 class BookImportPreview {
