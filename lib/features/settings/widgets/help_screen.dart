@@ -492,11 +492,14 @@ class HelpScreen extends ConsumerWidget {
             'Sentence Translation Modal',
             Icons.translate,
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
               'Open by long-pressing term',
-              style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                color: context.appColorScheme.text.secondary,
+              ),
             ),
           ),
           const Divider(),

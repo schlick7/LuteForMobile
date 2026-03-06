@@ -112,7 +112,10 @@ class ThemeSelectorScreen extends ConsumerWidget {
                     spacing: 4,
                     children: [
                       if (isSelected)
-                        const Icon(Icons.check_circle, color: Colors.green),
+                        Icon(
+                          Icons.check_circle,
+                          color: context.appColorScheme.semantic.success,
+                        ),
                       IconButton(
                         tooltip: 'Edit',
                         onPressed: () {

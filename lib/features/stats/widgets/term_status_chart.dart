@@ -65,73 +65,81 @@ class TermStatusChart extends ConsumerWidget {
     BuildContext context,
   ) {
     final statusColors = _getStatusColors(context);
+    final labelTextStyles = {
+      '1': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: context.getStatusTextColor('1'),
+      ),
+      '2': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: context.getStatusTextColor('2'),
+      ),
+      '3': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: context.getStatusTextColor('3'),
+      ),
+      '4': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: context.getStatusTextColor('4'),
+      ),
+      '5': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: context.getStatusTextColor('5'),
+      ),
+      '99': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: context.getStatusTextColor('99'),
+      ),
+    };
 
     return [
       PieChartSectionData(
         value: stats.status1.toDouble(),
         title: 'L1',
-        color: statusColors['1'] ?? Colors.grey,
+        color: statusColors['1'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['1'],
       ),
       PieChartSectionData(
         value: stats.status2.toDouble(),
         title: 'L2',
-        color: statusColors['2'] ?? Colors.grey,
+        color: statusColors['2'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['2'],
       ),
       PieChartSectionData(
         value: stats.status3.toDouble(),
         title: 'L3',
-        color: statusColors['3'] ?? Colors.grey,
+        color: statusColors['3'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['3'],
       ),
       PieChartSectionData(
         value: stats.status4.toDouble(),
         title: 'L4',
-        color: statusColors['4'] ?? Colors.grey,
+        color: statusColors['4'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['4'],
       ),
       PieChartSectionData(
         value: stats.status5.toDouble(),
         title: 'L5',
-        color: statusColors['5'] ?? Colors.grey,
+        color: statusColors['5'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['5'],
       ),
       PieChartSectionData(
         value: stats.status99.toDouble(),
         title: 'WK',
-        color: statusColors['99'] ?? Colors.grey,
+        color: statusColors['99'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['99'],
       ),
     ];
   }
@@ -149,6 +157,7 @@ class TermStatusChart extends ConsumerWidget {
 
   Widget _buildLegend(BuildContext context, TermStats stats) {
     final statusColors = _getStatusColors(context);
+    final statusKeys = ['1', '2', '3', '4', '5', '99'];
     final labels = ['L1', 'L2', 'L3', 'L4', 'L5', 'WK'];
     final values = [
       stats.status1,
@@ -163,7 +172,9 @@ class TermStatusChart extends ConsumerWidget {
       spacing: 12,
       runSpacing: 8,
       children: List.generate(6, (index) {
-        final color = statusColors[(index + 1).toString()] ?? Colors.grey;
+        final color =
+            statusColors[statusKeys[index]] ??
+            context.appColorScheme.text.secondary;
         final value = values[index];
 
         return Row(

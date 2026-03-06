@@ -88,15 +88,18 @@ class _TermuxStorageAccessScreenState extends State<TermuxStorageAccessScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade800,
+                        color: context
+                            .appColorScheme
+                            .background
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
+                      child: Text(
                         'termux-setup-storage',
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: context.appColorScheme.text.primary,
                         ),
                       ),
                     ),
@@ -252,13 +255,13 @@ class _TermuxStorageAccessScreenState extends State<TermuxStorageAccessScreen> {
                   child: ElevatedButton(
                     onPressed: _grantStorageAccess,
                     child: _isLaunchingTermux
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                                context.appColorScheme.text.onPrimary,
                               ),
                             ),
                           )

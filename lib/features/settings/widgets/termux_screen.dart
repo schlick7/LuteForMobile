@@ -14,6 +14,7 @@ import 'package:lute_for_mobile/core/services/backup_service.dart';
 import 'package:lute_for_mobile/core/services/storage_service.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
+import 'package:lute_for_mobile/shared/theme/theme_extensions.dart';
 
 class TermuxScreen extends ConsumerStatefulWidget {
   const TermuxScreen({super.key});
@@ -354,7 +355,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               content: Text(
                 'Installation error: $error. Check Downloads folder for log files',
               ),
-              backgroundColor: Colors.red,
+              backgroundColor: context.appColorScheme.error.error,
               duration: const Duration(seconds: 5),
             ),
           );
@@ -385,9 +386,9 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         _ => 'Installation failed. Check Downloads folder for log files',
       };
       final backgroundColor = switch (result) {
-        'COMPLETE' => Colors.green,
-        'CANCELLED' => Colors.orange,
-        _ => Colors.red,
+        'COMPLETE' => context.appColorScheme.semantic.success,
+        'CANCELLED' => context.appColorScheme.semantic.warning,
+        _ => context.appColorScheme.error.error,
       };
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -476,10 +477,10 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Backup created successfully'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            backgroundColor: context.appColorScheme.semantic.success,
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -495,7 +496,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to create backup: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.appColorScheme.error.error,
           ),
         );
       }
@@ -522,7 +523,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Downloaded to: $result'),
-            backgroundColor: Colors.green,
+            backgroundColor: context.appColorScheme.semantic.success,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -536,7 +537,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Download failed: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.appColorScheme.error.error,
           ),
         );
       }
@@ -558,10 +559,10 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Local backup created successfully'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
+            backgroundColor: context.appColorScheme.semantic.success,
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -577,7 +578,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to create local backup: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.appColorScheme.error.error,
           ),
         );
       }
@@ -605,7 +606,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Downloaded to: $result'),
-            backgroundColor: Colors.green,
+            backgroundColor: context.appColorScheme.semantic.success,
             duration: const Duration(seconds: 3),
           ),
         );
@@ -619,7 +620,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Download failed: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: context.appColorScheme.error.error,
           ),
         );
       }
@@ -639,7 +640,10 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
             const SizedBox(height: 8),
             Text(
               'File: ${filePath.split('/').last}',
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              style: TextStyle(
+                fontSize: 12,
+                color: context.appColorScheme.text.secondary,
+              ),
             ),
           ],
         ),
@@ -770,10 +774,10 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       // Success
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Restore completed successfully'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+            backgroundColor: context.appColorScheme.semantic.success,
+            duration: const Duration(seconds: 3),
           ),
         );
       }
@@ -816,7 +820,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
       builder: (context) => AlertDialog(
         title: const Row(
           children: [
-            Icon(Icons.error_outline, color: Colors.red),
+            Icon(Icons.error_outline),
             SizedBox(width: 8),
             Text('Restore Failed'),
           ],
@@ -844,9 +848,9 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     if (files.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('No backup files found in Downloads folder'),
-            backgroundColor: Colors.orange,
+            backgroundColor: context.appColorScheme.semantic.warning,
           ),
         );
       }
@@ -1005,11 +1009,11 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       if (path == null) {
                         setDialogState(() => isLoading = false);
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text(
                               'Failed to save settings. Please try again.',
                             ),
-                            backgroundColor: Colors.red,
+                            backgroundColor: context.appColorScheme.error.error,
                           ),
                         );
                       } else {
@@ -1088,12 +1092,12 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       if (!stopped || _serverRunning) {
                         setDialogState(() => isLoading = false);
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text(
                               'Failed to stop server. Please try again or stop it manually in Termux.',
                             ),
-                            backgroundColor: Colors.red,
-                            duration: Duration(seconds: 5),
+                            backgroundColor: context.appColorScheme.error.error,
+                            duration: const Duration(seconds: 5),
                           ),
                         );
                       } else {
@@ -1197,12 +1201,12 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       if (!started || !_serverRunning) {
                         setDialogState(() => isLoading = false);
                         ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text(
                               'Failed to start server. Please try again or start it manually in Termux.',
                             ),
-                            backgroundColor: Colors.red,
-                            duration: Duration(seconds: 5),
+                            backgroundColor: context.appColorScheme.error.error,
+                            duration: const Duration(seconds: 5),
                           ),
                         );
                       } else {
@@ -1253,28 +1257,36 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: completed
-                      ? Colors.green
-                      : (enabled && !isLoading ? Colors.blue : Colors.grey),
+                      ? context.appColorScheme.semantic.success
+                      : (enabled && !isLoading
+                            ? context.appColorScheme.material3.primary
+                            : context.appColorScheme.text.secondary),
                 ),
                 child: completed
-                    ? const Icon(Icons.check, color: Colors.white, size: 18)
+                    ? Icon(
+                        Icons.check,
+                        color: context.appColorScheme.text.onPrimary,
+                        size: 18,
+                      )
                     : (isLoading
                           ? null
                           : Text(
                               step.toString(),
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: context.appColorScheme.text.onPrimary,
                                 fontWeight: FontWeight.bold,
                               ),
                             )),
               ),
               if (isLoading)
-                const SizedBox(
+                SizedBox(
                   width: 24,
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 3,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      context.appColorScheme.text.onPrimary,
+                    ),
                   ),
                 ),
             ],
@@ -1290,12 +1302,17 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      color: enabled && !isLoading ? Colors.black : Colors.grey,
+                      color: enabled && !isLoading
+                          ? context.appColorScheme.text.primary
+                          : context.appColorScheme.text.secondary,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.appColorScheme.text.secondary,
+                    ),
                   ),
                 ],
               ),
@@ -1349,7 +1366,10 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               if (_currentStatus.isNotEmpty)
                 Text(
                   _currentStatus,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: context.appColorScheme.text.secondary,
+                  ),
                   textAlign: TextAlign.center,
                   maxLines: 5,
                   overflow: TextOverflow.ellipsis,
@@ -1358,13 +1378,23 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                 const SizedBox(height: 16),
                 Text(
                   'Estimated wait time: ~$_currentMaxWaitSeconds seconds',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: context.appColorScheme.text.secondary.withValues(
+                      alpha: 0.9,
+                    ),
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Tip: Output logs are saved to Downloads folder',
-                  style: TextStyle(fontSize: 11, color: Colors.grey.shade400),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: context.appColorScheme.text.secondary.withValues(
+                      alpha: 0.8,
+                    ),
+                  ),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -1372,10 +1402,13 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                 const SizedBox(height: 24),
                 TextButton.icon(
                   onPressed: _cancelInstallation,
-                  icon: const Icon(Icons.cancel, color: Colors.red),
-                  label: const Text(
+                  icon: Icon(
+                    Icons.cancel,
+                    color: context.appColorScheme.error.error,
+                  ),
+                  label: Text(
                     'Cancel Installation',
-                    style: TextStyle(color: Colors.red),
+                    style: TextStyle(color: context.appColorScheme.error.error),
                   ),
                 ),
               ],
@@ -1533,7 +1566,12 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
           border: Border(
-            bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+            bottom: BorderSide(
+              color: context.appColorScheme.border.outline.withValues(
+                alpha: 0.4,
+              ),
+              width: 1,
+            ),
           ),
         ),
         child: Row(
@@ -1551,13 +1589,18 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                 else
                   Text(
                     displayText,
-                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: context.appColorScheme.text.secondary,
+                    ),
                   ),
                 if (!isLoading) ...[
                   const SizedBox(width: 8),
                   Icon(
                     status ? Icons.check_circle : Icons.error,
-                    color: status ? Colors.green : Colors.red,
+                    color: status
+                        ? context.appColorScheme.semantic.success
+                        : context.appColorScheme.error.error,
                     size: 20,
                   ),
                 ],
@@ -1589,12 +1632,12 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                         ? null
                         : _startServer,
                     icon: _isStartingServer
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: context.appColorScheme.text.onPrimary,
                             ),
                           )
                         : const Icon(Icons.play_arrow),
@@ -1610,12 +1653,12 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                         ? null
                         : _stopServer,
                     icon: _isStoppingServer
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              color: context.appColorScheme.text.onPrimary,
                             ),
                           )
                         : const Icon(Icons.stop),
@@ -1623,7 +1666,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       _isStoppingServer ? 'Stopping...' : 'Stop Server',
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
+                      backgroundColor: context.appColorScheme.error.error,
                     ),
                   ),
                 ),
@@ -1652,7 +1695,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               icon: const Icon(Icons.restore),
               label: const Text('Restore Backup'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange.shade700,
+                backgroundColor: context.appColorScheme.semantic.warning,
                 minimumSize: const Size(double.infinity, 48),
               ),
             ),
@@ -1679,14 +1722,14 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     Icon(
                       Icons.cloud_off,
                       size: 16,
-                      color: Colors.grey.shade600,
+                      color: context.appColorScheme.text.secondary,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Server not connected',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: context.appColorScheme.text.secondary,
                       ),
                     ),
                   ],
@@ -1700,14 +1743,14 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     Icon(
                       Icons.cloud_off,
                       size: 16,
-                      color: Colors.grey.shade600,
+                      color: context.appColorScheme.text.secondary,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Server not connected or No backups found',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: context.appColorScheme.text.secondary,
                       ),
                     ),
                   ],
@@ -1749,14 +1792,14 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                               '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: context.appColorScheme.text.secondary,
                               ),
                             ),
                             Text(
                               size,
                               style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.grey.shade600,
+                                color: context.appColorScheme.text.secondary,
                               ),
                             ),
                           ],
@@ -1831,13 +1874,18 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
                   children: [
-                    Icon(Icons.link_off, size: 16, color: Colors.grey.shade600),
+                    Icon(
+                      Icons.link_off,
+                      size: 16,
+                      color: context.appColorScheme.text.secondary,
+                    ),
+
                     const SizedBox(width: 8),
                     Text(
                       'No local URL configured',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: context.appColorScheme.text.secondary,
                       ),
                     ),
                   ],
@@ -1847,12 +1895,12 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               ElevatedButton.icon(
                 onPressed: _isBackingUpLocal ? null : _createLocalBackup,
                 icon: _isBackingUpLocal
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: context.appColorScheme.text.onPrimary,
                         ),
                       )
                     : const Icon(Icons.backup),
@@ -1888,14 +1936,14 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       Icon(
                         Icons.cloud_off,
                         size: 16,
-                        color: Colors.grey.shade600,
+                        color: context.appColorScheme.text.secondary,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'Server not connected',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: context.appColorScheme.text.secondary,
                         ),
                       ),
                     ],
@@ -1909,14 +1957,14 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                       Icon(
                         Icons.cloud_off,
                         size: 16,
-                        color: Colors.grey.shade600,
+                        color: context.appColorScheme.text.secondary,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         'No backups found',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade600,
+                          color: context.appColorScheme.text.secondary,
                         ),
                       ),
                     ],
@@ -1960,14 +2008,14 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                                 '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${date.hour}:${date.minute.toString().padLeft(2, '0')}',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade600,
+                                  color: context.appColorScheme.text.secondary,
                                 ),
                               ),
                               Text(
                                 size,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey.shade600,
+                                  color: context.appColorScheme.text.secondary,
                                 ),
                               ),
                             ],
@@ -2034,18 +2082,21 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade800,
+                        color: context
+                            .appColorScheme
+                            .background
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text(
                             'echo "allow-external-apps=true" > ~/.termux/termux.properties',
                             style: TextStyle(
                               fontFamily: 'monospace',
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: context.appColorScheme.text.primary,
                             ),
                           ),
                         ],
@@ -2127,15 +2178,18 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade800,
+                        color: context
+                            .appColorScheme
+                            .background
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
+                      child: Text(
                         'termux-setup-storage',
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: context.appColorScheme.text.primary,
                         ),
                       ),
                     ),
@@ -2266,9 +2320,9 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
           _refreshStatus();
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text('Termux initialized successfully'),
-              backgroundColor: Colors.green,
+              backgroundColor: context.appColorScheme.semantic.success,
             ),
           );
         } else {

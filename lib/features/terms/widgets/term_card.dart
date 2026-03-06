@@ -40,9 +40,9 @@ class TermCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     term.translation!,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: context.appColorScheme.text.secondary,
+                    ),
                   ),
                 ),
               const SizedBox(height: 8),
@@ -90,8 +90,8 @@ class TermCard extends StatelessWidget {
       ),
       child: Text(
         term.statusLabel,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: context.getStatusTextColor(term.status.toString()),
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),

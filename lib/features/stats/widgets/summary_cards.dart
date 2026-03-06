@@ -50,7 +50,7 @@ class SummaryCards extends StatelessWidget {
           label: 'Streak',
           value: '${streakStats.currentStreak}',
           subtitle: 'Longest: ${streakStats.longestStreak} days',
-          iconColor: Colors.orange,
+          iconColor: context.appColorScheme.semantic.warning,
           isLarge: true,
         ),
         const SizedBox(height: 12),

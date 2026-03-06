@@ -104,9 +104,9 @@ class _AISettingsSectionState extends ConsumerState<AISettingsSection> {
       case AIProvider.gemini:
         return _buildGeminiSettings(context, ref, config);
       case AIProvider.none:
-        return const Text(
+        return Text(
           'AI features are disabled',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: context.appColorScheme.text.secondary),
         );
     }
   }

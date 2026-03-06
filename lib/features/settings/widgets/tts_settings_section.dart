@@ -5,6 +5,7 @@ import 'package:lute_for_mobile/features/settings/models/tts_settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/tts_settings_provider.dart';
 import 'package:lute_for_mobile/features/settings/widgets/kokoro_voice_chips.dart';
 import 'package:lute_for_mobile/features/settings/widgets/on_device_voice_selector.dart';
+import 'package:lute_for_mobile/shared/theme/theme_extensions.dart';
 
 class TTSSettingsSection extends ConsumerStatefulWidget {
   const TTSSettingsSection({super.key});
@@ -101,9 +102,9 @@ class _TTSSettingsSectionState extends ConsumerState<TTSSettingsSection> {
       case TTSProvider.localOpenAI:
         return _buildLocalOpenAISettings(context, ref, config);
       case TTSProvider.none:
-        return const Text(
+        return Text(
           'TTS is disabled',
-          style: TextStyle(color: Colors.grey),
+          style: TextStyle(color: context.appColorScheme.text.secondary),
         );
     }
   }
@@ -618,7 +619,10 @@ class _TestSpeechButtonState extends ConsumerState<_TestSpeechButton> {
             padding: const EdgeInsets.only(bottom: 8.0),
             child: Text(
               _error!,
-              style: const TextStyle(color: Colors.red, fontSize: 12),
+              style: TextStyle(
+                color: context.appColorScheme.error.error,
+                fontSize: 12,
+              ),
             ),
           ),
         ElevatedButton.icon(
