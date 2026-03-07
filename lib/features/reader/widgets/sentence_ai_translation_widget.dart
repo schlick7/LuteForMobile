@@ -88,7 +88,7 @@ class _SentenceAITranslationWidgetState
       ),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: context.appColorScheme.background.surface,
+        color: context.appColorScheme.background.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(

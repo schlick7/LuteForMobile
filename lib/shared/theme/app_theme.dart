@@ -535,7 +535,7 @@ class AppTheme {
         onTertiary: scheme.text.onTertiary,
         tertiaryContainer: scheme.material3.tertiaryContainer,
         onTertiaryContainer: scheme.text.onTertiaryContainer,
-        surface: scheme.background.surface,
+        surface: scheme.background.background,
         onSurface: scheme.text.primary,
         surfaceContainerHighest: scheme.background.surfaceContainerHighest,
         onSurfaceVariant: scheme.text.secondary,
@@ -643,6 +643,13 @@ class AppTheme {
         color: scheme.background.surface,
         elevation: 1,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: scheme.background.background,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: scheme.background.background,
+        modalBackgroundColor: scheme.background.background,
       ),
       extensions: [
         AppThemeColorExtension(colorScheme: scheme, statusModes: statusModes),

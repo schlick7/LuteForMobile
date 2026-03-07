@@ -289,7 +289,7 @@ class _SentenceTranslationWidgetState
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: context.appColorScheme.background.surface,
+          color: context.appColorScheme.background.background,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: const Center(child: CircularProgressIndicator()),
@@ -300,7 +300,7 @@ class _SentenceTranslationWidgetState
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: context.appColorScheme.background.surface,
+          color: context.appColorScheme.background.background,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -322,7 +322,7 @@ class _SentenceTranslationWidgetState
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: context.appColorScheme.background.surface,
+        color: context.appColorScheme.background.background,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
