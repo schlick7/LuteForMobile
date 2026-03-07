@@ -8,18 +8,19 @@ A Flutter mobile frontend for Lute v3 language learning server. Read books and l
 - **Sentence Reader** - Sentence parsing with term status tracking and highlighting
 - **Audio Playback** - Integrated audio player with bookmark support
 - **Dictionary Integration** - Inline dictionary lookup for terms
-- **Theme System** - Dark, Light, Black and White
+- **Theme System** - Dark, Light, Black and White, and Custom made themes
 - **PWA Support** - Install as a web app on any device
 - **TTS Support** - ondevice, Kokoro, openai
-- **AI Translation Support** - Local OpenAI Endpoint (Ollama, Llama.cpp, etc.), OpenAI
+- **AI Translation Support** - Local OpenAI Endpoint (Ollama, Llama.cpp, etc.), OpenAI, Gemini
+- **Termux Integration on Android**
 
 ## Supported Server Features
 - ✅ Reader View
 - ✅ Books View
 - ✅ Terms View
 - ✅ Statistics View
-- X  Adding Books
-- X  Language Settings
+- ✅ Adding Books
+- ✅ Language Settings
 
 ## Platforms
 Native:
