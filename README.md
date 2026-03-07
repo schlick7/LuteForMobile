@@ -87,7 +87,7 @@ or
 
 4. The files should be placed in a `luteformobile/` subdirectory
 
-Resart the Lute Server
+Restart the Lute Server
 
 Access the PWA at: `http://YOUR_LUTE_IP:5001/static/luteformobile/index.html`
 
@@ -113,7 +113,7 @@ flutter pub get
 flutter build web
 
 # Install PWA to Lute Server (run from build/web)
-python3 setup_pwa.y
+python3 setup_pwa.py
 ```
 ```bash
 # Build Android APK
@@ -205,7 +205,6 @@ flutter pub upgrade
 - [Quick Start Guide](docs/QUICK_START.md)
 - [PWA Setup Guide](docs/PWA_SETUP_GUIDE.md)
 - [API Endpoints](docs/luteendpoints.md)
-- [GitHub Release Guide](docs/GITHUB_RELEASE_GUIDE.md)
 
 ## License
 
