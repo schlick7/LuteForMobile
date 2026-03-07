@@ -535,7 +535,7 @@ class AppTheme {
         onTertiary: scheme.text.onTertiary,
         tertiaryContainer: scheme.material3.tertiaryContainer,
         onTertiaryContainer: scheme.text.onTertiaryContainer,
-        surface: scheme.background.background,
+        surface: scheme.background.surface,
         onSurface: scheme.text.primary,
         surfaceContainerHighest: scheme.background.surfaceContainerHighest,
         onSurfaceVariant: scheme.text.secondary,

@@ -16,8 +16,8 @@ final AppThemeColorScheme darkThemePreset = AppThemeColorScheme(
     onTertiaryContainer: Color(0xFFFFD8E4),
   ),
   background: const BackgroundColors(
-    background: Color(0xFF48484a),
-    surface: Color(0xFF1E1E1E),
+    background: Color(0xFF1E1E1E),
+    surface: Color(0xFF48484A),
     surfaceVariant: Color(0xFF2A2A2A),
     surfaceContainerHighest: Color(0xFF49454F),
   ),
