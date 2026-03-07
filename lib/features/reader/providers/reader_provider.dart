@@ -464,8 +464,8 @@ class ReaderNotifier extends Notifier<ReaderState> {
 
     final tooltipCacheService = ref.read(tooltipCacheServiceProvider);
     final maxConcurrent = settings.maxConcurrentTooltipFetches.clamp(1, 10);
-    int fetchedCount = 0;
     int cachedCount = 0;
+    final fetchedHtmlByTermId = <int, String>{};
 
     // Phase 1: Check cache for ALL terms in parallel to identify misses
     final cacheChecks = termIds.map((termId) async {
@@ -512,10 +512,8 @@ class ReaderNotifier extends Notifier<ReaderState> {
       try {
         final result = await _repository.getTermTooltipWithHtml(termId);
         if (result != null) {
-          final (tooltip, html) = result;
-          final htmlToCache = html.isEmpty ? ' ' : html;
-          await tooltipCacheService.saveToCache(termId, htmlToCache);
-          fetchedCount++;
+          final (_, html) = result;
+          fetchedHtmlByTermId[termId] = html.isEmpty ? ' ' : html;
         }
       } catch (e) {
         ApiLogger.logError('preloadTooltip', e, details: 'termId=$termId');
@@ -534,6 +532,12 @@ class ReaderNotifier extends Notifier<ReaderState> {
     if (queue.isNotEmpty || activeCount > 0) {
       await completer.future;
     }
+
+    if (fetchedHtmlByTermId.isNotEmpty) {
+      await tooltipCacheService.bulkSaveToCache(fetchedHtmlByTermId);
+    }
+
+    final fetchedCount = fetchedHtmlByTermId.length;
 
     if (fetchedCount > 0 || cachedCount > 0) {
       ApiLogger.logCache(
