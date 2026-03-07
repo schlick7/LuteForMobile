@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/core/providers/tts_provider.dart';
 import 'package:lute_for_mobile/core/network/tts_service.dart';
+import 'package:lute_for_mobile/shared/theme/theme_extensions.dart';
 
 class OnDeviceVoiceSelector extends ConsumerStatefulWidget {
   final String? selectedVoice;
@@ -99,7 +100,11 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
               ? Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.error, color: Colors.red, size: 48),
+                    Icon(
+                      Icons.error,
+                      color: context.appColorScheme.error.error,
+                      size: 48,
+                    ),
                     const SizedBox(height: 16),
                     Text(_error!),
                     const SizedBox(height: 16),
@@ -113,17 +118,24 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
                   ],
                 )
               : _availableVoices.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.warning, color: Colors.orange, size: 48),
-                      SizedBox(height: 16),
-                      Text('No voices found on this device'),
-                      SizedBox(height: 8),
+                      Icon(
+                        Icons.warning,
+                        color: context.appColorScheme.semantic.warning,
+                        size: 48,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text('No voices found on this device'),
+                      const SizedBox(height: 8),
                       Text(
                         'Try downloading TTS voices in your device settings',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: context.appColorScheme.text.secondary,
+                        ),
                       ),
                     ],
                   ),
@@ -155,9 +167,10 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
                                 )
                               : null,
                           trailing: widget.selectedVoice == voice.name
-                              ? const Icon(
+                              ? Icon(
                                   Icons.check,
-                                  color: Colors.green,
+                                  color:
+                                      context.appColorScheme.semantic.success,
                                   size: 20,
                                 )
                               : null,
@@ -236,7 +249,7 @@ class _OnDeviceVoiceSelectorState extends ConsumerState<OnDeviceVoiceSelector> {
           style: TextStyle(
             color: widget.selectedVoice != null
                 ? null
-                : Colors.grey.withValues(alpha: 0.7),
+                : context.appColorScheme.text.secondary.withValues(alpha: 0.7),
           ),
         ),
       ),
@@ -292,9 +305,12 @@ class _VoiceInputDialogState extends State<_VoiceInputDialog> {
             autofocus: true,
           ),
           const SizedBox(height: 12),
-          const Text(
+          Text(
             'Tip: You can find available voice names in the voice picker or by running the app with debug logging.',
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+            style: TextStyle(
+              fontSize: 12,
+              color: context.appColorScheme.text.secondary,
+            ),
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 import '../../../core/logger/widget_logger.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class TermuxStorageAccessScreen extends StatefulWidget {
   const TermuxStorageAccessScreen({super.key});
@@ -87,15 +88,18 @@ class _TermuxStorageAccessScreenState extends State<TermuxStorageAccessScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade800,
+                        color: context
+                            .appColorScheme
+                            .background
+                            .surfaceContainerHighest,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text(
+                      child: Text(
                         'termux-setup-storage',
                         style: TextStyle(
                           fontFamily: 'monospace',
                           fontWeight: FontWeight.bold,
-                          color: Colors.white,
+                          color: context.appColorScheme.text.primary,
                         ),
                       ),
                     ),
@@ -178,7 +182,7 @@ class _TermuxStorageAccessScreenState extends State<TermuxStorageAccessScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Storage Access'),
-        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+        backgroundColor: context.appColorScheme.material3.primaryContainer,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -231,7 +235,7 @@ class _TermuxStorageAccessScreenState extends State<TermuxStorageAccessScreen> {
                                     : 'Termux is ready to grant storage access',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Theme.of(context).colorScheme.onSurface
+                                  color: context.appColorScheme.text.primary
                                       .withValues(alpha: 0.6),
                                 ),
                               ),
@@ -251,13 +255,13 @@ class _TermuxStorageAccessScreenState extends State<TermuxStorageAccessScreen> {
                   child: ElevatedButton(
                     onPressed: _grantStorageAccess,
                     child: _isLaunchingTermux
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                                context.appColorScheme.text.onPrimary,
                               ),
                             ),
                           )

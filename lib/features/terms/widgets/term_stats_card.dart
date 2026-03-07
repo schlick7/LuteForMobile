@@ -30,7 +30,7 @@ class TermStatsCard extends StatelessWidget {
                   Text(
                     languageName!,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: context.appColorScheme.text.secondary,
                     ),
                   ),
               ],
@@ -69,10 +69,10 @@ class TermStatsCard extends StatelessWidget {
                   width: 10,
                   height: 10,
                   decoration: BoxDecoration(
-                    color: context.getStatusColor(status),
+                    color: context.getStatusColorForVisualization(status),
                     borderRadius: BorderRadius.circular(2),
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: context.appColorScheme.text.secondary,
                       width: 1,
                     ),
                   ),
@@ -90,7 +90,7 @@ class TermStatsCard extends StatelessWidget {
             count.toString(),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              color: isTotal ? Theme.of(context).colorScheme.primary : null,
+              color: isTotal ? context.appColorScheme.material3.primary : null,
             ),
           ),
         ],

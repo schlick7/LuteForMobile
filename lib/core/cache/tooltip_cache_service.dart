@@ -110,8 +110,6 @@ class TooltipCacheService {
         return false;
       }
 
-      await _enforceSizeLimits();
-
       final entries = <int, TooltipCacheEntry>{};
       for (final entry in tooltips.entries) {
         final sizeInBytes = utf8.encode(entry.value).length;
@@ -124,6 +122,7 @@ class TooltipCacheService {
       }
 
       await _box!.putAll(entries);
+      await _enforceSizeLimits();
 
       CacheLogger.log('bulk saved ${entries.length} entries');
       return true;

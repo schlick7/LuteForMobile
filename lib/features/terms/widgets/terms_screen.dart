@@ -4,6 +4,7 @@ import '../../../core/logger/widget_logger.dart';
 import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/app_bar_leading.dart';
+import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/providers/language_data_provider.dart';
 import '../../../shared/models/language.dart';
 import '../../settings/providers/settings_provider.dart';
@@ -124,7 +125,11 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.spellcheck, size: 64, color: Colors.grey),
+                Icon(
+                  Icons.spellcheck,
+                  size: 64,
+                  color: context.appColorScheme.text.secondary,
+                ),
                 const SizedBox(height: 16),
                 Text(
                   'No terms found',

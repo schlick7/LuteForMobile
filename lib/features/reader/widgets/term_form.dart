@@ -233,7 +233,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               ),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
+                color: context.appColorScheme.background.surface,
                 borderRadius: const BorderRadius.vertical(
                   top: Radius.circular(20),
                 ),
@@ -256,7 +256,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
+                  color: context.appColorScheme.background.surface,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(20),
                   ),
@@ -404,16 +404,16 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
                   if (isCurrentTerm && ttsState.isLoading) {
                     icon = Icons.hourglass_empty;
-                    color = Theme.of(context).colorScheme.primary;
+                    color = context.m3Primary;
                     onPressed = null;
                   } else if (isCurrentTerm && ttsState.isPlaying) {
                     icon = Icons.stop;
-                    color = Theme.of(context).colorScheme.error;
+                    color = context.error;
                     onPressed = () =>
                         ref.read(sentenceTTSProvider.notifier).stop();
                   } else {
                     icon = Icons.volume_up;
-                    color = Theme.of(context).colorScheme.primary;
+                    color = context.m3Primary;
                     onPressed = () => ref
                         .read(sentenceTTSProvider.notifier)
                         .speakSentence(widget.termForm.term, 0);
@@ -464,7 +464,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   Widget _buildTranslationField(BuildContext context) {
     final accentColor = _isDictionaryOpen
         ? context.customColors.accentButtonColor
-        : Theme.of(context).colorScheme.outline;
+        : context.appColorScheme.border.outline;
 
     final aiSettings = ref.watch(aiSettingsProvider);
     final termConfig = aiSettings.promptConfigs[AIPromptType.termTranslation];
@@ -509,20 +509,22 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             child: ElevatedButton(
               onPressed: _isLoadingAITranslation ? null : _fetchAITranslation,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                backgroundColor: context.m3Primary,
+                foregroundColor: context.appColorScheme.text.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 padding: EdgeInsets.zero,
               ),
               child: _isLoadingAITranslation
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          context.appColorScheme.text.onPrimary,
+                        ),
                       ),
                     )
                   : const Icon(Icons.psychology, size: 28),
@@ -537,8 +539,8 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             style: ElevatedButton.styleFrom(
               backgroundColor: accentColor,
               foregroundColor: _isDictionaryOpen
-                  ? Theme.of(context).colorScheme.onPrimary
-                  : Theme.of(context).colorScheme.onSurface,
+                  ? context.appColorScheme.text.onPrimary
+                  : context.appColorScheme.text.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -630,7 +632,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
     final labelColor = !isSelected && statusValue == '5'
         ? _getStatusColor('4')
-        : (isSelected ? Theme.of(context).colorScheme.onPrimary : statusColor);
+        : (isSelected ? context.appColorScheme.text.onPrimary : statusColor);
 
     return InkWell(
       onTap: () {
@@ -675,7 +677,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         hintText: 'Enter romanization (optional)',
         hintStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+          color: context.appColorScheme.text.primary.withValues(alpha: 0.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       ),
@@ -874,7 +876,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                       color:
                           widget.termForm.parents.length == 1 &&
                               widget.termForm.syncStatus == true
-                          ? Colors.green
+                          ? context.success
                           : null,
                     ),
                     tooltip: widget.termForm.parents.length > 1

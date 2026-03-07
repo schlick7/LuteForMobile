@@ -9,9 +9,11 @@ import '../../features/reader/models/term_form.dart';
 import '../../features/reader/models/language_sentence_settings.dart';
 import '../../features/reader/services/page_cache_service.dart';
 import '../../features/books/models/book.dart';
+import '../../features/books/models/book_create.dart';
 import '../../features/books/models/datatables_response.dart';
 import '../../features/terms/models/term.dart';
 import '../../shared/models/language.dart';
+import '../../shared/models/language_card_settings.dart';
 import '../../core/cache/term_cache_service.dart';
 import '../../core/cache/models/term_cache_entry.dart';
 import 'api_service.dart';
@@ -389,6 +391,79 @@ class ContentService {
     return response.data ?? '';
   }
 
+  Future<LanguageCardSettings> getLanguageCardSettings(int langId) async {
+    final html = await getLanguageSettingsHtml(langId);
+    return parser.parseLanguageCardSettings(html, langId);
+  }
+
+  Future<void> saveLanguageCardSettings(LanguageCardSettings settings) async {
+    final data = _languageSettingsPayload(settings);
+    await _apiService.postLanguageSettings(settings.languageId, data);
+  }
+
+  Future<LanguageCardSettings> getNewLanguageCardSettings({
+    String? templateName,
+  }) async {
+    final response = await _apiService.getNewLanguageSettings(
+      templateName: templateName,
+    );
+    final html = response.data ?? '';
+    return parser.parseLanguageCardSettings(html, 0);
+  }
+
+  Future<void> createLanguageCardSettings(
+    LanguageCardSettings settings, {
+    String? templateName,
+  }) async {
+    final data = _languageSettingsPayload(settings);
+    await _apiService.postNewLanguageSettings(data, templateName: templateName);
+  }
+
+  Future<List<String>> getPredefinedLanguageNames() async {
+    final response = await _apiService.getNewLanguageSettings();
+    final html = response.data ?? '';
+    return parser.parsePredefinedLanguageNames(html);
+  }
+
+  Future<void> loadPredefinedLanguage(String languageName) async {
+    await _apiService.loadPredefinedLanguage(languageName);
+  }
+
+  Future<void> deleteLanguage(int languageId) async {
+    await _apiService.deleteLanguage(languageId);
+  }
+
+  Map<String, dynamic> _languageSettingsPayload(LanguageCardSettings settings) {
+    final data = <String, dynamic>{
+      'name': settings.name,
+      'parser_type': settings.parserType,
+      'character_substitutions': settings.characterSubstitutions,
+      'regexp_split_sentences': settings.regexpSplitSentences,
+      'exceptions_split_sentences': settings.exceptionsSplitSentences,
+      'word_characters': settings.wordCharacters,
+    };
+
+    if (settings.showRomanization) {
+      data['show_romanization'] = 'y';
+    }
+    if (settings.rightToLeft) {
+      data['right_to_left'] = 'y';
+    }
+
+    for (var i = 0; i < settings.dictionaries.length; i++) {
+      final dict = settings.dictionaries[i];
+      data['dictionaries-$i-usefor'] = dict.useFor;
+      data['dictionaries-$i-dicttype'] = dict.dictType;
+      data['dictionaries-$i-dicturi'] = dict.dictUri;
+      data['dictionaries-$i-sort_order'] = (i + 1).toString();
+      if (dict.isActive) {
+        data['dictionaries-$i-is_active'] = 'y';
+      }
+    }
+
+    return data;
+  }
+
   Future<DataTablesResponse<Book>> getActiveBooks({
     int start = 0,
     int length = 10,
@@ -508,6 +583,179 @@ class ContentService {
 
   Future<void> deleteBook(int bookId) async {
     await _apiService.deleteBook(bookId);
+  }
+
+  Future<BookImportPreview> previewBookImportFromUrl(String importUrl) async {
+    final response = await _apiService.getBookNew(importUrl: importUrl);
+    final htmlContent = response.data ?? '';
+    final document = html_parser.parse(htmlContent);
+
+    final title =
+        document.querySelector('#title')?.attributes['value']?.trim() ?? '';
+    final sourceUri =
+        document.querySelector('#source_uri')?.attributes['value']?.trim() ??
+        '';
+    final text = document.querySelector('#text')?.text.trim() ?? '';
+
+    final errorMessages = _extractFlashErrors(document);
+
+    if (errorMessages.isNotEmpty) {
+      throw Exception(errorMessages.join('\n'));
+    }
+
+    return BookImportPreview(title: title, text: text, sourceUri: sourceUri);
+  }
+
+  Future<int> createBook(BookCreateRequest request) async {
+    dynamic payload = request.toFormFields();
+
+    if (request.hasTextFile || request.hasAudioFile) {
+      final fields = request.toFormFields();
+      final multipartData = <String, dynamic>{...fields};
+
+      if (request.hasTextFile) {
+        final textPath = request.textFilePath!;
+        multipartData['textfile'] = await MultipartFile.fromFile(
+          textPath,
+          filename: _filenameFromPath(textPath),
+        );
+      }
+
+      if (request.hasAudioFile) {
+        final audioPath = request.audioFilePath!;
+        multipartData['audiofile'] = await MultipartFile.fromFile(
+          audioPath,
+          filename: _filenameFromPath(audioPath),
+        );
+      }
+
+      payload = FormData.fromMap(multipartData);
+    }
+
+    final response = await _apiService.createBook(payload);
+
+    final location = response.headers.value('location');
+    if (location != null) {
+      final match = RegExp(r'/read/(\d+)/page/\d+').firstMatch(location);
+      if (match != null) {
+        final id = int.tryParse(match.group(1) ?? '');
+        if (id != null) {
+          return id;
+        }
+      }
+    }
+
+    final htmlContent = response.data ?? '';
+    if (htmlContent.isNotEmpty) {
+      final document = html_parser.parse(htmlContent);
+      final errorMessages = _extractFlashErrors(document);
+
+      if (errorMessages.isNotEmpty) {
+        throw Exception(errorMessages.join('\n'));
+      }
+    }
+
+    throw Exception('Book creation failed: server did not return a book ID.');
+  }
+
+  Future<BookEditFormData> getBookEditForm(int bookId) async {
+    final response = await _apiService.getBookEdit(bookId);
+    final htmlContent = response.data ?? '';
+    final document = html_parser.parse(htmlContent);
+
+    final title =
+        document.querySelector('#title')?.attributes['value']?.trim() ?? '';
+    final sourceUri =
+        document.querySelector('#source_uri')?.attributes['value']?.trim() ??
+        '';
+    final audioFilename =
+        document
+            .querySelector('#audio_filename')
+            ?.attributes['value']
+            ?.trim() ??
+        '';
+    final rawTags =
+        document.querySelector('#book_tags')?.attributes['value']?.trim() ?? '';
+
+    final errors = _extractFlashErrors(document);
+    if (errors.isNotEmpty) {
+      throw Exception(errors.join('\n'));
+    }
+
+    return BookEditFormData(
+      title: title,
+      sourceUri: sourceUri,
+      tags: _parseTagifyTags(rawTags),
+      audioFilename: audioFilename,
+    );
+  }
+
+  Future<void> editBook(BookEditRequest request) async {
+    dynamic payload = request.toFormFields();
+    if (request.hasAudioFile) {
+      final fields = request.toFormFields();
+      payload = FormData.fromMap({
+        ...fields,
+        'audiofile': await MultipartFile.fromFile(
+          request.audioFilePath!,
+          filename: _filenameFromPath(request.audioFilePath!),
+        ),
+      });
+    }
+
+    final response = await _apiService.postBookEdit(request.bookId, payload);
+    final location = response.headers.value('location');
+    if (location != null && location.trim().isNotEmpty) {
+      return;
+    }
+
+    final htmlContent = response.data ?? '';
+    if (htmlContent.isNotEmpty) {
+      final document = html_parser.parse(htmlContent);
+      final errors = _extractFlashErrors(document);
+      if (errors.isNotEmpty) {
+        throw Exception(errors.join('\n'));
+      }
+    }
+  }
+
+  List<String> _extractFlashErrors(html.Document document) {
+    final messages = document
+        .querySelectorAll('.flash-notice-narrow, .flash-notice')
+        .map((element) => element.text.trim())
+        .where((message) => message.isNotEmpty)
+        .toList();
+    return messages.toSet().toList();
+  }
+
+  String _filenameFromPath(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final segments = normalized.split('/');
+    if (segments.isEmpty) return path;
+    return segments.last;
+  }
+
+  List<String> _parseTagifyTags(String rawValue) {
+    if (rawValue.isEmpty) return const [];
+
+    try {
+      final parsed = jsonDecode(rawValue);
+      if (parsed is List) {
+        return parsed
+            .whereType<Map>()
+            .map((item) => item['value']?.toString().trim() ?? '')
+            .where((tag) => tag.isNotEmpty)
+            .toList();
+      }
+    } catch (_) {
+      // Fallback below.
+    }
+
+    return rawValue
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .toList();
   }
 
   Future<void> saveAudioPlayerData({

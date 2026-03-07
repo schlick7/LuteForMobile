@@ -5,6 +5,7 @@ import '../providers/books_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../../shared/providers/language_data_provider.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 final _userSettingsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final contentService = ref.read(contentServiceProvider);
@@ -116,7 +117,7 @@ class BooksDrawerSettings extends ConsumerWidget {
               Container(
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.outline,
+                    color: context.appColorScheme.border.outline,
                   ),
                   borderRadius: BorderRadius.circular(4),
                 ),

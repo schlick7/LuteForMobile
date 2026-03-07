@@ -18,8 +18,16 @@ extension BuildContextExtension on BuildContext {
     return extension?.colorScheme ?? darkThemePreset;
   }
 
+  Map<int, StatusMode> get statusModes {
+    final extension = Theme.of(this).extension<AppThemeColorExtension>();
+    return extension?.statusModes ?? defaultStatusModes();
+  }
+
   Color get audioPlayerBackground => appColorScheme.audio.background;
   Color get audioPlayerIcon => appColorScheme.audio.icon;
+  Color get audioBookmark => appColorScheme.audio.bookmark;
+  Color get audioError => appColorScheme.audio.error;
+  Color get audioErrorBackground => appColorScheme.audio.errorBackground;
 
   Color get status1 => appColorScheme.status.status1;
   Color get status2 => appColorScheme.status.status2;
@@ -50,73 +58,25 @@ extension BuildContextExtension on BuildContext {
   Color get m3TertiaryContainer => appColorScheme.material3.tertiaryContainer;
 
   Color getStatusTextColor(String status) {
-    switch (status) {
-      case '1':
-        if (appColorScheme.status.isTransparent1) {
-          return appColorScheme.text.primary;
-        }
-        return appColorScheme.status.highlightedText;
-      case '2':
-        if (appColorScheme.status.isTransparent2) {
-          return appColorScheme.text.primary;
-        }
-        return appColorScheme.status.highlightedText;
-      case '3':
-        if (appColorScheme.status.isTransparent3) {
-          return appColorScheme.text.primary;
-        }
-        return appColorScheme.status.highlightedText;
-      case '4':
-        if (appColorScheme.status.isTransparent4) {
-          return appColorScheme.text.primary;
-        }
-        return appColorScheme.status.highlightedText;
-      case '5':
-        if (appColorScheme.status.isTransparent5) {
-          return appColorScheme.text.primary;
-        }
-        return appColorScheme.status.highlightedText;
-      case '98':
-        return appColorScheme.text.primary;
-      case '99':
-        if (appColorScheme.status.isTransparent99) {
-          return appColorScheme.text.primary;
-        }
-        return appColorScheme.status.highlightedText;
-      case '0':
-      default:
-        return appColorScheme.status.status0;
+    final statusNum = int.tryParse(status);
+    if (statusNum == null) return appColorScheme.text.primary;
+    final mode = statusModes[statusNum] ?? StatusMode.background;
+    final statusColor = getStatusColor(status);
+
+    if (mode == StatusMode.none) {
+      return appColorScheme.text.primary;
     }
+    if (mode == StatusMode.text) {
+      return statusColor;
+    }
+    return appColorScheme.status.highlightedText;
   }
 
   Color? getStatusBackgroundColor(String status) {
-    switch (status) {
-      case '1':
-        if (appColorScheme.status.isTransparent1) return null;
-        return appColorScheme.status.status1;
-      case '2':
-        if (appColorScheme.status.isTransparent2) return null;
-        return appColorScheme.status.status2;
-      case '3':
-        if (appColorScheme.status.isTransparent3) return null;
-        return appColorScheme.status.status3;
-      case '4':
-        if (appColorScheme.status.isTransparent4) return null;
-        return appColorScheme.status.status4;
-      case '5':
-        if (appColorScheme.status.isTransparent5) return null;
-        return appColorScheme.status.status5;
-      case '0':
-        if (appColorScheme.status.isTransparent0) return null;
-        return appColorScheme.status.status0;
-      case '98':
-        return null;
-      case '99':
-        if (appColorScheme.status.isTransparent99) return null;
-        return appColorScheme.status.status99;
-      default:
-        return null;
-    }
+    final statusNum = int.tryParse(status) ?? 0;
+    final mode = statusModes[statusNum] ?? StatusMode.background;
+    if (mode != StatusMode.background) return null;
+    return getStatusColor(status);
   }
 
   Color getStatusColor(String status) {
@@ -143,6 +103,12 @@ extension BuildContextExtension on BuildContext {
 
   Color getStatusColorWithOpacity(String status, {double opacity = 0.1}) {
     return getStatusColor(status).withValues(alpha: opacity);
+  }
+
+  /// Always returns a visible status swatch color for charts/legends/stats.
+  Color getStatusColorForVisualization(String status) {
+    final color = getStatusColor(status);
+    return color.a == 0 ? color.withValues(alpha: 1.0) : color;
   }
 }
 

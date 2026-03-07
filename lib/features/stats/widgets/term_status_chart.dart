@@ -65,90 +65,123 @@ class TermStatusChart extends ConsumerWidget {
     BuildContext context,
   ) {
     final statusColors = _getStatusColors(context);
+    final labelTextStyles = {
+      '1': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: _statusLabelTextColor(
+          context,
+          statusColors['1'] ?? context.appColorScheme.text.secondary,
+        ),
+      ),
+      '2': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: _statusLabelTextColor(
+          context,
+          statusColors['2'] ?? context.appColorScheme.text.secondary,
+        ),
+      ),
+      '3': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: _statusLabelTextColor(
+          context,
+          statusColors['3'] ?? context.appColorScheme.text.secondary,
+        ),
+      ),
+      '4': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: _statusLabelTextColor(
+          context,
+          statusColors['4'] ?? context.appColorScheme.text.secondary,
+        ),
+      ),
+      '5': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: _statusLabelTextColor(
+          context,
+          statusColors['5'] ?? context.appColorScheme.text.secondary,
+        ),
+      ),
+      '99': TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+        color: _statusLabelTextColor(
+          context,
+          statusColors['99'] ?? context.appColorScheme.text.secondary,
+        ),
+      ),
+    };
 
     return [
       PieChartSectionData(
         value: stats.status1.toDouble(),
         title: 'L1',
-        color: statusColors['1'] ?? Colors.grey,
+        color: statusColors['1'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['1'],
       ),
       PieChartSectionData(
         value: stats.status2.toDouble(),
         title: 'L2',
-        color: statusColors['2'] ?? Colors.grey,
+        color: statusColors['2'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['2'],
       ),
       PieChartSectionData(
         value: stats.status3.toDouble(),
         title: 'L3',
-        color: statusColors['3'] ?? Colors.grey,
+        color: statusColors['3'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['3'],
       ),
       PieChartSectionData(
         value: stats.status4.toDouble(),
         title: 'L4',
-        color: statusColors['4'] ?? Colors.grey,
+        color: statusColors['4'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['4'],
       ),
       PieChartSectionData(
         value: stats.status5.toDouble(),
         title: 'L5',
-        color: statusColors['5'] ?? Colors.grey,
+        color: statusColors['5'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['5'],
       ),
       PieChartSectionData(
         value: stats.status99.toDouble(),
         title: 'WK',
-        color: statusColors['99'] ?? Colors.grey,
+        color: statusColors['99'] ?? context.appColorScheme.text.secondary,
         radius: 50,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        ),
+        titleStyle: labelTextStyles['99'],
       ),
     ];
   }
 
   Map<String, Color> _getStatusColors(BuildContext context) {
     return {
-      '1': context.status1,
-      '2': context.status2,
-      '3': context.status3,
-      '4': context.status4,
-      '5': context.status5,
-      '99': context.status99,
+      '1': context.getStatusColorForVisualization('1'),
+      '2': context.getStatusColorForVisualization('2'),
+      '3': context.getStatusColorForVisualization('3'),
+      '4': context.getStatusColorForVisualization('4'),
+      '5': context.getStatusColorForVisualization('5'),
+      '99': context.getStatusColorForVisualization('99'),
     };
+  }
+
+  Color _statusLabelTextColor(BuildContext context, Color background) {
+    return background.computeLuminance() > 0.5
+        ? context.appColorScheme.text.primary
+        : context.appColorScheme.status.highlightedText;
   }
 
   Widget _buildLegend(BuildContext context, TermStats stats) {
     final statusColors = _getStatusColors(context);
+    final statusKeys = ['1', '2', '3', '4', '5', '99'];
     final labels = ['L1', 'L2', 'L3', 'L4', 'L5', 'WK'];
     final values = [
       stats.status1,
@@ -163,7 +196,9 @@ class TermStatusChart extends ConsumerWidget {
       spacing: 12,
       runSpacing: 8,
       children: List.generate(6, (index) {
-        final color = statusColors[(index + 1).toString()] ?? Colors.grey;
+        final color =
+            statusColors[statusKeys[index]] ??
+            context.appColorScheme.text.secondary;
         final value = values[index];
 
         return Row(

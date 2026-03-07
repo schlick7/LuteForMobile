@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/language_stats.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class LanguageBreakdownCard extends StatelessWidget {
   final List<LanguageReadingStats> languages;
@@ -84,11 +85,10 @@ class LanguageBreakdownCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: totalWords > 0 ? lang.totalWords / totalWords : 0,
               minHeight: 8,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest,
+              backgroundColor:
+                  context.appColorScheme.background.surfaceContainerHighest,
               valueColor: AlwaysStoppedAnimation<Color>(
-                Theme.of(context).colorScheme.primary,
+                context.appColorScheme.material3.primary,
               ),
             ),
           ),
@@ -98,21 +98,21 @@ class LanguageBreakdownCard extends StatelessWidget {
               Text(
                 '$percentage of total',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: context.appColorScheme.text.secondary,
                 ),
               ),
               const Spacer(),
               Text(
                 'Weekly: ${_formatNumber(weeklyWords)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: context.appColorScheme.text.secondary,
                 ),
               ),
               const SizedBox(width: 16),
               Text(
                 'Daily avg: ${_formatNumber(dailyAverage)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: context.appColorScheme.text.secondary,
                 ),
               ),
             ],

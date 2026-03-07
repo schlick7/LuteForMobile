@@ -9,7 +9,6 @@ import '../../../shared/widgets/app_bar_leading.dart';
 import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
-import '../../../shared/theme/app_theme.dart';
 import '../models/settings.dart';
 import '../../../shared/theme/theme_definitions.dart';
 import '../../../app.dart';
@@ -17,6 +16,7 @@ import 'theme_selector_screen.dart';
 import 'tts_settings_section.dart';
 import 'ai_settings_section.dart';
 import 'termux_screen.dart';
+import 'language_settings_card.dart';
 
 class NumberField extends StatefulWidget {
   final String label;
@@ -147,6 +147,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     super.dispose();
   }
 
+  Color _onColorForSwatch(Color background) {
+    return background.computeLuminance() > 0.5
+        ? const Color(0xFF1C1B1F)
+        : const Color(0xFFFFFFFF);
+  }
+
   Future<void> _testConnection() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -269,7 +275,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         labelStyle: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
                               color: settings.serverUrl == Settings.termuxUrl
-                                  ? Theme.of(context).colorScheme.onSurface
+                                  ? context.appColorScheme.text.primary
                                         .withValues(alpha: 0.4)
                                   : context.customColors.accentLabelColor,
                             ),
@@ -283,37 +289,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                     ? Icons.check_circle
                                     : Icons.error,
                                 color: _connectionTestPassed
-                                    ? Theme.of(context)
-                                              .extension<
-                                                AppThemeColorExtension
-                                              >()
-                                              ?.colorScheme
-                                              .semantic
-                                              .success ??
-                                          Colors.green
-                                    : Theme.of(context).colorScheme.error,
+                                    ? context.success
+                                    : context.error,
                               )
                             : settings.isUrlValid
-                            ? Icon(
-                                Icons.check_circle,
-                                color:
-                                    Theme.of(context)
-                                        .extension<AppThemeColorExtension>()
-                                        ?.colorScheme
-                                        .semantic
-                                        .connected ??
-                                    Colors.green,
-                              )
-                            : Icon(
-                                Icons.error,
-                                color: Theme.of(context).colorScheme.error,
-                              ),
+                            ? Icon(Icons.check_circle, color: context.connected)
+                            : Icon(Icons.error, color: context.error),
                       ),
                       style: settings.serverUrl == Settings.termuxUrl
                           ? TextStyle(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onSurface.withValues(alpha: 0.5),
+                              color: context.appColorScheme.text.primary
+                                  .withValues(alpha: 0.5),
                             )
                           : null,
                       keyboardType: TextInputType.url,
@@ -372,26 +358,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: _connectionStatus!.contains('successful')
-                              ? Theme.of(context)
-                                        .extension<AppThemeColorExtension>()
-                                        ?.colorScheme
-                                        .semantic
-                                        .success
-                                        .withValues(alpha: 0.1) ??
-                                    Colors.green.withValues(alpha: 0.1)
-                              : Theme.of(
-                                  context,
-                                ).colorScheme.error.withValues(alpha: 0.1),
+                              ? context.success.withValues(alpha: 0.1)
+                              : context.error.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
                             color: _connectionStatus!.contains('successful')
-                                ? Theme.of(context)
-                                          .extension<AppThemeColorExtension>()
-                                          ?.colorScheme
-                                          .semantic
-                                          .success ??
-                                      Colors.green
-                                : Theme.of(context).colorScheme.error,
+                                ? context.success
+                                : context.error,
                           ),
                         ),
                         child: Row(
@@ -401,13 +374,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                   ? Icons.check_circle
                                   : Icons.error,
                               color: _connectionStatus!.contains('successful')
-                                  ? Theme.of(context)
-                                            .extension<AppThemeColorExtension>()
-                                            ?.colorScheme
-                                            .semantic
-                                            .success ??
-                                        Colors.green
-                                  : Theme.of(context).colorScheme.error,
+                                  ? context.success
+                                  : context.error,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
@@ -416,15 +384,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                                 style: TextStyle(
                                   color:
                                       _connectionStatus!.contains('successful')
-                                      ? Theme.of(context)
-                                                .extension<
-                                                  AppThemeColorExtension
-                                                >()
-                                                ?.colorScheme
-                                                .semantic
-                                                .success ??
-                                            Colors.green
-                                      : Theme.of(context).colorScheme.error,
+                                      ? context.success
+                                      : context.error,
                                 ),
                               ),
                             ),
@@ -549,9 +510,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Text(
                         'Run Lute3 server locally on your device using Termux',
                         style: TextStyle(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withValues(alpha: 0.6),
+                          color: context.appColorScheme.text.primary.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                     ],
@@ -603,6 +564,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            const LanguageSettingsCard(),
             const SizedBox(height: 16),
             Card(
               elevation: 2,
@@ -657,9 +620,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           'Sentences with this many terms or fewer will be combined to handle fragmentation from PDF/EPUB sources.',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            color: context.appColorScheme.text.primary
+                                .withValues(alpha: 0.6),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -695,9 +657,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           'The lower the value the faster the tooltip opens and the harder it is to open the Term Form',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurface.withValues(alpha: 0.6),
+                            color: context.appColorScheme.text.primary
+                                .withValues(alpha: 0.6),
                           ),
                         ),
                         const SizedBox(height: 24),
@@ -1173,17 +1134,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             );
                           },
                           icon: const Icon(Icons.tune),
-                          label: Text(_getThemeLabel(themeSettings.themeType)),
+                          label: Text(_getThemeLabel(themeSettings)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      _getThemeDescription(themeSettings.themeType),
+                      _getThemeDescription(themeSettings),
                       style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: context.appColorScheme.text.primary.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
                     ),
                   ],
@@ -1206,9 +1167,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     Text(
                       'This will reset all settings to their default values.',
                       style: TextStyle(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withValues(alpha: 0.6),
+                        color: context.appColorScheme.text.primary.withValues(
+                          alpha: 0.6,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1256,7 +1217,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         icon: const Icon(Icons.restore),
                         label: const Text('Reset to Defaults'),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: Theme.of(context).colorScheme.error,
+                          foregroundColor: context.error,
                         ),
                       ),
                     ),
@@ -1282,9 +1243,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               value,
               textAlign: TextAlign.right,
               style: TextStyle(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: context.appColorScheme.text.primary.withValues(
+                  alpha: 0.6,
+                ),
               ),
             ),
           ),
@@ -1322,14 +1283,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: isSelected
-                          ? Theme.of(context).colorScheme.onSurface
-                          : Colors.transparent,
+                          ? context.appColorScheme.text.primary
+                          : context.appColorScheme.text.primary.withValues(
+                              alpha: 0.0,
+                            ),
                       width: 2,
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.2),
+                              color: context.appColorScheme.text.primary
+                                  .withValues(alpha: 0.2),
                               blurRadius: 4,
                               offset: const Offset(0, 2),
                             ),
@@ -1337,7 +1301,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         : null,
                   ),
                   child: isSelected
-                      ? const Icon(Icons.check, color: Colors.white)
+                      ? Icon(Icons.check, color: _onColorForSwatch(color))
                       : null,
                 ),
               );
@@ -1381,14 +1345,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected
-                ? Theme.of(context).colorScheme.onSurface
-                : Colors.transparent,
+                ? context.appColorScheme.text.primary
+                : context.appColorScheme.text.primary.withValues(alpha: 0.0),
             width: 2,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
+                    color: context.appColorScheme.text.primary.withValues(
+                      alpha: 0.2,
+                    ),
                     blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
@@ -1398,10 +1364,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: Stack(
           children: [
             if (isSelected)
-              const Positioned(
+              Positioned(
                 top: 8,
                 left: 8,
-                child: Icon(Icons.check, color: Colors.white, size: 20),
+                child: Icon(
+                  Icons.check,
+                  color: _onColorForSwatch(displayColor),
+                  size: 20,
+                ),
               ),
             Positioned(
               bottom: 4,
@@ -1410,11 +1380,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 width: 20,
                 height: 20,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: context.appColorScheme.background.surface,
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
+                      color: context.appColorScheme.text.primary.withValues(
+                        alpha: 0.2,
+                      ),
                       blurRadius: 2,
                     ),
                   ],
@@ -1427,10 +1399,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       onCustomColorSelected,
                     );
                   },
-                  child: const Icon(
+                  child: Icon(
                     Icons.settings,
                     size: 14,
-                    color: Colors.black87,
+                    color: context.appColorScheme.text.primary.withValues(
+                      alpha: 0.85,
+                    ),
                   ),
                 ),
               ),
@@ -1496,7 +1470,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 decoration: BoxDecoration(
                   color: previewColor,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey),
+                  border: Border.all(
+                    color: context.appColorScheme.border.outline,
+                  ),
                 ),
               ),
             ],
@@ -1519,7 +1495,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  String _getThemeLabel(ThemeType themeType) {
+  String _getThemeLabel(ThemeSettings themeSettings) {
+    if (themeSettings.selectedUserTheme != null) {
+      return themeSettings.selectedUserTheme!.name;
+    }
+    final themeType = themeSettings.themeType;
     switch (themeType) {
       case ThemeType.light:
         return 'Light';
@@ -1530,7 +1510,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
-  String _getThemeDescription(ThemeType themeType) {
+  String _getThemeDescription(ThemeSettings themeSettings) {
+    if (themeSettings.selectedUserTheme != null) {
+      return 'Custom theme';
+    }
+    final themeType = themeSettings.themeType;
     switch (themeType) {
       case ThemeType.light:
         return 'Bright, clean interface';

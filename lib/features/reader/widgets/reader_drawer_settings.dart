@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/core/cache/providers/tooltip_cache_provider.dart';
 import 'package:lute_for_mobile/core/cache/providers/cache_stats_provider.dart';
+import 'package:lute_for_mobile/shared/theme/theme_extensions.dart';
 import '../providers/sentence_reader_provider.dart';
 import '../providers/reader_provider.dart';
 import '../../../../app.dart';
@@ -239,7 +240,7 @@ class ReaderDrawerSettings extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.errorContainer,
+                        color: context.error.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Column(
@@ -247,17 +248,14 @@ class ReaderDrawerSettings extends ConsumerWidget {
                         children: [
                           Row(
                             children: [
-                              Icon(
-                                Icons.error_outline,
-                                color: Theme.of(context).colorScheme.error,
-                              ),
+                              Icon(Icons.error_outline, color: context.error),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   'Sentence Reader Error',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.error,
+                                    color: context.error,
                                   ),
                                 ),
                               ),

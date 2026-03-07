@@ -39,11 +39,7 @@ class BookCard extends ConsumerWidget {
                     Icon(Icons.check_circle, size: 20, color: context.success),
                   if (book.isCompleted) const SizedBox(width: 8),
                   if (book.hasAudio)
-                    Icon(
-                      Icons.volume_up,
-                      size: 20,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
+                    Icon(Icons.volume_up, size: 20, color: context.m3Primary),
                   if (book.hasAudio) const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -62,13 +58,13 @@ class BookCard extends ConsumerWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.primaryContainer,
+                      color: context.appColorScheme.background.surface,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
                       book.pageProgress,
                       style: TextStyle(
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
+                        color: context.appColorScheme.text.primary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -92,9 +88,8 @@ class BookCard extends ConsumerWidget {
                               horizontal: 8,
                               vertical: 4,
                             ),
-                            backgroundColor: Theme.of(
-                              context,
-                            ).colorScheme.primaryContainer,
+                            backgroundColor:
+                                context.appColorScheme.background.surface,
                           ),
                         )
                         .toList(),
@@ -111,7 +106,7 @@ class BookCard extends ConsumerWidget {
                   Text(
                     book.language,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: context.appColorScheme.text.secondary,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -135,13 +130,13 @@ class BookCard extends ConsumerWidget {
                     Icon(
                       Icons.access_time,
                       size: 14,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: context.appColorScheme.text.secondary,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       book.formattedLastRead ?? 'Never',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        color: context.appColorScheme.text.secondary,
                       ),
                     ),
                   ],

@@ -1,5 +1,6 @@
 import '../../../core/network/content_service.dart';
 import '../models/book.dart';
+import '../models/book_create.dart';
 import '../../../core/cache/books_cache_service.dart';
 
 class BooksRepository {
@@ -125,6 +126,38 @@ class BooksRepository {
       await contentService.deleteBook(bookId);
     } catch (e) {
       throw Exception('Failed to delete book: $e');
+    }
+  }
+
+  Future<BookImportPreview> previewBookImportFromUrl(String importUrl) async {
+    try {
+      return await contentService.previewBookImportFromUrl(importUrl);
+    } catch (e) {
+      throw Exception('Failed to import from URL: $e');
+    }
+  }
+
+  Future<int> createBook(BookCreateRequest request) async {
+    try {
+      return await contentService.createBook(request);
+    } catch (e) {
+      throw Exception('Failed to create book: $e');
+    }
+  }
+
+  Future<BookEditFormData> getBookEditForm(int bookId) async {
+    try {
+      return await contentService.getBookEditForm(bookId);
+    } catch (e) {
+      throw Exception('Failed to load book edit form: $e');
+    }
+  }
+
+  Future<void> editBook(BookEditRequest request) async {
+    try {
+      await contentService.editBook(request);
+    } catch (e) {
+      throw Exception('Failed to edit book: $e');
     }
   }
 }

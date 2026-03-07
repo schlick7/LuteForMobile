@@ -433,8 +433,74 @@ class ApiService {
     return await _dio.get<String>('/language/edit/$langId');
   }
 
+  Future<Response<String>> postLanguageSettings(
+    int langId,
+    dynamic data,
+  ) async {
+    return await _dio.post<String>(
+      '/language/edit/$langId',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+  }
+
   Future<Response<String>> getLanguages() async {
     return await _dio.get<String>('/language/index');
+  }
+
+  Future<Response<String>> getNewLanguageSettings({
+    String? templateName,
+  }) async {
+    if (templateName != null && templateName.trim().isNotEmpty) {
+      final encodedTemplate = Uri.encodeComponent(templateName.trim());
+      return await _dio.get<String>('/language/new/$encodedTemplate');
+    }
+    return await _dio.get<String>('/language/new');
+  }
+
+  Future<Response<String>> postNewLanguageSettings(
+    dynamic data, {
+    String? templateName,
+  }) async {
+    final path = (templateName != null && templateName.trim().isNotEmpty)
+        ? '/language/new/${Uri.encodeComponent(templateName.trim())}'
+        : '/language/new';
+    return await _dio.post<String>(
+      path,
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+  }
+
+  Future<Response<String>> loadPredefinedLanguage(String languageName) async {
+    final encodedName = Uri.encodeComponent(languageName.trim());
+    return await _dio.get<String>('/language/load_predefined/$encodedName');
+  }
+
+  Future<Response<String>> deleteLanguage(int langId) async {
+    return await _dio.post<String>('/language/delete/$langId');
+  }
+
+  Future<Response<String>> getBookNew({String? importUrl}) async {
+    if (importUrl != null && importUrl.trim().isNotEmpty) {
+      return await _dio.get<String>(
+        '/book/new',
+        queryParameters: {'importurl': importUrl.trim()},
+      );
+    }
+    return await _dio.get<String>('/book/new');
+  }
+
+  Future<Response<String>> createBook(dynamic data) async {
+    if (data is FormData) {
+      return await _dio.post<String>('/book/new', data: data);
+    }
+
+    return await _dio.post<String>(
+      '/book/new',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
   }
 
   Future<void> invalidateAllBookStatsCache({Duration? timeout}) async {
@@ -466,6 +532,17 @@ class ApiService {
 
   Future<Response<String>> getBookEdit(int bookId) async {
     return await _dio.get<String>('/book/edit/$bookId');
+  }
+
+  Future<Response<String>> postBookEdit(int bookId, dynamic data) async {
+    if (data is FormData) {
+      return await _dio.post<String>('/book/edit/$bookId', data: data);
+    }
+    return await _dio.post<String>(
+      '/book/edit/$bookId',
+      data: data,
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
   }
 
   Future<Response<String>> postPlayerData(
@@ -528,7 +605,6 @@ class ApiService {
 
     if (selectedStatuses != null && selectedStatuses.isNotEmpty) {
       final statusInts = selectedStatuses
-          .where((s) => s != null)
           .map((s) => int.tryParse(s))
           .whereType<int>()
           .toList();

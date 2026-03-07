@@ -10,7 +10,9 @@ import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 import 'book_card.dart';
 import 'book_details_dialog.dart';
+import 'add_book_dialog.dart';
 import 'package:lute_for_mobile/app.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class BooksScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -64,6 +66,11 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
         leading: AppBarLeading(scaffoldKey: widget.scaffoldKey),
         title: const Text('Books'),
         actions: [
+          IconButton(
+            tooltip: 'Add Book',
+            icon: const Icon(Icons.add),
+            onPressed: _showAddBookDialog,
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
@@ -140,7 +147,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
             Icon(
               Icons.cloud_off,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: context.appColorScheme.text.secondary,
             ),
             const SizedBox(height: 16),
             Text(
@@ -151,7 +158,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
             Text(
               'Please configure your Lute server in settings.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: context.appColorScheme.text.secondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -205,7 +212,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
               Icon(
                 Icons.collections_bookmark,
                 size: 64,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: context.appColorScheme.text.secondary,
               ),
               const SizedBox(height: 16),
               Text(
@@ -216,7 +223,7 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
               Text(
                 'Add books in Lute server first.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  color: context.appColorScheme.text.secondary,
                 ),
               ),
             ],
@@ -253,6 +260,28 @@ class _BooksScreenState extends ConsumerState<BooksScreen> {
 
   void _navigateToReader(BuildContext context, Book book) {
     ref.read(navigationProvider).navigateToReader(book.id, null);
+  }
+
+  Future<void> _showAddBookDialog() async {
+    final contentService = ref.read(contentServiceProvider);
+    if (!contentService.isConfigured) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Configure your Lute server in Settings first.'),
+        ),
+      );
+      return;
+    }
+
+    final newBookId = await showDialog<int>(
+      context: context,
+      builder: (_) => const AddBookDialog(),
+    );
+
+    if (newBookId != null && mounted) {
+      ref.read(navigationProvider).navigateToReader(newBookId, null);
+    }
   }
 
   void _showBookDetails(BuildContext context, Book book) {

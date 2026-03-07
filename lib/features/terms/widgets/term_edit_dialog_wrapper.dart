@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term.dart';
 import '../../../shared/providers/network_providers.dart';
+import '../../../shared/theme/theme_extensions.dart';
 import '../../reader/models/term_form.dart';
 import '../../reader/widgets/term_form.dart' show TermFormWidget;
 
@@ -126,9 +127,11 @@ class _TermEditDialogWrapperState extends ConsumerState<TermEditDialogWrapper> {
                               Navigator.pop(context);
                               widget.onDelete();
                             },
-                            child: const Text(
+                            child: Text(
                               'Delete',
-                              style: TextStyle(color: Colors.red),
+                              style: TextStyle(
+                                color: context.appColorScheme.error.error,
+                              ),
                             ),
                           ),
                         ],

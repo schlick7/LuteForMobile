@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/logger/widget_logger.dart';
+import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/widgets/app_bar_leading.dart';
 
 class HelpScreen extends ConsumerWidget {
@@ -491,11 +492,14 @@ class HelpScreen extends ConsumerWidget {
             'Sentence Translation Modal',
             Icons.translate,
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
               'Open by long-pressing term',
-              style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
+              style: TextStyle(
+                fontStyle: FontStyle.italic,
+                color: context.appColorScheme.text.secondary,
+              ),
             ),
           ),
           const Divider(),
@@ -941,7 +945,7 @@ class HelpScreen extends ConsumerWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
+        color: context.appColorScheme.material3.primary,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(12),
           topRight: Radius.circular(12),
@@ -949,12 +953,12 @@ class HelpScreen extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: Theme.of(context).colorScheme.onPrimary, size: 24),
+          Icon(icon, color: context.appColorScheme.text.onPrimary, size: 24),
           const SizedBox(width: 12),
           Text(
             title,
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onPrimary,
+              color: context.appColorScheme.text.onPrimary,
               fontWeight: FontWeight.bold,
             ),
           ),

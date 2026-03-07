@@ -4,6 +4,7 @@ import 'package:lute_for_mobile/core/network/tts_service.dart';
 import 'package:lute_for_mobile/core/providers/tts_provider.dart';
 import 'package:lute_for_mobile/features/settings/models/tts_settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/tts_settings_provider.dart';
+import 'package:lute_for_mobile/shared/theme/theme_extensions.dart';
 
 class KokoroVoiceChips extends ConsumerStatefulWidget {
   const KokoroVoiceChips({super.key});
@@ -31,11 +32,17 @@ class _KokoroVoiceChipsState extends ConsumerState<KokoroVoiceChips> {
             padding: const EdgeInsets.only(bottom: 8.0),
             child: Text(
               _error!,
-              style: const TextStyle(color: Colors.red, fontSize: 12),
+              style: TextStyle(
+                color: context.appColorScheme.error.error,
+                fontSize: 12,
+              ),
             ),
           ),
         if (voices.isEmpty)
-          const Text('No voices selected', style: TextStyle(color: Colors.grey))
+          Text(
+            'No voices selected',
+            style: TextStyle(color: context.appColorScheme.text.secondary),
+          )
         else
           Wrap(
             spacing: 8.0,
@@ -43,7 +50,11 @@ class _KokoroVoiceChipsState extends ConsumerState<KokoroVoiceChips> {
             children: [
               for (int i = 0; i < voices.length; i++) ...[
                 if (i > 0)
-                  const Icon(Icons.arrow_forward, size: 20, color: Colors.grey),
+                  Icon(
+                    Icons.arrow_forward,
+                    size: 20,
+                    color: context.appColorScheme.text.secondary,
+                  ),
                 _VoiceChip(
                   voice: voices[i],
                   canAddVoice: canAddVoice,
@@ -70,7 +81,8 @@ class _KokoroVoiceChipsState extends ConsumerState<KokoroVoiceChips> {
           icon: const Icon(Icons.add, size: 18),
           label: const Text('Add Voice'),
           style: ElevatedButton.styleFrom(
-            disabledBackgroundColor: Colors.grey.shade300,
+            disabledBackgroundColor: context.appColorScheme.border.outline
+                .withValues(alpha: 0.3),
           ),
         ),
       ],
@@ -165,7 +177,11 @@ class _VoiceSelectionDialogState extends ConsumerState<_VoiceSelectionDialog> {
             ? Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error, color: Colors.red, size: 48),
+                  Icon(
+                    Icons.error,
+                    color: context.appColorScheme.error.error,
+                    size: 48,
+                  ),
                   const SizedBox(height: 16),
                   Text(_error!),
                   const SizedBox(height: 16),
@@ -186,7 +202,10 @@ class _VoiceSelectionDialogState extends ConsumerState<_VoiceSelectionDialog> {
                   return ListTile(
                     title: Text(voice.displayName),
                     trailing: isSelected
-                        ? const Icon(Icons.check, color: Colors.green)
+                        ? Icon(
+                            Icons.check,
+                            color: context.appColorScheme.semantic.success,
+                          )
                         : null,
                     enabled: !isSelected,
                     onTap: isSelected

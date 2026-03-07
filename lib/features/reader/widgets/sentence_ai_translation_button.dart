@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../settings/models/ai_settings.dart';
 import '../../settings/providers/ai_settings_provider.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class SentenceAITranslationButton extends ConsumerStatefulWidget {
   final String text;
@@ -40,7 +41,7 @@ class _SentenceAITranslationButtonState
       return const SizedBox.shrink();
     }
 
-    final iconColor = Theme.of(context).colorScheme.primary;
+    final iconColor = context.appColorScheme.material3.primary;
 
     return IconButton(
       icon: const Icon(Icons.psychology),

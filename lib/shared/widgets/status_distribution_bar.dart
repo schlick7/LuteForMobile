@@ -34,17 +34,17 @@ class StatusDistributionBar extends StatelessWidget {
 
     double currentLeft = 0.0;
     final statusColors = [
-      context.status0,
-      context.status1,
-      context.status2,
-      context.status3,
-      context.status4,
-      context.status5,
-      context.status99,
+      context.getStatusColorForVisualization('0'),
+      context.getStatusColorForVisualization('1'),
+      context.getStatusColorForVisualization('2'),
+      context.getStatusColorForVisualization('3'),
+      context.getStatusColorForVisualization('4'),
+      context.getStatusColorForVisualization('5'),
+      context.getStatusColorForVisualization('99'),
     ];
 
     final borderSide = BorderSide(
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      color: context.appColorScheme.text.secondary,
       width: 1,
     );
 
@@ -89,7 +89,7 @@ class StatusDistributionBar extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         border: Border.all(
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          color: context.appColorScheme.text.secondary,
           width: 1,
         ),
         borderRadius: BorderRadius.circular(height / 2),
@@ -118,19 +118,19 @@ class StatusDistributionBar extends StatelessWidget {
           children: [
             _buildLegendItem(
               context,
-              color: context.status0,
+              color: context.getStatusColorForVisualization('0'),
               label: 'Unknown',
               count: statusUnknown,
             ),
             _buildLegendItem(
               context,
-              color: context.status1,
+              color: context.getStatusColorForVisualization('1'),
               label: 'Learning',
               count: statusLearning,
             ),
             _buildLegendItem(
               context,
-              color: context.status99,
+              color: context.getStatusColorForVisualization('99'),
               label: 'Known',
               count: statusKnown,
             ),
@@ -161,7 +161,7 @@ class StatusDistributionBar extends StatelessWidget {
         Text(
           '$label: $count',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: context.appColorScheme.text.secondary,
           ),
         ),
       ],

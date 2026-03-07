@@ -40,9 +40,9 @@ class TermCard extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     term.translation!,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: context.appColorScheme.text.secondary,
+                    ),
                   ),
                 ),
               const SizedBox(height: 8),
@@ -62,7 +62,7 @@ class TermCard extends StatelessWidget {
                     Icon(
                       Icons.tag,
                       size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: context.appColorScheme.text.secondary,
                     ),
                   if (term.tags != null && term.tags!.isNotEmpty)
                     const SizedBox(width: 4),
@@ -81,7 +81,12 @@ class TermCard extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(BuildContext context) {
-    final color = context.getStatusColor(term.status.toString());
+    final color = context.getStatusColorForVisualization(
+      term.status.toString(),
+    );
+    final textColor = color.computeLuminance() > 0.5
+        ? context.appColorScheme.text.primary
+        : context.appColorScheme.status.highlightedText;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
@@ -90,8 +95,8 @@ class TermCard extends StatelessWidget {
       ),
       child: Text(
         term.statusLabel,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: textColor,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),

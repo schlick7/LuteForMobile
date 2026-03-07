@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/stats_provider.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class PeriodFilterWidget extends ConsumerWidget {
   const PeriodFilterWidget({super.key});
@@ -29,8 +30,8 @@ class PeriodFilterWidget extends ConsumerWidget {
                 _getPeriodIcon(period),
                 size: 18,
                 color: isSelected
-                    ? Theme.of(context).colorScheme.onPrimaryContainer
-                    : Theme.of(context).colorScheme.onSurfaceVariant,
+                    ? context.appColorScheme.text.onPrimaryContainer
+                    : context.appColorScheme.text.secondary,
               ),
             ),
           );

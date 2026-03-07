@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/server_status_provider.dart';
 import '../providers/global_loading_provider.dart';
+import '../theme/theme_extensions.dart';
 
 class AppBarLeading extends ConsumerWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -17,7 +18,7 @@ class AppBarLeading extends ConsumerWidget {
     if (!isReachable) {
       return IconButton(
         icon: const Icon(Icons.warning),
-        color: Colors.red,
+        color: context.appColorScheme.error.error,
         onPressed: () => _openDrawer(context),
       );
     }

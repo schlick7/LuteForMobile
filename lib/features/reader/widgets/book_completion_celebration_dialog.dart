@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
 import 'package:lute_for_mobile/shared/providers/network_providers.dart';
+import 'package:lute_for_mobile/shared/theme/theme_extensions.dart';
 import 'package:lute_for_mobile/shared/widgets/status_distribution_bar.dart';
 import 'package:lute_for_mobile/app.dart';
 
@@ -80,14 +81,14 @@ class _BookCompletionCelebrationDialogState
                 Icon(
                   Icons.emoji_events,
                   size: 64,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: context.appColorScheme.material3.primary,
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Great Job!',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: context.appColorScheme.material3.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -121,6 +122,7 @@ class _BookCompletionCelebrationDialogState
               emissionFrequency: 0.05,
               numberOfParticles: 20,
               gravity: 0.2,
+              // Intentional celebratory palette (not theme-derived).
               colors: const [
                 Colors.green,
                 Colors.blue,
@@ -214,12 +216,11 @@ class _BookCompletionCelebrationDialogState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(
-          context,
-        ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: context.appColorScheme.background.surfaceContainerHighest
+            .withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+          color: context.appColorScheme.border.outline.withValues(alpha: 0.3),
         ),
       ),
       child: Column(
@@ -254,7 +255,7 @@ class _BookCompletionCelebrationDialogState
             Text(
               'Term Progress',
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: context.appColorScheme.text.secondary,
               ),
             ),
             const SizedBox(height: 8),
@@ -273,7 +274,7 @@ class _BookCompletionCelebrationDialogState
   }) {
     return Column(
       children: [
-        Icon(icon, size: 28, color: Theme.of(context).colorScheme.primary),
+        Icon(icon, size: 28, color: context.appColorScheme.material3.primary),
         const SizedBox(height: 4),
         Text(
           value,
@@ -284,7 +285,7 @@ class _BookCompletionCelebrationDialogState
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            color: context.appColorScheme.text.secondary,
           ),
         ),
       ],

@@ -3,14 +3,7 @@
 - source myenv/bin/activate
   - python3 -m lute.main
   
----
 
-During first launch and setting the localurl the first time the app is in a partially broken state. The shortcut to choose a book doesn't work and selecting a book to read also doesn't work. Restarting the app makes everything function correctly. 
-
----
-https://wiki.termux.com/wiki/Main_Page
-https://github.com/termux/termux-packages/wiki/Mirrors
-https://github.com/termux/termux-tools/tree/master/mirrors
 
 # Termux
 - We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/sentence_tts_provider.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class SentenceTTSButton extends ConsumerStatefulWidget {
   final String text;
@@ -20,8 +21,8 @@ class _SentenceTTSButtonState extends ConsumerState<SentenceTTSButton> {
   @override
   Widget build(BuildContext context) {
     final ttsState = ref.watch(sentenceTTSProvider);
-    final iconColor = Theme.of(context).colorScheme.primary;
-    final errorColor = Theme.of(context).colorScheme.error;
+    final iconColor = context.appColorScheme.material3.primary;
+    final errorColor = context.appColorScheme.error.error;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (ttsState.hasError && ttsState.errorMessage != null && mounted) {
@@ -31,7 +32,7 @@ class _SentenceTTSButtonState extends ConsumerState<SentenceTTSButton> {
             backgroundColor: errorColor,
             action: SnackBarAction(
               label: 'Retry',
-              textColor: Colors.white,
+              textColor: context.appColorScheme.error.onError,
               onPressed: () {
                 ref.read(sentenceTTSProvider.notifier).clearError();
                 ref

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/terms_provider.dart';
 import '../../../shared/providers/language_data_provider.dart';
 import '../../../shared/models/language.dart';
+import '../../../shared/theme/theme_extensions.dart';
 
 class TermFilterPanel extends ConsumerWidget {
   const TermFilterPanel({super.key});
@@ -45,7 +46,7 @@ class TermFilterPanel extends ConsumerWidget {
                     child: Text(
                       selectedLanguageName,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
+                        color: context.appColorScheme.material3.primary,
                       ),
                     ),
                   ),

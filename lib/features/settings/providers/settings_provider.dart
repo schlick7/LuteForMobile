@@ -1,8 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/settings.dart';
 import '../../../shared/theme/theme_definitions.dart';
+import '../../../shared/theme/theme_presets.dart';
+import '../../../shared/theme/theme_serialization.dart';
 import '../../../core/cache/providers/cache_manager_provider.dart';
 import '../../../features/reader/providers/reader_provider.dart';
 import '../../../core/services/termux_service.dart';
@@ -824,7 +828,11 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
   static const String _keyCustomAccentLabelColor = 'custom_accent_label_color';
   static const String _keyCustomAccentButtonColor =
       'custom_accent_button_color';
-  static const String _themeTypeKey = 'themeType';
+  static const String _themeTypeKey = 'themeType'; // legacy key
+  static const String _keyThemeBuiltInType = 'themeBuiltInType';
+  static const String _keySelectedThemeId = 'selectedThemeId';
+  static const String _keyUserThemesJson = 'userThemesJson';
+  static const String _keyThemeDataVersion = 'themeDataVersion';
   bool _isInitialized = false;
 
   @override
@@ -838,13 +846,16 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
 
   void _loadSettingsInBackground() async {
     final prefs = await SharedPreferences.getInstance();
-    final themeTypeValue = prefs.getString(_themeTypeKey);
+    final themeTypeValue =
+        prefs.getString(_keyThemeBuiltInType) ?? prefs.getString(_themeTypeKey);
     final themeType = themeTypeValue != null
         ? ThemeType.values.firstWhere(
             (e) => e.name == themeTypeValue,
             orElse: () => ThemeType.dark,
           )
         : ThemeType.dark;
+    final selectedThemeId = prefs.getString(_keySelectedThemeId);
+    final userThemesJson = prefs.getString(_keyUserThemesJson);
     final accentLabelColorValue = prefs.getInt(_keyAccentLabelColor);
     final accentButtonColorValue = prefs.getInt(_keyAccentButtonColor);
     final customAccentLabelColorValue = prefs.getInt(
@@ -854,8 +865,34 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
       _keyCustomAccentButtonColor,
     );
 
+    final userThemes = <UserThemeDefinition>[];
+    if (userThemesJson != null && userThemesJson.isNotEmpty) {
+      try {
+        final parsed = jsonDecode(userThemesJson) as List<dynamic>;
+        for (final item in parsed) {
+          if (item is Map<String, dynamic>) {
+            final theme = ThemeSerialization.userThemeFromJson(item);
+            if (theme != null) userThemes.add(theme);
+          } else if (item is Map) {
+            final theme = ThemeSerialization.userThemeFromJson(
+              Map<String, dynamic>.from(item),
+            );
+            if (theme != null) userThemes.add(theme);
+          }
+        }
+      } catch (_) {}
+    }
+
+    final resolvedSelectedThemeId =
+        selectedThemeId != null &&
+            userThemes.any((theme) => theme.id == selectedThemeId)
+        ? selectedThemeId
+        : null;
+
     final loadedSettings = ThemeSettings(
       themeType: themeType,
+      selectedThemeId: resolvedSelectedThemeId,
+      userThemes: userThemes,
       accentLabelColor: accentLabelColorValue != null
           ? Color(accentLabelColorValue)
           : ThemeSettings.defaultSettings.accentLabelColor,
@@ -907,10 +944,143 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     await prefs.setInt(_keyAccentButtonColor, color.value);
   }
 
-  Future<void> updateThemeType(ThemeType themeType) async {
-    state = state.copyWith(themeType: themeType);
+  Future<void> selectBuiltInTheme(ThemeType themeType) async {
+    state = state.copyWith(themeType: themeType, clearSelectedThemeId: true);
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyThemeBuiltInType, themeType.name);
+    await prefs.remove(_keySelectedThemeId);
     await prefs.setString(_themeTypeKey, themeType.name);
+  }
+
+  Future<void> updateThemeType(ThemeType themeType) async {
+    await selectBuiltInTheme(themeType);
+  }
+
+  Future<void> selectUserTheme(String themeId) async {
+    if (!state.userThemes.any((theme) => theme.id == themeId)) return;
+    state = state.copyWith(selectedThemeId: themeId);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keySelectedThemeId, themeId);
+  }
+
+  Future<String> createTheme({
+    required String name,
+    required ThemeInitMode mode,
+  }) async {
+    final now = DateTime.now();
+    final id = now.microsecondsSinceEpoch.toString();
+    final baseScheme = _schemeForInitMode(mode);
+    final baseStatusModes = _statusModesForInitMode(mode);
+    final newTheme = UserThemeDefinition(
+      id: id,
+      name: name.trim().isEmpty ? 'Custom Theme' : name.trim(),
+      createdAt: now,
+      updatedAt: now,
+      colorScheme: baseScheme,
+      statusModes: baseStatusModes,
+    );
+    final updatedThemes = [...state.userThemes, newTheme];
+    state = state.copyWith(selectedThemeId: id, userThemes: updatedThemes);
+    await _saveThemeCollection();
+    return id;
+  }
+
+  Future<void> renameTheme(String id, String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return;
+    final updatedThemes = state.userThemes
+        .map(
+          (theme) => theme.id == id
+              ? theme.copyWith(name: trimmed, updatedAt: DateTime.now())
+              : theme,
+        )
+        .toList();
+    state = state.copyWith(userThemes: updatedThemes);
+    await _saveThemeCollection();
+  }
+
+  Future<void> updateThemeScheme(String id, AppThemeColorScheme scheme) async {
+    final updatedThemes = state.userThemes
+        .map(
+          (theme) => theme.id == id
+              ? theme.copyWith(colorScheme: scheme, updatedAt: DateTime.now())
+              : theme,
+        )
+        .toList();
+    state = state.copyWith(userThemes: updatedThemes);
+    await _saveThemeCollection();
+  }
+
+  Future<void> updateThemeStatusMode(
+    String id,
+    int status,
+    StatusMode mode,
+  ) async {
+    final updatedThemes = state.userThemes.map((theme) {
+      if (theme.id != id) return theme;
+      final updatedModes = Map<int, StatusMode>.from(theme.statusModes);
+      updatedModes[status] = mode;
+      return theme.copyWith(
+        statusModes: updatedModes,
+        updatedAt: DateTime.now(),
+      );
+    }).toList();
+    state = state.copyWith(userThemes: updatedThemes);
+    await _saveThemeCollection();
+  }
+
+  Future<void> duplicateTheme(String id) async {
+    UserThemeDefinition? source;
+    for (final theme in state.userThemes) {
+      if (theme.id == id) {
+        source = theme;
+        break;
+      }
+    }
+    if (source == null) return;
+    final now = DateTime.now();
+    final duplicate = UserThemeDefinition(
+      id: now.microsecondsSinceEpoch.toString(),
+      name: '${source.name} Copy',
+      createdAt: now,
+      updatedAt: now,
+      colorScheme: source.colorScheme,
+      statusModes: source.statusModes,
+    );
+    state = state.copyWith(
+      selectedThemeId: duplicate.id,
+      userThemes: [...state.userThemes, duplicate],
+    );
+    await _saveThemeCollection();
+  }
+
+  Future<void> deleteTheme(String id) async {
+    final updatedThemes = state.userThemes
+        .where((theme) => theme.id != id)
+        .toList();
+    final shouldClearSelected = state.selectedThemeId == id;
+    state = state.copyWith(
+      userThemes: updatedThemes,
+      clearSelectedThemeId: shouldClearSelected,
+    );
+    await _saveThemeCollection();
+  }
+
+  Future<void> resetThemeToPreset(String id, ThemeType preset) async {
+    final presetScheme = _getPresetScheme(preset);
+    final updatedThemes = state.userThemes
+        .map(
+          (theme) => theme.id == id
+              ? theme.copyWith(
+                  colorScheme: presetScheme,
+                  statusModes: defaultStatusModes(),
+                  updatedAt: DateTime.now(),
+                )
+              : theme,
+        )
+        .toList();
+    state = state.copyWith(userThemes: updatedThemes);
+    await _saveThemeCollection();
   }
 
   Future<void> resetThemeSettings() async {
@@ -920,8 +1090,136 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
     await prefs.remove(_keyCustomAccentLabelColor);
     await prefs.remove(_keyCustomAccentButtonColor);
     await prefs.remove(_themeTypeKey);
+    await prefs.remove(_keyThemeBuiltInType);
+    await prefs.remove(_keySelectedThemeId);
+    await prefs.remove(_keyUserThemesJson);
+    await prefs.remove(_keyThemeDataVersion);
 
     state = ThemeSettings.defaultSettings;
+  }
+
+  Future<void> _saveThemeCollection() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyThemeBuiltInType, state.themeType.name);
+    await prefs.setString(_themeTypeKey, state.themeType.name);
+    if (state.selectedThemeId == null) {
+      await prefs.remove(_keySelectedThemeId);
+    } else {
+      await prefs.setString(_keySelectedThemeId, state.selectedThemeId!);
+    }
+    final encodedThemes = jsonEncode(
+      state.userThemes.map(ThemeSerialization.userThemeToJson).toList(),
+    );
+    await prefs.setString(_keyUserThemesJson, encodedThemes);
+    await prefs.setInt(_keyThemeDataVersion, 2);
+  }
+
+  AppThemeColorScheme _schemeForInitMode(ThemeInitMode mode) {
+    switch (mode) {
+      case ThemeInitMode.fromDark:
+        return darkThemePreset;
+      case ThemeInitMode.fromLight:
+        return lightThemePreset;
+      case ThemeInitMode.fromBlackAndWhite:
+        return blackAndWhiteThemePreset;
+      case ThemeInitMode.fromCurrent:
+        final selectedTheme = state.selectedUserTheme;
+        if (selectedTheme != null) return selectedTheme.colorScheme;
+        return _getPresetScheme(state.themeType);
+      case ThemeInitMode.blank:
+        return _blankScheme();
+    }
+  }
+
+  Map<int, StatusMode> _statusModesForInitMode(ThemeInitMode mode) {
+    if (mode == ThemeInitMode.fromCurrent) {
+      final selectedTheme = state.selectedUserTheme;
+      if (selectedTheme != null) {
+        return Map<int, StatusMode>.from(selectedTheme.statusModes);
+      }
+    }
+    return defaultStatusModes();
+  }
+
+  AppThemeColorScheme _getPresetScheme(ThemeType type) {
+    switch (type) {
+      case ThemeType.light:
+        return lightThemePreset;
+      case ThemeType.dark:
+        return darkThemePreset;
+      case ThemeType.blackAndWhite:
+        return blackAndWhiteThemePreset;
+    }
+  }
+
+  AppThemeColorScheme _blankScheme() {
+    return const AppThemeColorScheme(
+      text: TextColors(
+        primary: Color(0xFF000000),
+        secondary: Color(0xFF333333),
+        disabled: Color(0xFF999999),
+        headline: Color(0xFF000000),
+        onPrimary: Color(0xFFFFFFFF),
+        onSecondary: Color(0xFFFFFFFF),
+        onPrimaryContainer: Color(0xFF000000),
+        onSecondaryContainer: Color(0xFF000000),
+        onTertiary: Color(0xFFFFFFFF),
+        onTertiaryContainer: Color(0xFF000000),
+      ),
+      background: BackgroundColors(
+        background: Color(0xFFFFFFFF),
+        surface: Color(0xFFFFFFFF),
+        surfaceVariant: Color(0xFFF2F2F2),
+        surfaceContainerHighest: Color(0xFFEAEAEA),
+      ),
+      semantic: SemanticColors(
+        success: Color(0xFF2E7D32),
+        onSuccess: Color(0xFFFFFFFF),
+        warning: Color(0xFFED6C02),
+        onWarning: Color(0xFFFFFFFF),
+        error: Color(0xFFD32F2F),
+        onError: Color(0xFFFFFFFF),
+        info: Color(0xFF1565C0),
+        onInfo: Color(0xFFFFFFFF),
+        connected: Color(0xFF2E7D32),
+        disconnected: Color(0xFFD32F2F),
+        aiProvider: Color(0xFF6A1B9A),
+        localProvider: Color(0xFF1565C0),
+      ),
+      status: StatusColors(
+        status0: Color(0xFF808080),
+        status1: Color(0xFFB46B7A),
+        status2: Color(0xFFBA8050),
+        status3: Color(0xFFBD9C7B),
+        status4: Color(0xFF756D6B),
+        status5: Color(0xFF77706E),
+        status98: Color(0xFF756D6B),
+        status99: Color(0xFF419252),
+        highlightedText: Color(0xFFFFFFFF),
+        wordGlowColor: Color(0xFFFFD700),
+      ),
+      border: BorderColors(
+        outline: Color(0xFF8A8A8A),
+        outlineVariant: Color(0xFFCFCFCF),
+        dividerColor: Color(0xFFCFCFCF),
+      ),
+      audio: AudioColors(
+        background: Color(0xFF6750A4),
+        icon: Color(0xFFFFFFFF),
+        bookmark: Color(0xFFFFA000),
+        error: Color(0xFFD32F2F),
+        errorBackground: Color(0x33FFCDD2),
+      ),
+      error: ErrorColors(error: Color(0xFFD32F2F), onError: Color(0xFFFFFFFF)),
+      material3: Material3ColorScheme(
+        primary: Color(0xFF6750A4),
+        secondary: Color(0xFF625B71),
+        tertiary: Color(0xFF7D5260),
+        primaryContainer: Color(0xFFEADDFF),
+        secondaryContainer: Color(0xFFE8DEF8),
+        tertiaryContainer: Color(0xFFFFD8E4),
+      ),
+    );
   }
 }
 

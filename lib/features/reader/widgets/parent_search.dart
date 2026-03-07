@@ -176,8 +176,8 @@ class _ParentSearchWidgetState extends ConsumerState<ParentSearchWidget> {
             icon: const Icon(Icons.add),
             label: const Text('Add as New Parent Term'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-              foregroundColor: Theme.of(context).colorScheme.onPrimaryContainer,
+              backgroundColor: context.appColorScheme.background.surface,
+              foregroundColor: context.appColorScheme.text.primary,
             ),
           ),
         if (_searchResults.isNotEmpty)
