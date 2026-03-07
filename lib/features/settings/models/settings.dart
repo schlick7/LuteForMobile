@@ -379,19 +379,11 @@ class ThemeSettings {
   final ThemeType themeType;
   final String? selectedThemeId;
   final List<UserThemeDefinition> userThemes;
-  final Color accentLabelColor;
-  final Color accentButtonColor;
-  final Color? customAccentLabelColor;
-  final Color? customAccentButtonColor;
 
   ThemeSettings({
     this.themeType = ThemeType.dark,
     this.selectedThemeId,
     List<UserThemeDefinition>? userThemes,
-    this.accentLabelColor = const Color(0xFF1976D2),
-    this.accentButtonColor = const Color(0xFF6750A4),
-    this.customAccentLabelColor,
-    this.customAccentButtonColor,
   }) : userThemes = List.unmodifiable(userThemes ?? const []);
 
   UserThemeDefinition? get selectedUserTheme {
@@ -407,10 +399,6 @@ class ThemeSettings {
     String? selectedThemeId,
     bool clearSelectedThemeId = false,
     List<UserThemeDefinition>? userThemes,
-    Color? accentLabelColor,
-    Color? accentButtonColor,
-    Color? customAccentLabelColor,
-    Color? customAccentButtonColor,
   }) {
     return ThemeSettings(
       themeType: themeType ?? this.themeType,
@@ -418,12 +406,6 @@ class ThemeSettings {
           ? null
           : (selectedThemeId ?? this.selectedThemeId),
       userThemes: userThemes ?? this.userThemes,
-      accentLabelColor: accentLabelColor ?? this.accentLabelColor,
-      accentButtonColor: accentButtonColor ?? this.accentButtonColor,
-      customAccentLabelColor:
-          customAccentLabelColor ?? this.customAccentLabelColor,
-      customAccentButtonColor:
-          customAccentButtonColor ?? this.customAccentButtonColor,
     );
   }
 
@@ -433,25 +415,12 @@ class ThemeSettings {
     return other is ThemeSettings &&
         other.themeType == themeType &&
         other.selectedThemeId == selectedThemeId &&
-        _userThemeListEquals(other.userThemes, userThemes) &&
-        other.accentLabelColor.hashCode == accentLabelColor.hashCode &&
-        other.accentButtonColor.hashCode == accentButtonColor.hashCode &&
-        other.customAccentLabelColor?.hashCode ==
-            customAccentLabelColor?.hashCode &&
-        other.customAccentButtonColor?.hashCode ==
-            customAccentButtonColor?.hashCode;
+        _userThemeListEquals(other.userThemes, userThemes);
   }
 
   @override
-  int get hashCode => Object.hash(
-    themeType,
-    selectedThemeId,
-    Object.hashAll(userThemes),
-    accentLabelColor.hashCode,
-    accentButtonColor.hashCode,
-    customAccentLabelColor?.hashCode,
-    customAccentButtonColor?.hashCode,
-  );
+  int get hashCode =>
+      Object.hash(themeType, selectedThemeId, Object.hashAll(userThemes));
 
   static final ThemeSettings defaultSettings = ThemeSettings();
 }

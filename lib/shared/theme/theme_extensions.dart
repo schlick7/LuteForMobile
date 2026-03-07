@@ -4,15 +4,6 @@ import 'theme_presets.dart';
 import 'app_theme.dart';
 
 extension BuildContextExtension on BuildContext {
-  CustomThemeColors get customColors {
-    final extension = Theme.of(this).extension<CustomThemeExtension>();
-    return extension?.colors ??
-        const CustomThemeColors(
-          accentLabelColor: Color(0xFF1976D2),
-          accentButtonColor: Color(0xFF6750A4),
-        );
-  }
-
   AppThemeColorScheme get appColorScheme {
     final extension = Theme.of(this).extension<AppThemeColorExtension>();
     return extension?.colorScheme ?? darkThemePreset;
