@@ -41,16 +41,7 @@
 - Can't copy text
 
 # Theme
-
-Add more custom theme options
-  - have custom open up a window?
-    - include examples for everything if possible. 
-  - have a create theme button
-    - have a create from selector where we pick one of the already existing themes or select none. This will auto fill in all of the options with those colors. This is so users can have a custom theme with minor changes or a custom theme with major changes -- best of both worlds. 
-  - status should have a toggle for showing the selected color as the background highlight(like 1-5) or the text color (like status0) 
-  - add underline support
-    - and dotted underline?
-
+- Get rid of the accents colors and then folder them in to the appropriate theme colors if we can. It looks like accent button color should just be the primary material 3 color? We will probably need to update several files to use the new theme colors. Look into this all first and i'll confirm
 
 
 
