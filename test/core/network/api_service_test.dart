@@ -80,5 +80,44 @@ void main() {
         }
       });
     });
+
+    group('auto backup decision', () {
+      final now = DateTime.fromMillisecondsSinceEpoch(1_700_000_000 * 1000);
+
+      test('triggers when backup_auto is enabled and lastbackup is missing', () {
+        final shouldTrigger = ApiService.shouldTriggerAutoBackup({
+          'backup_auto': '1',
+        }, now);
+
+        expect(shouldTrigger, isTrue);
+      });
+
+      test('does not trigger when backup_auto is disabled', () {
+        final shouldTrigger = ApiService.shouldTriggerAutoBackup({
+          'backup_auto': false,
+          'lastbackup': '1699900000',
+        }, now);
+
+        expect(shouldTrigger, isFalse);
+      });
+
+      test('does not trigger when last backup is within 24 hours', () {
+        final shouldTrigger = ApiService.shouldTriggerAutoBackup({
+          'backup_auto': true,
+          'lastbackup': 1_699_950_000,
+        }, now);
+
+        expect(shouldTrigger, isFalse);
+      });
+
+      test('triggers when last backup is older than 24 hours', () {
+        final shouldTrigger = ApiService.shouldTriggerAutoBackup({
+          'backup_auto': 'y',
+          'lastbackup': '1699910000',
+        }, now);
+
+        expect(shouldTrigger, isTrue);
+      });
+    });
   });
 }

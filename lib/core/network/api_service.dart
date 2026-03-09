@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:lute_for_mobile/core/services/backup_service.dart';
 import 'package:lute_for_mobile/shared/providers/server_status_provider.dart';
 import 'queued_dio_interceptor.dart';
 import 'api_request_queue.dart';
@@ -733,34 +734,82 @@ class ApiService {
 
   Future<void> triggerAutoBackup() async {
     try {
-      final response = await _dio.get('/settings/index');
-      if (response.statusCode != 200) return;
+      if (enableLogging) {
+        debugPrint('AUTO BACKUP: checking settings from $baseUrl');
+      }
+      final settings = await BackupService.getAllSettings(baseUrl);
+      final backupAuto = settings['backup_auto'];
+      final lastBackup = settings['lastbackup'];
+      final shouldTrigger = shouldTriggerAutoBackup(settings, DateTime.now());
 
-      final html = response.data as String;
+      if (enableLogging) {
+        debugPrint(
+          'AUTO BACKUP: backup_auto=$backupAuto, lastbackup=$lastBackup, shouldTrigger=$shouldTrigger',
+        );
+      }
 
-      final autoBackupEnabled = html.contains('name="backup_auto" checked');
-
-      final lastBackupRegex = RegExp(r'name="lastbackup"\s+value="([^"]*)"');
-      final match = lastBackupRegex.firstMatch(html);
-
-      int? lastBackupTimestamp;
-      if (match != null) {
-        final dateStr = match.group(1);
-        if (dateStr != null && dateStr.isNotEmpty) {
-          lastBackupTimestamp = int.tryParse(dateStr);
+      if (shouldTrigger) {
+        if (enableLogging) {
+          debugPrint('AUTO BACKUP: triggering automatic backup request');
+        }
+        await _dio.post('/backup/do_backup', data: {'type': 'automatic'});
+        if (enableLogging) {
+          debugPrint('AUTO BACKUP: backup request completed');
+        }
+      } else {
+        if (enableLogging) {
+          debugPrint('AUTO BACKUP: skipped');
         }
       }
-
-      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      final twentyFourHoursAgo = now - (24 * 60 * 60);
-
-      if (autoBackupEnabled &&
-          (lastBackupTimestamp == null ||
-              lastBackupTimestamp < twentyFourHoursAgo)) {
-        await _dio.post('/backup/do_backup', data: {'type': 'automatic'});
-      }
     } catch (e) {
+      if (enableLogging) {
+        debugPrint('AUTO BACKUP: failed with error: $e');
+      }
       // Silently fail on backup errors - don't block app launch
     }
+  }
+
+  @visibleForTesting
+  static bool shouldTriggerAutoBackup(
+    Map<String, dynamic> settings,
+    DateTime now,
+  ) {
+    if (!_settingIsEnabled(settings['backup_auto'])) {
+      return false;
+    }
+
+    final lastBackupTimestamp = _parseUnixTimestamp(settings['lastbackup']);
+    if (lastBackupTimestamp == null) {
+      return true;
+    }
+
+    final nowSeconds = now.millisecondsSinceEpoch ~/ 1000;
+    final twentyFourHoursAgo = nowSeconds - (24 * 60 * 60);
+    return lastBackupTimestamp < twentyFourHoursAgo;
+  }
+
+  static bool _settingIsEnabled(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      return normalized == '1' ||
+          normalized == 'true' ||
+          normalized == 'y' ||
+          normalized == 'yes' ||
+          normalized == 'on';
+    }
+    return false;
+  }
+
+  static int? _parseUnixTimestamp(dynamic value) {
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return null;
+      return int.tryParse(trimmed);
+    }
+    return null;
   }
 }
