@@ -4,14 +4,18 @@
   - python3 -m lute.main
   
 
+---
 
-# Termux
-- We want an easy way for Users to download/update the lute3 files so that they can sync them with other servers.
-  - no idea how without creating a "micro service"
+Backups still aren't triggering
 
 ---
 
+
+# Termux
+-
+
 # Requests 
+-
 
 # Settings
 - 
