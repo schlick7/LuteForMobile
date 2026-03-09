@@ -463,13 +463,13 @@ class _SentenceTranslationWidgetState
               Text(
                 'Original',
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: context.customColors.accentLabelColor,
+                  color: context.m3Secondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Icon(
                 _isOriginalCollapsed ? Icons.expand_more : Icons.expand_less,
-                color: context.customColors.accentLabelColor,
+                color: context.m3Secondary,
               ),
             ],
           ),

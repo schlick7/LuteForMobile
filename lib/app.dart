@@ -354,7 +354,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
   bool _autoBackupTriggered = false;
 
   void _triggerAutoBackup() {
-    final settings = ref.watch(settingsProvider);
+    final settings = ref.read(settingsProvider);
     if (settings.serverUrl.isNotEmpty && !_autoBackupTriggered) {
       _autoBackupTriggered = true;
       ref.read(apiServiceProvider).triggerAutoBackup();

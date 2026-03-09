@@ -313,62 +313,6 @@ class AppThemeColorExtension extends ThemeExtension<AppThemeColorExtension> {
   }
 }
 
-@immutable
-class CustomThemeColors {
-  final Color accentLabelColor;
-  final Color accentButtonColor;
-
-  const CustomThemeColors({
-    required this.accentLabelColor,
-    required this.accentButtonColor,
-  });
-}
-
-class CustomThemeExtension extends ThemeExtension<CustomThemeExtension> {
-  final CustomThemeColors colors;
-
-  const CustomThemeExtension({required this.colors});
-
-  @override
-  CustomThemeExtension copyWith({CustomThemeColors? colors}) {
-    return CustomThemeExtension(colors: colors ?? this.colors);
-  }
-
-  @override
-  CustomThemeExtension lerp(
-    covariant ThemeExtension<CustomThemeExtension>? other,
-    double t,
-  ) {
-    if (other is! CustomThemeExtension) {
-      return this;
-    }
-    final otherColors = (other as CustomThemeExtension).colors;
-    return CustomThemeExtension(
-      colors: CustomThemeColors(
-        accentLabelColor: Color.lerp(
-          colors.accentLabelColor,
-          otherColors.accentLabelColor,
-          t,
-        )!,
-        accentButtonColor: Color.lerp(
-          colors.accentButtonColor,
-          otherColors.accentButtonColor,
-          t,
-        )!,
-      ),
-    );
-  }
-
-  static CustomThemeColors of(BuildContext context) {
-    final theme = Theme.of(context);
-    return theme.extension<CustomThemeExtension>()?.colors ??
-        const CustomThemeColors(
-          accentLabelColor: Color(0xFF1976D2),
-          accentButtonColor: Color(0xFF6750A4),
-        );
-  }
-}
-
 class AppTheme {
   static ThemeData lightTheme(ThemeSettings themeSettings) {
     final scheme = _resolveColorScheme(
@@ -380,7 +324,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: ColorScheme.light(
-        primary: themeSettings.accentButtonColor,
+        primary: scheme.material3.primary,
         onPrimary: scheme.text.onPrimary,
         primaryContainer: scheme.material3.primaryContainer,
         onPrimaryContainer: scheme.text.onPrimaryContainer,
@@ -480,19 +424,17 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: themeSettings.accentButtonColor,
+          backgroundColor: scheme.material3.primary,
           foregroundColor: scheme.text.onPrimary,
           elevation: 1,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: themeSettings.accentButtonColor,
-        ),
+        style: TextButton.styleFrom(foregroundColor: scheme.material3.primary),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: themeSettings.accentButtonColor,
+          foregroundColor: scheme.material3.primary,
           side: const BorderSide(color: Color(0xFF79747E)),
         ),
       ),
@@ -503,12 +445,6 @@ class AppTheme {
       ),
       extensions: [
         AppThemeColorExtension(colorScheme: scheme, statusModes: statusModes),
-        CustomThemeExtension(
-          colors: CustomThemeColors(
-            accentLabelColor: themeSettings.accentLabelColor,
-            accentButtonColor: themeSettings.accentButtonColor,
-          ),
-        ),
       ],
     );
   }
@@ -523,7 +459,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: ColorScheme.dark(
-        primary: themeSettings.accentButtonColor,
+        primary: scheme.material3.primary,
         onPrimary: scheme.text.onPrimary,
         primaryContainer: scheme.material3.primaryContainer,
         onPrimaryContainer: scheme.text.onPrimaryContainer,
@@ -623,19 +559,17 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: themeSettings.accentButtonColor,
+          backgroundColor: scheme.material3.primary,
           foregroundColor: scheme.text.onPrimary,
           elevation: 1,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: themeSettings.accentButtonColor,
-        ),
+        style: TextButton.styleFrom(foregroundColor: scheme.material3.primary),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: themeSettings.accentButtonColor,
+          foregroundColor: scheme.material3.primary,
           side: const BorderSide(color: Color(0xFF938F99)),
         ),
       ),
@@ -653,12 +587,6 @@ class AppTheme {
       ),
       extensions: [
         AppThemeColorExtension(colorScheme: scheme, statusModes: statusModes),
-        CustomThemeExtension(
-          colors: CustomThemeColors(
-            accentLabelColor: themeSettings.accentLabelColor,
-            accentButtonColor: themeSettings.accentButtonColor,
-          ),
-        ),
       ],
     );
   }
@@ -673,7 +601,7 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: ColorScheme.light(
-        primary: themeSettings.accentButtonColor,
+        primary: scheme.material3.primary,
         onPrimary: scheme.text.onPrimary,
         primaryContainer: scheme.material3.primaryContainer,
         onPrimaryContainer: scheme.text.onPrimaryContainer,
@@ -773,19 +701,17 @@ class AppTheme {
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: themeSettings.accentButtonColor,
+          backgroundColor: scheme.material3.primary,
           foregroundColor: scheme.text.onPrimary,
           elevation: 1,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: themeSettings.accentButtonColor,
-        ),
+        style: TextButton.styleFrom(foregroundColor: scheme.material3.primary),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: themeSettings.accentButtonColor,
+          foregroundColor: scheme.material3.primary,
           side: const BorderSide(color: Color(0xFF999999)),
         ),
       ),
@@ -796,12 +722,6 @@ class AppTheme {
       ),
       extensions: [
         AppThemeColorExtension(colorScheme: scheme, statusModes: statusModes),
-        CustomThemeExtension(
-          colors: CustomThemeColors(
-            accentLabelColor: themeSettings.accentLabelColor,
-            accentButtonColor: themeSettings.accentButtonColor,
-          ),
-        ),
       ],
     );
   }

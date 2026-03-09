@@ -116,20 +116,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _bookStatsExpanded = false;
   bool _readerExpanded = false;
 
-  static const List<Color> _accentColorOptions = [
-    Color(0xFF1976D2), // Blue
-    Color(0xFF9C27B0), // Purple
-    Color(0xFF4CAF50), // Green
-    Color(0xFFFF9800), // Orange
-    Color(0xFF9E9E80), // Brown
-    Color(0xFF6750A4), // Purple
-    Color(0xFF795548), // Brown
-    Color(0xFF607D8B), // Grey
-    Color(0xFF49454F), // Light gray (text secondary)
-    Color(0xFF938F99), // Lighter Gray
-    Color(0xFFBA1A1A), // Red
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -145,12 +131,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void dispose() {
     _localUrlController.dispose();
     super.dispose();
-  }
-
-  Color _onColorForSwatch(Color background) {
-    return background.computeLuminance() > 0.5
-        ? const Color(0xFF1C1B1F)
-        : const Color(0xFFFFFFFF);
   }
 
   Future<void> _testConnection() async {
@@ -277,7 +257,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                               color: settings.serverUrl == Settings.termuxUrl
                                   ? context.appColorScheme.text.primary
                                         .withValues(alpha: 0.4)
-                                  : context.customColors.accentLabelColor,
+                                  : context.m3Secondary,
                             ),
                         border: const OutlineInputBorder(),
                         errorText: settings.isUrlValid
@@ -1076,47 +1056,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Accent Colors',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildAccentColorSetting(
-                      context,
-                      'Accent Label Color',
-                      themeSettings.accentLabelColor,
-                      themeSettings.customAccentLabelColor,
-                      (color) => ref
-                          .read(themeSettingsProvider.notifier)
-                          .updateAccentLabelColor(color),
-                      (color) => ref
-                          .read(themeSettingsProvider.notifier)
-                          .updateCustomAccentLabelColor(color),
-                    ),
-                    _buildAccentColorSetting(
-                      context,
-                      'Accent Button Color',
-                      themeSettings.accentButtonColor,
-                      themeSettings.customAccentButtonColor,
-                      (color) => ref
-                          .read(themeSettingsProvider.notifier)
-                          .updateAccentButtonColor(color),
-                      (color) => ref
-                          .read(themeSettingsProvider.notifier)
-                          .updateCustomAccentButtonColor(color),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Card(
-              elevation: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
                     Row(
                       children: [
                         Text(
@@ -1250,247 +1189,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAccentColorSetting(
-    BuildContext context,
-    String label,
-    Color currentColor,
-    Color? customColor,
-    Function(Color) onColorSelected,
-    Function(Color) onCustomColorSelected,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            ..._accentColorOptions.map((color) {
-              final isSelected = color.toARGB32() == currentColor.toARGB32();
-              return InkWell(
-                onTap: () => onColorSelected(color),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: color,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isSelected
-                          ? context.appColorScheme.text.primary
-                          : context.appColorScheme.text.primary.withValues(
-                              alpha: 0.0,
-                            ),
-                      width: 2,
-                    ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: context.appColorScheme.text.primary
-                                  .withValues(alpha: 0.2),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: isSelected
-                      ? Icon(Icons.check, color: _onColorForSwatch(color))
-                      : null,
-                ),
-              );
-            }).toList(),
-            _buildCustomColorOption(
-              context,
-              customColor ?? const Color(0xFFBDBDBD),
-              currentColor,
-              customColor,
-              onCustomColorSelected,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCustomColorOption(
-    BuildContext context,
-    Color color,
-    Color currentColor,
-    Color? customColor,
-    Function(Color) onCustomColorSelected,
-  ) {
-    final displayColor = customColor ?? const Color(0xFFBDBDBD);
-    final isSelected =
-        customColor != null &&
-        customColor.toARGB32() == currentColor.toARGB32();
-
-    return InkWell(
-      onTap: () {
-        if (customColor != null) {
-          onCustomColorSelected(customColor);
-        }
-      },
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: displayColor,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? context.appColorScheme.text.primary
-                : context.appColorScheme.text.primary.withValues(alpha: 0.0),
-            width: 2,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: context.appColorScheme.text.primary.withValues(
-                      alpha: 0.2,
-                    ),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Stack(
-          children: [
-            if (isSelected)
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Icon(
-                  Icons.check,
-                  color: _onColorForSwatch(displayColor),
-                  size: 20,
-                ),
-              ),
-            Positioned(
-              bottom: 4,
-              right: 4,
-              child: Container(
-                width: 20,
-                height: 20,
-                decoration: BoxDecoration(
-                  color: context.appColorScheme.background.surface,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: context.appColorScheme.text.primary.withValues(
-                        alpha: 0.2,
-                      ),
-                      blurRadius: 2,
-                    ),
-                  ],
-                ),
-                child: InkWell(
-                  onTap: () {
-                    _showCustomColorDialog(
-                      context,
-                      displayColor,
-                      onCustomColorSelected,
-                    );
-                  },
-                  child: Icon(
-                    Icons.settings,
-                    size: 14,
-                    color: context.appColorScheme.text.primary.withValues(
-                      alpha: 0.85,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showCustomColorDialog(
-    BuildContext context,
-    Color currentColor,
-    Function(Color) onColorSelected,
-  ) {
-    Color previewColor = currentColor;
-    final TextEditingController controller = TextEditingController(
-      text:
-          '#${currentColor.toARGB32().toRadixString(16).substring(2).toUpperCase()}',
-    );
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Custom Color'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                decoration: const InputDecoration(
-                  labelText: 'Color Hex Code',
-                  hintText: '#RRGGBB',
-                  border: OutlineInputBorder(),
-                ),
-                maxLength: 7,
-                onChanged: (value) {
-                  final hexCode = value.trim();
-                  try {
-                    if (hexCode.startsWith('#') && hexCode.length == 7) {
-                      final parsedColor = Color(
-                        int.parse(hexCode.substring(1), radix: 16) + 0xFF000000,
-                      );
-                      setState(() {
-                        previewColor = parsedColor;
-                      });
-                    } else if (hexCode.length == 6) {
-                      final parsedColor = Color(
-                        int.parse(hexCode, radix: 16) + 0xFF000000,
-                      );
-                      setState(() {
-                        previewColor = parsedColor;
-                      });
-                    }
-                  } catch (e) {}
-                },
-              ),
-              const SizedBox(height: 16),
-              Container(
-                width: double.infinity,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: previewColor,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: context.appColorScheme.border.outline,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                onColorSelected(previewColor);
-                Navigator.pop(context);
-              },
-              child: const Text('Apply'),
-            ),
-          ],
-        ),
       ),
     );
   }

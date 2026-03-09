@@ -463,7 +463,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
   Widget _buildTranslationField(BuildContext context) {
     final accentColor = _isDictionaryOpen
-        ? context.customColors.accentButtonColor
+        ? context.m3Primary
         : context.appColorScheme.border.outline;
 
     final aiSettings = ref.watch(aiSettingsProvider);
@@ -480,7 +480,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             decoration: InputDecoration(
               labelText: 'Translation',
               labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: context.customColors.accentLabelColor,
+                color: context.m3Secondary,
                 fontWeight: FontWeight.w600,
               ),
               border: OutlineInputBorder(
@@ -671,7 +671,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       decoration: InputDecoration(
         labelText: 'Romanization',
         labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: context.customColors.accentLabelColor,
+          color: context.m3Secondary,
           fontWeight: FontWeight.w600,
         ),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -695,7 +695,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             Text(
               'Tags',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: context.customColors.accentLabelColor,
+                color: context.m3Secondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -858,7 +858,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
             Text(
               'Parent Terms',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: context.customColors.accentLabelColor,
+                color: context.m3Secondary,
                 fontWeight: FontWeight.w600,
               ),
             ),

@@ -388,6 +388,89 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
               ),
             ),
           ]),
+          _buildSectionCard(context, 'Material 3 Colors', [
+            _colorRow(
+              context,
+              label: 'Primary',
+              color: _workingScheme!.material3.primary,
+              description: 'Primary brand color',
+              preview: _chipPreview(
+                bg: _workingScheme!.material3.primary,
+                fg: _workingScheme!.text.onPrimary,
+                text: 'Primary',
+              ),
+              onChanged: (c) => _updateScheme(
+                (s) => s.copyWith(material3: s.material3.copyWith(primary: c)),
+              ),
+            ),
+            _colorRow(
+              context,
+              label: 'Secondary',
+              color: _workingScheme!.material3.secondary,
+              description: 'Secondary brand color',
+              preview: _chipPreview(
+                bg: _workingScheme!.material3.secondary,
+                fg: _workingScheme!.text.onSecondary,
+                text: 'Secondary',
+              ),
+              onChanged: (c) => _updateScheme(
+                (s) =>
+                    s.copyWith(material3: s.material3.copyWith(secondary: c)),
+              ),
+            ),
+            _colorRow(
+              context,
+              label: 'Tertiary',
+              color: _workingScheme!.material3.tertiary,
+              description: 'Tertiary accent color',
+              preview: _chipPreview(
+                bg: _workingScheme!.material3.tertiary,
+                fg: _workingScheme!.text.onTertiary,
+                text: 'Tertiary',
+              ),
+              onChanged: (c) => _updateScheme(
+                (s) => s.copyWith(material3: s.material3.copyWith(tertiary: c)),
+              ),
+            ),
+            _colorRow(
+              context,
+              label: 'Primary Container',
+              color: _workingScheme!.material3.primaryContainer,
+              description: 'Container for primary content',
+              preview: _boxPreview(_workingScheme!.material3.primaryContainer),
+              onChanged: (c) => _updateScheme(
+                (s) => s.copyWith(
+                  material3: s.material3.copyWith(primaryContainer: c),
+                ),
+              ),
+            ),
+            _colorRow(
+              context,
+              label: 'Secondary Container',
+              color: _workingScheme!.material3.secondaryContainer,
+              description: 'Container for secondary content',
+              preview: _boxPreview(
+                _workingScheme!.material3.secondaryContainer,
+              ),
+              onChanged: (c) => _updateScheme(
+                (s) => s.copyWith(
+                  material3: s.material3.copyWith(secondaryContainer: c),
+                ),
+              ),
+            ),
+            _colorRow(
+              context,
+              label: 'Tertiary Container',
+              color: _workingScheme!.material3.tertiaryContainer,
+              description: 'Container for tertiary content',
+              preview: _boxPreview(_workingScheme!.material3.tertiaryContainer),
+              onChanged: (c) => _updateScheme(
+                (s) => s.copyWith(
+                  material3: s.material3.copyWith(tertiaryContainer: c),
+                ),
+              ),
+            ),
+          ]),
           _buildSectionCard(context, 'Semantic Colors', [
             _semanticRow('Success', _workingScheme!.semantic.success, (c) {
               _updateScheme(
@@ -568,89 +651,6 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
               ),
             ),
           ]),
-          _buildSectionCard(context, 'Material 3 Colors', [
-            _colorRow(
-              context,
-              label: 'Primary',
-              color: _workingScheme!.material3.primary,
-              description: 'Primary brand color',
-              preview: _chipPreview(
-                bg: _workingScheme!.material3.primary,
-                fg: _workingScheme!.text.onPrimary,
-                text: 'Primary',
-              ),
-              onChanged: (c) => _updateScheme(
-                (s) => s.copyWith(material3: s.material3.copyWith(primary: c)),
-              ),
-            ),
-            _colorRow(
-              context,
-              label: 'Secondary',
-              color: _workingScheme!.material3.secondary,
-              description: 'Secondary brand color',
-              preview: _chipPreview(
-                bg: _workingScheme!.material3.secondary,
-                fg: _workingScheme!.text.onSecondary,
-                text: 'Secondary',
-              ),
-              onChanged: (c) => _updateScheme(
-                (s) =>
-                    s.copyWith(material3: s.material3.copyWith(secondary: c)),
-              ),
-            ),
-            _colorRow(
-              context,
-              label: 'Tertiary',
-              color: _workingScheme!.material3.tertiary,
-              description: 'Tertiary accent color',
-              preview: _chipPreview(
-                bg: _workingScheme!.material3.tertiary,
-                fg: _workingScheme!.text.onTertiary,
-                text: 'Tertiary',
-              ),
-              onChanged: (c) => _updateScheme(
-                (s) => s.copyWith(material3: s.material3.copyWith(tertiary: c)),
-              ),
-            ),
-            _colorRow(
-              context,
-              label: 'Primary Container',
-              color: _workingScheme!.material3.primaryContainer,
-              description: 'Container for primary content',
-              preview: _boxPreview(_workingScheme!.material3.primaryContainer),
-              onChanged: (c) => _updateScheme(
-                (s) => s.copyWith(
-                  material3: s.material3.copyWith(primaryContainer: c),
-                ),
-              ),
-            ),
-            _colorRow(
-              context,
-              label: 'Secondary Container',
-              color: _workingScheme!.material3.secondaryContainer,
-              description: 'Container for secondary content',
-              preview: _boxPreview(
-                _workingScheme!.material3.secondaryContainer,
-              ),
-              onChanged: (c) => _updateScheme(
-                (s) => s.copyWith(
-                  material3: s.material3.copyWith(secondaryContainer: c),
-                ),
-              ),
-            ),
-            _colorRow(
-              context,
-              label: 'Tertiary Container',
-              color: _workingScheme!.material3.tertiaryContainer,
-              description: 'Container for tertiary content',
-              preview: _boxPreview(_workingScheme!.material3.tertiaryContainer),
-              onChanged: (c) => _updateScheme(
-                (s) => s.copyWith(
-                  material3: s.material3.copyWith(tertiaryContainer: c),
-                ),
-              ),
-            ),
-          ]),
           const SizedBox(height: 24),
         ],
       ),
@@ -698,6 +698,7 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
   }
 
   Widget _statusRow(int status, Color color, ValueChanged<Color> onChanged) {
+    final statusLabel = _statusLabel(status);
     final mode = _workingModes![status] ?? StatusMode.background;
     final modeDescription = switch (mode) {
       StatusMode.background => 'Used as highlight background',
@@ -708,68 +709,91 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
       StatusMode.background => _chipPreview(
         bg: color,
         fg: _workingScheme!.status.highlightedText,
-        text: 'Status $status',
+        text: statusLabel,
       ),
-      StatusMode.text => Text('Status $status', style: TextStyle(color: color)),
+      StatusMode.text => Text(statusLabel, style: TextStyle(color: color)),
       StatusMode.none => Text(
-        'Status $status',
+        statusLabel,
         style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color),
       ),
     };
-    return Column(
-      children: [
-        _colorRow(
-          context,
-          label: 'Status $status',
-          color: color,
-          description: modeDescription,
-          preview: preview,
-          onChanged: onChanged,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: context.appColorScheme.border.outline.withValues(alpha: 0.2),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Wrap(
-                spacing: 8,
-                runSpacing: 6,
-                children: [
-                  _buildStatusModeChip(
-                    label: 'Background',
-                    selected: mode == StatusMode.background,
-                    onTap: () {
-                      setState(() {
-                        _workingModes![status] = StatusMode.background;
-                      });
-                    },
-                  ),
-                  _buildStatusModeChip(
-                    label: 'Text',
-                    selected: mode == StatusMode.text,
-                    onTap: () {
-                      setState(() {
-                        _workingModes![status] = StatusMode.text;
-                      });
-                    },
-                  ),
-                  _buildStatusModeChip(
-                    label: 'None',
-                    selected: mode == StatusMode.none,
-                    onTap: () {
-                      setState(() {
-                        _workingModes![status] = StatusMode.none;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ],
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          _colorRow(
+            context,
+            label: statusLabel,
+            color: color,
+            description: modeDescription,
+            preview: preview,
+            onChanged: onChanged,
+            withBorder: false,
           ),
-        ),
-        const SizedBox(height: 8),
-      ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    _buildStatusModeChip(
+                      label: 'Background',
+                      selected: mode == StatusMode.background,
+                      onTap: () {
+                        setState(() {
+                          _workingModes![status] = StatusMode.background;
+                        });
+                      },
+                    ),
+                    _buildStatusModeChip(
+                      label: 'Text',
+                      selected: mode == StatusMode.text,
+                      onTap: () {
+                        setState(() {
+                          _workingModes![status] = StatusMode.text;
+                        });
+                      },
+                    ),
+                    _buildStatusModeChip(
+                      label: 'None',
+                      selected: mode == StatusMode.none,
+                      onTap: () {
+                        setState(() {
+                          _workingModes![status] = StatusMode.none;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  String _statusLabel(int status) {
+    switch (status) {
+      case 0:
+        return 'unknown (0)';
+      case 98:
+        return 'ignored (98)';
+      case 99:
+        return 'known (99)';
+      default:
+        return 'Status $status';
+    }
   }
 
   Widget _buildStatusModeChip({
@@ -796,17 +820,9 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
     required Color color,
     required Widget preview,
     required ValueChanged<Color> onChanged,
+    bool withBorder = true,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: context.appColorScheme.border.outline.withValues(alpha: 0.2),
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
+    final content = Row(
         children: [
           Container(
             width: 28,
@@ -843,7 +859,22 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
             icon: const Icon(Icons.palette),
           ),
         ],
+      );
+
+    if (!withBorder) {
+      return content;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: context.appColorScheme.border.outline.withValues(alpha: 0.2),
+        ),
+        borderRadius: BorderRadius.circular(8),
       ),
+      child: content,
     );
   }
 

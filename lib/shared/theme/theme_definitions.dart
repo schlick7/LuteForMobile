@@ -12,8 +12,8 @@ Map<int, StatusMode> defaultStatusModes() {
     3: StatusMode.background,
     4: StatusMode.background,
     5: StatusMode.background,
-    98: StatusMode.background,
-    99: StatusMode.background,
+    98: StatusMode.none,
+    99: StatusMode.none,
   };
 }
 

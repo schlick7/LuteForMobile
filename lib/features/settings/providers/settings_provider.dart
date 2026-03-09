@@ -11,12 +11,7 @@ import '../../../core/cache/providers/cache_manager_provider.dart';
 import '../../../features/reader/providers/reader_provider.dart';
 import '../../../core/services/termux_service.dart';
 import '../../../core/services/server_health_service.dart';
-import '../../books/providers/books_provider.dart';
-import '../../stats/providers/stats_provider.dart';
-import '../../terms/providers/terms_provider.dart';
-import '../../terms/repositories/terms_repository.dart';
 import '../../../shared/providers/server_status_provider.dart';
-import '../../../shared/providers/network_providers.dart';
 
 typedef DrawerSettingsBuilder =
     Widget Function(BuildContext context, WidgetRef ref);
@@ -823,11 +818,6 @@ final textFormattingSettingsProvider =
     );
 
 class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
-  static const String _keyAccentLabelColor = 'accent_label_color';
-  static const String _keyAccentButtonColor = 'accent_button_color';
-  static const String _keyCustomAccentLabelColor = 'custom_accent_label_color';
-  static const String _keyCustomAccentButtonColor =
-      'custom_accent_button_color';
   static const String _themeTypeKey = 'themeType'; // legacy key
   static const String _keyThemeBuiltInType = 'themeBuiltInType';
   static const String _keySelectedThemeId = 'selectedThemeId';
@@ -856,14 +846,6 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
         : ThemeType.dark;
     final selectedThemeId = prefs.getString(_keySelectedThemeId);
     final userThemesJson = prefs.getString(_keyUserThemesJson);
-    final accentLabelColorValue = prefs.getInt(_keyAccentLabelColor);
-    final accentButtonColorValue = prefs.getInt(_keyAccentButtonColor);
-    final customAccentLabelColorValue = prefs.getInt(
-      _keyCustomAccentLabelColor,
-    );
-    final customAccentButtonColorValue = prefs.getInt(
-      _keyCustomAccentButtonColor,
-    );
 
     final userThemes = <UserThemeDefinition>[];
     if (userThemesJson != null && userThemesJson.isNotEmpty) {
@@ -893,55 +875,11 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
       themeType: themeType,
       selectedThemeId: resolvedSelectedThemeId,
       userThemes: userThemes,
-      accentLabelColor: accentLabelColorValue != null
-          ? Color(accentLabelColorValue)
-          : ThemeSettings.defaultSettings.accentLabelColor,
-      accentButtonColor: accentButtonColorValue != null
-          ? Color(accentButtonColorValue)
-          : ThemeSettings.defaultSettings.accentButtonColor,
-      customAccentLabelColor: customAccentLabelColorValue != null
-          ? Color(customAccentLabelColorValue)
-          : null,
-      customAccentButtonColor: customAccentButtonColorValue != null
-          ? Color(customAccentButtonColorValue)
-          : null,
     );
 
     if (state != loadedSettings) {
       state = loadedSettings;
     }
-  }
-
-  Future<void> updateAccentLabelColor(Color color) async {
-    state = state.copyWith(accentLabelColor: color);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyAccentLabelColor, color.value);
-  }
-
-  Future<void> updateAccentButtonColor(Color color) async {
-    state = state.copyWith(accentButtonColor: color);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyAccentButtonColor, color.value);
-  }
-
-  Future<void> updateCustomAccentLabelColor(Color color) async {
-    state = state.copyWith(
-      customAccentLabelColor: color,
-      accentLabelColor: color,
-    );
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyCustomAccentLabelColor, color.value);
-    await prefs.setInt(_keyAccentLabelColor, color.value);
-  }
-
-  Future<void> updateCustomAccentButtonColor(Color color) async {
-    state = state.copyWith(
-      customAccentButtonColor: color,
-      accentButtonColor: color,
-    );
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_keyCustomAccentButtonColor, color.value);
-    await prefs.setInt(_keyAccentButtonColor, color.value);
   }
 
   Future<void> selectBuiltInTheme(ThemeType themeType) async {
@@ -1085,10 +1023,6 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
 
   Future<void> resetThemeSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_keyAccentLabelColor);
-    await prefs.remove(_keyAccentButtonColor);
-    await prefs.remove(_keyCustomAccentLabelColor);
-    await prefs.remove(_keyCustomAccentButtonColor);
     await prefs.remove(_themeTypeKey);
     await prefs.remove(_keyThemeBuiltInType);
     await prefs.remove(_keySelectedThemeId);
