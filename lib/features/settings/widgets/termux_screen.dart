@@ -44,6 +44,7 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
   bool _isBackingUpLocal = false;
   final Set<String> _downloadingLocalBackups = {};
   bool _isRestoring = false;
+  bool _isRestoringDefaultSettings = false;
   bool _isLaunchingTermux = false;
   bool _isInstalling = false;
 
@@ -978,6 +979,70 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
     }
   }
 
+  Future<void> _restoreDefaultServerSettings() async {
+    setState(() {
+      _isRestoringDefaultSettings = true;
+    });
+
+    try {
+      await BackupService.restoreDefaultTermuxSettings(Settings.termuxUrl);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Default Termux server settings restored'),
+        ),
+      );
+      await _refreshStatus();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to restore default settings: $e'),
+          backgroundColor: context.appColorScheme.error.error,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRestoringDefaultSettings = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _confirmRestoreDefaultServerSettings() async {
+    if (_isRestoringDefaultSettings) {
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Restore Default Server Settings'),
+        content: const Text(
+          'This will wipe the entire Lute settings page in Termux and replace it with the hardcoded defaults. The backup directory will be reset to /data/data/com.termux/files/home/.local/share/Lute3/backups. Continue?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: context.appColorScheme.error.error,
+            ),
+            child: const Text('Restore Defaults'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _restoreDefaultServerSettings();
+    }
+  }
+
   void _showRestoreFlowDialog() {
     int dialogStep = 0;
     String? settingsPath;
@@ -1697,6 +1762,35 @@ class _TermuxScreenState extends ConsumerState<TermuxScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: context.appColorScheme.semantic.warning,
                 minimumSize: const Size(double.infinity, 48),
+              ),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: (_serverRunning && !_isRestoringDefaultSettings)
+                  ? _confirmRestoreDefaultServerSettings
+                  : null,
+              icon: _isRestoringDefaultSettings
+                  ? SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: context.appColorScheme.error.error,
+                      ),
+                    )
+                  : Icon(
+                      Icons.settings_backup_restore,
+                      color: context.appColorScheme.error.error,
+                    ),
+              label: Text(
+                _isRestoringDefaultSettings
+                    ? 'Restoring Default Settings...'
+                    : 'Restore Default Server Settings',
+                style: TextStyle(color: context.appColorScheme.error.error),
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 48),
+                side: BorderSide(color: context.appColorScheme.error.error),
               ),
             ),
             const SizedBox(height: 16),

@@ -5,6 +5,30 @@ import 'package:http/http.dart' as http;
 
 class BackupService {
   static const Duration defaultTimeout = Duration(seconds: 30);
+  // Snapshot taken from the Settings page served by 192.168.1.42:5001 on
+  // 2026-03-13, then pinned to the Termux backup directory.
+  static const String termuxBackupDir =
+      '/data/data/com.termux/files/home/.local/share/Lute3/backups';
+  static const List<String> _defaultSettingsEnabledCheckboxes = [
+    'backup_enabled',
+    'backup_auto',
+    'backup_warn',
+    'show_highlights',
+    'term_popup_promote_parent_translation',
+    'term_popup_show_components',
+    'use_ankiconnect',
+  ];
+  static const Map<String, String> _defaultSettingsFieldValues = {
+    'backup_dir': termuxBackupDir,
+    'backup_count': '5',
+    'current_theme': '-',
+    'custom_styles': '',
+    'stats_calc_sample_size': '5',
+    'ankiconnect_url': 'http://127.0.0.1:8765',
+    'mecab_path': '',
+    'japanese_reading': 'katakana',
+  };
+
   static Future<List<Map<String, dynamic>>> listBackups(
     String serverUrl,
   ) async {
@@ -246,6 +270,39 @@ class BackupService {
       );
     } catch (e) {
       throw Exception('Failed to get all settings: $e');
+    }
+  }
+
+  static Future<void> restoreDefaultTermuxSettings(
+    String serverUrl, {
+    Duration timeout = defaultTimeout,
+  }) async {
+    try {
+      final formBody = <String, String>{
+        for (final field in _defaultSettingsEnabledCheckboxes) field: 'y',
+        ..._defaultSettingsFieldValues,
+        'submit': 'Save',
+      };
+
+      final response = await http
+          .post(
+            Uri.parse('$serverUrl/settings/index'),
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: formBody,
+          )
+          .timeout(timeout);
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Failed to restore default settings: ${response.statusCode}',
+        );
+      }
+    } on TimeoutException {
+      throw Exception(
+        'Restoring default settings timed out after ${timeout.inSeconds} seconds',
+      );
+    } catch (e) {
+      throw Exception('Failed to restore default Termux settings: $e');
     }
   }
 
