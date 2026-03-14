@@ -377,9 +377,23 @@ class ApiService {
     return response;
   }
 
-  Future<Response<String>> getBookStats(int bookId, {Duration? timeout}) async {
+  Future<Response<String>> getBookStats(
+    int bookId, {
+    Duration? timeout,
+    bool forceRecalc = false,
+    bool fullBook = false,
+  }) async {
+    final queryParameters = <String, dynamic>{};
+    if (forceRecalc) {
+      queryParameters['force_recalc'] = 'true';
+    }
+    if (fullBook) {
+      queryParameters['full_book'] = 'true';
+    }
+
     return await _dio.get<String>(
       '/book/table_stats/$bookId',
+      queryParameters: queryParameters.isEmpty ? null : queryParameters,
       options: Options(
         connectTimeout: timeout,
         receiveTimeout: timeout,

@@ -40,6 +40,7 @@ class Settings {
   final bool alwaysRefreshBookDetails;
   final int maxConcurrentTooltipFetches;
   final bool autoRefreshFullStats;
+  final bool experimentalBookDetailsFullStatsEndpoint;
 
   static const String termuxUrl = 'http://127.0.0.1:5001';
 
@@ -79,6 +80,7 @@ class Settings {
     this.alwaysRefreshBookDetails = true,
     this.maxConcurrentTooltipFetches = 4,
     this.autoRefreshFullStats = false,
+    this.experimentalBookDetailsFullStatsEndpoint = false,
   });
 
   Settings copyWith({
@@ -119,6 +121,7 @@ class Settings {
     bool? alwaysRefreshBookDetails,
     int? maxConcurrentTooltipFetches,
     bool? autoRefreshFullStats,
+    bool? experimentalBookDetailsFullStatsEndpoint,
   }) {
     return Settings(
       localUrl: localUrl ?? this.localUrl,
@@ -173,6 +176,9 @@ class Settings {
       maxConcurrentTooltipFetches:
           maxConcurrentTooltipFetches ?? this.maxConcurrentTooltipFetches,
       autoRefreshFullStats: autoRefreshFullStats ?? this.autoRefreshFullStats,
+      experimentalBookDetailsFullStatsEndpoint:
+          experimentalBookDetailsFullStatsEndpoint ??
+          this.experimentalBookDetailsFullStatsEndpoint,
     );
   }
 
@@ -213,6 +219,7 @@ class Settings {
       alwaysRefreshBookDetails: true,
       maxConcurrentTooltipFetches: 4,
       autoRefreshFullStats: false,
+      experimentalBookDetailsFullStatsEndpoint: false,
     );
   }
 
@@ -254,7 +261,9 @@ class Settings {
         other.statsRefreshCooldownHours == statsRefreshCooldownHours &&
         other.alwaysRefreshBookDetails == alwaysRefreshBookDetails &&
         other.maxConcurrentTooltipFetches == maxConcurrentTooltipFetches &&
-        other.autoRefreshFullStats == autoRefreshFullStats;
+        other.autoRefreshFullStats == autoRefreshFullStats &&
+        other.experimentalBookDetailsFullStatsEndpoint ==
+            experimentalBookDetailsFullStatsEndpoint;
   }
 
   @override
@@ -293,6 +302,7 @@ class Settings {
     alwaysRefreshBookDetails,
     maxConcurrentTooltipFetches,
     autoRefreshFullStats,
+    experimentalBookDetailsFullStatsEndpoint,
   ]);
 
   bool isValidServerUrl(String url) {

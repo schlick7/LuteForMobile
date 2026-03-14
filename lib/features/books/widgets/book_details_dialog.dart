@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/content_service.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
 import '../../../shared/providers/network_providers.dart';
@@ -29,7 +30,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
   void initState() {
     super.initState();
     final settings = ref.read(settingsProvider);
-    if (settings.alwaysRefreshBookDetails && widget.book.hasStats) {
+    if (settings.alwaysRefreshBookDetails) {
       _refreshBookStatsInBackground(widget.book.id);
     }
   }
@@ -37,17 +38,21 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
   Future<void> _refreshBookStatsInBackground(int bookId) async {
     try {
       final settings = ref.read(settingsProvider);
+      final contentService = ref.read(contentServiceProvider);
 
-      await ref
-          .read(contentServiceProvider)
-          .setUserSetting(
-            'stats_calc_sample_size',
-            settings.stats500SampleSize.toString(),
-          );
-
-      final statsBook = await ref
-          .read(contentServiceProvider)
-          .getBookStats(bookId, timeout: const Duration(seconds: 15));
+      final statsBook = settings.experimentalBookDetailsFullStatsEndpoint
+          ? await contentService.getBookStats(
+              bookId,
+              timeout: const Duration(seconds: 15),
+              forceRecalc: true,
+              fullBook: true,
+            )
+          : await _refreshBookStatsWithLegacyFlow(
+              contentService,
+              bookId,
+              settings.stats500SampleSize,
+              settings.statsCalcSampleSize,
+            );
 
       final updatedBook = widget.book.copyWith(
         distinctTerms: statsBook.distinctTerms,
@@ -57,15 +62,32 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
       );
 
       await ref.read(booksProvider.notifier).updateBookInList(updatedBook);
-
-      await ref
-          .read(contentServiceProvider)
-          .setUserSetting(
-            'stats_calc_sample_size',
-            settings.statsCalcSampleSize.toString(),
-          );
     } catch (e) {
       // Error handling - stats refresh failed
+    }
+  }
+
+  Future<Book> _refreshBookStatsWithLegacyFlow(
+    ContentService contentService,
+    int bookId,
+    int refreshSampleSize,
+    int defaultSampleSize,
+  ) async {
+    await contentService.setUserSetting(
+      'stats_calc_sample_size',
+      refreshSampleSize.toString(),
+    );
+
+    try {
+      return await contentService.getBookStats(
+        bookId,
+        timeout: const Duration(seconds: 15),
+      );
+    } finally {
+      await contentService.setUserSetting(
+        'stats_calc_sample_size',
+        defaultSampleSize.toString(),
+      );
     }
   }
 

@@ -989,6 +989,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           },
                           contentPadding: EdgeInsets.zero,
                         ),
+                        SwitchListTile(
+                          title: const Text(
+                            'Experimental Book Details Full Stats Endpoint',
+                          ),
+                          subtitle: const Text(
+                            'Dev server only. Experimental proof of concept for the new backend stats refresh endpoint. Leave this off on normal servers.',
+                          ),
+                          value:
+                              settings.experimentalBookDetailsFullStatsEndpoint,
+                          onChanged: (value) {
+                            ref
+                                .read(settingsProvider.notifier)
+                                .updateExperimentalBookDetailsFullStatsEndpoint(
+                                  value,
+                                );
+                          },
+                          contentPadding: EdgeInsets.zero,
+                        ),
                         if (settings.autoRefreshFullStats) ...[
                           const SizedBox(height: 8),
                           NumberField(

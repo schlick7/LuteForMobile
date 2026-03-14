@@ -514,9 +514,19 @@ class ContentService {
     await _apiService.invalidateAllBookStatsCache(timeout: timeout);
   }
 
-  Future<Book> getBookStats(int bookId, {Duration? timeout}) async {
+  Future<Book> getBookStats(
+    int bookId, {
+    Duration? timeout,
+    bool forceRecalc = false,
+    bool fullBook = false,
+  }) async {
     return _bookStatsQueue.enqueue(() async {
-      final response = await _apiService.getBookStats(bookId, timeout: timeout);
+      final response = await _apiService.getBookStats(
+        bookId,
+        timeout: timeout,
+        forceRecalc: forceRecalc,
+        fullBook: fullBook,
+      );
       final jsonString = response.data ?? '';
 
       try {

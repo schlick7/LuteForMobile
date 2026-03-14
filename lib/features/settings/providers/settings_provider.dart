@@ -62,6 +62,8 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyMaxConcurrentTooltipFetches =
       'max_concurrent_tooltip_fetches';
   static const String _keyAutoRefreshFullStats = 'auto_refresh_full_stats';
+  static const String _keyExperimentalBookDetailsFullStatsEndpoint =
+      'experimental_book_details_full_stats_endpoint';
 
   @override
   Settings build() {
@@ -118,6 +120,8 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getInt(_keyMaxConcurrentTooltipFetches) ?? 4;
     final autoRefreshFullStats =
         prefs.getBool(_keyAutoRefreshFullStats) ?? false;
+    final experimentalBookDetailsFullStatsEndpoint =
+        prefs.getBool(_keyExperimentalBookDetailsFullStatsEndpoint) ?? false;
 
     final currentBookId = prefs.getInt(_keyCurrentBookId);
     final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
@@ -157,6 +161,8 @@ class SettingsNotifier extends Notifier<Settings> {
       alwaysRefreshBookDetails: alwaysRefreshBookDetails,
       maxConcurrentTooltipFetches: maxConcurrentTooltipFetches,
       autoRefreshFullStats: autoRefreshFullStats,
+      experimentalBookDetailsFullStatsEndpoint:
+          experimentalBookDetailsFullStatsEndpoint,
     );
   }
 
@@ -430,6 +436,16 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyAutoRefreshFullStats, value);
   }
 
+  Future<void> updateExperimentalBookDetailsFullStatsEndpoint(
+    bool value,
+  ) async {
+    state = state.copyWith(experimentalBookDetailsFullStatsEndpoint: value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyExperimentalBookDetailsFullStatsEndpoint, value);
+    state = state.copyWith(alwaysRefreshBookDetails: value);
+    await prefs.setBool(_keyAlwaysRefreshBookDetails, value);
+  }
+
   bool _isValidUrl(String url) {
     try {
       final uri = Uri.parse(url);
@@ -467,6 +483,7 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.remove(_keyStatsRefreshCooldownHours);
     await prefs.remove(_keyAlwaysRefreshBookDetails);
     await prefs.remove(_keyAutoRefreshFullStats);
+    await prefs.remove(_keyExperimentalBookDetailsFullStatsEndpoint);
 
     state = Settings.defaultSettings();
   }
