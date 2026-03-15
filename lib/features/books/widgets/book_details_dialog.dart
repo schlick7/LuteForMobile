@@ -26,9 +26,13 @@ class BookDetailsDialog extends ConsumerStatefulWidget {
 }
 
 class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
+  late Book _displayBook;
+  bool _isRefreshingStats = false;
+
   @override
   void initState() {
     super.initState();
+    _displayBook = widget.book;
     final settings = ref.read(settingsProvider);
     if (settings.alwaysRefreshBookDetails) {
       _refreshBookStatsInBackground(widget.book.id);
@@ -36,6 +40,11 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
   }
 
   Future<void> _refreshBookStatsInBackground(int bookId) async {
+    if (!mounted) return;
+    setState(() {
+      _isRefreshingStats = true;
+    });
+
     try {
       final settings = ref.read(settingsProvider);
       final contentService = ref.read(contentServiceProvider);
@@ -54,7 +63,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
               settings.statsCalcSampleSize,
             );
 
-      final updatedBook = widget.book.copyWith(
+      final updatedBook = _displayBook.copyWith(
         distinctTerms: statsBook.distinctTerms,
         unknownPct: statsBook.unknownPct,
         statusDistribution: statsBook.statusDistribution,
@@ -62,8 +71,18 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
       );
 
       await ref.read(booksProvider.notifier).updateBookInList(updatedBook);
+      if (!mounted) return;
+      setState(() {
+        _displayBook = updatedBook;
+      });
     } catch (e) {
-      // Error handling - stats refresh failed
+      debugPrint('Book details stats refresh failed for bookId=$bookId: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshingStats = false;
+        });
+      }
     }
   }
 
@@ -93,10 +112,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final book = widget.book;
-    print(
-      'DEBUG BookDetailsDialog: book=${book.title}, hasStats=${book.hasStats}, distinctTerms=${book.distinctTerms}, statusDistribution=${book.statusDistribution}',
-    );
+    final book = _displayBook;
 
     return Dialog(
       insetPadding: const EdgeInsets.all(16),
@@ -206,6 +222,11 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
                 'Total Words',
                 book.wordCount.toString(),
               ),
+              const SizedBox(height: 12),
+              if (_isRefreshingStats) ...[
+                const LinearProgressIndicator(),
+                const SizedBox(height: 12),
+              ],
               const SizedBox(height: 12),
               _buildDetailRow(
                 context,
