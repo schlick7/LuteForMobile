@@ -145,6 +145,24 @@ class _SentenceTranslationWidgetState
       _pageController.dispose();
       _pageController = PageController(initialPage: initialPage);
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _loadCurrentPageContent();
+    });
+  }
+
+  void _loadCurrentPageContent() {
+    if (_dictionaries.isEmpty || _currentPage >= _dictionaries.length) return;
+
+    final currentDict = _dictionaries[_currentPage];
+    if (!currentDict.isAI) return;
+
+    if (currentDict.aiType == AIType.virtualDictionary) {
+      _fetchVirtualDictionary();
+    } else {
+      _fetchAITranslation();
+    }
   }
 
   Future<void> _fetchAITranslation() async {
