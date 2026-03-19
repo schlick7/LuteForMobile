@@ -1266,7 +1266,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           .read(readerProvider.notifier)
           .fetchTermFormById(item.wordId!);
       if (termForm != null && mounted) {
-        _showTermForm(termForm);
+        _showTermForm(termForm, sentence: _extractSentence(item));
       }
     } catch (e) {
       return;
@@ -1292,7 +1292,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     return currentSentence.textItems.map((i) => i.text).join();
   }
 
-  void _showTermForm(TermForm termForm) {
+  void _showTermForm(TermForm termForm, {String? sentence}) {
     _currentTermForm = termForm;
     _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
@@ -1358,6 +1358,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         },
                   child: TermFormWidget(
                     termForm: _currentTermForm ?? termForm,
+                    sentence: sentence,
                     contentService: repository.contentService,
                     dictionaryService: DictionaryService(
                       fetchLanguageSettingsHtml: (langId) => repository
@@ -1417,6 +1418,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         if (parentTermForm != null && mounted) {
                           _showParentTermForm(
                             parentTermForm,
+                            sentence: sentence,
                             onParentUpdated: (updatedParents) {
                               setState(() {
                                 _currentTermForm = _currentTermForm?.copyWith(
@@ -1447,6 +1449,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
   void _showParentTermForm(
     TermForm termForm, {
+    String? sentence,
     void Function(List<TermParent>)? onParentUpdated,
   }) {
     _isDictionaryOpen = false;
@@ -1513,6 +1516,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                         },
                   child: TermFormWidget(
                     termForm: currentForm,
+                    sentence: sentence,
                     contentService: repository.contentService,
                     dictionaryService: DictionaryService(
                       fetchLanguageSettingsHtml: (langId) => repository
@@ -1589,7 +1593,10 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                             .read(readerProvider.notifier)
                             .fetchTermFormById(parent.id!);
                         if (parentTermForm != null && mounted) {
-                          _showParentTermForm(parentTermForm);
+                          _showParentTermForm(
+                            parentTermForm,
+                            sentence: sentence,
+                          );
                         }
                       }
                     },

@@ -129,7 +129,11 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
           currentBookState.book?.language ??
           'Unknown';
 
-      final translation = await aiService.translateTerm(widget.term, language);
+      final translation = await aiService.translateTerm(
+        widget.term,
+        language,
+        sentence: widget.sentence,
+      );
 
       if (mounted) {
         setState(() {

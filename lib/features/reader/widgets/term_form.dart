@@ -17,6 +17,7 @@ import '../providers/current_book_provider.dart';
 
 class TermFormWidget extends ConsumerStatefulWidget {
   final TermForm termForm;
+  final String? sentence;
   final void Function(TermForm) onSave;
   final void Function(TermForm) onUpdate;
   final VoidCallback onCancel;
@@ -30,6 +31,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
   const TermFormWidget({
     super.key,
     required this.termForm,
+    this.sentence,
     required this.onSave,
     required this.onUpdate,
     required this.onCancel,
@@ -571,6 +573,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       final translation = await aiService.translateTerm(
         widget.termForm.term,
         language,
+        sentence: widget.sentence,
       );
 
       final currentText = _translationController.text.trim().replaceAll(
@@ -1064,7 +1067,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   Widget _buildDictionaryView(BuildContext context) {
     return DictionaryView(
       term: widget.termForm.term,
-      sentence: null,
+      sentence: widget.sentence,
       dictionaries: _dictionaries,
       languageId: widget.termForm.languageId,
       onClose: _toggleDictionary,

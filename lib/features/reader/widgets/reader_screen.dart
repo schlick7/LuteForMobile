@@ -1039,7 +1039,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           '_handleDoubleTap',
           details: 'termId=${termForm.termId}',
         );
-        _showTermForm(termForm);
+        _showTermForm(termForm, sentence: _extractSentence(item));
       }
     } catch (e) {
       ApiLogger.logError('_handleDoubleTap', e);
@@ -1168,7 +1168,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     return '';
   }
 
-  void _showTermForm(TermForm termForm) {
+  void _showTermForm(TermForm termForm, {String? sentence}) {
     _currentTermForm = termForm;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
@@ -1216,6 +1216,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   },
                   child: TermFormWidget(
                     termForm: _currentTermForm ?? termForm,
+                    sentence: sentence,
                     contentService: repository.contentService,
                     dictionaryService: DictionaryService(
                       fetchLanguageSettingsHtml: (langId) => repository
@@ -1267,6 +1268,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         if (parentTermForm != null && mounted) {
                           _showParentTermForm(
                             parentTermForm,
+                            sentence: sentence,
                             onParentUpdated: (updatedParents) {
                               setState(() {
                                 _currentTermForm = _currentTermForm?.copyWith(
@@ -1301,6 +1303,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
   void _showParentTermForm(
     TermForm termForm, {
+    String? sentence,
     void Function(List<TermParent>)? onParentUpdated,
   }) {
     bool _shouldAutoSaveOnClose = true;
@@ -1351,6 +1354,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   },
                   child: TermFormWidget(
                     termForm: termForm,
+                    sentence: sentence,
                     contentService: repository.contentService,
                     dictionaryService: DictionaryService(
                       fetchLanguageSettingsHtml: (langId) => repository
@@ -1396,6 +1400,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                         if (parentTermForm != null && mounted) {
                           _showParentTermForm(
                             parentTermForm,
+                            sentence: sentence,
                             onParentUpdated: (updatedParents) {
                               setState(() {
                                 _currentTermForm = _currentTermForm?.copyWith(
