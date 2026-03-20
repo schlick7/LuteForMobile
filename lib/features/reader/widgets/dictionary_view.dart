@@ -153,6 +153,77 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
     }
   }
 
+  Future<void> _fetchMoreAITranslations() async {
+    if (_isLoadingAI) return;
+    if (_aiTranslation == null || _aiTranslation!.trim().isEmpty) return;
+
+    setState(() {
+      _isLoadingAI = true;
+      _aiErrorMessage = null;
+    });
+
+    try {
+      final aiService = ref.read(aiServiceProvider);
+      final currentBookState = ref.read(currentBookProvider);
+      final language =
+          currentBookState.languageName ??
+          currentBookState.book?.language ??
+          'Unknown';
+
+      final moreTranslations = await aiService.translateTermMore(
+        widget.term,
+        language,
+        sentence: widget.sentence,
+        existingTranslations: _aiTranslation!,
+      );
+
+      if (!mounted) return;
+
+      final mergedTranslations = _mergeDistinctTranslations(
+        _aiTranslation!,
+        moreTranslations,
+      );
+
+      setState(() {
+        _isLoadingAI = false;
+        _aiTranslation = mergedTranslations;
+        _hasFetchedAI = true;
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingAI = false;
+          _aiErrorMessage = e.toString();
+        });
+      }
+    }
+  }
+
+  String _mergeDistinctTranslations(String current, String incoming) {
+    final currentItems = _splitTranslations(current);
+    final merged = List<String>.from(currentItems);
+    final seen = currentItems.map((item) => item.toLowerCase()).toSet();
+
+    for (final item in _splitTranslations(incoming)) {
+      final normalized = item.toLowerCase();
+      if (normalized == 'none' || seen.contains(normalized)) {
+        continue;
+      }
+      merged.add(item);
+      seen.add(normalized);
+    }
+
+    return merged.join(', ');
+  }
+
+  List<String> _splitTranslations(String raw) {
+    return raw
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
   Future<void> _fetchVirtualDictionary() async {
     if (_isLoadingVirtualDict || _hasFetchedVirtualDict) return;
 
@@ -629,9 +700,9 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
             ),
             const SizedBox(height: 8),
             ElevatedButton.icon(
-              onPressed: _fetchAITranslation,
-              icon: const Icon(Icons.refresh),
-              label: const Text('Retry'),
+              onPressed: _fetchMoreAITranslations,
+              icon: const Icon(Icons.add),
+              label: const Text('More'),
             ),
           ],
         ),

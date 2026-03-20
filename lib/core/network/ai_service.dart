@@ -18,6 +18,12 @@ abstract class AIService {
     String language, {
     String? sentence,
   });
+  Future<String> translateTermMore(
+    String term,
+    String language, {
+    String? sentence,
+    required String existingTranslations,
+  });
   Future<String> translateSentence(String sentence, String language);
   Future<List<String>> fetchAvailableModels();
   String getPromptForType(
@@ -32,6 +38,26 @@ abstract class AIService {
     String language, {
     String? sentence,
   });
+}
+
+String _buildMoreTermTranslationsPrompt(
+  String term,
+  String language, {
+  String? sentence,
+  required String existingTranslations,
+}) {
+  final contextSentence = sentence == null || sentence.trim().isEmpty
+      ? 'No sentence context provided.'
+      : 'Sentence context: "$sentence"';
+
+  return 'Translate the $language term "$term" into natural English. '
+      '$contextSentence '
+      'Existing translations already found: "$existingTranslations". '
+      'Return 1 or 2 additional distinct English translations only. '
+      'Do not repeat any existing translations. '
+      'Do not include the original $language term. '
+      'If there are no other good translations, respond with exactly: NONE. '
+      'Output only the translation words or short phrases, separated by a comma.';
 }
 
 class OpenAIService implements AIService {
@@ -85,6 +111,48 @@ class OpenAIService implements AIService {
           'No translation available';
     } catch (e) {
       developer.log('Error translating term: $e', name: 'OpenAIService');
+      rethrow;
+    }
+  }
+
+  @override
+  Future<String> translateTermMore(
+    String term,
+    String language, {
+    String? sentence,
+    required String existingTranslations,
+  }) async {
+    try {
+      final prompt = _buildMoreTermTranslationsPrompt(
+        term,
+        language,
+        sentence: sentence,
+        existingTranslations: existingTranslations,
+      );
+      _logAIPrompt(
+        service: 'OpenAIService',
+        type: AIPromptType.termTranslation,
+        prompt: prompt,
+      );
+
+      final response = await _client.createChatCompletion(
+        request: CreateChatCompletionRequest(
+          model: ChatCompletionModel.modelId(model ?? 'gpt-4o'),
+          messages: [
+            ChatCompletionMessage.user(
+              content: ChatCompletionUserMessageContent.string(prompt),
+            ),
+          ],
+        ),
+      );
+
+      return response.choices.first.message.content ??
+          'No translation available';
+    } catch (e) {
+      developer.log(
+        'Error fetching more term translations: $e',
+        name: 'OpenAIService',
+      );
       rethrow;
     }
   }
@@ -310,6 +378,47 @@ class LocalOpenAIService implements AIService {
   }
 
   @override
+  Future<String> translateTermMore(
+    String term,
+    String language, {
+    String? sentence,
+    required String existingTranslations,
+  }) async {
+    try {
+      final prompt = _buildMoreTermTranslationsPrompt(
+        term,
+        language,
+        sentence: sentence,
+        existingTranslations: existingTranslations,
+      );
+      _logAIPrompt(
+        service: 'LocalOpenAIService',
+        type: AIPromptType.termTranslation,
+        prompt: prompt,
+      );
+
+      final response = await _dio.post(
+        '/chat/completions',
+        data: {
+          'model': model ?? 'gpt-4o',
+          'messages': [
+            {'role': 'user', 'content': prompt},
+          ],
+        },
+      );
+
+      return response.data['choices'][0]['message']['content'] ??
+          'No translation available';
+    } catch (e) {
+      developer.log(
+        'Error fetching more term translations: $e',
+        name: 'LocalOpenAIService',
+      );
+      rethrow;
+    }
+  }
+
+  @override
   Future<String> translateSentence(String sentence, String language) async {
     try {
       final prompt = getPromptForType(
@@ -523,6 +632,40 @@ class GeminiService implements AIService {
   }
 
   @override
+  Future<String> translateTermMore(
+    String term,
+    String language, {
+    String? sentence,
+    required String existingTranslations,
+  }) async {
+    try {
+      final prompt = _buildMoreTermTranslationsPrompt(
+        term,
+        language,
+        sentence: sentence,
+        existingTranslations: existingTranslations,
+      );
+      _logAIPrompt(
+        service: 'GeminiService',
+        type: AIPromptType.termTranslation,
+        prompt: prompt,
+      );
+
+      final response = await _generativeModel.generateContent([
+        Content.text(prompt),
+      ]);
+
+      return response.text ?? 'No translation available';
+    } catch (e) {
+      developer.log(
+        'Error fetching more term translations: $e',
+        name: 'GeminiService',
+      );
+      rethrow;
+    }
+  }
+
+  @override
   Future<String> translateSentence(String sentence, String language) async {
     try {
       final prompt = getPromptForType(
@@ -684,6 +827,17 @@ class NoAIService implements AIService {
     String term,
     String language, {
     String? sentence,
+  }) async {
+    developer.log('AI translation disabled - NoAIService', name: 'NoAIService');
+    return 'AI translation is not enabled';
+  }
+
+  @override
+  Future<String> translateTermMore(
+    String term,
+    String language, {
+    String? sentence,
+    required String existingTranslations,
   }) async {
     developer.log('AI translation disabled - NoAIService', name: 'NoAIService');
     return 'AI translation is not enabled';
