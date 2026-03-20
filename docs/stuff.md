@@ -6,17 +6,24 @@
 
 ---
 
-Backups still aren't triggering
+Expose independent recalculation controls on the book stats endpoint.
+
+- Keep the default `/book/table_stats/<id>` behavior cache-first.
+- Support `?force_recalc=true` to recalculate sampled stats in a single call.
+- Support `?full_book=true` to recalculate full-book stats in a single call.
+
+This makes it possible to:
+
+- force a fresh sampled recalculation when needed
+- force a full-book recalculation when needed
+
+---
+
 
 ---
 
 The install termux button brings you to the github
-Tapping termux in the status bring you to github
-
-
----
-
-Lets edit the lute3 server code so that we can restore backups. This needs to be an extremely clean piece of code. It needs to follow the code style of the restore of the lute-v3 program and be very easy to be used in a PR. It needs to be confirmed to be bug free and confirmed to not break the server. 
+Tapping termux in the status bring you to play store
 
 ---
 
