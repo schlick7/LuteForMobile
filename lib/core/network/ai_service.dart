@@ -3,14 +3,13 @@ import 'package:openai_dart/openai_dart.dart';
 import 'package:dio/dio.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
-import '../logger/api_logger.dart';
 
 void _logAIPrompt({
   required String service,
   required AIPromptType type,
   required String prompt,
 }) {
-  ApiLogger.logRequest('$service.${type.name}', details: 'prompt=$prompt');
+  developer.log(prompt, name: '$service.${type.name}.prompt');
 }
 
 abstract class AIService {
