@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:developer' as developer;
 import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../../settings/providers/settings_provider.dart'
@@ -8,7 +7,6 @@ import '../../settings/providers/settings_provider.dart'
 import '../../settings/models/ai_settings.dart';
 import '../../settings/providers/ai_settings_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
-import '../../../core/logger/api_logger.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../providers/sentence_tts_provider.dart';
@@ -158,13 +156,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   void _maybeAutoFetchAITranslation() {
-    if (!mounted || _isLoadingAITranslation) {
-      ApiLogger.logLoading(
-        'TermForm.autoFetchAI',
-        details: 'skip mounted=$mounted loading=$_isLoadingAITranslation',
-      );
-      return;
-    }
+    if (!mounted || _isLoadingAITranslation) return;
 
     final settings = ref.read(termFormSettingsProvider);
     final aiSettings = ref.read(aiSettingsProvider);
@@ -173,37 +165,18 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         aiSettings.provider != AIProvider.none && termConfig?.enabled == true;
     final effectiveStatus =
         widget.initialReaderStatus ?? widget.termForm.status;
-    ApiLogger.logLoading(
-      'TermForm.autoFetchAI',
-      details:
-          'term="${widget.termForm.term}" termId=${widget.termForm.termId} status="${widget.termForm.status}" initialReaderStatus="${widget.initialReaderStatus}" effectiveStatus="$effectiveStatus" autoFetch=${settings.autoFetchAITranslationsForStatus0} provider=${aiSettings.provider} promptEnabled=${termConfig?.enabled} shouldShowAI=$shouldShowAI',
-    );
 
     if (!settings.autoFetchAITranslationsForStatus0 ||
         !shouldShowAI ||
         effectiveStatus != '0') {
-      ApiLogger.logLoading(
-        'TermForm.autoFetchAI',
-        details: 'gate-blocked effectiveStatus="$effectiveStatus"',
-      );
       return;
     }
 
     final termKey =
         '${widget.termForm.termId ?? 'new'}:${widget.termForm.term}:$effectiveStatus';
-    if (_lastAutoFetchedTermKey == termKey) {
-      ApiLogger.logLoading(
-        'TermForm.autoFetchAI',
-        details: 'skip duplicate termKey=$termKey',
-      );
-      return;
-    }
+    if (_lastAutoFetchedTermKey == termKey) return;
 
     _lastAutoFetchedTermKey = termKey;
-    ApiLogger.logLoading(
-      'TermForm.autoFetchAI',
-      details: 'trigger termKey=$termKey',
-    );
     _fetchAITranslation();
   }
 

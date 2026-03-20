@@ -404,7 +404,6 @@ class HtmlParser {
         break;
       }
     }
-    ApiLogger.logLoading('parseTermForm', details: 'parsedStatus=$status');
 
     final tagsInput = document.querySelector('input[name="termtagslist"]');
     String? tags = tagsInput?.attributes['value']?.trim();
