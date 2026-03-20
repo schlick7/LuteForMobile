@@ -3,6 +3,15 @@ import 'package:openai_dart/openai_dart.dart';
 import 'package:dio/dio.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
+import '../logger/api_logger.dart';
+
+void _logAIPrompt({
+  required String service,
+  required AIPromptType type,
+  required String prompt,
+}) {
+  ApiLogger.logRequest('$service.${type.name}', details: 'prompt=$prompt');
+}
 
 abstract class AIService {
   Future<String> translateTerm(
@@ -56,6 +65,11 @@ class OpenAIService implements AIService {
         term: term,
         language: language,
       );
+      _logAIPrompt(
+        service: 'OpenAIService',
+        type: AIPromptType.termTranslation,
+        prompt: prompt,
+      );
 
       final response = await _client.createChatCompletion(
         request: CreateChatCompletionRequest(
@@ -83,6 +97,11 @@ class OpenAIService implements AIService {
         AIPromptType.sentenceTranslation,
         sentence: sentence,
         language: language,
+      );
+      _logAIPrompt(
+        service: 'OpenAIService',
+        type: AIPromptType.sentenceTranslation,
+        prompt: prompt,
       );
 
       final response = await _client.createChatCompletion(
@@ -162,6 +181,11 @@ class OpenAIService implements AIService {
         sentence: sentence,
         language: language,
       );
+      _logAIPrompt(
+        service: 'OpenAIService',
+        type: AIPromptType.virtualDictionary,
+        prompt: prompt,
+      );
 
       final response = await _client.createChatCompletion(
         request: CreateChatCompletionRequest(
@@ -197,6 +221,11 @@ class OpenAIService implements AIService {
         sentence: sentence,
         term: term,
         language: language,
+      );
+      _logAIPrompt(
+        service: 'OpenAIService',
+        type: AIPromptType.termExplanation,
+        prompt: prompt,
       );
 
       final response = await _client.createChatCompletion(
@@ -257,6 +286,11 @@ class LocalOpenAIService implements AIService {
         term: term,
         language: language,
       );
+      _logAIPrompt(
+        service: 'LocalOpenAIService',
+        type: AIPromptType.termTranslation,
+        prompt: prompt,
+      );
 
       final response = await _dio.post(
         '/chat/completions',
@@ -283,6 +317,11 @@ class LocalOpenAIService implements AIService {
         AIPromptType.sentenceTranslation,
         sentence: sentence,
         language: language,
+      );
+      _logAIPrompt(
+        service: 'LocalOpenAIService',
+        type: AIPromptType.sentenceTranslation,
+        prompt: prompt,
       );
 
       final response = await _dio.post(
@@ -368,6 +407,11 @@ class LocalOpenAIService implements AIService {
         sentence: sentence,
         language: language,
       );
+      _logAIPrompt(
+        service: 'LocalOpenAIService',
+        type: AIPromptType.virtualDictionary,
+        prompt: prompt,
+      );
 
       final response = await _dio.post(
         '/chat/completions',
@@ -402,6 +446,11 @@ class LocalOpenAIService implements AIService {
         sentence: sentence,
         term: term,
         language: language,
+      );
+      _logAIPrompt(
+        service: 'LocalOpenAIService',
+        type: AIPromptType.termExplanation,
+        prompt: prompt,
       );
 
       final response = await _dio.post(
@@ -457,6 +506,11 @@ class GeminiService implements AIService {
         term: term,
         language: language,
       );
+      _logAIPrompt(
+        service: 'GeminiService',
+        type: AIPromptType.termTranslation,
+        prompt: prompt,
+      );
 
       final response = await _generativeModel.generateContent([
         Content.text(prompt),
@@ -476,6 +530,11 @@ class GeminiService implements AIService {
         AIPromptType.sentenceTranslation,
         sentence: sentence,
         language: language,
+      );
+      _logAIPrompt(
+        service: 'GeminiService',
+        type: AIPromptType.sentenceTranslation,
+        prompt: prompt,
       );
 
       final response = await _generativeModel.generateContent([
@@ -566,6 +625,11 @@ class GeminiService implements AIService {
         sentence: sentence,
         language: language,
       );
+      _logAIPrompt(
+        service: 'GeminiService',
+        type: AIPromptType.virtualDictionary,
+        prompt: prompt,
+      );
 
       final response = await _generativeModel.generateContent([
         Content.text(prompt),
@@ -593,6 +657,11 @@ class GeminiService implements AIService {
         sentence: sentence,
         term: term,
         language: language,
+      );
+      _logAIPrompt(
+        service: 'GeminiService',
+        type: AIPromptType.termExplanation,
+        prompt: prompt,
       );
 
       final response = await _generativeModel.generateContent([
