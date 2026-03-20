@@ -75,6 +75,8 @@ class BooksNotifier extends Notifier<BooksState> {
   int? _lastBackgroundRefreshTime;
   String? _previousServerUrl;
   bool _isInitialized = false;
+  bool _isResolvingActiveAudioMetadata = false;
+  bool _isResolvingArchivedAudioMetadata = false;
   ProviderSubscription<bool>? _readerReadinessSubscription;
 
   final int _pageSize = 10;
@@ -531,6 +533,8 @@ class BooksNotifier extends Notifier<BooksState> {
             lastRead: network.lastRead ?? existing.lastRead,
             isCompleted: network.isCompleted,
             audioFilename: network.audioFilename ?? existing.audioFilename,
+            audioMetadataResolved:
+                network.audioMetadataResolved || existing.audioMetadataResolved,
             distinctTerms: existing.distinctTerms,
             unknownPct: existing.unknownPct,
             statusDistribution: existing.statusDistribution,
@@ -561,6 +565,8 @@ class BooksNotifier extends Notifier<BooksState> {
         hasMoreActive: networkBooks.length == _pageSize,
         errorMessage: null,
       );
+
+      unawaited(_resolveMissingAudioMetadataInBackground(activeBooks: true));
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     } finally {
@@ -614,6 +620,10 @@ class BooksNotifier extends Notifier<BooksState> {
             tags: networkBook.tags,
             lastRead: networkBook.lastRead,
             isCompleted: networkBook.isCompleted,
+            audioFilename: networkBook.audioFilename ?? existing.audioFilename,
+            audioMetadataResolved:
+                networkBook.audioMetadataResolved ||
+                existing.audioMetadataResolved,
             lastStatsRefresh: shouldUseNetworkStats
                 ? DateTime.now().millisecondsSinceEpoch
                 : existing.lastStatsRefresh,
@@ -632,6 +642,8 @@ class BooksNotifier extends Notifier<BooksState> {
         hasMoreArchived: archived.length == _pageSize,
         errorMessage: null,
       );
+
+      unawaited(_resolveMissingAudioMetadataInBackground(activeBooks: false));
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     }
@@ -677,6 +689,7 @@ class BooksNotifier extends Notifier<BooksState> {
       );
 
       state = state.copyWith(activeBooks: finalActiveBooks, errorMessage: null);
+      unawaited(_resolveMissingAudioMetadataInBackground(activeBooks: true));
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     } finally {
@@ -716,6 +729,7 @@ class BooksNotifier extends Notifier<BooksState> {
         archivedBooks: finalArchivedBooks,
         errorMessage: null,
       );
+      unawaited(_resolveMissingAudioMetadataInBackground(activeBooks: false));
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
     } finally {
@@ -769,6 +783,11 @@ class BooksNotifier extends Notifier<BooksState> {
         activeBooks: allBooks,
         hasMoreActive: newBooks.length == _pageSize,
       );
+      await _repository.saveBooksToCache(
+        activeBooks: allBooks,
+        archivedBooks: state.archivedBooks,
+      );
+      unawaited(_resolveMissingAudioMetadataInBackground(activeBooks: true));
     } catch (e) {
       _activePage--;
       ApiLogger.logError('loadMoreActiveBooks', e);
@@ -794,6 +813,11 @@ class BooksNotifier extends Notifier<BooksState> {
         archivedBooks: allBooks,
         hasMoreArchived: newBooks.length == _pageSize,
       );
+      await _repository.saveBooksToCache(
+        activeBooks: state.activeBooks,
+        archivedBooks: allBooks,
+      );
+      unawaited(_resolveMissingAudioMetadataInBackground(activeBooks: false));
     } catch (e) {
       _archivedPage--;
       ApiLogger.logError('loadMoreArchivedBooks', e);
@@ -929,6 +953,72 @@ class BooksNotifier extends Notifier<BooksState> {
     );
 
     await _repository.invalidateLanguageCache(book.language);
+  }
+
+  Future<void> _resolveMissingAudioMetadataInBackground({
+    required bool activeBooks,
+  }) async {
+    if (activeBooks) {
+      if (_isResolvingActiveAudioMetadata) return;
+      _isResolvingActiveAudioMetadata = true;
+    } else {
+      if (_isResolvingArchivedAudioMetadata) return;
+      _isResolvingArchivedAudioMetadata = true;
+    }
+
+    try {
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+
+      final sourceBooks = activeBooks ? state.activeBooks : state.archivedBooks;
+      final unresolvedBooks = sourceBooks
+          .where((book) => !book.audioMetadataResolved)
+          .toList();
+
+      if (unresolvedBooks.isEmpty) return;
+
+      ApiLogger.logBackground(
+        '_resolveMissingAudioMetadataInBackground',
+        details:
+            'target=${activeBooks ? 'active' : 'archived'}, count=${unresolvedBooks.length}',
+      );
+
+      final updatedBooks = List<Book>.from(sourceBooks);
+      var changed = false;
+
+      for (final book in unresolvedBooks) {
+        final index = updatedBooks.indexWhere((item) => item.id == book.id);
+        if (index == -1) {
+          continue;
+        }
+
+        final resolvedBook = await _repository.resolveBookAudioMetadata(book);
+        final previousBook = updatedBooks[index];
+        if (resolvedBook.audioFilename != previousBook.audioFilename ||
+            resolvedBook.audioMetadataResolved !=
+                previousBook.audioMetadataResolved) {
+          updatedBooks[index] = resolvedBook;
+          changed = true;
+        }
+      }
+
+      if (!changed) return;
+
+      state = state.copyWith(
+        activeBooks: activeBooks ? updatedBooks : state.activeBooks,
+        archivedBooks: activeBooks ? state.archivedBooks : updatedBooks,
+      );
+
+      await _repository.saveBooksToCache(
+        activeBooks: activeBooks ? updatedBooks : state.activeBooks,
+        archivedBooks: activeBooks ? state.archivedBooks : updatedBooks,
+      );
+    } finally {
+      if (activeBooks) {
+        _isResolvingActiveAudioMetadata = false;
+      } else {
+        _isResolvingArchivedAudioMetadata = false;
+      }
+    }
   }
 }
 

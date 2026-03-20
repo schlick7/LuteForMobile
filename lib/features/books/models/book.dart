@@ -16,6 +16,7 @@ class Book {
   final String? lastRead;
   final bool isCompleted;
   final String? audioFilename;
+  final bool audioMetadataResolved;
   final int? lastStatsRefresh;
 
   bool get hasStats => distinctTerms != null && statusDistribution != null;
@@ -44,6 +45,7 @@ class Book {
     this.lastRead,
     this.isCompleted = false,
     this.audioFilename,
+    this.audioMetadataResolved = false,
     this.lastStatsRefresh,
   });
 
@@ -104,7 +106,14 @@ class Book {
     final lastOpened = json['LastOpenedDate'];
     final pageCount = json['PageCount'] as int;
     final pageNum = json['PageNum'] as int;
-    final audioFilename = json['audio_filename'] as String?;
+    final audioFilename =
+        (json['audio_filename'] ??
+                json['audioFilename'] ??
+                json['AudioFilename'])
+            as String?;
+    final audioMetadataResolved =
+        json['audioMetadataResolved'] as bool? ??
+        (audioFilename != null && audioFilename.isNotEmpty);
 
     List<int>? parsedStatusDist;
     if (statusDist is String && statusDist.isNotEmpty && statusDist != 'null') {
@@ -140,6 +149,7 @@ class Book {
           : null,
       isCompleted: isCompleted,
       audioFilename: audioFilename,
+      audioMetadataResolved: audioMetadataResolved,
       lastStatsRefresh: json['lastStatsRefresh'] as int?,
     );
   }
@@ -158,6 +168,7 @@ class Book {
       'StatusDistribution': statusDistribution,
       'IsCompleted': isCompleted ? 1 : 0,
       'audio_filename': audioFilename,
+      'audioMetadataResolved': audioMetadataResolved,
       'LastOpenedDate': lastRead,
       'lastStatsRefresh': lastStatsRefresh,
       'TagList': tags,
@@ -215,6 +226,7 @@ class Book {
     String? lastRead,
     bool? isCompleted,
     String? audioFilename,
+    bool? audioMetadataResolved,
     int? lastStatsRefresh,
   }) {
     return Book(
@@ -233,6 +245,8 @@ class Book {
       lastRead: lastRead ?? this.lastRead,
       isCompleted: isCompleted ?? this.isCompleted,
       audioFilename: audioFilename ?? this.audioFilename,
+      audioMetadataResolved:
+          audioMetadataResolved ?? this.audioMetadataResolved,
       lastStatsRefresh: lastStatsRefresh ?? this.lastStatsRefresh,
     );
   }

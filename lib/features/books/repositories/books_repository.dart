@@ -97,6 +97,22 @@ class BooksRepository {
     }).toList();
   }
 
+  Future<Book> resolveBookAudioMetadata(Book book) async {
+    if (book.audioMetadataResolved) return book;
+
+    try {
+      final editForm = await contentService.getBookEditForm(book.id);
+      return book.copyWith(
+        audioFilename: editForm.audioFilename.isEmpty
+            ? null
+            : editForm.audioFilename,
+        audioMetadataResolved: true,
+      );
+    } catch (_) {
+      return book;
+    }
+  }
+
   Future<void> invalidateAllBookStatsCache({Duration? timeout}) async {
     try {
       await contentService.invalidateAllBookStatsCache(timeout: timeout);
