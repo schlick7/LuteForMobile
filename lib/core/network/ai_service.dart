@@ -58,7 +58,7 @@ String _buildMoreTermTranslationsPrompt(
       'Do not repeat any existing translations. '
       'Do not include the original $language term. '
       'If there are no other good translations, respond with exactly: NONE. '
-      'Output only the translation words or short phrases, separated by a comma.';
+      'Output only the translation words, separated by a comma.';
 }
 
 class OpenAIService implements AIService {
