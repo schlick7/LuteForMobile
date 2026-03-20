@@ -184,11 +184,22 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
         moreTranslations,
       );
 
+      final foundNewTranslations = mergedTranslations != _aiTranslation!;
+
       setState(() {
         _isLoadingAI = false;
         _aiTranslation = mergedTranslations;
         _hasFetchedAI = true;
       });
+
+      if (mounted && !foundNewTranslations) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No new distinct translations found'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
