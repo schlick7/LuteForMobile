@@ -1419,10 +1419,18 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                           _showParentTermForm(
                             parentTermForm,
                             sentence: sentence,
-                            onParentUpdated: (updatedParents) {
+                            onParentUpdated: (updatedParent) {
                               setState(() {
                                 _currentTermForm = _currentTermForm?.copyWith(
-                                  parents: updatedParents,
+                                  parents: (_currentTermForm?.parents ?? [])
+                                      .map(
+                                        (existingParent) =>
+                                            existingParent.id ==
+                                                updatedParent.id
+                                            ? updatedParent
+                                            : existingParent,
+                                      )
+                                      .toList(),
                                 );
                               });
                             },
@@ -1450,7 +1458,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   void _showParentTermForm(
     TermForm termForm, {
     String? sentence,
-    void Function(List<TermParent>)? onParentUpdated,
+    void Function(TermParent)? onParentUpdated,
   }) {
     _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
@@ -1502,7 +1510,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             },
             child: StatefulBuilder(
               builder: (context, setModalState) {
-                TermForm? currentForm = termForm;
+                var currentForm = termForm;
                 return GestureDetector(
                   onVerticalDragStart: _isDictionaryOpen ? (_) {} : null,
                   onVerticalDragUpdate: _isDictionaryOpen ? (_) {} : null,
@@ -1524,9 +1532,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                           .getLanguageSettingsHtml(langId),
                     ),
                     onUpdate: (updatedForm) {
-                      setState(() {
-                        currentForm = updatedForm;
-                      });
+                      currentForm = updatedForm;
                       setModalState(() {});
                     },
                     onSave: (updatedForm) async {
@@ -1572,13 +1578,20 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                           } catch (e) {}
                         }
 
-                        onParentUpdated?.call(updatedForm.parents);
+                        onParentUpdated?.call(
+                          TermParent(
+                            id: updatedForm.termId,
+                            term: updatedForm.term,
+                            translation: updatedForm.translation,
+                            status: int.tryParse(updatedForm.status),
+                            syncStatus: updatedForm.syncStatus,
+                          ),
+                        );
                         Navigator.of(context).pop();
                       }
                     },
                     onCancel: () {
                       _shouldAutoSaveOnClose = false;
-                      onParentUpdated?.call(termForm.parents);
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
@@ -1596,6 +1609,19 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                           _showParentTermForm(
                             parentTermForm,
                             sentence: sentence,
+                            onParentUpdated: (updatedParent) {
+                              currentForm = currentForm.copyWith(
+                                parents: currentForm.parents
+                                    .map(
+                                      (existingParent) =>
+                                          existingParent.id == updatedParent.id
+                                          ? updatedParent
+                                          : existingParent,
+                                    )
+                                    .toList(),
+                              );
+                              setModalState(() {});
+                            },
                           );
                         }
                       }

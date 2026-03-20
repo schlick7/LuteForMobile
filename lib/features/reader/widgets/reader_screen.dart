@@ -1269,10 +1269,18 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                           _showParentTermForm(
                             parentTermForm,
                             sentence: sentence,
-                            onParentUpdated: (updatedParents) {
+                            onParentUpdated: (updatedParent) {
                               setState(() {
                                 _currentTermForm = _currentTermForm?.copyWith(
-                                  parents: updatedParents,
+                                  parents: (_currentTermForm?.parents ?? [])
+                                      .map(
+                                        (existingParent) =>
+                                            existingParent.id ==
+                                                updatedParent.id
+                                            ? updatedParent
+                                            : existingParent,
+                                      )
+                                      .toList(),
                                 );
                               });
                             },
@@ -1304,7 +1312,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   void _showParentTermForm(
     TermForm termForm, {
     String? sentence,
-    void Function(List<TermParent>)? onParentUpdated,
+    void Function(TermParent)? onParentUpdated,
   }) {
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
@@ -1345,6 +1353,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             },
             child: StatefulBuilder(
               builder: (context, setModalState) {
+                var currentForm = termForm;
+
                 return GestureDetector(
                   onVerticalDragEnd: (details) {
                     if (details.primaryVelocity != null &&
@@ -1353,7 +1363,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                     }
                   },
                   child: TermFormWidget(
-                    termForm: termForm,
+                    termForm: currentForm,
                     sentence: sentence,
                     contentService: repository.contentService,
                     dictionaryService: DictionaryService(
@@ -1362,9 +1372,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                           .getLanguageSettingsHtml(langId),
                     ),
                     onUpdate: (updatedForm) {
-                      setState(() {
-                        _currentTermForm = updatedForm;
-                      });
+                      currentForm = updatedForm;
                       setModalState(() {});
                     },
                     onSave: (updatedForm) async {
@@ -1372,7 +1380,15 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                           .read(readerProvider.notifier)
                           .saveTerm(updatedForm);
                       if (success && mounted) {
-                        onParentUpdated?.call(updatedForm.parents);
+                        onParentUpdated?.call(
+                          TermParent(
+                            id: updatedForm.termId,
+                            term: updatedForm.term,
+                            translation: updatedForm.translation,
+                            status: int.tryParse(updatedForm.status),
+                            syncStatus: updatedForm.syncStatus,
+                          ),
+                        );
                         Navigator.of(context).pop();
                       } else {
                         if (mounted) {
@@ -1386,7 +1402,6 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                     },
                     onCancel: () {
                       _shouldAutoSaveOnClose = false;
-                      onParentUpdated?.call(termForm.parents);
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
@@ -1401,12 +1416,18 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                           _showParentTermForm(
                             parentTermForm,
                             sentence: sentence,
-                            onParentUpdated: (updatedParents) {
-                              setState(() {
-                                _currentTermForm = _currentTermForm?.copyWith(
-                                  parents: updatedParents,
-                                );
-                              });
+                            onParentUpdated: (updatedParent) {
+                              currentForm = currentForm.copyWith(
+                                parents: currentForm.parents
+                                    .map(
+                                      (existingParent) =>
+                                          existingParent.id == updatedParent.id
+                                          ? updatedParent
+                                          : existingParent,
+                                    )
+                                    .toList(),
+                              );
+                              setModalState(() {});
                             },
                           );
                         }
