@@ -141,7 +141,7 @@ class AIPromptConfig {
 class AIPromptTemplates {
   static const Map<AIPromptType, String> defaults = {
     AIPromptType.termTranslation:
-        'Using the sentence "[sentence]" Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations. Respond with the translation text only without line breaks and using commas between',
+        'Translate the [language] term "[term]" into natural English using this sentence for context: "[sentence]". Return 1 or 2 distinct English translations only. Do not repeat the same translation. Do not include the original [language] term. If there is only one good translation, return only one. Output only the translation words or short phrases, separated by a comma.',
     AIPromptType.sentenceTranslation:
         'Translate the following sentence from [language] to English: [sentence]',
     AIPromptType.virtualDictionary:

@@ -763,7 +763,7 @@ class HelpScreen extends ConsumerWidget {
             context,
             Icons.code,
             'Term Translation',
-            'These Prompts will need adjusted depending on the LLM model used -- Using the sentence "[sentence]" Translate only the following term from [language] to English: [term]. Respond with the 2 most common translations. Repsond with the translation text only without line breaks and using commas between',
+            'These prompts may need adjustment depending on the model used -- Translate the [language] term "[term]" into natural English using this sentence for context: "[sentence]". Return 1 or 2 distinct English translations only. Do not repeat the same translation. Do not include the original [language] term. If there is only one good translation, return only one. Output only the translation words or short phrases, separated by a comma.',
           ),
           _buildControlItem(
             context,
