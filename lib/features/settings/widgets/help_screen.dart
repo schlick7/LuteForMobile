@@ -240,7 +240,7 @@ class HelpScreen extends ConsumerWidget {
             context,
             Icons.psychology,
             'Psychology icon',
-            'Fetch AI translations for the current term',
+            'Fetch AI translations',
           ),
           _buildControlItem(
             context,
