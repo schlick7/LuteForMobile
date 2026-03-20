@@ -7,3 +7,5 @@
 
 # Other Changes
 - Change default term translation prompt
+- Add More button to AI tab in termform
+- Ability to add AI tab translations individually instead of all
