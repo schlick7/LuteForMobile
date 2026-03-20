@@ -1,6 +1,7 @@
 # Bug Fixes
 - Fixed editing parent terms in the child terms termform
 - Fix AI sentence placeholder not giving sentences
+- Fixed nested termfrom issues when editing a parent term. (hopefully)
 
 # New Feature - Custom Themes!
 - 
