@@ -19,6 +19,7 @@ This makes it possible to:
 
 ---
 
+Add new term translation features to help screen
 
 ---
 
