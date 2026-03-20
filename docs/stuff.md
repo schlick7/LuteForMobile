@@ -6,20 +6,11 @@
 
 ---
 
-Expose independent recalculation controls on the book stats endpoint.
 
-- Keep the default `/book/table_stats/<id>` behavior cache-first.
-- Support `?force_recalc=true` to recalculate sampled stats in a single call.
-- Support `?full_book=true` to recalculate full-book stats in a single call.
-
-This makes it possible to:
-
-- force a fresh sampled recalculation when needed
-- force a full-book recalculation when needed
 
 ---
 
-Add new term translation features to help screen
+
 
 ---
 
