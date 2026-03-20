@@ -273,8 +273,8 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
     }
   }
 
-  void _handleAddToTranslation() {
-    if (_aiTranslation == null) {
+  void _handleAddToTranslation(String translation) {
+    if (translation.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('No AI translation available'),
@@ -286,7 +286,7 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
 
     if (widget.onAddAITranslation == null) return;
 
-    final cleanTranslation = _aiTranslation!.replaceAll('\n', ' ');
+    final cleanTranslation = translation.replaceAll('\n', ' ');
     widget.onAddAITranslation!(cleanTranslation);
   }
 
@@ -664,6 +664,8 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
     }
 
     if (_aiTranslation != null) {
+      final translations = _splitTranslations(_aiTranslation!);
+
       return SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -684,31 +686,47 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
               ),
             ),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: context.appColorScheme.text.primary.withValues(
-                  alpha: 0.08,
+            ...translations.map((translation) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: context.appColorScheme.text.primary.withValues(
+                      alpha: 0.08,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: context.m3Primary.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          translation,
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () => _handleAddToTranslation(translation),
+                        icon: const Icon(Icons.add_circle_outline, size: 20),
+                        tooltip: 'Add translation',
+                        visualDensity: VisualDensity.compact,
+                        constraints: const BoxConstraints(
+                          minWidth: 32,
+                          minHeight: 32,
+                        ),
+                        padding: EdgeInsets.zero,
+                      ),
+                    ],
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: context.m3Primary.withValues(alpha: 0.3),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                _aiTranslation!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyLarge?.copyWith(fontStyle: FontStyle.italic),
-              ),
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: _handleAddToTranslation,
-              icon: const Icon(Icons.add_circle_outline),
-              label: const Text('Add to'),
-            ),
+              );
+            }),
             const SizedBox(height: 8),
             ElevatedButton.icon(
               onPressed: _fetchMoreAITranslations,
