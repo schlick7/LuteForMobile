@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'dart:developer' as developer;
 import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../../settings/providers/settings_provider.dart'
@@ -7,6 +8,7 @@ import '../../settings/providers/settings_provider.dart'
 import '../../settings/models/ai_settings.dart';
 import '../../settings/providers/ai_settings_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../core/logger/api_logger.dart';
 import '../../../core/network/content_service.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../providers/sentence_tts_provider.dart';
@@ -18,6 +20,7 @@ import '../providers/current_book_provider.dart';
 class TermFormWidget extends ConsumerStatefulWidget {
   final TermForm termForm;
   final String? sentence;
+  final String? initialReaderStatus;
   final void Function(TermForm) onSave;
   final void Function(TermForm) onUpdate;
   final VoidCallback onCancel;
@@ -32,6 +35,7 @@ class TermFormWidget extends ConsumerStatefulWidget {
     super.key,
     required this.termForm,
     this.sentence,
+    this.initialReaderStatus,
     required this.onSave,
     required this.onUpdate,
     required this.onCancel,
@@ -55,6 +59,8 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   bool _isDictionaryOpen = false;
   List<DictionarySource> _dictionaries = [];
   bool _isLoadingAITranslation = false;
+  List<String> _pendingAITranslations = [];
+  String? _lastAutoFetchedTermKey;
 
   @override
   void initState() {
@@ -68,6 +74,9 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     );
     _selectedStatus = widget.termForm.status;
     _loadDictionaries();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybeAutoFetchAITranslation();
+    });
   }
 
   Future<void> _loadDictionaries() async {
@@ -99,6 +108,13 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     if (oldWidget.termForm.parents != widget.termForm.parents) {
       setState(() {});
     }
+    if (oldWidget.termForm.term != widget.termForm.term ||
+        oldWidget.termForm.termId != widget.termForm.termId ||
+        oldWidget.termForm.status != widget.termForm.status) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _maybeAutoFetchAITranslation();
+      });
+    }
   }
 
   @override
@@ -116,6 +132,79 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       parents: widget.termForm.parents,
     );
     widget.onUpdate(updatedForm);
+  }
+
+  List<String> _splitTranslations(String raw) {
+    return raw
+        .split(',')
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty)
+        .toList();
+  }
+
+  void _addPendingTranslationToField(String translation) {
+    final currentTranslations = _splitTranslations(_translationController.text);
+    if (!currentTranslations.contains(translation)) {
+      currentTranslations.add(translation);
+      _translationController.text = currentTranslations.join(', ');
+      _updateForm();
+    }
+
+    setState(() {
+      _pendingAITranslations = _pendingAITranslations
+          .where((item) => item != translation)
+          .toList();
+    });
+  }
+
+  void _maybeAutoFetchAITranslation() {
+    if (!mounted || _isLoadingAITranslation) {
+      ApiLogger.logLoading(
+        'TermForm.autoFetchAI',
+        details: 'skip mounted=$mounted loading=$_isLoadingAITranslation',
+      );
+      return;
+    }
+
+    final settings = ref.read(termFormSettingsProvider);
+    final aiSettings = ref.read(aiSettingsProvider);
+    final termConfig = aiSettings.promptConfigs[AIPromptType.termTranslation];
+    final shouldShowAI =
+        aiSettings.provider != AIProvider.none && termConfig?.enabled == true;
+    final effectiveStatus =
+        widget.initialReaderStatus ?? widget.termForm.status;
+    ApiLogger.logLoading(
+      'TermForm.autoFetchAI',
+      details:
+          'term="${widget.termForm.term}" termId=${widget.termForm.termId} status="${widget.termForm.status}" initialReaderStatus="${widget.initialReaderStatus}" effectiveStatus="$effectiveStatus" autoFetch=${settings.autoFetchAITranslationsForStatus0} provider=${aiSettings.provider} promptEnabled=${termConfig?.enabled} shouldShowAI=$shouldShowAI',
+    );
+
+    if (!settings.autoFetchAITranslationsForStatus0 ||
+        !shouldShowAI ||
+        effectiveStatus != '0') {
+      ApiLogger.logLoading(
+        'TermForm.autoFetchAI',
+        details: 'gate-blocked effectiveStatus="$effectiveStatus"',
+      );
+      return;
+    }
+
+    final termKey =
+        '${widget.termForm.termId ?? 'new'}:${widget.termForm.term}:$effectiveStatus';
+    if (_lastAutoFetchedTermKey == termKey) {
+      ApiLogger.logLoading(
+        'TermForm.autoFetchAI',
+        details: 'skip duplicate termKey=$termKey',
+      );
+      return;
+    }
+
+    _lastAutoFetchedTermKey = termKey;
+    ApiLogger.logLoading(
+      'TermForm.autoFetchAI',
+      details: 'trigger termKey=$termKey',
+    );
+    _fetchAITranslation();
   }
 
   void _handleSave() {
@@ -138,6 +227,10 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
   void _showSettingsMenu() {
     final settings = ref.watch(termFormSettingsProvider);
+    final aiSettings = ref.watch(aiSettingsProvider);
+    final termConfig = aiSettings.promptConfigs[AIPromptType.termTranslation];
+    final shouldShowAIOption =
+        aiSettings.provider != AIProvider.none && termConfig?.enabled == true;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -199,6 +292,44 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                 ),
               ],
             ),
+            if (shouldShowAIOption)
+              Row(
+                children: [
+                  const Text('Auto Add AI Translations'),
+                  const Spacer(),
+                  Transform.scale(
+                    scale: 0.8,
+                    child: Switch(
+                      value: settings.autoAddAITranslations,
+                      onChanged: (value) {
+                        ref
+                            .read(termFormSettingsProvider.notifier)
+                            .updateAutoAddAITranslations(value);
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            if (shouldShowAIOption)
+              Row(
+                children: [
+                  const Text('Auto Fetch for Status 0'),
+                  const Spacer(),
+                  Transform.scale(
+                    scale: 0.8,
+                    child: Switch(
+                      value: settings.autoFetchAITranslationsForStatus0,
+                      onChanged: (value) {
+                        ref
+                            .read(termFormSettingsProvider.notifier)
+                            .updateAutoFetchAITranslationsForStatus0(value);
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ),
+                ],
+              ),
           ],
         ),
         actions: [
@@ -467,6 +598,7 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
     final accentColor = _isDictionaryOpen
         ? context.m3Primary
         : context.appColorScheme.border.outline;
+    final settings = ref.watch(termFormSettingsProvider);
 
     final aiSettings = ref.watch(aiSettingsProvider);
     final termConfig = aiSettings.promptConfigs[AIPromptType.termTranslation];
@@ -477,30 +609,54 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: TextFormField(
-            controller: _translationController,
-            decoration: InputDecoration(
-              labelText: 'Translation',
-              labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: context.m3Secondary,
-                fontWeight: FontWeight.w600,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (!settings.autoAddAITranslations &&
+                  _pendingAITranslations.isNotEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: _pendingAITranslations.map((translation) {
+                      return ActionChip(
+                        avatar: const Icon(Icons.add_circle_outline, size: 18),
+                        label: Text(translation),
+                        onPressed: () =>
+                            _addPendingTranslationToField(translation),
+                        visualDensity: VisualDensity.compact,
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
+              TextFormField(
+                controller: _translationController,
+                decoration: InputDecoration(
+                  labelText: 'Translation',
+                  labelStyle: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: context.m3Secondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  hintText: 'Enter translation',
+                  hintStyle: TextStyle(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withValues(alpha: 0.5),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+                maxLines: 2,
+                onChanged: (_) => setState(_updateForm),
               ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              hintText: 'Enter translation',
-              hintStyle: TextStyle(
-                color: Theme.of(
-                  context,
-                ).colorScheme.onSurface.withValues(alpha: 0.5),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-            ),
-            maxLines: 2,
-            onChanged: (_) => _updateForm(),
+            ],
           ),
         ),
         const SizedBox(width: 8),
@@ -575,18 +731,31 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         language,
         sentence: widget.sentence,
       );
-
-      final currentText = _translationController.text.trim().replaceAll(
-        '\n',
-        ' ',
+      final cleanTranslations = _splitTranslations(
+        translation.replaceAll('\n', ' '),
       );
-      final cleanTranslation = translation.replaceAll('\n', ' ');
-      final newText = currentText.isEmpty
-          ? cleanTranslation
-          : '$currentText, $cleanTranslation';
 
-      _translationController.text = newText;
-      _updateForm();
+      if (ref.read(termFormSettingsProvider).autoAddAITranslations) {
+        final currentTranslations = _splitTranslations(
+          _translationController.text,
+        );
+        for (final item in cleanTranslations) {
+          if (!currentTranslations.contains(item)) {
+            currentTranslations.add(item);
+          }
+        }
+        _translationController.text = currentTranslations.join(', ');
+        _updateForm();
+      } else {
+        final existingTranslations = _splitTranslations(
+          _translationController.text,
+        );
+        setState(() {
+          _pendingAITranslations = cleanTranslations
+              .where((item) => !existingTranslations.contains(item))
+              .toList();
+        });
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

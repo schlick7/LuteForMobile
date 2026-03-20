@@ -500,6 +500,8 @@ class TermFormSettings {
   final bool autoSave;
   final bool showParentsInDictionary;
   final bool wordGlowEnabled;
+  final bool autoAddAITranslations;
+  final bool autoFetchAITranslationsForStatus0;
 
   const TermFormSettings({
     this.showRomanization = true,
@@ -507,6 +509,8 @@ class TermFormSettings {
     this.autoSave = true,
     this.showParentsInDictionary = true,
     this.wordGlowEnabled = true,
+    this.autoAddAITranslations = false,
+    this.autoFetchAITranslationsForStatus0 = true,
   });
 
   TermFormSettings copyWith({
@@ -515,6 +519,8 @@ class TermFormSettings {
     bool? autoSave,
     bool? showParentsInDictionary,
     bool? wordGlowEnabled,
+    bool? autoAddAITranslations,
+    bool? autoFetchAITranslationsForStatus0,
   }) {
     return TermFormSettings(
       showRomanization: showRomanization ?? this.showRomanization,
@@ -523,6 +529,11 @@ class TermFormSettings {
       showParentsInDictionary:
           showParentsInDictionary ?? this.showParentsInDictionary,
       wordGlowEnabled: wordGlowEnabled ?? this.wordGlowEnabled,
+      autoAddAITranslations:
+          autoAddAITranslations ?? this.autoAddAITranslations,
+      autoFetchAITranslationsForStatus0:
+          autoFetchAITranslationsForStatus0 ??
+          this.autoFetchAITranslationsForStatus0,
     );
   }
 
@@ -534,7 +545,10 @@ class TermFormSettings {
         other.showTags == showTags &&
         other.autoSave == autoSave &&
         other.showParentsInDictionary == showParentsInDictionary &&
-        other.wordGlowEnabled == wordGlowEnabled;
+        other.wordGlowEnabled == wordGlowEnabled &&
+        other.autoAddAITranslations == autoAddAITranslations &&
+        other.autoFetchAITranslationsForStatus0 ==
+            autoFetchAITranslationsForStatus0;
   }
 
   @override
@@ -543,7 +557,9 @@ class TermFormSettings {
       showTags.hashCode ^
       autoSave.hashCode ^
       showParentsInDictionary.hashCode ^
-      wordGlowEnabled.hashCode;
+      wordGlowEnabled.hashCode ^
+      autoAddAITranslations.hashCode ^
+      autoFetchAITranslationsForStatus0.hashCode;
 
   static const TermFormSettings defaultSettings = TermFormSettings();
 }
@@ -555,6 +571,9 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
   static const String _keyShowParentsInDictionary =
       'show_parents_in_dictionary';
   static const String _keyWordGlowEnabled = 'word_glow_enabled';
+  static const String _keyAutoAddAITranslations = 'auto_add_ai_translations';
+  static const String _keyAutoFetchAITranslationsForStatus0 =
+      'auto_fetch_ai_translations_for_status0';
   bool _isInitialized = false;
 
   @override
@@ -574,6 +593,10 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
     final showParentsInDictionary =
         prefs.getBool(_keyShowParentsInDictionary) ?? true;
     final wordGlowEnabled = prefs.getBool(_keyWordGlowEnabled) ?? true;
+    final autoAddAITranslations =
+        prefs.getBool(_keyAutoAddAITranslations) ?? false;
+    final autoFetchAITranslationsForStatus0 =
+        prefs.getBool(_keyAutoFetchAITranslationsForStatus0) ?? true;
 
     final loadedSettings = TermFormSettings(
       showRomanization: showRomanization,
@@ -581,6 +604,8 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
       autoSave: autoSave,
       showParentsInDictionary: showParentsInDictionary,
       wordGlowEnabled: wordGlowEnabled,
+      autoAddAITranslations: autoAddAITranslations,
+      autoFetchAITranslationsForStatus0: autoFetchAITranslationsForStatus0,
     );
     if (state != loadedSettings) {
       state = loadedSettings;
@@ -619,6 +644,18 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
     state = state.copyWith(wordGlowEnabled: enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyWordGlowEnabled, enabled);
+  }
+
+  Future<void> updateAutoAddAITranslations(bool enabled) async {
+    state = state.copyWith(autoAddAITranslations: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAutoAddAITranslations, enabled);
+  }
+
+  Future<void> updateAutoFetchAITranslationsForStatus0(bool enabled) async {
+    state = state.copyWith(autoFetchAITranslationsForStatus0: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyAutoFetchAITranslationsForStatus0, enabled);
   }
 }
 

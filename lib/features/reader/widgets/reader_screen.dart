@@ -1039,7 +1039,13 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           '_handleDoubleTap',
           details: 'termId=${termForm.termId}',
         );
-        _showTermForm(termForm, sentence: _extractSentence(item));
+        _showTermForm(
+          termForm,
+          sentence: _extractSentence(item),
+          initialReaderStatus: RegExp(
+            r'status(\d+)',
+          ).firstMatch(item.statusClass)?.group(1),
+        );
       }
     } catch (e) {
       ApiLogger.logError('_handleDoubleTap', e);
@@ -1168,7 +1174,11 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     return '';
   }
 
-  void _showTermForm(TermForm termForm, {String? sentence}) {
+  void _showTermForm(
+    TermForm termForm, {
+    String? sentence,
+    String? initialReaderStatus,
+  }) {
     _currentTermForm = termForm;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
@@ -1217,6 +1227,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   child: TermFormWidget(
                     termForm: _currentTermForm ?? termForm,
                     sentence: sentence,
+                    initialReaderStatus: initialReaderStatus,
                     contentService: repository.contentService,
                     dictionaryService: DictionaryService(
                       fetchLanguageSettingsHtml: (langId) => repository
@@ -1365,6 +1376,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                   child: TermFormWidget(
                     termForm: currentForm,
                     sentence: sentence,
+                    initialReaderStatus: null,
                     contentService: repository.contentService,
                     dictionaryService: DictionaryService(
                       fetchLanguageSettingsHtml: (langId) => repository

@@ -1266,7 +1266,13 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
           .read(readerProvider.notifier)
           .fetchTermFormById(item.wordId!);
       if (termForm != null && mounted) {
-        _showTermForm(termForm, sentence: _extractSentence(item));
+        _showTermForm(
+          termForm,
+          sentence: _extractSentence(item),
+          initialReaderStatus: RegExp(
+            r'status(\d+)',
+          ).firstMatch(item.statusClass)?.group(1),
+        );
       }
     } catch (e) {
       return;
@@ -1292,7 +1298,11 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     return currentSentence.textItems.map((i) => i.text).join();
   }
 
-  void _showTermForm(TermForm termForm, {String? sentence}) {
+  void _showTermForm(
+    TermForm termForm, {
+    String? sentence,
+    String? initialReaderStatus,
+  }) {
     _currentTermForm = termForm;
     _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
@@ -1359,6 +1369,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                   child: TermFormWidget(
                     termForm: _currentTermForm ?? termForm,
                     sentence: sentence,
+                    initialReaderStatus: initialReaderStatus,
                     contentService: repository.contentService,
                     dictionaryService: DictionaryService(
                       fetchLanguageSettingsHtml: (langId) => repository
@@ -1525,6 +1536,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                   child: TermFormWidget(
                     termForm: currentForm,
                     sentence: sentence,
+                    initialReaderStatus: null,
                     contentService: repository.contentService,
                     dictionaryService: DictionaryService(
                       fetchLanguageSettingsHtml: (langId) => repository
