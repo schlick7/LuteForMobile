@@ -12,6 +12,7 @@ import 'language_filter_widget.dart';
 import 'words_read_chart.dart';
 import 'term_status_chart.dart';
 import 'language_breakdown_card.dart';
+import 'reading_milestones_card.dart';
 
 class StatsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -103,6 +104,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           const LanguageFilterWidget(),
           const SizedBox(height: 8),
           WordsReadChart(languages: filteredLanguages),
+          ReadingMilestonesCard(languages: filteredLanguages),
           const TermStatusChart(),
           LanguageBreakdownCard(languages: filteredLanguages),
           const SizedBox(height: 16),
