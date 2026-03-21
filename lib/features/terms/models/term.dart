@@ -58,7 +58,9 @@ class Term {
           .where((t) => t.isNotEmpty)
           .toList(),
       parentCount: json['ParentCount'] as int?,
-      createdDate: DateTime.tryParse(json['CreatedDate'] as String? ?? ''),
+      createdDate: DateTime.tryParse(
+        (json['CreatedDate'] ?? json['WoCreated']) as String? ?? '',
+      ),
     );
   }
 }

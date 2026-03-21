@@ -27,6 +27,7 @@ class Settings {
   final bool showStatsBar;
   final bool showKnownTermsCount;
   final bool showTermStatsCard;
+  final bool autoLoadTermStatsCards;
   final bool showPageNumbers;
   final TTSProvider? ttsProvider;
   final AIProvider? aiProvider;
@@ -67,6 +68,7 @@ class Settings {
     this.showStatsBar = true,
     this.showKnownTermsCount = false,
     this.showTermStatsCard = false,
+    this.autoLoadTermStatsCards = false,
     this.showPageNumbers = true,
     this.ttsProvider,
     this.aiProvider,
@@ -108,6 +110,7 @@ class Settings {
     bool? showStatsBar,
     bool? showKnownTermsCount,
     bool? showTermStatsCard,
+    bool? autoLoadTermStatsCards,
     bool? showPageNumbers,
     TTSProvider? ttsProvider,
     AIProvider? aiProvider,
@@ -157,6 +160,8 @@ class Settings {
       showStatsBar: showStatsBar ?? this.showStatsBar,
       showKnownTermsCount: showKnownTermsCount ?? this.showKnownTermsCount,
       showTermStatsCard: showTermStatsCard ?? this.showTermStatsCard,
+      autoLoadTermStatsCards:
+          autoLoadTermStatsCards ?? this.autoLoadTermStatsCards,
       showPageNumbers: showPageNumbers ?? this.showPageNumbers,
       ttsProvider: ttsProvider ?? this.ttsProvider,
       aiProvider: aiProvider ?? this.aiProvider,
@@ -206,6 +211,7 @@ class Settings {
       showStatsBar: true,
       showKnownTermsCount: false,
       showTermStatsCard: false,
+      autoLoadTermStatsCards: false,
       showPageNumbers: true,
       ttsProvider: TTSProvider.onDevice,
       aiProvider: AIProvider.none,
@@ -250,6 +256,7 @@ class Settings {
         other.showStatsBar == showStatsBar &&
         other.showKnownTermsCount == showKnownTermsCount &&
         other.showTermStatsCard == showTermStatsCard &&
+        other.autoLoadTermStatsCards == autoLoadTermStatsCards &&
         other.showPageNumbers == showPageNumbers &&
         other.ttsProvider == ttsProvider &&
         other.aiProvider == aiProvider &&
@@ -290,6 +297,7 @@ class Settings {
     showStatsBar,
     showKnownTermsCount,
     showTermStatsCard,
+    autoLoadTermStatsCards,
     showPageNumbers,
     ttsProvider,
     aiProvider,

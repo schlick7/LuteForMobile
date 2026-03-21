@@ -744,6 +744,45 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Auto-load term stats cards',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Automatically load term stats cards instead of showing a manual Load button',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: settings.autoLoadTermStatsCards,
+                                onChanged: (value) {
+                                  ref
+                                      .read(settingsProvider.notifier)
+                                      .updateAutoLoadTermStatsCards(value);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 24),
                         const Text('Tooltip Caching'),
                         const SizedBox(height: 8),

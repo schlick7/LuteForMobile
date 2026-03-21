@@ -20,6 +20,9 @@ class TermsState {
   final String? errorMessage;
   final bool isInitialized;
   final TermStats stats;
+  final bool isStatsLoading;
+  final bool hasLoadedStats;
+  final String? statsErrorMessage;
 
   const TermsState({
     this.isLoading = false,
@@ -32,6 +35,9 @@ class TermsState {
     this.errorMessage,
     this.isInitialized = false,
     this.stats = TermStats.empty,
+    this.isStatsLoading = false,
+    this.hasLoadedStats = false,
+    this.statsErrorMessage,
   });
 
   TermsState copyWith({
@@ -45,6 +51,9 @@ class TermsState {
     String? errorMessage,
     bool? isInitialized,
     TermStats? stats,
+    bool? isStatsLoading,
+    bool? hasLoadedStats,
+    String? statsErrorMessage,
   }) {
     return TermsState(
       isLoading: isLoading ?? this.isLoading,
@@ -57,6 +66,9 @@ class TermsState {
       errorMessage: errorMessage,
       isInitialized: isInitialized ?? this.isInitialized,
       stats: stats ?? this.stats,
+      isStatsLoading: isStatsLoading ?? this.isStatsLoading,
+      hasLoadedStats: hasLoadedStats ?? this.hasLoadedStats,
+      statsErrorMessage: statsErrorMessage,
     );
   }
 }
@@ -184,24 +196,36 @@ class TermsNotifier extends Notifier<TermsState> {
     }
   }
 
-  Future<void> loadStats(int langId) async {
-    if (!ref.read(settingsProvider).showKnownTermsCount) {
+  Future<void> loadStats(int langId, {bool force = false}) async {
+    final settings = ref.read(settingsProvider);
+    if (!settings.showTermStatsCard) {
       return;
     }
-    if (!ref.read(settingsProvider).showTermStatsCard) {
+    if (!force && !settings.autoLoadTermStatsCards) {
       return;
     }
+
+    state = state.copyWith(isStatsLoading: true, statsErrorMessage: null);
     try {
       final repository = ref.read(termsRepositoryProvider);
       final stats = await repository.getTermStats(langId);
-      state = state.copyWith(stats: stats);
+      state = state.copyWith(
+        stats: stats,
+        isStatsLoading: false,
+        hasLoadedStats: true,
+        statsErrorMessage: null,
+      );
     } catch (e) {
       ApiLogger.logError('loadStats', e);
+      state = state.copyWith(
+        isStatsLoading: false,
+        statsErrorMessage: e.toString(),
+      );
     }
   }
 
   Future<void> loadStatus99Only(int langId) async {
-    if (!ref.read(settingsProvider).showKnownTermsCount) {
+    if (!ref.read(settingsProvider).autoLoadTermStatsCards) {
       return;
     }
 
@@ -247,7 +271,11 @@ class TermsNotifier extends Notifier<TermsState> {
             currentStats.status5 +
             count,
       );
-      state = state.copyWith(stats: newStats);
+      state = state.copyWith(
+        stats: newStats,
+        hasLoadedStats: true,
+        statsErrorMessage: null,
+      );
 
       _lastStatus99LangId = langId;
       _lastStatus99LoadTime = DateTime.now();

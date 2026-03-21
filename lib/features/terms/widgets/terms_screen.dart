@@ -5,15 +5,12 @@ import '../../../shared/widgets/loading_indicator.dart';
 import '../../../shared/widgets/error_display.dart';
 import '../../../shared/widgets/app_bar_leading.dart';
 import '../../../shared/theme/theme_extensions.dart';
-import '../../../shared/providers/language_data_provider.dart';
-import '../../../shared/models/language.dart';
-import '../../settings/providers/settings_provider.dart';
 import '../providers/terms_provider.dart';
 import '../models/term.dart';
 import 'term_card.dart';
 import 'term_filter_panel.dart';
 import 'term_edit_dialog_wrapper.dart';
-import 'term_stats_card.dart';
+import 'term_stats_panel.dart';
 
 class TermsScreen extends ConsumerStatefulWidget {
   final GlobalKey<ScaffoldState>? scaffoldKey;
@@ -147,24 +144,7 @@ class _TermsScreenState extends ConsumerState<TermsScreen> {
       else ...[
         if (state.selectedLangId != null)
           SliverToBoxAdapter(
-            child: Consumer(
-              builder: (context, ref, child) {
-                final settings = ref.watch(settingsProvider);
-                if (!settings.showTermStatsCard) {
-                  return const SizedBox.shrink();
-                }
-                final languageListAsync = ref.watch(languageListProvider);
-                final languageList = languageListAsync.value ?? [];
-                final language = languageList.cast<Language?>().firstWhere(
-                  (l) => l?.id == state.selectedLangId,
-                  orElse: () => null,
-                );
-                return TermStatsCard(
-                  stats: state.stats,
-                  languageName: language?.name,
-                );
-              },
-            ),
+            child: TermStatsPanel(selectedLangId: state.selectedLangId!),
           ),
         SliverPadding(
           padding: const EdgeInsets.only(bottom: 16),

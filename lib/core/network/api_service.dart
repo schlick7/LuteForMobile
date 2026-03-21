@@ -654,6 +654,8 @@ class ApiService {
     int? statusMin,
     int? statusMax,
     String? search,
+    int? ageMin,
+    int? ageMax,
     Duration? timeout,
   }) async {
     final data = {
@@ -674,8 +676,8 @@ class ApiService {
       'columns[2][orderable]': 'true',
       'search[value]': search ?? '',
       'search[regex]': 'false',
-      'filtAgeMin': '0',
-      'filtAgeMax': '',
+      'filtAgeMin': (ageMin ?? 0).toString(),
+      'filtAgeMax': ageMax?.toString() ?? '',
       'filtStatusMin': (statusMin ?? 0).toString(),
       'filtStatusMax': (statusMax ?? 99).toString(),
       'filtLanguage': langId?.toString() ?? '0',

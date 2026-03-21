@@ -836,6 +836,8 @@ class ContentService {
     int? statusMin,
     int? statusMax,
     String? search,
+    int? ageMin,
+    int? ageMax,
     Duration? timeout,
   }) async {
     final response = await _apiService.getTermCounts(
@@ -843,6 +845,8 @@ class ContentService {
       statusMin: statusMin,
       statusMax: statusMax,
       search: search,
+      ageMin: ageMin,
+      ageMax: ageMax,
       timeout: timeout,
     );
     try {
