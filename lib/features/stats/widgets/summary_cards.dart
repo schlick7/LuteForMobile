@@ -13,6 +13,7 @@ class SummaryCards extends StatelessWidget {
   Widget build(BuildContext context) {
     final todayStats = _getTodayStats();
     final weekStats = _getWeekStats();
+    final records = _getReadingRecords();
     final totalStats = _getTotalStats();
     final streakStats = _getStreakStats();
 
@@ -26,7 +27,7 @@ class SummaryCards extends StatelessWidget {
                 icon: Icons.today,
                 label: 'Today',
                 value: _formatNumber(todayStats.wordcount),
-                subtitle: '${todayStats.days} days active',
+                subtitle: 'Record: ${_formatNumber(records.bestDay)} words',
                 iconColor: context.appColorScheme.material3.primary,
               ),
             ),
@@ -37,7 +38,7 @@ class SummaryCards extends StatelessWidget {
                 icon: Icons.date_range,
                 label: 'This Week',
                 value: _formatNumber(weekStats.wordcount),
-                subtitle: '${weekStats.days} days active',
+                subtitle: 'Record: ${_formatNumber(records.bestWeek)} words',
                 iconColor: context.appColorScheme.material3.secondary,
               ),
             ),
@@ -159,7 +160,7 @@ class SummaryCards extends StatelessWidget {
 
   ({int wordcount, int days}) _getWeekStats() {
     final now = DateTime.now();
-    final weekStart = DateTime(now.year, now.month, now.day - 7);
+    final weekStart = DateTime(now.year, now.month, now.day - 6);
     int wordcount = 0;
     final activeDays = <String>{};
 
@@ -189,6 +190,46 @@ class SummaryCards extends StatelessWidget {
     }
 
     return (wordcount: wordcount, days: activeDays.length);
+  }
+
+  ({int bestDay, int bestWeek}) _getReadingRecords() {
+    final dailyTotals = <DateTime, int>{};
+
+    for (final lang in languages) {
+      for (final stat in lang.dailyStats) {
+        final date = DateTime(stat.date.year, stat.date.month, stat.date.day);
+        dailyTotals.update(
+          date,
+          (value) => value + stat.wordcount,
+          ifAbsent: () => stat.wordcount,
+        );
+      }
+    }
+
+    if (dailyTotals.isEmpty) {
+      return (bestDay: 0, bestWeek: 0);
+    }
+
+    final sortedDates = dailyTotals.keys.toList()..sort();
+    final bestDay = dailyTotals.values.reduce(max);
+
+    int bestWeek = 0;
+    for (final endDate in sortedDates) {
+      final startDate = endDate.subtract(const Duration(days: 6));
+      int weekTotal = 0;
+
+      for (final entry in dailyTotals.entries) {
+        if (!entry.key.isBefore(startDate) && !entry.key.isAfter(endDate)) {
+          weekTotal += entry.value;
+        }
+      }
+
+      if (weekTotal > bestWeek) {
+        bestWeek = weekTotal;
+      }
+    }
+
+    return (bestDay: bestDay, bestWeek: bestWeek);
   }
 
   String _formatNumber(int number) {

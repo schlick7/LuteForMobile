@@ -163,7 +163,7 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
 
     switch (currentState.selectedPeriod) {
       case StatsPeriod.week:
-        startDate = DateTime(now.year, now.month, now.day - 7);
+        startDate = DateTime(now.year, now.month, now.day - 6);
         break;
       case StatsPeriod.month:
         startDate = DateTime(now.year, now.month - 1, now.day);

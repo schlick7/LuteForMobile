@@ -124,7 +124,7 @@ class LanguageBreakdownCard extends StatelessWidget {
 
   int _getWeeklyWords(LanguageReadingStats lang) {
     final now = DateTime.now();
-    final weekStart = DateTime(now.year, now.month, now.day - 7);
+    final weekStart = DateTime(now.year, now.month, now.day - 6);
 
     return lang.dailyStats
         .where((stat) => !stat.date.isBefore(weekStart))
