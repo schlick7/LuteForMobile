@@ -1,9 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/cache/providers/term_cache_provider.dart';
+import '../../../app.dart';
 import '../../../features/settings/providers/settings_provider.dart';
+import '../../../shared/providers/language_data_provider.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../providers/stats_provider.dart';
 
 class TermsAddedTodayCard extends ConsumerStatefulWidget {
   const TermsAddedTodayCard({super.key});
@@ -16,18 +19,49 @@ class TermsAddedTodayCard extends ConsumerStatefulWidget {
 class _TermsAddedTodayCardState extends ConsumerState<TermsAddedTodayCard> {
   Future<_TermsAddedStats>? _statsFuture;
   bool _manualLoadRequested = false;
+  String? _scopeKey;
 
   @override
   Widget build(BuildContext context) {
-    final settings = ref.watch(settingsProvider);
-    final shouldAutoLoad = settings.autoLoadTermStatsCards;
-    final shouldLoad = shouldAutoLoad || _manualLoadRequested;
-
-    if (!shouldLoad) {
-      return _buildCollapsedCard(context);
+    final isStatsScreenActive =
+        ref.watch(currentScreenRouteProvider) == 'stats';
+    if (!isStatsScreenActive) {
+      return const SizedBox.shrink();
     }
 
-    _statsFuture ??= _loadStats();
+    final settings = ref.watch(settingsProvider);
+    final statsState = ref.watch(statsProvider);
+    final selectedLanguageName = statsState.value?.selectedLanguage?.language;
+    final languageList = ref.watch(languageListProvider).value ?? const [];
+    int? selectedLanguageId;
+    if (selectedLanguageName != null) {
+      for (final language in languageList) {
+        if (language.name == selectedLanguageName) {
+          selectedLanguageId = language.id;
+          break;
+        }
+      }
+    }
+    final shouldAutoLoad = settings.autoLoadTermStatsCards;
+    final shouldLoad = shouldAutoLoad || _manualLoadRequested;
+    final today = DateTime.now();
+    final currentScopeKey =
+        '${settings.serverUrl}|${selectedLanguageId ?? 'all'}|${today.year}-${today.month}-${today.day}';
+
+    if (_scopeKey != currentScopeKey) {
+      _scopeKey = currentScopeKey;
+      _statsFuture = null;
+    }
+
+    if (!shouldLoad) {
+      return _buildCollapsedCard(context, selectedLanguageId);
+    }
+
+    if (selectedLanguageName != null && selectedLanguageId == null) {
+      return _buildLoadingCard(context);
+    }
+
+    _statsFuture ??= _loadStats(selectedLanguageId);
 
     return FutureBuilder<_TermsAddedStats>(
       future: _statsFuture,
@@ -37,7 +71,11 @@ class _TermsAddedTodayCardState extends ConsumerState<TermsAddedTodayCard> {
         }
 
         if (snapshot.hasError) {
-          return _buildErrorCard(context, snapshot.error.toString());
+          return _buildErrorCard(
+            context,
+            snapshot.error.toString(),
+            selectedLanguageId,
+          );
         }
 
         final stats = snapshot.data ?? const _TermsAddedStats.empty();
@@ -46,45 +84,53 @@ class _TermsAddedTodayCardState extends ConsumerState<TermsAddedTodayCard> {
     );
   }
 
-  Future<_TermsAddedStats> _loadStats() async {
-    final contentService = ref.read(contentServiceProvider);
-    final termCacheService = ref.read(termCacheServiceProvider);
-
-    final todayCount = await contentService.getTermCount(
-      statusMin: 1,
-      statusMax: 99,
-      ageMin: 0,
-      ageMax: 0,
-    );
-
-    final totalTrackedTerms = await contentService.getTermCount(
-      statusMin: 1,
-      statusMax: 99,
-    );
-
-    var cachedTerms = await termCacheService.getAllTerms();
-    final cachedTrackedTerms = cachedTerms
-        .where((term) => term.statusId > 0 && term.statusId <= 99)
-        .length;
-
-    if (cachedTrackedTerms < totalTrackedTerms) {
-      await contentService.warmTermCache();
-      cachedTerms = await termCacheService.getAllTerms();
-    }
-
+  Future<_TermsAddedStats> _loadStats(int? langId) async {
+    final apiService = ref.read(apiServiceProvider);
     final dailyCounts = <DateTime, int>{};
-    for (final term in cachedTerms) {
-      if (term.statusId <= 0 || term.statusId > 99 || term.createdAt.isEmpty) {
-        continue;
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    int start = 0;
+    const batchSize = 1000;
+    int recordsTotal = 0;
+    bool hasMore = true;
+
+    while (hasMore) {
+      final response = await apiService.fetchAllTerms(
+        start: start,
+        length: batchSize,
+        langId: langId,
+      );
+      final jsonString = response.data ?? '{}';
+      final json = jsonDecode(jsonString) as Map<String, dynamic>;
+      final data = (json['data'] as List?) ?? const [];
+      recordsTotal = json['recordsTotal'] as int? ?? 0;
+
+      for (final item in data) {
+        final row = item as Map<String, dynamic>;
+        final statusId = row['StID'] as int? ?? 0;
+        if (!_isTrackedStatus(statusId)) {
+          continue;
+        }
+
+        final createdAt = row['WoCreated'] as String? ?? '';
+        if (createdAt.isEmpty) {
+          continue;
+        }
+
+        final parsed = DateTime.tryParse(createdAt);
+        if (parsed == null) {
+          continue;
+        }
+
+        final date = DateTime(parsed.year, parsed.month, parsed.day);
+        dailyCounts.update(date, (value) => value + 1, ifAbsent: () => 1);
       }
 
-      final parsed = DateTime.tryParse(term.createdAt);
-      if (parsed == null) continue;
-
-      final date = DateTime(parsed.year, parsed.month, parsed.day);
-      dailyCounts.update(date, (value) => value + 1, ifAbsent: () => 1);
+      start += data.length;
+      hasMore = data.isNotEmpty && start < recordsTotal;
     }
 
+    final todayCount = dailyCounts[todayDate] ?? 0;
     final record = dailyCounts.values.isEmpty
         ? 0
         : dailyCounts.values.reduce((a, b) => a > b ? a : b);
@@ -92,7 +138,11 @@ class _TermsAddedTodayCardState extends ConsumerState<TermsAddedTodayCard> {
     return _TermsAddedStats(todayCount: todayCount, record: record);
   }
 
-  Widget _buildCollapsedCard(BuildContext context) {
+  bool _isTrackedStatus(int statusId) {
+    return (statusId >= 1 && statusId <= 5) || statusId == 99;
+  }
+
+  Widget _buildCollapsedCard(BuildContext context, int? selectedLanguageId) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
@@ -121,7 +171,7 @@ class _TermsAddedTodayCardState extends ConsumerState<TermsAddedTodayCard> {
               onPressed: () {
                 setState(() {
                   _manualLoadRequested = true;
-                  _statsFuture = _loadStats();
+                  _statsFuture = _loadStats(selectedLanguageId);
                 });
               },
               child: const Text('Load'),
@@ -156,7 +206,11 @@ class _TermsAddedTodayCardState extends ConsumerState<TermsAddedTodayCard> {
     );
   }
 
-  Widget _buildErrorCard(BuildContext context, String error) {
+  Widget _buildErrorCard(
+    BuildContext context,
+    String error,
+    int? selectedLanguageId,
+  ) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Padding(
@@ -179,7 +233,7 @@ class _TermsAddedTodayCardState extends ConsumerState<TermsAddedTodayCard> {
             TextButton(
               onPressed: () {
                 setState(() {
-                  _statsFuture = _loadStats();
+                  _statsFuture = _loadStats(selectedLanguageId);
                 });
               },
               child: const Text('Retry'),
