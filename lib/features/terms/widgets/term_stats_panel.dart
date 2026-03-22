@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../app.dart';
 import '../../../shared/providers/language_data_provider.dart';
 import '../../../shared/models/language.dart';
 import '../../settings/providers/settings_provider.dart';
@@ -13,6 +14,12 @@ class TermStatsPanel extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isTermsScreenActive =
+        ref.watch(currentScreenRouteProvider) == 'terms';
+    if (!isTermsScreenActive) {
+      return const SizedBox.shrink();
+    }
+
     final settings = ref.watch(settingsProvider);
     if (!settings.showTermStatsCard) {
       return const SizedBox.shrink();
