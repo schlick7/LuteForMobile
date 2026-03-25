@@ -9,6 +9,8 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
   static const String _kokoroConfigKey = 'kokoro_tts_config';
   static const String _openaiConfigKey = 'openai_tts_config';
   static const String _localOpenaiConfigKey = 'local_openai_tts_config';
+  static const String _supertonicFastApiConfigKey =
+      'supertonic_fastapi_tts_config';
   bool _isInitialized = false;
 
   @override
@@ -45,6 +47,13 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
           model: 'tts-1',
           voice: 'alloy',
         ),
+        TTSProvider.supertonicFastApi: const TTSSettingsConfig(
+          endpointUrl: 'http://192.168.1.159:8800',
+          voice: 'M1',
+          languageCode: 'en',
+          totalSteps: 5,
+          speed: 1.05,
+        ),
         TTSProvider.none: const TTSSettingsConfig(),
       },
     );
@@ -65,6 +74,10 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
     final kokoroConfig = await _loadConfig(prefs, _kokoroConfigKey);
     final openaiConfig = await _loadConfig(prefs, _openaiConfigKey);
     final localOpenaiConfig = await _loadConfig(prefs, _localOpenaiConfigKey);
+    final supertonicFastApiConfig = await _loadConfig(
+      prefs,
+      _supertonicFastApiConfigKey,
+    );
 
     final loadedSettings = TTSSettings(
       provider: provider,
@@ -78,6 +91,9 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
         TTSProvider.localOpenAI:
             localOpenaiConfig ??
             state.providerConfigs[TTSProvider.localOpenAI]!,
+        TTSProvider.supertonicFastApi:
+            supertonicFastApiConfig ??
+            state.providerConfigs[TTSProvider.supertonicFastApi]!,
         TTSProvider.none: state.providerConfigs[TTSProvider.none]!,
       },
     );
@@ -103,6 +119,8 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
         apiKey: json['apiKey'] as String?,
         model: json['model'] as String?,
         endpointUrl: json['endpointUrl'] as String?,
+        languageCode: json['languageCode'] as String?,
+        totalSteps: json['totalSteps'] as int?,
         speed: (json['speed'] as num?)?.toDouble(),
         useStreaming: json['useStreaming'] as bool?,
         kokoroVoices: json['kokoroVoices'] != null
@@ -151,6 +169,12 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
     state = state.updateProviderConfig(TTSProvider.localOpenAI, config);
   }
 
+  Future<void> updateSupertonicFastApiConfig(TTSSettingsConfig config) async {
+    final prefs = await SharedPreferences.getInstance();
+    await _saveConfig(prefs, _supertonicFastApiConfigKey, config);
+    state = state.updateProviderConfig(TTSProvider.supertonicFastApi, config);
+  }
+
   Future<void> _saveConfig(
     SharedPreferences prefs,
     String key,
@@ -165,6 +189,8 @@ class TTSSettingsNotifier extends Notifier<TTSSettings> {
       if (config.apiKey != null) 'apiKey': config.apiKey,
       if (config.model != null) 'model': config.model,
       if (config.endpointUrl != null) 'endpointUrl': config.endpointUrl,
+      if (config.languageCode != null) 'languageCode': config.languageCode,
+      if (config.totalSteps != null) 'totalSteps': config.totalSteps,
       if (config.speed != null) 'speed': config.speed,
       if (config.useStreaming != null) 'useStreaming': config.useStreaming,
       if (config.kokoroVoices != null)

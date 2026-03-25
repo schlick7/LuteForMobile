@@ -11,7 +11,7 @@ class TTSNotifier extends Notifier<TTSService> {
 
   @override
   TTSService build() {
-    ref.listen(ttsSettingsProvider, (_, __) => _updateService());
+    ref.listen(ttsSettingsProvider, (_, next) => _updateService());
     ref.onDispose(() => _currentService?.dispose());
     return _createService();
   }
@@ -74,6 +74,14 @@ class TTSNotifier extends Notifier<TTSService> {
             model: config?.model,
             voice: config?.voice,
             apiKey: config?.apiKey,
+          );
+        case TTSProvider.supertonicFastApi:
+          return SupertonicFastApiTTSService(
+            endpointUrl: config?.endpointUrl ?? 'http://192.168.1.159:8800',
+            voice: config?.voice ?? 'M1',
+            languageCode: config?.languageCode ?? 'en',
+            totalSteps: config?.totalSteps ?? 5,
+            speed: config?.speed ?? 1.05,
           );
         case TTSProvider.none:
           return NoTTSService();

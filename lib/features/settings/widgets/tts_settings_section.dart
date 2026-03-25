@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lute_for_mobile/core/network/tts_service.dart';
 import 'package:lute_for_mobile/core/providers/tts_provider.dart';
 import 'package:lute_for_mobile/features/settings/models/tts_settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/tts_settings_provider.dart';
@@ -42,7 +43,7 @@ class _TTSSettingsSectionState extends ConsumerState<TTSSettingsSection> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 DropdownButtonFormField<TTSProvider>(
-                  value: provider,
+                  initialValue: provider,
                   decoration: const InputDecoration(
                     labelText: 'TTS Provider',
                     border: OutlineInputBorder(),
@@ -81,6 +82,8 @@ class _TTSSettingsSectionState extends ConsumerState<TTSSettingsSection> {
         return 'Local OpenAI';
       case TTSProvider.openAI:
         return 'OpenAI';
+      case TTSProvider.supertonicFastApi:
+        return 'Supertonic FastAPI';
       case TTSProvider.none:
         return 'None';
     }
@@ -101,6 +104,8 @@ class _TTSSettingsSectionState extends ConsumerState<TTSSettingsSection> {
         return _buildOpenAISettings(context, ref, config);
       case TTSProvider.localOpenAI:
         return _buildLocalOpenAISettings(context, ref, config);
+      case TTSProvider.supertonicFastApi:
+        return _buildSupertonicFastApiSettings(context, ref, config);
       case TTSProvider.none:
         return Text(
           'TTS is disabled',
@@ -270,6 +275,57 @@ class _TTSSettingsSectionState extends ConsumerState<TTSSettingsSection> {
               .updateLocalOpenAIConfig(
                 config.copyWith(apiKey: value.isEmpty ? null : value),
               );
+        }
+      },
+    );
+  }
+
+  Widget _buildSupertonicFastApiSettings(
+    BuildContext context,
+    WidgetRef ref,
+    TTSSettingsConfig? config,
+  ) {
+    return _SupertonicFastApiTTSSettings(
+      config: config,
+      onEndpointUrlChanged: (value) {
+        if (config != null) {
+          ref
+              .read(ttsSettingsProvider.notifier)
+              .updateSupertonicFastApiConfig(
+                config.copyWith(endpointUrl: value),
+              );
+        }
+      },
+      onVoiceChanged: (value) {
+        if (config != null) {
+          ref
+              .read(ttsSettingsProvider.notifier)
+              .updateSupertonicFastApiConfig(config.copyWith(voice: value));
+        }
+      },
+      onLanguageCodeChanged: (value) {
+        if (config != null) {
+          ref
+              .read(ttsSettingsProvider.notifier)
+              .updateSupertonicFastApiConfig(
+                config.copyWith(languageCode: value),
+              );
+        }
+      },
+      onTotalStepsChanged: (value) {
+        if (config != null) {
+          ref
+              .read(ttsSettingsProvider.notifier)
+              .updateSupertonicFastApiConfig(
+                config.copyWith(totalSteps: value),
+              );
+        }
+      },
+      onSpeedChanged: (value) {
+        if (config != null) {
+          ref
+              .read(ttsSettingsProvider.notifier)
+              .updateSupertonicFastApiConfig(config.copyWith(speed: value));
         }
       },
     );
@@ -577,6 +633,272 @@ class _LocalOpenAITTSSettingsState
       ],
     );
   }
+}
+
+class _SupertonicFastApiTTSSettings extends ConsumerStatefulWidget {
+  final TTSSettingsConfig? config;
+  final ValueChanged<String> onEndpointUrlChanged;
+  final ValueChanged<String> onVoiceChanged;
+  final ValueChanged<String> onLanguageCodeChanged;
+  final ValueChanged<int> onTotalStepsChanged;
+  final ValueChanged<double> onSpeedChanged;
+
+  const _SupertonicFastApiTTSSettings({
+    required this.config,
+    required this.onEndpointUrlChanged,
+    required this.onVoiceChanged,
+    required this.onLanguageCodeChanged,
+    required this.onTotalStepsChanged,
+    required this.onSpeedChanged,
+  });
+
+  @override
+  ConsumerState<_SupertonicFastApiTTSSettings> createState() =>
+      _SupertonicFastApiTTSSettingsState();
+}
+
+class _SupertonicFastApiTTSSettingsState
+    extends ConsumerState<_SupertonicFastApiTTSSettings> {
+  static const List<String> _supportedLanguages = [
+    'en',
+    'ko',
+    'es',
+    'pt',
+    'fr',
+  ];
+
+  late TextEditingController _endpointUrlController;
+  List<TTSVoice>? _availableVoices;
+  bool _isLoadingVoices = false;
+  String? _voiceError;
+
+  @override
+  void initState() {
+    super.initState();
+    _endpointUrlController = TextEditingController(
+      text: widget.config?.endpointUrl ?? '',
+    );
+    _loadVoices();
+  }
+
+  @override
+  void didUpdateWidget(_SupertonicFastApiTTSSettings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.config?.endpointUrl != oldWidget.config?.endpointUrl &&
+        _endpointUrlController.text != (widget.config?.endpointUrl ?? '')) {
+      _endpointUrlController.text = widget.config?.endpointUrl ?? '';
+      _loadVoices();
+    }
+  }
+
+  @override
+  void dispose() {
+    _endpointUrlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadVoices() async {
+    final endpointUrl = _endpointUrlController.text.trim();
+    if (endpointUrl.isEmpty) {
+      setState(() {
+        _availableVoices = null;
+        _voiceError = 'Enter an endpoint URL to load voices.';
+        _isLoadingVoices = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingVoices = true;
+      _voiceError = null;
+    });
+
+    final service = SupertonicFastApiTTSService(
+      endpointUrl: endpointUrl,
+      voice: widget.config?.voice ?? 'M1',
+      languageCode: widget.config?.languageCode ?? 'en',
+      totalSteps: widget.config?.totalSteps ?? 5,
+      speed: widget.config?.speed ?? 1.05,
+    );
+
+    try {
+      final voices = await service.getAvailableVoices();
+      if (!mounted) return;
+
+      setState(() {
+        _availableVoices = voices;
+        _isLoadingVoices = false;
+        _voiceError = voices.isEmpty
+            ? 'No voices returned from /voices.'
+            : null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _availableVoices = null;
+        _isLoadingVoices = false;
+        _voiceError = e.toString();
+      });
+    } finally {
+      service.dispose();
+    }
+  }
+
+  Future<void> _saveEndpointAndRefreshVoices() async {
+    final endpointUrl = _endpointUrlController.text.trim();
+    if (endpointUrl.isNotEmpty && endpointUrl != widget.config?.endpointUrl) {
+      widget.onEndpointUrlChanged(endpointUrl);
+    }
+    await _loadVoices();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedVoice = widget.config?.voice ?? 'M1';
+    final List<TTSVoice> voiceOptions = [
+      ...?_availableVoices,
+      if ((_availableVoices ?? []).every(
+        (voice) => voice.name != selectedVoice,
+      ))
+        TTSVoice(
+          name: selectedVoice,
+          locale: widget.config?.languageCode ?? 'en',
+        ),
+    ];
+    final String selectedLanguage =
+        widget.config?.languageCode != null &&
+            _supportedLanguages.contains(widget.config!.languageCode)
+        ? widget.config!.languageCode!
+        : 'en';
+    final int qualitySteps = (widget.config?.totalSteps ?? 5).clamp(2, 15);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          decoration: InputDecoration(
+            labelText: 'Endpoint URL',
+            hintText: 'http://192.168.1.159:8800',
+            border: OutlineInputBorder(),
+            suffixIcon: IconButton(
+              onPressed: _isLoadingVoices
+                  ? null
+                  : _saveEndpointAndRefreshVoices,
+              icon: const Icon(Icons.refresh),
+              tooltip: 'Refresh voices',
+            ),
+          ),
+          controller: _endpointUrlController,
+          onSubmitted: (_) => _saveEndpointAndRefreshVoices(),
+        ),
+        const SizedBox(height: 16),
+        if (_voiceError != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              _voiceError!,
+              style: TextStyle(
+                color: context.appColorScheme.error.error,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        DropdownButtonFormField<String>(
+          initialValue: voiceOptions.any((voice) => voice.name == selectedVoice)
+              ? selectedVoice
+              : null,
+          decoration: InputDecoration(
+            labelText: 'Voice',
+            border: const OutlineInputBorder(),
+            suffixIcon: _isLoadingVoices
+                ? const Padding(
+                    padding: EdgeInsets.all(12),
+                    child: SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : null,
+          ),
+          items: voiceOptions
+              .map(
+                (voice) => DropdownMenuItem<String>(
+                  value: voice.name,
+                  child: Text(voice.name),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value != null) {
+              widget.onVoiceChanged(value);
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        DropdownButtonFormField<String>(
+          initialValue: selectedLanguage,
+          decoration: const InputDecoration(
+            labelText: 'Language Code',
+            border: OutlineInputBorder(),
+          ),
+          items: _supportedLanguages
+              .map(
+                (language) => DropdownMenuItem<String>(
+                  value: language,
+                  child: Text(language),
+                ),
+              )
+              .toList(),
+          onChanged: (value) {
+            if (value != null) {
+              widget.onLanguageCodeChanged(value);
+            }
+          },
+        ),
+        const SizedBox(height: 16),
+        Text('Quality Steps: $qualitySteps'),
+        Slider(
+          value: qualitySteps.toDouble(),
+          min: 2,
+          max: 15,
+          divisions: 13,
+          label: '$qualitySteps',
+          onChanged: (value) {
+            widget.onTotalStepsChanged(value.round());
+          },
+        ),
+        Text(
+          'Higher values improve quality by increasing Supertonic denoising steps. Default is 5; 10 is a documented higher-quality setting with slower inference.',
+          style: TextStyle(
+            color: context.appColorScheme.text.secondary,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text('Speed: ${(widget.config?.speed ?? 1.05).toStringAsFixed(2)}'),
+        Slider(
+          value: widget.config?.speed ?? 1.05,
+          min: 0.7,
+          max: 2.0,
+          divisions: 13,
+          onChanged: widget.onSpeedChanged,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Uses GET /voices and POST $_supertonicPath with voice=$selectedVoice, lang=$selectedLanguage, total_steps=$qualitySteps.',
+          style: TextStyle(
+            color: context.appColorScheme.text.secondary,
+            fontSize: 12,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _TestSpeechButton(provider: TTSProvider.supertonicFastApi),
+      ],
+    );
+  }
+
+  static const String _supertonicPath = '/synthesize';
 }
 
 class _TestSpeechButton extends ConsumerStatefulWidget {

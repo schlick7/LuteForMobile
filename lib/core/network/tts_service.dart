@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -589,6 +587,136 @@ class LocalOpenAITTSService implements TTSService {
 
     final audioBytes = response.data as List<int>;
     return Uint8List.fromList(audioBytes);
+  }
+
+  @override
+  bool get supportsBytesOutput => true;
+}
+
+class SupertonicFastApiTTSService implements TTSService {
+  final String endpointUrl;
+  final String voice;
+  final String languageCode;
+  final int totalSteps;
+  final double speed;
+
+  final Dio _dio = Dio();
+  late final AudioPlayer _audioPlayer;
+  final _playerStateController = StreamController<PlayerState>.broadcast();
+
+  SupertonicFastApiTTSService({
+    required this.endpointUrl,
+    required this.voice,
+    required this.languageCode,
+    required this.totalSteps,
+    required this.speed,
+  }) {
+    _audioPlayer = AudioPlayer()
+      ..setReleaseMode(ReleaseMode.stop)
+      ..onPlayerStateChanged.listen((state) {
+        _playerStateController.add(state);
+      });
+  }
+
+  String get _synthesizeUrl => '$endpointUrl/synthesize';
+
+  @override
+  Future<void> speak(String text) async {
+    try {
+      final audioBytes = await getAudioBytes(text);
+      await _audioPlayer.play(BytesSource(audioBytes));
+    } catch (e) {
+      if (e is TTSException) {
+        rethrow;
+      }
+      throw TTSException('Failed to speak with Supertonic FastAPI TTS: $e');
+    }
+  }
+
+  @override
+  Future<void> stop() async {
+    try {
+      await _audioPlayer.stop();
+      await _audioPlayer.release();
+    } catch (e) {
+      throw TTSException('Failed to stop Supertonic FastAPI TTS: $e');
+    }
+  }
+
+  @override
+  Future<void> setLanguage(String languageCode) async {}
+
+  @override
+  Future<void> setSettings(TTSSettingsConfig config) async {}
+
+  @override
+  Future<List<TTSVoice>> getAvailableVoices() async {
+    try {
+      final response = await _dio.get('$endpointUrl/voices');
+      final data = response.data;
+
+      if (data is Map && data['voices'] is List) {
+        return (data['voices'] as List)
+            .map((v) => TTSVoice(name: v.toString(), locale: languageCode))
+            .toList();
+      }
+
+      return [];
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError) {
+        throw TTSException(
+          'Failed to connect to Supertonic FastAPI at $endpointUrl',
+        );
+      }
+      throw TTSException(
+        'Failed to fetch Supertonic FastAPI voices: ${e.message}',
+      );
+    } catch (e) {
+      throw TTSException('Failed to load Supertonic FastAPI voices: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    _playerStateController.close();
+  }
+
+  @override
+  Stream<PlayerState> get playerStateStream => _playerStateController.stream;
+
+  @override
+  Future<Uint8List> getAudioBytes(String text) async {
+    try {
+      final response = await _dio.post(
+        _synthesizeUrl,
+        data: {
+          'text': text,
+          'voice': voice,
+          'lang': languageCode,
+          'total_steps': totalSteps,
+          'speed': speed,
+        },
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Content-Type': 'application/json'},
+        ),
+      );
+
+      final audioBytes = response.data as List<int>;
+      return Uint8List.fromList(audioBytes);
+    } on DioException catch (e) {
+      if (e.type == DioExceptionType.connectionError) {
+        throw TTSException(
+          'Failed to connect to Supertonic FastAPI at $endpointUrl',
+        );
+      }
+      throw TTSException('Supertonic FastAPI TTS request failed: ${e.message}');
+    } catch (e) {
+      throw TTSException(
+        'Failed to fetch audio from Supertonic FastAPI TTS: $e',
+      );
+    }
   }
 
   @override

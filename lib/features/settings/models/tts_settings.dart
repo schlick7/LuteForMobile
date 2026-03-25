@@ -1,6 +1,13 @@
 import 'package:flutter/foundation.dart';
 
-enum TTSProvider { onDevice, kokoroTTS, localOpenAI, openAI, none }
+enum TTSProvider {
+  onDevice,
+  kokoroTTS,
+  localOpenAI,
+  openAI,
+  supertonicFastApi,
+  none,
+}
 
 @immutable
 class TTSSettings {
@@ -87,6 +94,8 @@ class TTSSettingsConfig {
   final String? model;
 
   final String? endpointUrl;
+  final String? languageCode;
+  final int? totalSteps;
 
   final List<KokoroVoiceWeight>? kokoroVoices;
   final double? speed;
@@ -101,6 +110,8 @@ class TTSSettingsConfig {
     this.apiKey,
     this.model,
     this.endpointUrl,
+    this.languageCode,
+    this.totalSteps,
     this.kokoroVoices,
     this.speed,
     this.useStreaming,
@@ -115,6 +126,8 @@ class TTSSettingsConfig {
     String? apiKey,
     String? model,
     String? endpointUrl,
+    String? languageCode,
+    int? totalSteps,
     List<KokoroVoiceWeight>? kokoroVoices,
     double? speed,
     bool? useStreaming,
@@ -128,6 +141,8 @@ class TTSSettingsConfig {
       apiKey: apiKey ?? this.apiKey,
       model: model ?? this.model,
       endpointUrl: endpointUrl ?? this.endpointUrl,
+      languageCode: languageCode ?? this.languageCode,
+      totalSteps: totalSteps ?? this.totalSteps,
       kokoroVoices: kokoroVoices ?? this.kokoroVoices,
       speed: speed ?? this.speed,
       useStreaming: useStreaming ?? this.useStreaming,
@@ -146,6 +161,8 @@ class TTSSettingsConfig {
         other.apiKey == apiKey &&
         other.model == model &&
         other.endpointUrl == endpointUrl &&
+        other.languageCode == languageCode &&
+        other.totalSteps == totalSteps &&
         _listEquals(other.kokoroVoices, kokoroVoices) &&
         other.speed == speed &&
         other.useStreaming == useStreaming;
@@ -161,6 +178,8 @@ class TTSSettingsConfig {
     apiKey,
     model,
     endpointUrl,
+    languageCode,
+    totalSteps,
     kokoroVoices?.hashCode,
     speed,
     useStreaming,
