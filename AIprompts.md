@@ -65,6 +65,32 @@ servirle -> serve him, serve her
 Output only: translation1, translation2
 ```
 
+Alternative: `TranslateGemma`
+
+TranslateGemma does not use a normal instruction prompt for term translation. It expects a structured user payload with `type`, `source_lang_code`, `target_lang_code`, and `text`.
+
+```json
+[
+  {
+    "role": "user",
+    "content": [
+      {
+        "type": "text",
+        "source_lang_code": "[language_code]",
+        "target_lang_code": "en",
+        "text": "[term]"
+      }
+    ]
+  }
+]
+```
+
+Notes:
+- `text` should contain only the text to translate.
+- If you put instructions or sentence context inside `text`, TranslateGemma will treat them as source text and translate them.
+- This means the model does not support the same kind of term-specific prompt engineering as the other options here.
+- If term disambiguation is needed, it likely has to be handled outside the prompt with preprocessing, post-processing, or validation.
+
 ## Sentence Translation
 
 Current default:
