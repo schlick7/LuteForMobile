@@ -8,3 +8,4 @@
 
 # Other Changes
 - Added more stats
+- Added Supertonic TTS option

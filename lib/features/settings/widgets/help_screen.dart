@@ -805,7 +805,7 @@ class HelpScreen extends ConsumerWidget {
             context,
             Icons.code,
             'Term Translation',
-            'These prompts may need adjustment depending on the model used -- Translate the [language] term "[term]" into natural English using this sentence for context: "[sentence]". Return 1 or 2 distinct English translations only. Do not repeat the same translation. Do not include the original [language] term. If there is only one good translation, return only one. Output only the translation words, separated by a comma.',
+            'These prompts may need adjustment depending on the model used -- Translate only the target [language] term "[term]" into English. Sentence for disambiguation only: "[sentence]". Return exactly 2 distinct translations. Translate only "[term]". Do not absorb adjacent words into the translation. Do not expand names or noun phrases. Keep each translation to 1-4 words. Prefer lexical translations over paraphrases. If the target itself carries tense, aspect, politeness, or an attached pronoun, that meaning may appear in the translation. If the target does not carry that meaning by itself, do not import it from the sentence. The second translation must be a real close alternative, not a joke, duplicate, or capitalization variant. Output only: translation1, translation2.',
           ),
           _buildControlItem(
             context,

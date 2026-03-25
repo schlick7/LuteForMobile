@@ -141,7 +141,7 @@ class AIPromptConfig {
 class AIPromptTemplates {
   static const Map<AIPromptType, String> defaults = {
     AIPromptType.termTranslation:
-        'Translate the [language] term "[term]" into natural English using this sentence for context: "[sentence]". Return 1 or 2 distinct English translations only. Do not repeat the same translation. Do not include the original [language] term. If there is only one good translation, return only one. Output only the translation words, separated by a comma.',
+        'Translate only the target [language] term "[term]" into English.\nSentence for disambiguation only: "[sentence]".\n\nRules:\n- Return exactly 2 distinct translations.\n- The target is only "[term]".\n- Do not absorb adjacent words into the translation.\n- Do not expand names or noun phrases.\n- Keep each translation to 1-4 words.\n- Prefer lexical translations over paraphrases.\n- If the target itself carries tense, aspect, politeness, or an attached pronoun, that meaning may appear in the translation.\n- If the target does not carry that meaning by itself, do not import it from the sentence.\n- The second translation must be a real close alternative, not a joke, duplicate, or capitalization variant.\n\nExamples:\nTío in "Tío Vernon" -> Uncle, relative\nverde in "luz verde" -> green, unripe\nestaba in "Harry le estaba hablando" -> was, had been\n\nOutput only: translation1, translation2',
     AIPromptType.sentenceTranslation:
         'Translate the following sentence from [language] to English: [sentence]',
     AIPromptType.virtualDictionary:
