@@ -40,10 +40,6 @@ Tapping termux in the status bring you to play store
 # AI
 - done? gemini
 
-Add a translategemma ai prompt for terms as well in @AIprompts.md
-
-Now you need to go through all those 6 results and rank them. The absolute best outcome is to results both with correct translations (correr = to run is better than correr = run). The 2nd best is having 1 of the 2 results be correct. The absolute worst would be incorrect answer, be they single words or phrase. Less than ideal but potential acceptable would be correct answers but in phrases or with boundary term leaks. Put less wait on proper nouns as they matter much less. Give slightly better ranking for terms that result in 2 distinct results that are both correct
-
 # Books Screen
 - 
 
