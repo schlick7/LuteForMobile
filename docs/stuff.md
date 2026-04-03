@@ -6,11 +6,9 @@
 
 ---
 
-Total term status change by time period. So total status1 terms 1 week ago and the status1 terms today. Then showing the number of change like +13. Can the server show this information or would we need to store this locally?
 
 ---
 
-the terms added today is wrong. You got something wrong. it is showing 91 for today and 7742 for the record. i should only have around 30 for today. and the record seems to be all of the status0 terms
 
 ---
 
