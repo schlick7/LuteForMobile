@@ -84,6 +84,7 @@ class BooksNotifier extends Notifier<BooksState> {
   int _archivedPage = 0;
   bool _isLoadingMoreActive = false;
   bool _isLoadingMoreArchived = false;
+  bool _pendingSearchReload = false;
 
   @override
   BooksState build() {
@@ -497,6 +498,7 @@ class BooksNotifier extends Notifier<BooksState> {
   Future<void> _loadBooksFromNetwork() async {
     if (_isLoadingFromNetwork) return;
     _isLoadingFromNetwork = true;
+    final requestQuery = state.searchQuery;
 
     try {
       final settings = ref.read(settingsProvider);
@@ -509,12 +511,17 @@ class BooksNotifier extends Notifier<BooksState> {
       final networkBooks = await _repository.getActiveBooks(
         page: 0,
         pageSize: _pageSize,
-        search: state.searchQuery.isEmpty ? null : state.searchQuery,
+        search: requestQuery.isEmpty ? null : requestQuery,
       );
       ApiLogger.logRequest(
         '_loadBooksFromNetwork',
         details: 'got ${networkBooks.length} books',
       );
+
+      if (state.searchQuery != requestQuery) {
+        _pendingSearchReload = true;
+        return;
+      }
 
       final networkBooksMap = {for (var b in networkBooks) b.id: b};
       final existingBookIds = {for (var b in state.activeBooks) b.id};
@@ -571,10 +578,22 @@ class BooksNotifier extends Notifier<BooksState> {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     } finally {
       _isLoadingFromNetwork = false;
+      if (_pendingSearchReload) {
+        _pendingSearchReload = false;
+        unawaited(
+          state.showArchived
+              ? _loadArchivedBooksFromNetwork()
+              : _loadBooksFromNetwork(),
+        );
+      }
     }
   }
 
   Future<void> _loadArchivedBooksFromNetwork() async {
+    if (_isLoadingFromNetwork) return;
+    _isLoadingFromNetwork = true;
+    final requestQuery = state.searchQuery;
+
     try {
       final settings = ref.read(settingsProvider);
       await _repository.contentService.setUserSetting(
@@ -586,8 +605,12 @@ class BooksNotifier extends Notifier<BooksState> {
       final archived = await _repository.getArchivedBooks(
         page: 0,
         pageSize: _pageSize,
-        search: state.searchQuery.isEmpty ? null : state.searchQuery,
+        search: requestQuery.isEmpty ? null : requestQuery,
       );
+      if (state.searchQuery != requestQuery) {
+        _pendingSearchReload = true;
+        return;
+      }
       final existingArchivedMap = {for (var b in state.archivedBooks) b.id: b};
 
       final mergedArchived = archived.map((networkBook) {
@@ -646,6 +669,16 @@ class BooksNotifier extends Notifier<BooksState> {
       unawaited(_resolveMissingAudioMetadataInBackground(activeBooks: false));
     } catch (e) {
       state = state.copyWith(errorMessage: e.toString());
+    } finally {
+      _isLoadingFromNetwork = false;
+      if (_pendingSearchReload) {
+        _pendingSearchReload = false;
+        unawaited(
+          state.showArchived
+              ? _loadArchivedBooksFromNetwork()
+              : _loadBooksFromNetwork(),
+        );
+      }
     }
   }
 
@@ -755,14 +788,26 @@ class BooksNotifier extends Notifier<BooksState> {
     if (state.searchQuery != query) {
       _activePage = 0;
       _archivedPage = 0;
+      _pendingSearchReload = false;
       state = state.copyWith(
+        isLoading: true,
+        errorMessage: null,
         searchQuery: query,
         activeBooks: [],
         archivedBooks: [],
         hasMoreActive: true,
         hasMoreArchived: true,
       );
-      _loadBooksFromNetwork();
+      if (_isLoadingFromNetwork) {
+        _pendingSearchReload = true;
+        return;
+      }
+
+      if (state.showArchived) {
+        _loadArchivedBooksFromNetwork();
+      } else {
+        _loadBooksFromNetwork();
+      }
     }
   }
 
