@@ -164,6 +164,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   SentenceTTSNotifier? _ttsNotifier;
   bool _isNavigatingForward = true;
   Map<int, String> _languageIdToName = {};
+  final Map<int, TextDirection> _languageIdToDirection = {};
+  final Set<int> _languageDirectionLoadsInFlight = {};
   int? _lastStatsLangId;
   bool _checkServerPageInProgress = false;
   int _splitRatio = DictionaryService.defaultSplitRatio;
@@ -210,6 +212,34 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       });
     } catch (e) {
       // Failed to load language mapping
+    }
+  }
+
+  Future<void> _ensureLanguageDirectionLoaded(int langId) async {
+    if (langId == 0 ||
+        _languageIdToDirection.containsKey(langId) ||
+        _languageDirectionLoadsInFlight.contains(langId)) {
+      return;
+    }
+
+    _languageDirectionLoadsInFlight.add(langId);
+
+    final repository = ref.read(readerRepositoryProvider);
+    try {
+      final settings = await repository.contentService.getLanguageCardSettings(
+        langId,
+      );
+      if (!mounted) return;
+
+      setState(() {
+        _languageIdToDirection[langId] = settings.rightToLeft
+            ? TextDirection.rtl
+            : TextDirection.ltr;
+      });
+    } catch (_) {
+      // Fall back to text-based inference if language settings fail to load.
+    } finally {
+      _languageDirectionLoadsInFlight.remove(langId);
     }
   }
 
@@ -312,6 +342,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
 
       if (!_hasInitialized) {
         final langId = _getLangId(readerState);
+        if (langId != 0) {
+          unawaited(_ensureLanguageDirectionLoaded(langId));
+        }
 
         if (_lastTooltipsBookId != bookId) {
           _termTooltips.clear();
@@ -559,6 +592,15 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
       return const Center(child: Text('No sentence available'));
     }
 
+    final sentenceLangId = currentSentence.textItems.first.langId;
+    final textDirection = sentenceLangId != null
+        ? _languageIdToDirection[sentenceLangId]
+        : null;
+
+    if (sentenceLangId != null && textDirection == null) {
+      unawaited(_ensureLanguageDirectionLoaded(sentenceLangId));
+    }
+
     return GestureDetector(
       onTapDown: (_) => TermTooltipClass.close(),
       onHorizontalDragEnd: (details) async {
@@ -615,6 +657,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             fontWeight: textSettings.fontWeight,
             isItalic: textSettings.isItalic,
             doubleTapTimeout: settings.doubleTapTimeout,
+            textDirection: textDirection,
           ),
         ),
       ),

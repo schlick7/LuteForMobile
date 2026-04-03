@@ -203,7 +203,11 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
     final currentPosition = state.position;
     final bookmarks = List<Duration>.from(state.bookmarkDurations);
 
-    if (!bookmarks.contains(currentPosition)) {
+    final hasNearbyBookmark = bookmarks.any(
+      (bookmark) => (bookmark - currentPosition).abs() < Duration(seconds: 1),
+    );
+
+    if (!hasNearbyBookmark) {
       bookmarks.add(currentPosition);
       bookmarks.sort((a, b) => a.compareTo(b));
       state = state.copyWith(bookmarkDurations: bookmarks);

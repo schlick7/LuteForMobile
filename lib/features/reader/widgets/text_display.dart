@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/logger/widget_logger.dart';
 import '../models/text_item.dart';
 import '../models/paragraph.dart';
+import '../utils/text_direction_utils.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import 'term_tooltip.dart';
 
@@ -26,6 +27,7 @@ class TextDisplay extends StatefulWidget {
   final int? highlightedWordId;
   final int? highlightedParagraphId;
   final int? highlightedOrder;
+  final TextDirection? textDirection;
 
   const TextDisplay({
     super.key,
@@ -48,6 +50,7 @@ class TextDisplay extends StatefulWidget {
     this.highlightedWordId,
     this.highlightedParagraphId,
     this.highlightedOrder,
+    this.textDirection,
   });
 
   static Widget buildInteractiveWord(
@@ -224,6 +227,8 @@ class _TextDisplayState extends State<TextDisplay> {
       _buildCount,
       'paragraphs: ${widget.paragraphs.length}',
     );
+    final fallbackDirection =
+        widget.textDirection ?? Directionality.of(context);
     return RepaintBoundary(
       child: SingleChildScrollView(
         controller: widget.scrollController,
@@ -237,8 +242,8 @@ class _TextDisplayState extends State<TextDisplay> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ...widget.paragraphs.map((paragraph) {
-              return _buildParagraph(context, paragraph);
-            }).toList(),
+              return _buildParagraph(context, paragraph, fallbackDirection);
+            }),
             if (widget.bottomControlWidget != null) ...[
               const SizedBox(height: 16),
               widget.bottomControlWidget!,
@@ -249,16 +254,36 @@ class _TextDisplayState extends State<TextDisplay> {
     );
   }
 
-  Widget _buildParagraph(BuildContext context, Paragraph paragraph) {
+  Widget _buildParagraph(
+    BuildContext context,
+    Paragraph paragraph,
+    TextDirection fallbackDirection,
+  ) {
+    final textDirection =
+        widget.textDirection ??
+        TextDirectionUtils.inferFromItems(
+          paragraph.textItems,
+          fallback: fallbackDirection,
+        );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
-      child: Wrap(
-        spacing: 0,
-        runSpacing: 0,
-        children: paragraph.textItems.asMap().entries.map((entry) {
-          final item = entry.value;
-          return _buildInteractiveWord(context, item);
-        }).toList(),
+      child: Directionality(
+        textDirection: textDirection,
+        child: Align(
+          alignment: textDirection == TextDirection.rtl
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
+          child: Wrap(
+            spacing: 0,
+            runSpacing: 0,
+            textDirection: textDirection,
+            children: paragraph.textItems.asMap().entries.map((entry) {
+              final item = entry.value;
+              return _buildInteractiveWord(context, item);
+            }).toList(),
+          ),
+        ),
       ),
     );
   }

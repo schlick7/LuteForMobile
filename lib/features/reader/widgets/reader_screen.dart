@@ -161,6 +161,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   bool _isNavigatingForward = true;
   Key _pageKey = const ValueKey('page');
   Map<int, String> _languageIdToName = {};
+  final Map<int, TextDirection> _languageIdToDirection = {};
+  final Set<int> _languageDirectionLoadsInFlight = {};
   int? _lastStatsLangId;
   bool _checkServerPageInProgress = false;
   int? _lastAudioBookId;
@@ -176,6 +178,48 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       });
     } catch (e) {
       ApiLogger.logError('loadLanguageMapping', e);
+    }
+  }
+
+  int? _findLangId(PageData? pageData) {
+    if (pageData == null) return null;
+
+    for (final paragraph in pageData.paragraphs) {
+      for (final item in paragraph.textItems) {
+        final langId = item.langId;
+        if (langId != null && langId != 0) {
+          return langId;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  Future<void> _ensureLanguageDirectionLoaded(int langId) async {
+    if (_languageIdToDirection.containsKey(langId) ||
+        _languageDirectionLoadsInFlight.contains(langId)) {
+      return;
+    }
+
+    _languageDirectionLoadsInFlight.add(langId);
+
+    final repository = ref.read(readerRepositoryProvider);
+    try {
+      final settings = await repository.contentService.getLanguageCardSettings(
+        langId,
+      );
+      if (!mounted) return;
+
+      setState(() {
+        _languageIdToDirection[langId] = settings.rightToLeft
+            ? TextDirection.rtl
+            : TextDirection.ltr;
+      });
+    } catch (e) {
+      ApiLogger.logError('ensureLanguageDirectionLoaded', e);
+    } finally {
+      _languageDirectionLoadsInFlight.remove(langId);
     }
   }
 
@@ -360,18 +404,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           .read(readerProvider.notifier)
           .loadPage(bookId: pageData!.bookId, pageNum: pageData!.currentPage);
 
-      int? langId;
-      for (final paragraph in pageData.paragraphs) {
-        for (final item in paragraph.textItems) {
-          if (item.langId != null) {
-            langId = item.langId;
-            break;
-          }
-        }
-        if (langId != null) break;
-      }
+      final langId = _findLangId(pageData);
 
       if (langId != null) {
+        unawaited(_ensureLanguageDirectionLoaded(langId));
         if (ref.read(settingsProvider).showStatsBar) {
           ref.read(termsProvider.notifier).loadStatus99Only(langId);
         }
@@ -397,18 +433,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
 
       final pageData = ref.read(readerProvider).pageData;
       if (pageData != null) {
-        int? langId;
-        for (final paragraph in pageData.paragraphs) {
-          for (final item in paragraph.textItems) {
-            if (item.langId != null && item.langId != 0) {
-              langId = item.langId;
-              break;
-            }
-          }
-          if (langId != null) break;
-        }
+        final langId = _findLangId(pageData);
 
         if (langId != null) {
+          unawaited(_ensureLanguageDirectionLoaded(langId));
           if (ref.read(settingsProvider).showStatsBar) {
             ref.read(termsProvider.notifier).loadStatus99Only(langId);
           }
@@ -486,6 +514,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       bookId: pageData!.bookId,
                       page: pageData!.currentPage,
                       bookmarks: pageData!.audioBookmarks,
+                      audioCurrentPos: pageData.audioCurrentPos,
                     ),
                   ),
                 Expanded(child: _buildBody(isLoading, errorMessage, pageData)),
@@ -867,6 +896,14 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     final textSettings = ref.watch(textFormattingSettingsProvider);
+    final langId = _findLangId(pageData);
+    final textDirection = langId != null
+        ? _languageIdToDirection[langId]
+        : null;
+
+    if (langId != null && textDirection == null) {
+      unawaited(_ensureLanguageDirectionLoaded(langId));
+    }
 
     final hasGestureNav = MediaQuery.of(context).systemGestureInsets.bottom > 0;
     final textDisplay = TextDisplay(
@@ -897,6 +934,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       fontFamily: textSettings.fontFamily,
       fontWeight: textSettings.fontWeight,
       isItalic: textSettings.isItalic,
+      textDirection: textDirection,
       highlightedWordId: _highlightedWordId,
       highlightedParagraphId: _highlightedParagraphId,
       highlightedOrder: _highlightedOrder,

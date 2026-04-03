@@ -9,6 +9,7 @@ class AudioPlayerWidget extends ConsumerStatefulWidget {
   final int bookId;
   final int page;
   final List<double>? bookmarks;
+  final Duration? audioCurrentPos;
 
   const AudioPlayerWidget({
     Key? key,
@@ -16,6 +17,7 @@ class AudioPlayerWidget extends ConsumerStatefulWidget {
     required this.bookId,
     required this.page,
     this.bookmarks,
+    this.audioCurrentPos,
   }) : super(key: key);
 
   @override
@@ -23,7 +25,7 @@ class AudioPlayerWidget extends ConsumerStatefulWidget {
 }
 
 class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
-  String? _lastLoadedUrl;
+  String? _lastLoadSignature;
   bool _isDragging = false;
   double? _dragPosition;
   static const List<double> _speeds = [
@@ -42,11 +44,18 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
   @override
   Widget build(BuildContext context) {
     final audioPlayerState = ref.watch(audioPlayerProvider);
+    final bookmarkSignature = (widget.bookmarks ?? const [])
+        .map((bookmark) => bookmark.toStringAsFixed(3))
+        .join(',');
+    final currentPosSeconds =
+        widget.audioCurrentPos?.inMilliseconds.toString() ?? 'null';
+    final loadSignature =
+        '${widget.audioUrl}|${widget.bookId}|${widget.page}|$currentPosSeconds|$bookmarkSignature';
 
-    // Load audio when the URL changes
+    // Reload when the server-provided audio state changes, not only the URL.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_lastLoadedUrl != widget.audioUrl && !audioPlayerState.isLoading) {
-        _lastLoadedUrl = widget.audioUrl;
+      if (_lastLoadSignature != loadSignature && !audioPlayerState.isLoading) {
+        _lastLoadSignature = loadSignature;
         ref
             .read(audioPlayerProvider.notifier)
             .loadAudio(
@@ -54,6 +63,7 @@ class _AudioPlayerWidgetState extends ConsumerState<AudioPlayerWidget> {
               bookId: widget.bookId,
               page: widget.page,
               bookmarks: widget.bookmarks,
+              audioCurrentPos: widget.audioCurrentPos,
             );
       }
     });

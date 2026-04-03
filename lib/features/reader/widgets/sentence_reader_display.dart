@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/logger/widget_logger.dart';
 import '../models/text_item.dart';
 import '../utils/sentence_parser.dart';
+import '../utils/text_direction_utils.dart';
 import 'text_display.dart';
 import 'term_tooltip.dart';
 
@@ -18,6 +19,7 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
   final FontWeight fontWeight;
   final bool isItalic;
   final int doubleTapTimeout;
+  final TextDirection? textDirection;
 
   const SentenceReaderDisplay({
     super.key,
@@ -31,6 +33,7 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
     this.fontWeight = FontWeight.normal,
     this.isItalic = false,
     this.doubleTapTimeout = 300,
+    this.textDirection,
   });
 
   @override
@@ -91,14 +94,30 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
     );
     if (widget.sentence == null) return const SizedBox.shrink();
 
+    final textDirection =
+        widget.textDirection ??
+        TextDirectionUtils.inferFromItems(
+          widget.sentence!.textItems,
+          fallback: Directionality.of(context),
+        );
+
     return RepaintBoundary(
-      child: Wrap(
-        spacing: 0,
-        runSpacing: 0,
-        children: widget.sentence!.textItems.asMap().entries.map((entry) {
-          final item = entry.value;
-          return _buildInteractiveWord(context, item);
-        }).toList(),
+      child: Directionality(
+        textDirection: textDirection,
+        child: Align(
+          alignment: textDirection == TextDirection.rtl
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
+          child: Wrap(
+            spacing: 0,
+            runSpacing: 0,
+            textDirection: textDirection,
+            children: widget.sentence!.textItems.asMap().entries.map((entry) {
+              final item = entry.value;
+              return _buildInteractiveWord(context, item);
+            }).toList(),
+          ),
+        ),
       ),
     );
   }
