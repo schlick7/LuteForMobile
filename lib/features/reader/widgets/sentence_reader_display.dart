@@ -13,6 +13,10 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
   final void Function(TextItem, BuildContext)? onTap;
   final void Function(TextItem)? onDoubleTap;
   final void Function(TextItem)? onLongPress;
+  final VoidCallback? onMultiTermSelectionStart;
+  final void Function(List<TextItem>)? onMultiTermSelectionComplete;
+  final void Function(TextItem)? onTripleTap;
+  final bool enableTripleTap;
   final double textSize;
   final double lineSpacing;
   final String fontFamily;
@@ -20,6 +24,9 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
   final bool isItalic;
   final int doubleTapTimeout;
   final TextDirection? textDirection;
+  final int? highlightedWordId;
+  final int? highlightedParagraphId;
+  final int? highlightedOrder;
 
   const SentenceReaderDisplay({
     super.key,
@@ -27,6 +34,10 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
     this.onTap,
     this.onDoubleTap,
     this.onLongPress,
+    this.onMultiTermSelectionStart,
+    this.onMultiTermSelectionComplete,
+    this.onTripleTap,
+    this.enableTripleTap = false,
     this.textSize = 18.0,
     this.lineSpacing = 1.5,
     this.fontFamily = 'Roboto',
@@ -34,6 +45,9 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
     this.isItalic = false,
     this.doubleTapTimeout = 300,
     this.textDirection,
+    this.highlightedWordId,
+    this.highlightedParagraphId,
+    this.highlightedOrder,
   });
 
   @override
@@ -43,8 +57,12 @@ class SentenceReaderDisplay extends ConsumerStatefulWidget {
 }
 
 class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
-  Timer? _doubleTapTimer;
+  Timer? _singleTapTimer;
+  Timer? _tripleTapTimer;
   TextItem? _lastTappedItem;
+  TextItem? _selectionStartItem;
+  TextItem? _selectionCurrentItem;
+  final Map<String, GlobalKey> _itemKeys = {};
   int _buildCount = 0;
 
   @override
@@ -55,32 +73,148 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
 
   @override
   void dispose() {
-    _doubleTapTimer?.cancel();
+    _singleTapTimer?.cancel();
+    _tripleTapTimer?.cancel();
     super.dispose();
   }
 
   void _handleTap(TextItem item, BuildContext context) {
+    if (_selectionStartItem != null) {
+      return;
+    }
+
     if (_lastTappedItem == item &&
-        _doubleTapTimer != null &&
-        _doubleTapTimer!.isActive) {
-      _doubleTapTimer?.cancel();
+        _tripleTapTimer != null &&
+        _tripleTapTimer!.isActive) {
+      _singleTapTimer?.cancel();
+      _tripleTapTimer?.cancel();
+      widget.onTripleTap?.call(item);
       TermTooltipClass.close();
-      widget.onDoubleTap?.call(item);
-      _doubleTapTimer = null;
-      _lastTappedItem = null;
+      _tripleTapTimer = null;
+      _singleTapTimer = null;
+    } else if (_lastTappedItem == item &&
+        _singleTapTimer != null &&
+        _singleTapTimer!.isActive) {
+      _singleTapTimer?.cancel();
+      TermTooltipClass.close();
+
+      if (widget.enableTripleTap) {
+        _tripleTapTimer = Timer(
+          Duration(milliseconds: widget.doubleTapTimeout),
+          () {
+            _tripleTapTimer = null;
+            widget.onDoubleTap?.call(item);
+            _singleTapTimer = null;
+          },
+        );
+      } else {
+        widget.onDoubleTap?.call(item);
+        _singleTapTimer = null;
+      }
     } else {
+      _tripleTapTimer?.cancel();
+      _tripleTapTimer = null;
+
       _lastTappedItem = item;
-      _doubleTapTimer?.cancel();
+      _singleTapTimer?.cancel();
 
       widget.onTap?.call(item, context);
 
-      _doubleTapTimer = Timer(
+      _singleTapTimer = Timer(
         Duration(milliseconds: widget.doubleTapTimeout),
         () {
-          _doubleTapTimer = null;
-          _lastTappedItem = null;
+          _singleTapTimer = null;
         },
       );
+    }
+  }
+
+  String _itemKeyId(TextItem item) {
+    return '${item.paragraphId}-${item.order}-${item.wordId ?? 'space'}';
+  }
+
+  GlobalKey _itemKeyFor(TextItem item) {
+    final keyId = _itemKeyId(item);
+    return _itemKeys.putIfAbsent(keyId, GlobalKey.new);
+  }
+
+  List<TextItem> _selectedItems(TextItem start, TextItem end) {
+    final startOrder = start.order < end.order ? start.order : end.order;
+    final endOrder = start.order > end.order ? start.order : end.order;
+    return widget.sentence!.textItems
+        .where((item) => item.order >= startOrder && item.order <= endOrder)
+        .toList();
+  }
+
+  bool _isSelected(TextItem item) {
+    final start = _selectionStartItem;
+    final current = _selectionCurrentItem;
+    if (start == null || current == null) return false;
+
+    final startOrder = start.order < current.order
+        ? start.order
+        : current.order;
+    final endOrder = start.order > current.order ? start.order : current.order;
+    return item.order >= startOrder && item.order <= endOrder;
+  }
+
+  TextItem? _findItemAtGlobalPosition(Offset globalPosition) {
+    final sentence = widget.sentence;
+    if (sentence == null) return null;
+
+    for (final item in sentence.textItems) {
+      final itemKey = _itemKeys[_itemKeyId(item)];
+      final context = itemKey?.currentContext;
+      final renderObject = context?.findRenderObject();
+      if (renderObject is! RenderBox || !renderObject.hasSize) {
+        continue;
+      }
+
+      final rect = renderObject.localToGlobal(Offset.zero) & renderObject.size;
+      if (rect.contains(globalPosition)) {
+        return item;
+      }
+    }
+
+    return null;
+  }
+
+  void _handleSelectionStart(TextItem item) {
+    TermTooltipClass.close();
+    setState(() {
+      _selectionStartItem = item;
+      _selectionCurrentItem = item;
+    });
+    widget.onMultiTermSelectionStart?.call();
+  }
+
+  void _handleSelectionMove(TextItem item, Offset globalPosition) {
+    if (_selectionStartItem == null) return;
+    final hoveredItem = _findItemAtGlobalPosition(globalPosition) ?? item;
+    if (_selectionCurrentItem == hoveredItem) return;
+    setState(() {
+      _selectionCurrentItem = hoveredItem;
+    });
+  }
+
+  void _handleSelectionEnd(TextItem item) {
+    final start = _selectionStartItem;
+    final current = _selectionCurrentItem ?? item;
+    if (start == null) return;
+
+    final selectedItems = _selectedItems(start, current);
+    setState(() {
+      _selectionStartItem = null;
+      _selectionCurrentItem = null;
+    });
+
+    if (widget.onMultiTermSelectionComplete != null) {
+      widget.onMultiTermSelectionComplete!(selectedItems);
+      return;
+    }
+
+    if (selectedItems.length == 1) {
+      widget.onLongPress?.call(selectedItems.first);
     }
   }
 
@@ -100,6 +234,9 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
           widget.sentence!.textItems,
           fallback: Directionality.of(context),
         );
+    final wrapDirection = textDirection == TextDirection.rtl
+        ? TextDirection.ltr
+        : textDirection;
 
     return RepaintBoundary(
       child: Directionality(
@@ -111,7 +248,7 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
           child: Wrap(
             spacing: 0,
             runSpacing: 0,
-            textDirection: textDirection,
+            textDirection: wrapDirection,
             children: widget.sentence!.textItems.asMap().entries.map((entry) {
               final item = entry.value;
               return _buildInteractiveWord(context, item);
@@ -131,9 +268,19 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
       fontFamily: widget.fontFamily,
       fontWeight: widget.fontWeight,
       isItalic: widget.isItalic,
+      widgetKey: _itemKeyFor(item),
       onTap: (item, context) => _handleTap(item, context),
       onDoubleTap: (item) => widget.onDoubleTap?.call(item),
       onLongPress: (item) => widget.onLongPress?.call(item),
+      onLongPressStart: (item) => _handleSelectionStart(item),
+      onLongPressMoveUpdate: (item, globalPosition) =>
+          _handleSelectionMove(item, globalPosition),
+      onLongPressEnd: (item) => _handleSelectionEnd(item),
+      onTripleTap: (item) => widget.onTripleTap?.call(item),
+      highlightedWordId: widget.highlightedWordId,
+      highlightedParagraphId: widget.highlightedParagraphId,
+      highlightedOrder: widget.highlightedOrder,
+      isSelected: _isSelected(item),
     );
   }
 }

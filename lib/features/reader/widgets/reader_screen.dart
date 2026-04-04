@@ -153,6 +153,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   int? _highlightedParagraphId;
   int? _highlightedOrder;
   TextItem? _originalTextItem;
+  bool _isMultiTermSelecting = false;
   ScrollController _scrollController = ScrollController();
   double _lastScrollPosition = 0.0;
   bool _isLastPageMarkedDone = false;
@@ -393,16 +394,25 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
   }
 
-  Future<void> reloadPage() async {
+  Future<void> reloadPage({bool forceFresh = false}) async {
     final pageData = ref.read(readerProvider).pageData;
     if (pageData != null) {
       setState(() {
         _pageKey = ValueKey('${pageData!.bookId}-${pageData!.currentPage}');
         _isLastPageMarkedDone = false;
       });
+      if (forceFresh) {
+        await ref
+            .read(readerProvider.notifier)
+            .clearPageCacheForBook(pageData.bookId);
+      }
       await ref
           .read(readerProvider.notifier)
-          .loadPage(bookId: pageData!.bookId, pageNum: pageData!.currentPage);
+          .loadPage(
+            bookId: pageData.bookId,
+            pageNum: pageData.currentPage,
+            useCache: !forceFresh,
+          );
 
       final langId = _findLangId(pageData);
 
@@ -924,6 +934,10 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
       onLongPress: (item) {
         _handleLongPress(item);
       },
+      onMultiTermSelectionStart: _handleMultiTermSelectionStart,
+      onMultiTermSelectionComplete: (selectedItems) {
+        unawaited(_handleMultiTermSelectionComplete(selectedItems));
+      },
       onTripleTap: (item) {
         _handleTripleTap(item);
       },
@@ -964,6 +978,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
               }
             },
             onHorizontalDragEnd: (details) async {
+              if (_isMultiTermSelecting) return;
               if (pageData.pageCount <= 1) return;
 
               final currentTextSettings = ref.read(
@@ -1120,13 +1135,50 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
   }
 
   void _handleLongPress(TextItem item) {
-    // Only handle long press for terms from the server (items with wordId)
+    // Long press release on a single term opens sentence translation.
     if (item.wordId == null) return;
     if (item.langId == null) return;
 
     final sentence = _extractSentence(item);
     if (sentence.isNotEmpty) {
       _showSentenceTranslation(sentence, item.langId!);
+    }
+  }
+
+  void _handleMultiTermSelectionStart() {
+    TermTooltipClass.close();
+    setState(() {
+      _isMultiTermSelecting = true;
+    });
+  }
+
+  Future<void> _handleMultiTermSelectionComplete(
+    List<TextItem> selectedItems,
+  ) async {
+    if (mounted) {
+      setState(() {
+        _isMultiTermSelecting = false;
+      });
+    }
+
+    if (selectedItems.isEmpty) return;
+
+    if (selectedItems.length == 1) {
+      _handleLongPress(selectedItems.first);
+      return;
+    }
+
+    final langId = selectedItems.first.langId;
+    if (langId == null) return;
+
+    final termText = selectedItems.map((item) => item.text).join().trim();
+    if (termText.isEmpty) return;
+
+    final termForm = await ref
+        .read(readerProvider.notifier)
+        .fetchTermForm(langId, termText);
+    if (termForm != null && mounted) {
+      _showTermForm(termForm, sentence: _extractSentence(selectedItems.first));
     }
   }
 
@@ -1245,7 +1297,9 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 ref.read(readerProvider.notifier).saveTerm(updatedForm).then((
                   success,
                 ) {
-                  if (!success && mounted) {
+                  if (success && mounted && updatedForm.termId == null) {
+                    reloadPage(forceFresh: true);
+                  } else if (!success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Failed to save term')),
                     );
@@ -1290,6 +1344,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                                 updatedForm.termId!,
                                 updatedForm.status,
                               );
+                        } else {
+                          await reloadPage(forceFresh: true);
                         }
                         Navigator.of(context).pop();
                       } else {

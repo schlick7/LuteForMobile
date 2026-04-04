@@ -251,6 +251,7 @@ class StatusColors {
   final Color status99;
   final Color highlightedText;
   final Color wordGlowColor;
+  final Color multiTermSelectionColor;
 
   const StatusColors({
     required this.status0,
@@ -263,6 +264,7 @@ class StatusColors {
     required this.status99,
     required this.highlightedText,
     required this.wordGlowColor,
+    required this.multiTermSelectionColor,
   });
 
   StatusColors copyWith({
@@ -276,6 +278,7 @@ class StatusColors {
     Color? status99,
     Color? highlightedText,
     Color? wordGlowColor,
+    Color? multiTermSelectionColor,
   }) {
     return StatusColors(
       status0: status0 ?? this.status0,
@@ -288,6 +291,8 @@ class StatusColors {
       status99: status99 ?? this.status99,
       highlightedText: highlightedText ?? this.highlightedText,
       wordGlowColor: wordGlowColor ?? this.wordGlowColor,
+      multiTermSelectionColor:
+          multiTermSelectionColor ?? this.multiTermSelectionColor,
     );
   }
 
@@ -304,7 +309,8 @@ class StatusColors {
         other.status98 == status98 &&
         other.status99 == status99 &&
         other.highlightedText == highlightedText &&
-        other.wordGlowColor == wordGlowColor;
+        other.wordGlowColor == wordGlowColor &&
+        other.multiTermSelectionColor == multiTermSelectionColor;
   }
 
   @override
@@ -319,6 +325,7 @@ class StatusColors {
     status99,
     highlightedText,
     wordGlowColor,
+    multiTermSelectionColor,
   );
 }
 

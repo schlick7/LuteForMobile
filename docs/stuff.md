@@ -5,7 +5,7 @@
   
 
 ---
-
+Have a button in termform to start creating a multi-term selection (visibility set up toggle)? This would add the mult-term selection that is present in the server. 
 
 ---
 
@@ -49,6 +49,7 @@ Tapping termux in the status bring you to play store
 
 # Help Screen
 - Can't copy text
+- Add multi-term
 
 # Theme
 -

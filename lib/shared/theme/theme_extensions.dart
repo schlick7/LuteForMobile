@@ -29,6 +29,8 @@ extension BuildContextExtension on BuildContext {
   Color get status99 => appColorScheme.status.status99;
   Color get status0 => appColorScheme.status.status0;
   Color get wordGlowColor => appColorScheme.status.wordGlowColor;
+  Color get multiTermSelectionColor =>
+      appColorScheme.status.multiTermSelectionColor;
 
   Color get success => appColorScheme.semantic.success;
   Color get warning => appColorScheme.semantic.warning;
