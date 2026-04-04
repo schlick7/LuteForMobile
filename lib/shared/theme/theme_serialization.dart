@@ -50,6 +50,9 @@ class ThemeSerialization {
         'status99': _colorToJson(scheme.status.status99),
         'highlightedText': _colorToJson(scheme.status.highlightedText),
         'wordGlowColor': _colorToJson(scheme.status.wordGlowColor),
+        'multiTermSelectionColor': _colorToJson(
+          scheme.status.multiTermSelectionColor,
+        ),
       },
       'border': {
         'outline': _colorToJson(scheme.border.outline),
@@ -147,6 +150,9 @@ class ThemeSerialization {
           status99: _jsonToColor(status['status99']),
           highlightedText: _jsonToColor(status['highlightedText']),
           wordGlowColor: _jsonToColor(status['wordGlowColor']),
+          multiTermSelectionColor: _jsonToColor(
+            status['multiTermSelectionColor'],
+          ),
         ),
         border: BorderColors(
           outline: _jsonToColor(border['outline']),

@@ -218,6 +218,11 @@ class AppThemeColorExtension extends ThemeExtension<AppThemeColorExtension> {
             other.colorScheme.status.wordGlowColor,
             t,
           )!,
+          multiTermSelectionColor: Color.lerp(
+            colorScheme.status.multiTermSelectionColor,
+            other.colorScheme.status.multiTermSelectionColor,
+            t,
+          )!,
         ),
         border: BorderColors(
           outline: Color.lerp(

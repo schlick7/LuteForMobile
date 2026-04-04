@@ -193,6 +193,24 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
                 (s) => s.copyWith(status: s.status.copyWith(wordGlowColor: c)),
               ),
             ),
+            _colorRow(
+              context,
+              label: 'Multi-term Selection',
+              color: _workingScheme!.status.multiTermSelectionColor,
+              description: 'Highlight color while selecting a multi-term',
+              preview: _chipPreview(
+                bg: _workingScheme!.status.multiTermSelectionColor,
+                fg: _onColorForPreview(
+                  _workingScheme!.status.multiTermSelectionColor,
+                ),
+                text: 'Selecting',
+              ),
+              onChanged: (c) => _updateScheme(
+                (s) => s.copyWith(
+                  status: s.status.copyWith(multiTermSelectionColor: c),
+                ),
+              ),
+            ),
           ]),
           _buildSectionCard(context, 'Text Colors', [
             _colorRow(
@@ -823,43 +841,40 @@ class _CustomThemeEditorState extends ConsumerState<CustomThemeEditor> {
     bool withBorder = true,
   }) {
     final content = Row(
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: color,
-              border: Border.all(
-                color: context.appColorScheme.border.outline.withValues(
-                  alpha: 0.35,
-                ),
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: color,
+            border: Border.all(
+              color: context.appColorScheme.border.outline.withValues(
+                alpha: 0.35,
               ),
-              borderRadius: BorderRadius.circular(6),
             ),
+            borderRadius: BorderRadius.circular(6),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                Text(description, style: Theme.of(context).textTheme.bodySmall),
-                Text(_hex(color), style: Theme.of(context).textTheme.bodySmall),
-              ],
-            ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 3,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(description, style: Theme.of(context).textTheme.bodySmall),
+              Text(_hex(color), style: Theme.of(context).textTheme.bodySmall),
+            ],
           ),
-          Expanded(flex: 2, child: Center(child: preview)),
-          IconButton(
-            tooltip: 'Pick color',
-            onPressed: () => _showColorPickerDialog(context, color, onChanged),
-            icon: const Icon(Icons.palette),
-          ),
-        ],
-      );
+        ),
+        Expanded(flex: 2, child: Center(child: preview)),
+        IconButton(
+          tooltip: 'Pick color',
+          onPressed: () => _showColorPickerDialog(context, color, onChanged),
+          icon: const Icon(Icons.palette),
+        ),
+      ],
+    );
 
     if (!withBorder) {
       return content;

@@ -222,8 +222,9 @@ class ApiService {
     String text,
     dynamic data,
   ) async {
+    final encodedText = Uri.encodeComponent(text);
     return await _dio.post<String>(
-      '/term/datatables',
+      '/read/termform/$langId/$encodedText',
       data: data,
       options: Options(contentType: Headers.formUrlEncodedContentType),
     );

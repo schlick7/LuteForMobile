@@ -162,6 +162,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   bool _isDictionaryOpen = false;
   bool _isLastPageMarkedDone = false;
   SentenceTTSNotifier? _ttsNotifier;
+  Timer? _glowTimer;
+  int? _highlightedWordId;
+  int? _highlightedParagraphId;
+  int? _highlightedOrder;
+  TextItem? _originalTextItem;
+  bool _isMultiTermSelecting = false;
   bool _isNavigatingForward = true;
   Map<int, String> _languageIdToName = {};
   final Map<int, TextDirection> _languageIdToDirection = {};
@@ -193,6 +199,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _ttsNotifier?.stop();
+    _glowTimer?.cancel();
     super.dispose();
   }
 
@@ -610,6 +617,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         final velocity = details.primaryVelocity ?? 0;
         const minSwipeVelocity = 300.0;
 
+        if (_isMultiTermSelecting) return;
         if (velocity.abs() < minSwipeVelocity) return;
 
         final sentenceReaderNotifier = ref.read(
@@ -651,6 +659,12 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             onTap: (item, context) => _handleTap(item, context),
             onDoubleTap: (item) => _handleDoubleTap(item),
             onLongPress: (item) => _handleLongPress(item),
+            onMultiTermSelectionStart: _handleMultiTermSelectionStart,
+            onMultiTermSelectionComplete: (selectedItems) {
+              unawaited(_handleMultiTermSelectionComplete(selectedItems));
+            },
+            onTripleTap: (item) => _handleTripleTap(item),
+            enableTripleTap: settings.enableTripleTapToMarkKnown,
             textSize: textSettings.textSize,
             lineSpacing: textSettings.lineSpacing,
             fontFamily: textSettings.fontFamily,
@@ -658,6 +672,9 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
             isItalic: textSettings.isItalic,
             doubleTapTimeout: settings.doubleTapTimeout,
             textDirection: textDirection,
+            highlightedWordId: _highlightedWordId,
+            highlightedParagraphId: _highlightedParagraphId,
+            highlightedOrder: _highlightedOrder,
           ),
         ),
       ),
@@ -681,6 +698,7 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
         final velocity = details.primaryVelocity ?? 0;
         const minSwipeVelocity = 300.0;
 
+        if (_isMultiTermSelecting) return;
         if (velocity.abs() < minSwipeVelocity) return;
 
         final sentenceReaderNotifier = ref.read(
@@ -1332,6 +1350,119 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     }
   }
 
+  void _handleMultiTermSelectionStart() {
+    TermTooltipClass.close();
+    setState(() {
+      _isMultiTermSelecting = true;
+    });
+  }
+
+  Future<void> _handleMultiTermSelectionComplete(
+    List<TextItem> selectedItems,
+  ) async {
+    if (mounted) {
+      setState(() {
+        _isMultiTermSelecting = false;
+      });
+    }
+
+    if (selectedItems.isEmpty) return;
+
+    if (selectedItems.length == 1) {
+      _handleLongPress(selectedItems.first);
+      return;
+    }
+
+    final langId = selectedItems.first.langId;
+    if (langId == null) return;
+
+    final termText = selectedItems.map((item) => item.text).join().trim();
+    if (termText.isEmpty) return;
+
+    final termForm = await ref
+        .read(readerProvider.notifier)
+        .fetchTermForm(langId, termText);
+    if (termForm != null && mounted) {
+      _showTermForm(termForm, sentence: _extractSentence(selectedItems.first));
+    }
+  }
+
+  void _triggerWordGlow() {
+    _glowTimer?.cancel();
+
+    if (_originalTextItem == null) return;
+
+    setState(() {
+      _highlightedWordId = _originalTextItem!.wordId;
+      _highlightedParagraphId = _originalTextItem!.paragraphId;
+      _highlightedOrder = _originalTextItem!.order;
+    });
+
+    _glowTimer = Timer(const Duration(milliseconds: 150), () {
+      if (!mounted) return;
+      setState(() {
+        _highlightedWordId = null;
+        _highlightedParagraphId = null;
+        _highlightedOrder = null;
+      });
+    });
+  }
+
+  void _handleTripleTap(TextItem item) async {
+    TermTooltipClass.close();
+
+    if (item.wordId == null) return;
+    if (item.langId == null) return;
+
+    final settings = ref.read(settingsProvider);
+    if (!settings.enableTripleTapToMarkKnown) return;
+
+    try {
+      final termForm = await ref
+          .read(readerProvider.notifier)
+          .fetchTermFormById(item.wordId!);
+
+      if (termForm == null) {
+        throw Exception('Could not fetch term form');
+      }
+
+      final updatedForm = termForm.copyWith(status: '99');
+      final success = await ref
+          .read(readerProvider.notifier)
+          .saveTerm(updatedForm);
+
+      if (!success) {
+        throw Exception('Failed to save term status');
+      }
+
+      await ref
+          .read(readerProvider.notifier)
+          .updateTermStatus(item.wordId!, '99');
+      ref.read(sentenceReaderProvider.notifier).syncStatusFromPageData();
+
+      _originalTextItem = item;
+      _triggerWordGlow();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('"${item.text}" marked as known'),
+            duration: const Duration(milliseconds: 1000),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to mark "${item.text}" as known'),
+            duration: const Duration(milliseconds: 1500),
+          ),
+        );
+      }
+    }
+  }
+
   String _extractSentence(TextItem item) {
     final sentenceReader = ref.read(sentenceReaderProvider);
     final currentSentence = sentenceReader.currentSentence;
@@ -1372,22 +1503,28 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                   final success = await ref
                       .read(readerProvider.notifier)
                       .saveTerm(updatedForm);
-                  if (success && mounted && updatedForm.termId != null) {
-                    _termTooltips.remove(updatedForm.termId!);
+                  if (success && mounted) {
+                    if (updatedForm.termId != null) {
+                      _termTooltips.remove(updatedForm.termId!);
 
-                    try {
-                      final freshTooltip = await ref
-                          .read(readerProvider.notifier)
-                          .fetchTermTooltip(updatedForm.termId!);
-                      if (freshTooltip != null && mounted) {
-                        setState(() {
-                          _termTooltips[updatedForm.termId!] = freshTooltip;
-                        });
+                      try {
+                        final freshTooltip = await ref
+                            .read(readerProvider.notifier)
+                            .fetchTermTooltip(updatedForm.termId!);
+                        if (freshTooltip != null && mounted) {
+                          setState(() {
+                            _termTooltips[updatedForm.termId!] = freshTooltip;
+                          });
 
-                        await Future.delayed(const Duration(milliseconds: 100));
-                        await _refreshAffectedTermTooltips(freshTooltip);
-                      }
-                    } catch (e) {}
+                          await Future.delayed(
+                            const Duration(milliseconds: 100),
+                          );
+                          await _refreshAffectedTermTooltips(freshTooltip);
+                        }
+                      } catch (e) {}
+                    } else {
+                      await flushCacheAndRebuild();
+                    }
                   } else if (!success && mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Failed to save term')),
@@ -1449,6 +1586,8 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
                               await _refreshAffectedTermTooltips(freshTooltip);
                             }
                           } catch (e) {}
+                        } else {
+                          await flushCacheAndRebuild();
                         }
 
                         Navigator.of(context).pop();
@@ -1761,13 +1900,19 @@ class SentenceReaderScreenState extends ConsumerState<SentenceReaderScreen>
     final langId = _getLangId(reader);
 
     await ref.read(sentenceCacheServiceProvider).clearBookCache(bookId);
+    await ref.read(readerProvider.notifier).clearPageCacheForBook(bookId);
 
     _termTooltips.clear();
     _lastTooltipsBookId = null;
 
     await ref
         .read(readerProvider.notifier)
-        .loadPage(bookId: bookId, pageNum: pageNum, updateReaderState: true);
+        .loadPage(
+          bookId: bookId,
+          pageNum: pageNum,
+          updateReaderState: true,
+          useCache: false,
+        );
 
     final freshReader = ref.read(readerProvider);
     if (freshReader.pageData != null) {

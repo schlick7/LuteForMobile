@@ -1196,6 +1196,7 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
         status99: Color(0xFF419252),
         highlightedText: Color(0xFFFFFFFF),
         wordGlowColor: Color(0xFFFFD700),
+        multiTermSelectionColor: Color(0xFFD87414),
       ),
       border: BorderColors(
         outline: Color(0xFF8A8A8A),

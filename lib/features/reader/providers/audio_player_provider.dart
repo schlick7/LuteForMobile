@@ -116,6 +116,11 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       playerState,
     ) {
       state = state.copyWith(playerState: playerState);
+      if (playerState == PlayerState.paused ||
+          playerState == PlayerState.stopped ||
+          playerState == PlayerState.completed) {
+        unawaited(_savePosition());
+      }
     });
 
     _positionSubscription = _audioPlayer!.onPositionChanged.listen((position) {
@@ -131,6 +136,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
         playerState: PlayerState.stopped,
         position: Duration.zero,
       );
+      unawaited(_savePosition());
     });
   }
 
@@ -184,6 +190,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
 
   Future<void> pause() async {
     await _audioPlayer!.pause();
+    await _savePosition();
   }
 
   Future<void> seek(Duration position) async {
@@ -192,6 +199,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
       await Future.delayed(Duration(milliseconds: 50));
       await _audioPlayer!.resume();
     }
+    await _savePosition();
   }
 
   Future<void> setPlaybackSpeed(double speed) async {
@@ -265,12 +273,15 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
 
   void _startAutoSave() {
     _autoSaveTimer?.cancel();
-    _autoSaveTimer = Timer.periodic(Duration(seconds: 10), (timer) {
-      _savePosition();
+    _autoSaveTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
+      unawaited(_savePosition());
     });
   }
 
   void _reset() {
+    if (_bookId != 0) {
+      unawaited(_savePosition());
+    }
     _autoSaveTimer?.cancel();
     _autoSaveTimer = null;
     _bookId = 0;
@@ -305,6 +316,7 @@ class AudioPlayerNotifier extends Notifier<AudioPlayerState> {
   }
 
   Future<void> _savePosition() async {
+    if (_bookId == 0) return;
     try {
       final positionSeconds = state.position.inMilliseconds / 1000.0;
       final durationSeconds = state.duration.inMilliseconds / 1000.0;

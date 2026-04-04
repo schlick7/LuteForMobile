@@ -46,6 +46,7 @@ final AppThemeColorScheme darkThemePreset = AppThemeColorScheme(
     status99: Color(0xFF419252),
     highlightedText: Color(0xFFeff1f2),
     wordGlowColor: Color(0xFFFFD700),
+    multiTermSelectionColor: Color(0xFFEE8B2F),
   ),
   border: const BorderColors(
     outline: Color(0xFF938F99),
@@ -118,6 +119,7 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
     status99: Color(0xFF419252),
     highlightedText: Color(0xFF2C2C2C),
     wordGlowColor: Color(0xFFFFA500),
+    multiTermSelectionColor: Color(0xFFD87414),
   ),
   border: const BorderColors(
     outline: Color(0xFF79747E),
@@ -190,6 +192,7 @@ final AppThemeColorScheme blackAndWhiteThemePreset = AppThemeColorScheme(
     status99: Color(0xFF000000),
     highlightedText: Color(0xFFFFFFFF),
     wordGlowColor: Color(0xFF999999),
+    multiTermSelectionColor: Color(0xFF444444),
   ),
   border: const BorderColors(
     outline: Color(0xFF999999),
