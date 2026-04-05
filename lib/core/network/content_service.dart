@@ -300,6 +300,41 @@ class ContentService {
     await _apiService.editTerm(termId, data);
   }
 
+  Future<TermImageUploadResult> saveTermImageFromUrl(
+    int langId,
+    String text,
+    String imageUrl,
+  ) async {
+    final response = await _apiService.saveTermImageFromUrl(
+      langId,
+      text,
+      imageUrl,
+    );
+    return _parseTermImageUploadResult(response.data ?? '', langId);
+  }
+
+  Future<TermImageUploadResult> uploadTermImage(
+    int langId,
+    String text,
+    String imagePath,
+  ) async {
+    final response = await _apiService.uploadTermImage(langId, text, imagePath);
+    return _parseTermImageUploadResult(response.data ?? '', langId);
+  }
+
+  Future<List<TermImageSearchResult>> searchTermImages(
+    int langId,
+    String text,
+    String searchString,
+  ) async {
+    final response = await _apiService.searchTermImages(
+      langId,
+      text,
+      searchString,
+    );
+    return _parseTermImageSearchResults(response.data ?? '');
+  }
+
   Future<List<SearchResultTerm>> searchTerms(String text, int langId) async {
     final response = await _apiService.searchTerms(text, langId);
     final jsonString = response.data ?? '[]';
@@ -743,6 +778,145 @@ class ContentService {
     final segments = normalized.split('/');
     if (segments.isEmpty) return path;
     return segments.last;
+  }
+
+  TermImageUploadResult _parseTermImageUploadResult(
+    String responseBody,
+    int langId,
+  ) {
+    if (responseBody.trim().isEmpty) {
+      return const TermImageUploadResult();
+    }
+
+    try {
+      final decoded = jsonDecode(responseBody);
+      if (decoded is! Map) {
+        return const TermImageUploadResult();
+      }
+
+      final data = Map<String, dynamic>.from(decoded);
+      final imageFilename =
+          data['filename']?.toString().trim().isNotEmpty == true
+          ? data['filename'].toString().trim()
+          : (data['image_filename']?.toString().trim().isNotEmpty == true
+                ? data['image_filename'].toString().trim()
+                : null);
+
+      String? imageUrl;
+      for (final key in const ['url', 'image_url', 'imageUrl', 'src']) {
+        final value = data[key]?.toString().trim();
+        if (value != null && value.isNotEmpty) {
+          imageUrl = value;
+          break;
+        }
+      }
+
+      if ((imageUrl == null || imageUrl.isEmpty) &&
+          imageFilename != null &&
+          imageFilename.isNotEmpty) {
+        imageUrl = '/userimages/$langId/$imageFilename';
+      }
+
+      return TermImageUploadResult(
+        imageUrl: imageUrl,
+        imageFilename: imageFilename,
+      );
+    } catch (_) {
+      return const TermImageUploadResult();
+    }
+  }
+
+  List<TermImageSearchResult> _parseTermImageSearchResults(
+    String responseBody,
+  ) {
+    final trimmed = responseBody.trim();
+    if (trimmed.isEmpty) return const [];
+
+    final jsonResults = _parseTermImageSearchResultsFromJson(trimmed);
+    if (jsonResults.isNotEmpty) {
+      return jsonResults;
+    }
+
+    return _parseTermImageSearchResultsFromHtml(trimmed);
+  }
+
+  List<TermImageSearchResult> _parseTermImageSearchResultsFromJson(
+    String responseBody,
+  ) {
+    try {
+      final decoded = jsonDecode(responseBody);
+      if (decoded is! List) {
+        return const [];
+      }
+
+      final results = <TermImageSearchResult>[];
+      for (final item in decoded) {
+        if (item is! Map) continue;
+        final data = Map<String, dynamic>.from(item);
+        String? imageUrl;
+        String? thumbnailUrl;
+
+        for (final key in const [
+          'src',
+          'url',
+          'image_url',
+          'imageUrl',
+          'contentUrl',
+        ]) {
+          final value = data[key]?.toString().trim();
+          if (value != null && value.isNotEmpty) {
+            imageUrl = value;
+            break;
+          }
+        }
+
+        for (final key in const [
+          'thumbnail',
+          'thumb',
+          'thumbnail_url',
+          'thumbnailUrl',
+          'turl',
+        ]) {
+          final value = data[key]?.toString().trim();
+          if (value != null && value.isNotEmpty) {
+            thumbnailUrl = value;
+            break;
+          }
+        }
+
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          results.add(
+            TermImageSearchResult(
+              imageUrl: imageUrl,
+              thumbnailUrl: thumbnailUrl,
+            ),
+          );
+        }
+      }
+      return results;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  List<TermImageSearchResult> _parseTermImageSearchResultsFromHtml(
+    String responseBody,
+  ) {
+    final imageTagMatches = RegExp(
+      r"""<img\b[^>]*\bsrc=['"]([^'"]+)['"][^>]*>""",
+      caseSensitive: false,
+    ).allMatches(responseBody);
+
+    final seen = <String>{};
+    final results = <TermImageSearchResult>[];
+    for (final match in imageTagMatches) {
+      final src = match.group(1)?.trim();
+      if (src == null || src.isEmpty || !seen.add(src)) {
+        continue;
+      }
+      results.add(TermImageSearchResult(imageUrl: src, thumbnailUrl: src));
+    }
+    return results;
   }
 
   List<String> _parseTagifyTags(String rawValue) {

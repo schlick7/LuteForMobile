@@ -7,6 +7,8 @@ class TermTooltip {
   final List<String> sentences;
   final String? language;
   final int? languageId;
+  final String? imageUrl;
+  final String? imageFilename;
   final List<TermParent> parents;
   final List<TermChild> children;
 
@@ -19,6 +21,8 @@ class TermTooltip {
     this.sentences = const [],
     this.language,
     this.languageId,
+    this.imageUrl,
+    this.imageFilename,
     this.parents = const [],
     this.children = const [],
   });
@@ -59,6 +63,8 @@ class TermTooltip {
     List<String>? sentences,
     String? language,
     int? languageId,
+    String? imageUrl,
+    String? imageFilename,
     List<TermParent>? parents,
     List<TermChild>? children,
   }) {
@@ -71,6 +77,8 @@ class TermTooltip {
       sentences: sentences ?? this.sentences,
       language: language ?? this.language,
       languageId: languageId ?? this.languageId,
+      imageUrl: imageUrl ?? this.imageUrl,
+      imageFilename: imageFilename ?? this.imageFilename,
       parents: parents ?? this.parents,
       children: children ?? this.children,
     );

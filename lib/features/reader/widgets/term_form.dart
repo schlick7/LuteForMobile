@@ -1,9 +1,12 @@
+import 'dart:convert';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term_form.dart';
 import '../models/term_tooltip.dart';
 import '../../settings/providers/settings_provider.dart'
-    show termFormSettingsProvider;
+    show settingsProvider, termFormSettingsProvider;
 import '../../settings/models/ai_settings.dart';
 import '../../settings/providers/ai_settings_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
@@ -57,6 +60,8 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   bool _isDictionaryOpen = false;
   List<DictionarySource> _dictionaries = [];
   bool _isLoadingAITranslation = false;
+  bool _isSavingImage = false;
+  bool _isSearchingImages = false;
   List<String> _pendingAITranslations = [];
   String? _lastAutoFetchedTermKey;
 
@@ -223,6 +228,24 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
                       ref
                           .read(termFormSettingsProvider.notifier)
                           .updateShowTags(value);
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ),
+              ],
+            ),
+            Row(
+              children: [
+                const Text('Show Images'),
+                const Spacer(),
+                Transform.scale(
+                  scale: 0.8,
+                  child: Switch(
+                    value: settings.showImages,
+                    onChanged: (value) {
+                      ref
+                          .read(termFormSettingsProvider.notifier)
+                          .updateShowImages(value);
                       Navigator.of(context).pop();
                     },
                   ),
@@ -545,6 +568,10 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
         ),
         Row(
           children: [
+            if (settings.showImages) ...[
+              _buildImageButton(context),
+              const SizedBox(width: 4),
+            ],
             IconButton(
               onPressed: _showSettingsMenu,
               icon: const Icon(Icons.settings),
@@ -828,6 +855,514 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
       ),
       onChanged: (_) => _updateForm(),
     );
+  }
+
+  Widget _buildImageButton(BuildContext context) {
+    final resolvedImageUrl = _resolveImageUrl(widget.termForm.imageUrl);
+    return IconButton(
+      onPressed: _showImageManagerDialog,
+      tooltip: 'Manage image',
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+      icon: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              border: Border.all(color: context.appColorScheme.border.outline),
+              borderRadius: BorderRadius.circular(6),
+              color: context.appColorScheme.background.surface,
+            ),
+            child: resolvedImageUrl != null
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(5),
+                    child: Image.network(
+                      resolvedImageUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return _buildSmallImagePlaceholder(context);
+                      },
+                    ),
+                  )
+                : _buildSmallImagePlaceholder(context),
+          ),
+          if (_isSavingImage || _isSearchingImages)
+            Positioned(
+              right: -2,
+              bottom: -2,
+              child: Container(
+                width: 12,
+                height: 12,
+                padding: const EdgeInsets.all(1),
+                decoration: BoxDecoration(
+                  color: context.appColorScheme.background.surface,
+                  shape: BoxShape.circle,
+                ),
+                child: const CircularProgressIndicator(strokeWidth: 1.5),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showImageManagerDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Term Image'),
+        content: SizedBox(
+          width: 440,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: context.appColorScheme.border.outline,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: widget.termForm.imageUrl != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: Image.network(
+                            _resolveImageUrl(widget.termForm.imageUrl!)!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return _buildImagePlaceholder(context);
+                            },
+                          ),
+                        ),
+                      )
+                    : _buildImagePlaceholder(context),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                widget.termForm.imageFilename?.isNotEmpty == true
+                    ? widget.termForm.imageFilename!
+                    : 'No image attached',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _isSavingImage ? null : _pickAndUploadImage,
+                    icon: const Icon(Icons.upload_file),
+                    label: const Text('Upload'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _isSavingImage
+                        ? null
+                        : () => _showImageUrlDialog(dialogContext),
+                    icon: const Icon(Icons.link),
+                    label: const Text('From URL'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _isSavingImage || _isSearchingImages
+                        ? null
+                        : () => _showImageSearchDialog(dialogContext),
+                    icon: _isSearchingImages
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.image_search),
+                    label: const Text('Search'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmallImagePlaceholder(BuildContext context) {
+    return Icon(
+      Icons.image_outlined,
+      size: 16,
+      color: context.m3Secondary.withValues(alpha: 0.8),
+    );
+  }
+
+  Widget _buildImagePlaceholder(BuildContext context) {
+    return Container(
+      height: 220,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: context.appColorScheme.background.surface,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      alignment: Alignment.center,
+      child: Icon(
+        Icons.image_outlined,
+        size: 56,
+        color: context.m3Secondary.withValues(alpha: 0.8),
+      ),
+    );
+  }
+
+  String? _resolveImageUrl(String? imageUrl) {
+    if (imageUrl == null || imageUrl.trim().isEmpty) {
+      return null;
+    }
+
+    final trimmed = imageUrl.trim();
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null && uri.hasScheme) {
+      return trimmed;
+    }
+
+    final serverUrl = ref.read(settingsProvider).serverUrl.trim();
+    if (serverUrl.isEmpty) {
+      return trimmed;
+    }
+
+    final normalizedServer = serverUrl.endsWith('/')
+        ? serverUrl.substring(0, serverUrl.length - 1)
+        : serverUrl;
+    final normalizedPath = trimmed.startsWith('/') ? trimmed : '/$trimmed';
+    return '$normalizedServer$normalizedPath';
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+      withData: false,
+    );
+    final path = result?.files.single.path;
+    if (path == null || path.isEmpty) {
+      return;
+    }
+
+    await _saveImage(
+      operation: () => widget.contentService.uploadTermImage(
+        widget.termForm.languageId,
+        widget.termForm.term,
+        path,
+      ),
+      successMessage: 'Image uploaded',
+    );
+  }
+
+  void _showImageUrlDialog(BuildContext context) {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Save Image From URL'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            hintText: 'https://example.com/image.jpg',
+          ),
+          keyboardType: TextInputType.url,
+          onSubmitted: (_) async {
+            final imageUrl = controller.text.trim();
+            if (imageUrl.isEmpty) return;
+            Navigator.of(dialogContext).pop();
+            await _saveImage(
+              operation: () => widget.contentService.saveTermImageFromUrl(
+                widget.termForm.languageId,
+                widget.termForm.term,
+                imageUrl,
+              ),
+              successMessage: 'Image saved',
+            );
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final imageUrl = controller.text.trim();
+              if (imageUrl.isEmpty) return;
+              Navigator.of(dialogContext).pop();
+              await _saveImage(
+                operation: () => widget.contentService.saveTermImageFromUrl(
+                  widget.termForm.languageId,
+                  widget.termForm.term,
+                  imageUrl,
+                ),
+                successMessage: 'Image saved',
+              );
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImageSearchDialog(BuildContext context) {
+    final controller = TextEditingController(text: widget.termForm.term);
+    List<TermImageSearchResult> results = const [];
+    String? errorMessage;
+    bool isLoading = false;
+
+    Future<void> runSearch(StateSetter setDialogState) async {
+      final query = controller.text.trim();
+      if (query.isEmpty) {
+        setDialogState(() {
+          errorMessage = 'Enter a search query';
+          results = const [];
+        });
+        return;
+      }
+
+      setState(() {
+        _isSearchingImages = true;
+      });
+      setDialogState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+
+      try {
+        final searchResults = await widget.contentService.searchTermImages(
+          widget.termForm.languageId,
+          widget.termForm.term,
+          query,
+        );
+
+        setDialogState(() {
+          results = searchResults;
+          if (searchResults.isEmpty) {
+            errorMessage = 'No images found';
+          }
+        });
+      } catch (e) {
+        setDialogState(() {
+          errorMessage = _extractErrorMessage(e);
+          results = const [];
+        });
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSearchingImages = false;
+          });
+        }
+        setDialogState(() {
+          isLoading = false;
+        });
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Search Images'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          hintText: 'Search for an image',
+                        ),
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (_) => runSearch(setDialogState),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      onPressed: isLoading
+                          ? null
+                          : () => runSearch(setDialogState),
+                      child: const Text('Search'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (errorMessage != null)
+                  Text(errorMessage!, style: TextStyle(color: context.error)),
+                if (isLoading)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (results.isNotEmpty)
+                  SizedBox(
+                    height: 360,
+                    child: GridView.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 8,
+                            mainAxisSpacing: 8,
+                            childAspectRatio: 1,
+                          ),
+                      itemCount: results.length,
+                      itemBuilder: (context, index) {
+                        final result = results[index];
+                        final previewUrl =
+                            result.thumbnailUrl ?? result.imageUrl;
+                        return InkWell(
+                          onTap: () async {
+                            Navigator.of(dialogContext).pop();
+                            await _saveImage(
+                              operation: () =>
+                                  widget.contentService.saveTermImageFromUrl(
+                                    widget.termForm.languageId,
+                                    widget.termForm.term,
+                                    result.imageUrl,
+                                  ),
+                              successMessage: 'Image saved',
+                            );
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: context.appColorScheme.border.outline,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                previewUrl,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    _buildImagePlaceholder(context),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Close'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveImage({
+    required Future<TermImageUploadResult> Function() operation,
+    required String successMessage,
+  }) async {
+    if (_isSavingImage) return;
+
+    setState(() {
+      _isSavingImage = true;
+    });
+
+    try {
+      final result = await operation();
+      TermForm updatedForm = widget.termForm.copyWith(
+        imageUrl: result.imageUrl ?? widget.termForm.imageUrl,
+        imageFilename: result.imageFilename ?? widget.termForm.imageFilename,
+      );
+
+      final refreshed = await _refreshTermImageState();
+      if (refreshed != null) {
+        updatedForm = updatedForm.copyWith(
+          imageUrl: refreshed.imageUrl,
+          imageFilename: refreshed.imageFilename,
+        );
+      }
+
+      widget.onUpdate(updatedForm);
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(successMessage)));
+      }
+    } catch (e) {
+      if (mounted) {
+        final message = _extractErrorMessage(e);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Image update failed: $message')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSavingImage = false;
+        });
+      }
+    }
+  }
+
+  Future<TermForm?> _refreshTermImageState() async {
+    try {
+      if (widget.termForm.termId != null) {
+        return await widget.contentService.getTermFormById(
+          widget.termForm.termId!,
+        );
+      }
+      return await widget.contentService.getTermForm(
+        widget.termForm.languageId,
+        widget.termForm.term,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _extractErrorMessage(Object error) {
+    final raw = error.toString();
+    final marker = 'Exception: ';
+    final normalized = raw.startsWith(marker)
+        ? raw.substring(marker.length)
+        : raw;
+
+    try {
+      final decoded = jsonDecode(normalized);
+      if (decoded is Map) {
+        for (final key in const ['error', 'message', 'detail']) {
+          final value = decoded[key]?.toString().trim();
+          if (value != null && value.isNotEmpty) {
+            return value;
+          }
+        }
+      }
+    } catch (_) {
+      // Fall back to the raw error text.
+    }
+
+    return normalized;
   }
 
   Widget _buildTagsSection(BuildContext context) {

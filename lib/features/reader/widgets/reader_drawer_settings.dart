@@ -76,6 +76,7 @@ class ReaderDrawerSettings extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final textSettings = ref.watch(textFormattingSettingsProvider);
     final settings = ref.watch(settingsProvider);
+    final termFormSettings = ref.watch(termFormSettingsProvider);
     final availableWeights = _getAvailableWeights(textSettings.fontFamily);
     int weightIndex = availableWeights.indexOf(textSettings.fontWeight);
     if (weightIndex == -1) {
@@ -124,6 +125,8 @@ class ReaderDrawerSettings extends ConsumerWidget {
             const SizedBox(height: 24),
             _buildWordGlowToggle(context, ref),
           ],
+          const SizedBox(height: 24),
+          _buildTooltipImagesToggle(context, ref, termFormSettings),
           const SizedBox(height: 24),
           if (currentRoute != 'sentence-reader')
             _buildPageNumbersToggle(context, ref, settings),
@@ -630,6 +633,34 @@ class ReaderDrawerSettings extends ConsumerWidget {
               ref
                   .read(termFormSettingsProvider.notifier)
                   .updateWordGlowEnabled(value);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTooltipImagesToggle(
+    BuildContext context,
+    WidgetRef ref,
+    TermFormSettings termFormSettings,
+  ) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Show Tooltip Images',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+        Transform.scale(
+          scale: 0.8,
+          child: Switch(
+            value: termFormSettings.showTooltipImages,
+            onChanged: (value) {
+              ref
+                  .read(termFormSettingsProvider.notifier)
+                  .updateShowTooltipImages(value);
             },
           ),
         ),

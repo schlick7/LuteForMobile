@@ -40,6 +40,8 @@ class TermForm {
   final String status;
   final List<String>? tags;
   final String? romanization;
+  final String? imageUrl;
+  final String? imageFilename;
   final bool showRomanization;
   final List<String> dictionaries;
   final List<TermParent> parents;
@@ -53,6 +55,8 @@ class TermForm {
     this.status = '99',
     this.tags,
     this.romanization,
+    this.imageUrl,
+    this.imageFilename,
     this.showRomanization = true,
     this.dictionaries = const [],
     this.parents = const [],
@@ -67,6 +71,8 @@ class TermForm {
     String? status,
     List<String>? tags,
     String? romanization,
+    String? imageUrl,
+    String? imageFilename,
     bool? showRomanization,
     List<String>? dictionaries,
     List<TermParent>? parents,
@@ -80,6 +86,8 @@ class TermForm {
       status: status ?? this.status,
       tags: tags ?? this.tags,
       romanization: romanization ?? this.romanization,
+      imageUrl: imageUrl ?? this.imageUrl,
+      imageFilename: imageFilename ?? this.imageFilename,
       showRomanization: showRomanization ?? this.showRomanization,
       dictionaries: dictionaries ?? this.dictionaries,
       parents: parents ?? this.parents,
@@ -113,4 +121,18 @@ class TermForm {
 
     return data;
   }
+}
+
+class TermImageUploadResult {
+  final String? imageUrl;
+  final String? imageFilename;
+
+  const TermImageUploadResult({this.imageUrl, this.imageFilename});
+}
+
+class TermImageSearchResult {
+  final String imageUrl;
+  final String? thumbnailUrl;
+
+  const TermImageSearchResult({required this.imageUrl, this.thumbnailUrl});
 }

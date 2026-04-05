@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/term_tooltip.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../settings/providers/settings_provider.dart';
 
 String _formatTranslation(String? translation) {
   if (translation == null) return '';
@@ -90,18 +92,22 @@ class _AnimatedTermTooltipState extends State<_AnimatedTermTooltip>
   }
 }
 
-class _TooltipContent extends StatelessWidget {
+class _TooltipContent extends ConsumerWidget {
   final TermTooltip termTooltip;
 
   const _TooltipContent({required this.termTooltip});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final showTooltipImages = ref.watch(
+      termFormSettingsProvider.select((settings) => settings.showTooltipImages),
+    );
+
     return Material(
       elevation: 8,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 200),
+        constraints: const BoxConstraints(maxWidth: 220),
         decoration: BoxDecoration(
           color: context.appColorScheme.background.surface,
           boxShadow: [
@@ -122,6 +128,24 @@ class _TooltipContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (showTooltipImages && termTooltip.imageUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: AspectRatio(
+                  aspectRatio: 16 / 9,
+                  child: Image.network(
+                    _resolveImageUrl(
+                      termTooltip.imageUrl!,
+                      ref.read(settingsProvider).serverUrl,
+                    ),
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const SizedBox.shrink(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             Text(
               termTooltip.term,
               style: Theme.of(
@@ -184,6 +208,20 @@ class _TooltipContent extends StatelessWidget {
       ),
     );
   }
+}
+
+String _resolveImageUrl(String imageUrl, String serverUrl) {
+  final trimmed = imageUrl.trim();
+  final uri = Uri.tryParse(trimmed);
+  if (uri != null && uri.hasScheme) {
+    return trimmed;
+  }
+
+  final normalizedServer = serverUrl.endsWith('/')
+      ? serverUrl.substring(0, serverUrl.length - 1)
+      : serverUrl;
+  final normalizedPath = trimmed.startsWith('/') ? trimmed : '/$trimmed';
+  return '$normalizedServer$normalizedPath';
 }
 
 class TermTooltipClass {

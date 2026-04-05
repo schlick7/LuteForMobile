@@ -49,7 +49,6 @@ Tapping termux in the status bring you to play store
 
 # Help Screen
 - Can't copy text
-- Add multi-term
 
 # Theme
 -

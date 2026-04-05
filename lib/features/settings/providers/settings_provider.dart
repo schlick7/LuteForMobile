@@ -508,6 +508,8 @@ final settingsProvider = NotifierProvider<SettingsNotifier, Settings>(() {
 class TermFormSettings {
   final bool showRomanization;
   final bool showTags;
+  final bool showImages;
+  final bool showTooltipImages;
   final bool autoSave;
   final bool showParentsInDictionary;
   final bool wordGlowEnabled;
@@ -517,6 +519,8 @@ class TermFormSettings {
   const TermFormSettings({
     this.showRomanization = true,
     this.showTags = false,
+    this.showImages = true,
+    this.showTooltipImages = true,
     this.autoSave = true,
     this.showParentsInDictionary = true,
     this.wordGlowEnabled = true,
@@ -527,6 +531,8 @@ class TermFormSettings {
   TermFormSettings copyWith({
     bool? showRomanization,
     bool? showTags,
+    bool? showImages,
+    bool? showTooltipImages,
     bool? autoSave,
     bool? showParentsInDictionary,
     bool? wordGlowEnabled,
@@ -536,6 +542,8 @@ class TermFormSettings {
     return TermFormSettings(
       showRomanization: showRomanization ?? this.showRomanization,
       showTags: showTags ?? this.showTags,
+      showImages: showImages ?? this.showImages,
+      showTooltipImages: showTooltipImages ?? this.showTooltipImages,
       autoSave: autoSave ?? this.autoSave,
       showParentsInDictionary:
           showParentsInDictionary ?? this.showParentsInDictionary,
@@ -554,6 +562,8 @@ class TermFormSettings {
     return other is TermFormSettings &&
         other.showRomanization == showRomanization &&
         other.showTags == showTags &&
+        other.showImages == showImages &&
+        other.showTooltipImages == showTooltipImages &&
         other.autoSave == autoSave &&
         other.showParentsInDictionary == showParentsInDictionary &&
         other.wordGlowEnabled == wordGlowEnabled &&
@@ -566,6 +576,8 @@ class TermFormSettings {
   int get hashCode =>
       showRomanization.hashCode ^
       showTags.hashCode ^
+      showImages.hashCode ^
+      showTooltipImages.hashCode ^
       autoSave.hashCode ^
       showParentsInDictionary.hashCode ^
       wordGlowEnabled.hashCode ^
@@ -578,6 +590,8 @@ class TermFormSettings {
 class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
   static const String _keyShowRomanization = 'show_romanization';
   static const String _keyShowTags = 'show_tags';
+  static const String _keyShowImages = 'show_images';
+  static const String _keyShowTooltipImages = 'show_tooltip_images';
   static const String _keyAutoSave = 'auto_save';
   static const String _keyShowParentsInDictionary =
       'show_parents_in_dictionary';
@@ -600,6 +614,8 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
     final prefs = await SharedPreferences.getInstance();
     final showRomanization = prefs.getBool(_keyShowRomanization) ?? true;
     final showTags = prefs.getBool(_keyShowTags) ?? false;
+    final showImages = prefs.getBool(_keyShowImages) ?? true;
+    final showTooltipImages = prefs.getBool(_keyShowTooltipImages) ?? true;
     final autoSave = prefs.getBool(_keyAutoSave) ?? true;
     final showParentsInDictionary =
         prefs.getBool(_keyShowParentsInDictionary) ?? true;
@@ -612,6 +628,8 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
     final loadedSettings = TermFormSettings(
       showRomanization: showRomanization,
       showTags: showTags,
+      showImages: showImages,
+      showTooltipImages: showTooltipImages,
       autoSave: autoSave,
       showParentsInDictionary: showParentsInDictionary,
       wordGlowEnabled: wordGlowEnabled,
@@ -635,6 +653,20 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyShowTags, show);
+  }
+
+  Future<void> updateShowImages(bool show) async {
+    state = state.copyWith(showImages: show);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowImages, show);
+  }
+
+  Future<void> updateShowTooltipImages(bool show) async {
+    state = state.copyWith(showTooltipImages: show);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowTooltipImages, show);
   }
 
   Future<void> updateAutoSave(bool autoSave) async {

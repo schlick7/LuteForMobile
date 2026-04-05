@@ -207,6 +207,31 @@ class HtmlParser {
         ? int.tryParse(langIdInput.attributes['value'] ?? '')
         : null;
 
+    final imageElement =
+        document.querySelector('.term-popup img[src*="/userimages/"]') ??
+        document.querySelector('.term-popup img[src*="userimages/"]') ??
+        document.querySelector('img[src*="/userimages/"]') ??
+        document.querySelector('img[src*="userimages/"]');
+    String? imageUrl = imageElement?.attributes['src']?.trim();
+    if (imageUrl?.isEmpty == true) {
+      imageUrl = null;
+    }
+
+    String? imageFilename;
+    if (imageUrl != null) {
+      try {
+        final uri = Uri.parse(imageUrl);
+        if (uri.pathSegments.isNotEmpty) {
+          imageFilename = uri.pathSegments.last;
+        }
+      } catch (_) {
+        final segments = imageUrl.split('/');
+        if (segments.isNotEmpty) {
+          imageFilename = segments.last;
+        }
+      }
+    }
+
     final parents = <TermParent>[];
 
     final parentElements = document.querySelectorAll('.term-popup .parents li');
@@ -355,6 +380,8 @@ class HtmlParser {
       status: status,
       sentences: sentences,
       languageId: languageId,
+      imageUrl: imageUrl,
+      imageFilename: imageFilename,
       parents: parents,
       children: children,
     );
@@ -431,6 +458,41 @@ class HtmlParser {
     );
     final romanization = romanizationInput?.attributes['value']?.trim();
 
+    final imageElement =
+        document.querySelector('img[src*="/userimages/"]') ??
+        document.querySelector('img[src*="userimages/"]');
+    String? imageUrl = imageElement?.attributes['src']?.trim();
+    if (imageUrl?.isEmpty == true) {
+      imageUrl = null;
+    }
+
+    String? imageFilename;
+    final imageInputs = document.querySelectorAll('input[name]');
+    for (final input in imageInputs) {
+      final name = (input.attributes['name'] ?? '').toLowerCase();
+      if (!name.contains('image')) continue;
+      final value = input.attributes['value']?.trim();
+      if (value == null || value.isEmpty) continue;
+      imageFilename = value;
+      break;
+    }
+
+    if ((imageFilename == null || imageFilename.isEmpty) &&
+        imageUrl != null &&
+        imageUrl.isNotEmpty) {
+      try {
+        final uri = Uri.parse(imageUrl);
+        if (uri.pathSegments.isNotEmpty) {
+          imageFilename = uri.pathSegments.last;
+        }
+      } catch (_) {
+        final segments = imageUrl.split('/');
+        if (segments.isNotEmpty) {
+          imageFilename = segments.last;
+        }
+      }
+    }
+
     final romanizationParent = romanizationInput?.parent;
     bool showRomanization = true;
     if (romanizationParent is html.Element) {
@@ -506,6 +568,8 @@ class HtmlParser {
       status: status,
       tags: tagList,
       romanization: romanization,
+      imageUrl: imageUrl,
+      imageFilename: imageFilename,
       showRomanization: showRomanization,
       dictionaries: dictionaries,
       parents: parents,

@@ -238,6 +238,46 @@ class ApiService {
     );
   }
 
+  Future<Response<String>> saveTermImageFromUrl(
+    int langId,
+    String text,
+    String src,
+  ) async {
+    return await _dio.post<String>(
+      '/bing/save',
+      data: {'src': src, 'text': text, 'langid': langId.toString()},
+      options: Options(contentType: Headers.formUrlEncodedContentType),
+    );
+  }
+
+  Future<Response<String>> uploadTermImage(
+    int langId,
+    String text,
+    String imagePath,
+  ) async {
+    final payload = FormData.fromMap({
+      'text': text,
+      'langid': langId.toString(),
+      'imagefile': await MultipartFile.fromFile(
+        imagePath,
+        filename: _filenameFromPath(imagePath),
+      ),
+    });
+    return await _dio.post<String>('/bing/manual_image_post', data: payload);
+  }
+
+  Future<Response<String>> searchTermImages(
+    int langId,
+    String text,
+    String searchString,
+  ) async {
+    final encodedText = Uri.encodeComponent(text);
+    final encodedSearch = Uri.encodeComponent(searchString);
+    return await _dio.get<String>(
+      '/bing/search/$langId/$encodedText/$encodedSearch',
+    );
+  }
+
   Future<Response<String>> getActiveBooks({
     int draw = 1,
     int start = 0,
@@ -576,6 +616,13 @@ class ApiService {
       },
       options: Options(contentType: 'application/json'),
     );
+  }
+
+  String _filenameFromPath(String path) {
+    final normalized = path.replaceAll('\\', '/');
+    final segments = normalized.split('/');
+    if (segments.isEmpty) return path;
+    return segments.last;
   }
 
   Future<Response<String>> getTermsDatatables({
