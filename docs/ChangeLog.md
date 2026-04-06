@@ -1,10 +1,8 @@
 # Bug Fixes
-- Fixed Books list showing empty after search
-- More audioplayer fixes
-- More RTL fixes
+- More RTL fixes, hopefully works now
 
 # New Feature
-- Multi-term saving
+- Image support for terms
 
 # Other Changes
 -
