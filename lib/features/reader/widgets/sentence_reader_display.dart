@@ -234,9 +234,6 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
           widget.sentence!.textItems,
           fallback: Directionality.of(context),
         );
-    final wrapDirection = textDirection == TextDirection.rtl
-        ? TextDirection.ltr
-        : textDirection;
 
     return RepaintBoundary(
       child: Directionality(
@@ -248,7 +245,7 @@ class _SentenceReaderDisplayState extends ConsumerState<SentenceReaderDisplay> {
           child: Wrap(
             spacing: 0,
             runSpacing: 0,
-            textDirection: wrapDirection,
+            textDirection: textDirection,
             children: widget.sentence!.textItems.asMap().entries.map((entry) {
               final item = entry.value;
               return _buildInteractiveWord(context, item);

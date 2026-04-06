@@ -390,9 +390,6 @@ class _TextDisplayState extends State<TextDisplay> {
           paragraph.textItems,
           fallback: fallbackDirection,
         );
-    final wrapDirection = textDirection == TextDirection.rtl
-        ? TextDirection.ltr
-        : textDirection;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -405,7 +402,7 @@ class _TextDisplayState extends State<TextDisplay> {
           child: Wrap(
             spacing: 0,
             runSpacing: 0,
-            textDirection: wrapDirection,
+            textDirection: textDirection,
             children: paragraph.textItems.asMap().entries.map((entry) {
               final item = entry.value;
               return _buildInteractiveWord(context, item);

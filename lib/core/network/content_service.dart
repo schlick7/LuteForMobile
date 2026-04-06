@@ -327,11 +327,15 @@ class ContentService {
     String text,
     String searchString,
   ) async {
-    final response = await _apiService.searchTermImages(
+    final searchPageResponse = await _apiService.getTermImageSearchPage(
       langId,
       text,
       searchString,
     );
+    final searchUrl = _extractImageSearchUrl(searchPageResponse.data ?? '');
+    final response = searchUrl != null
+        ? await _fetchImageSearchUrl(searchUrl)
+        : await _apiService.searchTermImages(langId, text, searchString);
     return _parseTermImageSearchResults(response.data ?? '');
   }
 
@@ -943,6 +947,34 @@ class ContentService {
 
   String _decodeHtmlUrl(String value) {
     return value.replaceAll('&amp;', '&');
+  }
+
+  String? _extractImageSearchUrl(String htmlContent) {
+    if (htmlContent.trim().isEmpty) return null;
+
+    final match = RegExp(
+      r"""const searchUrl = ['"]([^'"]+)['"]""",
+      caseSensitive: false,
+    ).firstMatch(htmlContent);
+    final searchUrl = match?.group(1)?.trim();
+    if (searchUrl == null || searchUrl.isEmpty) {
+      return null;
+    }
+    return _decodeHtmlUrl(searchUrl);
+  }
+
+  Future<Response<String>> _fetchImageSearchUrl(String searchUrl) async {
+    if (searchUrl.startsWith('/')) {
+      return _apiService.getRawPath(searchUrl);
+    }
+
+    final uri = Uri.tryParse(searchUrl);
+    if (uri != null && uri.path.isNotEmpty) {
+      final path = uri.path + (uri.hasQuery ? '?${uri.query}' : '');
+      return _apiService.getRawPath(path);
+    }
+
+    return _apiService.getRawPath(searchUrl);
   }
 
   List<String> _parseTagifyTags(String rawValue) {

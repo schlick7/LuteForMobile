@@ -10,6 +10,8 @@ class ApiService {
   final Dio _dio;
   static bool enableLogging = kDebugMode;
   static final ApiRequestQueue _requestQueue = ApiRequestQueue();
+  static const String _defaultTermImageSearchParams =
+      'q=[LUTE]&form=HDRSC2&first=1&tsc=ImageHoverTitle';
 
   ApiService({required String baseUrl, Dio? dio})
     : _dio =
@@ -272,10 +274,46 @@ class ApiService {
     String searchString,
   ) async {
     final encodedText = Uri.encodeComponent(text);
-    final encodedSearch = Uri.encodeComponent(searchString);
+    final encodedSearch = Uri.encodeComponent(
+      _normalizeTermImageSearchString(searchString),
+    );
     return await _dio.get<String>(
       '/bing/search/$langId/$encodedText/$encodedSearch',
     );
+  }
+
+  Future<Response<String>> getTermImageSearchPage(
+    int langId,
+    String text,
+    String searchString,
+  ) async {
+    final encodedText = Uri.encodeComponent(text);
+    final encodedSearch = Uri.encodeComponent(
+      _normalizeTermImageSearchString(searchString),
+    );
+    return await _dio.get<String>(
+      '/bing/search_page/$langId/$encodedText/$encodedSearch',
+    );
+  }
+
+  String _normalizeTermImageSearchString(String searchString) {
+    final trimmed = searchString.trim();
+    if (trimmed.isEmpty) {
+      return _defaultTermImageSearchParams;
+    }
+
+    // The server expects a Bing query-string template, not the raw term.
+    if (trimmed.contains('[LUTE]') ||
+        trimmed.contains('###') ||
+        trimmed.contains('q=')) {
+      return trimmed;
+    }
+
+    return _defaultTermImageSearchParams;
+  }
+
+  Future<Response<String>> getRawPath(String path) async {
+    return await _dio.get<String>(path);
   }
 
   Future<Response<String>> getActiveBooks({
