@@ -1289,18 +1289,10 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
 
     try {
       final result = await operation();
-      TermForm updatedForm = widget.termForm.copyWith(
+      final updatedForm = widget.termForm.copyWith(
         imageUrl: result.imageUrl ?? widget.termForm.imageUrl,
         imageFilename: result.imageFilename ?? widget.termForm.imageFilename,
       );
-
-      final refreshed = await _refreshTermImageState();
-      if (refreshed != null) {
-        updatedForm = updatedForm.copyWith(
-          imageUrl: refreshed.imageUrl,
-          imageFilename: refreshed.imageFilename,
-        );
-      }
 
       widget.onUpdate(updatedForm);
 
@@ -1322,22 +1314,6 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
           _isSavingImage = false;
         });
       }
-    }
-  }
-
-  Future<TermForm?> _refreshTermImageState() async {
-    try {
-      if (widget.termForm.termId != null) {
-        return await widget.contentService.getTermFormById(
-          widget.termForm.termId!,
-        );
-      }
-      return await widget.contentService.getTermForm(
-        widget.termForm.languageId,
-        widget.termForm.term,
-      );
-    } catch (_) {
-      return null;
     }
   }
 

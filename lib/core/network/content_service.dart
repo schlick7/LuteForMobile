@@ -845,12 +845,18 @@ class ContentService {
   ) {
     try {
       final decoded = jsonDecode(responseBody);
-      if (decoded is! List) {
+      final items = switch (decoded) {
+        List() => decoded,
+        Map() when decoded['images'] is List => decoded['images'] as List,
+        _ => const [],
+      };
+
+      if (items.isEmpty) {
         return const [];
       }
 
       final results = <TermImageSearchResult>[];
-      for (final item in decoded) {
+      for (final item in items) {
         if (item is! Map) continue;
         final data = Map<String, dynamic>.from(item);
         String? imageUrl;
@@ -865,7 +871,7 @@ class ContentService {
         ]) {
           final value = data[key]?.toString().trim();
           if (value != null && value.isNotEmpty) {
-            imageUrl = value;
+            imageUrl = _decodeHtmlUrl(value);
             break;
           }
         }
@@ -879,8 +885,21 @@ class ContentService {
         ]) {
           final value = data[key]?.toString().trim();
           if (value != null && value.isNotEmpty) {
-            thumbnailUrl = value;
+            thumbnailUrl = _decodeHtmlUrl(value);
             break;
+          }
+        }
+
+        if ((thumbnailUrl == null || thumbnailUrl.isEmpty) &&
+            data['html'] is String) {
+          final html = data['html'] as String;
+          final match = RegExp(
+            r"""data-src=['"]([^'"]+)['"]""",
+            caseSensitive: false,
+          ).firstMatch(html);
+          final extracted = match?.group(1)?.trim();
+          if (extracted != null && extracted.isNotEmpty) {
+            thumbnailUrl = _decodeHtmlUrl(extracted);
           }
         }
 
@@ -914,9 +933,16 @@ class ContentService {
       if (src == null || src.isEmpty || !seen.add(src)) {
         continue;
       }
-      results.add(TermImageSearchResult(imageUrl: src, thumbnailUrl: src));
+      final decodedSrc = _decodeHtmlUrl(src);
+      results.add(
+        TermImageSearchResult(imageUrl: decodedSrc, thumbnailUrl: decodedSrc),
+      );
     }
     return results;
+  }
+
+  String _decodeHtmlUrl(String value) {
+    return value.replaceAll('&amp;', '&');
   }
 
   List<String> _parseTagifyTags(String rawValue) {

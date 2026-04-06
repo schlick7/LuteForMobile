@@ -101,6 +101,7 @@ class TermForm {
       'translation': translation ?? '',
       'status': status,
       'romanization': romanization ?? '',
+      'current_image': imageFilename ?? '',
     };
 
     if (tags != null && tags!.isNotEmpty) {

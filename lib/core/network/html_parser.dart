@@ -458,37 +458,45 @@ class HtmlParser {
     );
     final romanization = romanizationInput?.attributes['value']?.trim();
 
+    final currentImageInput = document.querySelector(
+      'input[name="current_image"]',
+    );
+    String? imageFilename = currentImageInput?.attributes['value']?.trim();
+    if (imageFilename == null ||
+        imageFilename.isEmpty ||
+        imageFilename == '-') {
+      imageFilename = null;
+    }
+
     final imageElement =
+        document.querySelector('#term_image') ??
         document.querySelector('img[src*="/userimages/"]') ??
         document.querySelector('img[src*="userimages/"]');
     String? imageUrl = imageElement?.attributes['src']?.trim();
-    if (imageUrl?.isEmpty == true) {
+    if (imageUrl?.isEmpty == true || imageUrl?.endsWith('/-') == true) {
       imageUrl = null;
     }
 
-    String? imageFilename;
-    final imageInputs = document.querySelectorAll('input[name]');
-    for (final input in imageInputs) {
-      final name = (input.attributes['name'] ?? '').toLowerCase();
-      if (!name.contains('image')) continue;
-      final value = input.attributes['value']?.trim();
-      if (value == null || value.isEmpty) continue;
-      imageFilename = value;
-      break;
+    if (imageUrl == null && imageFilename != null) {
+      imageUrl = '/userimages/$languageId/$imageFilename';
     }
 
-    if ((imageFilename == null || imageFilename.isEmpty) &&
-        imageUrl != null &&
-        imageUrl.isNotEmpty) {
+    if (imageFilename == null && imageUrl != null) {
       try {
         final uri = Uri.parse(imageUrl);
         if (uri.pathSegments.isNotEmpty) {
-          imageFilename = uri.pathSegments.last;
+          final lastSegment = uri.pathSegments.last;
+          if (lastSegment.isNotEmpty && lastSegment != '-') {
+            imageFilename = lastSegment;
+          }
         }
       } catch (_) {
         final segments = imageUrl.split('/');
         if (segments.isNotEmpty) {
-          imageFilename = segments.last;
+          final lastSegment = segments.last;
+          if (lastSegment.isNotEmpty && lastSegment != '-') {
+            imageFilename = lastSegment;
+          }
         }
       }
     }

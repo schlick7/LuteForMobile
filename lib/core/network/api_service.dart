@@ -258,7 +258,7 @@ class ApiService {
     final payload = FormData.fromMap({
       'text': text,
       'langid': langId.toString(),
-      'imagefile': await MultipartFile.fromFile(
+      'manual_image_file': await MultipartFile.fromFile(
         imagePath,
         filename: _filenameFromPath(imagePath),
       ),
