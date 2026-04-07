@@ -5,10 +5,7 @@
   
 
 ---
-Toggle to show/hide experimental features
-- delete
-- restore
-- upload
+
 
 ---
 
