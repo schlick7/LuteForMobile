@@ -15,6 +15,7 @@ import '../../../app.dart';
 import 'theme_selector_screen.dart';
 import 'tts_settings_section.dart';
 import 'ai_settings_section.dart';
+import 'backup_restore_card.dart';
 import 'termux_screen.dart';
 import 'language_settings_card.dart';
 
@@ -456,6 +457,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            const BackupRestoreCard(),
             if (settings.termuxIntegrationEnabled) ...[
               const SizedBox(height: 16),
               Card(

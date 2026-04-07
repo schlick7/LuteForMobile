@@ -46,6 +46,8 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyShowStatsBar = 'show_stats_bar';
   static const String _keyShowKnownTermsCount = 'show_known_terms_count';
   static const String _keyShowTermStatsCard = 'show_term_stats_card';
+  static const String _keyExperimentalBackupRestoreFeatures =
+      'experimental_backup_restore_features';
   static const String _keyAutoLoadTermStatsCards = 'auto_load_term_stats_cards';
   static const String _keyShowPageNumbers = 'show_page_numbers';
   static const String _keyEnableTripleTapToMarkKnown =
@@ -104,6 +106,8 @@ class SettingsNotifier extends Notifier<Settings> {
     final showStatsBar = prefs.getBool(_keyShowStatsBar) ?? true;
     final showKnownTermsCount = prefs.getBool(_keyShowKnownTermsCount) ?? false;
     final showTermStatsCard = prefs.getBool(_keyShowTermStatsCard) ?? false;
+    final experimentalBackupRestoreFeatures =
+        prefs.getBool(_keyExperimentalBackupRestoreFeatures) ?? false;
     final autoLoadTermStatsCards =
         prefs.getBool(_keyAutoLoadTermStatsCards) ?? false;
     final showPageNumbers = prefs.getBool(_keyShowPageNumbers) ?? true;
@@ -153,6 +157,7 @@ class SettingsNotifier extends Notifier<Settings> {
       showStatsBar: showStatsBar,
       showKnownTermsCount: showKnownTermsCount,
       showTermStatsCard: showTermStatsCard,
+      experimentalBackupRestoreFeatures: experimentalBackupRestoreFeatures,
       autoLoadTermStatsCards: autoLoadTermStatsCards,
       showPageNumbers: showPageNumbers,
       enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
@@ -372,6 +377,12 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(showTermStatsCard: show);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyShowTermStatsCard, show);
+  }
+
+  Future<void> updateExperimentalBackupRestoreFeatures(bool enabled) async {
+    state = state.copyWith(experimentalBackupRestoreFeatures: enabled);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyExperimentalBackupRestoreFeatures, enabled);
   }
 
   Future<void> updateAutoLoadTermStatsCards(bool enabled) async {

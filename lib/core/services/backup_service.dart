@@ -64,12 +64,15 @@ class BackupService {
             final lastModifiedStr = _stripHtml(cellMatches[2].group(1)!.trim());
 
             final linkRegex = RegExp(r'href="(/backup/download/[^"]+)"');
-            final linkMatch = linkRegex.firstMatch(cellMatches[3].group(1)!);
+            final linkSource = cellMatches.length > 3
+                ? cellMatches[3].group(1)!
+                : row;
+            final linkMatch = linkRegex.firstMatch(linkSource);
             final downloadFilename = linkMatch != null
                 ? linkMatch.group(1)!.split('/').last
                 : filename;
 
-            final isManual = filename.contains('manual');
+            final isManual = filename.startsWith('manual_');
             final lastModified = _parseDateTime(lastModifiedStr);
 
             backups.add({
@@ -93,6 +96,21 @@ class BackupService {
 
   static String _stripHtml(String html) {
     return html.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+  }
+
+  static String _extractErrorMessage(String body, String fallback) {
+    try {
+      final decoded = json.decode(body);
+      if (decoded is Map<String, dynamic>) {
+        final message = decoded['errmsg']?.toString().trim();
+        if (message != null && message.isNotEmpty) {
+          return message;
+        }
+      }
+    } catch (_) {
+      // Ignore and use the fallback below.
+    }
+    return fallback;
   }
 
   static int _parseDateTime(String dateStr) {
@@ -161,7 +179,7 @@ class BackupService {
         final downloadsDir = Directory('/storage/emulated/0/Download');
         await downloadsDir.create(recursive: true);
         final prefix = serverType == 'termux' ? 'termux' : 'localurl';
-        final renamedFilename = '$prefix\_$filename';
+        final renamedFilename = '${prefix}_$filename';
         final file = File('${downloadsDir.path}/$renamedFilename');
         await file.writeAsBytes(response.bodyBytes);
         return file.path;
@@ -175,30 +193,97 @@ class BackupService {
 
   static Future<String> restoreBackup(
     String serverUrl,
-    String localFilePath,
-  ) async {
+    String filename, {
+    Duration timeout = defaultTimeout,
+  }) async {
     try {
-      final file = File(localFilePath);
-      final bytes = await file.readAsBytes();
-      final filename = file.uri.pathSegments.last;
-
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$serverUrl/backup/restore'),
-      );
-      request.files.add(
-        http.MultipartFile.fromBytes('file', bytes, filename: filename),
-      );
-
-      final response = await request.send();
+      final response = await http
+          .post(
+            Uri.parse('$serverUrl/backup/do_restore'),
+            body: {'filename': filename},
+          )
+          .timeout(timeout);
 
       if (response.statusCode == 200) {
         return 'Restore completed successfully';
       } else {
-        throw Exception('Failed to restore backup: ${response.statusCode}');
+        throw Exception(
+          _extractErrorMessage(
+            response.body,
+            'Failed to restore backup: ${response.statusCode}',
+          ),
+        );
       }
+    } on TimeoutException {
+      throw Exception('Restore timed out after ${timeout.inSeconds} seconds');
     } catch (e) {
       throw Exception('Failed to restore backup: $e');
+    }
+  }
+
+  static Future<void> uploadBackup(
+    String serverUrl,
+    String localFilePath, {
+    Duration timeout = defaultTimeout,
+  }) async {
+    try {
+      final filename = localFilePath.split(Platform.pathSeparator).last;
+      if (!filename.endsWith('.db.gz')) {
+        throw Exception('Backup file must end with .db.gz');
+      }
+
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$serverUrl/backup/upload'),
+      );
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'backup_file',
+          localFilePath,
+          filename: filename,
+        ),
+      );
+
+      final response = await request.send().timeout(timeout);
+      if (response.statusCode != 200 &&
+          response.statusCode != 302 &&
+          response.statusCode != 303) {
+        throw Exception('Failed to upload backup: ${response.statusCode}');
+      }
+    } on TimeoutException {
+      throw Exception(
+        'Backup upload timed out after ${timeout.inSeconds} seconds',
+      );
+    } catch (e) {
+      throw Exception('Failed to upload backup: $e');
+    }
+  }
+
+  static Future<void> deleteBackup(
+    String serverUrl,
+    String filename, {
+    Duration timeout = defaultTimeout,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$serverUrl/backup/do_delete'),
+            body: {'filename': filename},
+          )
+          .timeout(timeout);
+
+      if (response.statusCode != 200) {
+        throw Exception(
+          _extractErrorMessage(
+            response.body,
+            'Failed to delete backup: ${response.statusCode}',
+          ),
+        );
+      }
+    } on TimeoutException {
+      throw Exception('Delete timed out after ${timeout.inSeconds} seconds');
+    } catch (e) {
+      throw Exception('Failed to delete backup: $e');
     }
   }
 

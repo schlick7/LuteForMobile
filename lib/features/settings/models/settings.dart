@@ -27,6 +27,7 @@ class Settings {
   final bool showStatsBar;
   final bool showKnownTermsCount;
   final bool showTermStatsCard;
+  final bool experimentalBackupRestoreFeatures;
   final bool autoLoadTermStatsCards;
   final bool showPageNumbers;
   final TTSProvider? ttsProvider;
@@ -68,6 +69,7 @@ class Settings {
     this.showStatsBar = true,
     this.showKnownTermsCount = false,
     this.showTermStatsCard = false,
+    this.experimentalBackupRestoreFeatures = false,
     this.autoLoadTermStatsCards = false,
     this.showPageNumbers = true,
     this.ttsProvider,
@@ -110,6 +112,7 @@ class Settings {
     bool? showStatsBar,
     bool? showKnownTermsCount,
     bool? showTermStatsCard,
+    bool? experimentalBackupRestoreFeatures,
     bool? autoLoadTermStatsCards,
     bool? showPageNumbers,
     TTSProvider? ttsProvider,
@@ -160,6 +163,9 @@ class Settings {
       showStatsBar: showStatsBar ?? this.showStatsBar,
       showKnownTermsCount: showKnownTermsCount ?? this.showKnownTermsCount,
       showTermStatsCard: showTermStatsCard ?? this.showTermStatsCard,
+      experimentalBackupRestoreFeatures:
+          experimentalBackupRestoreFeatures ??
+          this.experimentalBackupRestoreFeatures,
       autoLoadTermStatsCards:
           autoLoadTermStatsCards ?? this.autoLoadTermStatsCards,
       showPageNumbers: showPageNumbers ?? this.showPageNumbers,
@@ -211,6 +217,7 @@ class Settings {
       showStatsBar: true,
       showKnownTermsCount: false,
       showTermStatsCard: false,
+      experimentalBackupRestoreFeatures: false,
       autoLoadTermStatsCards: false,
       showPageNumbers: true,
       ttsProvider: TTSProvider.onDevice,
@@ -256,6 +263,8 @@ class Settings {
         other.showStatsBar == showStatsBar &&
         other.showKnownTermsCount == showKnownTermsCount &&
         other.showTermStatsCard == showTermStatsCard &&
+        other.experimentalBackupRestoreFeatures ==
+            experimentalBackupRestoreFeatures &&
         other.autoLoadTermStatsCards == autoLoadTermStatsCards &&
         other.showPageNumbers == showPageNumbers &&
         other.ttsProvider == ttsProvider &&
@@ -297,6 +306,7 @@ class Settings {
     showStatsBar,
     showKnownTermsCount,
     showTermStatsCard,
+    experimentalBackupRestoreFeatures,
     autoLoadTermStatsCards,
     showPageNumbers,
     ttsProvider,
