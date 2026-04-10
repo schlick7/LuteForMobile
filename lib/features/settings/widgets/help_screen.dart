@@ -1047,16 +1047,18 @@ class HelpScreen extends ConsumerWidget {
   ) {
     return ListTile(
       leading: Icon(icon, size: 24),
-      title: Text(
+      title: SelectableText(
         title,
         style: Theme.of(
           context,
         ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
       ),
-      subtitle: Text(
-        description,
-        style: Theme.of(context).textTheme.bodyMedium,
-      ),
+      subtitle: description.isNotEmpty
+          ? SelectableText(
+              description,
+              style: Theme.of(context).textTheme.bodyMedium,
+            )
+          : null,
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
     );
