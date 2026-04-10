@@ -204,6 +204,16 @@ class DictionaryService {
     await prefs.setInt('sentence_translation_popup_height', height);
   }
 
+  Future<bool> getSentenceTranslationStartCollapsed() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('sentence_translation_start_collapsed') ?? true;
+  }
+
+  Future<void> setSentenceTranslationStartCollapsed(bool collapsed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('sentence_translation_start_collapsed', collapsed);
+  }
+
   static const int defaultSplitRatio = 7;
   static const int minSplitRatio = 5;
   static const int maxSplitRatio = 8;

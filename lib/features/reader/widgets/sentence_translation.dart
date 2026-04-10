@@ -67,6 +67,7 @@ class _SentenceTranslationWidgetState
     super.initState();
     _pageController = PageController(initialPage: 0);
     _loadPopupHeight();
+    _loadStartCollapsed();
     _loadDictionaries();
   }
 
@@ -76,6 +77,16 @@ class _SentenceTranslationWidgetState
     if (mounted) {
       setState(() {
         _popupHeight = height;
+      });
+    }
+  }
+
+  Future<void> _loadStartCollapsed() async {
+    final collapsed = await widget.dictionaryService
+        .getSentenceTranslationStartCollapsed();
+    if (mounted) {
+      setState(() {
+        _isOriginalCollapsed = collapsed;
       });
     }
   }
@@ -857,6 +868,7 @@ class _SentenceTranslationWidgetState
       context: context,
       builder: (context) => _HeightAdjustmentDialog(
         currentHeight: _popupHeight,
+        startCollapsed: _isOriginalCollapsed,
         onHeightChanged: (newHeight) async {
           await widget.dictionaryService.setSentenceTranslationPopupHeight(
             newHeight,
@@ -867,6 +879,16 @@ class _SentenceTranslationWidgetState
             });
           }
         },
+        onStartCollapsedChanged: (collapsed) async {
+          await widget.dictionaryService.setSentenceTranslationStartCollapsed(
+            collapsed,
+          );
+          if (mounted) {
+            setState(() {
+              _isOriginalCollapsed = collapsed;
+            });
+          }
+        },
       ),
     );
   }
@@ -874,11 +896,15 @@ class _SentenceTranslationWidgetState
 
 class _HeightAdjustmentDialog extends StatefulWidget {
   final int currentHeight;
+  final bool startCollapsed;
   final Future<void> Function(int) onHeightChanged;
+  final Future<void> Function(bool) onStartCollapsedChanged;
 
   const _HeightAdjustmentDialog({
     required this.currentHeight,
+    required this.startCollapsed,
     required this.onHeightChanged,
+    required this.onStartCollapsedChanged,
   });
 
   @override
@@ -888,17 +914,19 @@ class _HeightAdjustmentDialog extends StatefulWidget {
 
 class _HeightAdjustmentDialogState extends State<_HeightAdjustmentDialog> {
   late double _height;
+  late bool _startCollapsed;
 
   @override
   void initState() {
     super.initState();
     _height = widget.currentHeight.toDouble();
+    _startCollapsed = widget.startCollapsed;
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Adjust Popup Height'),
+      title: const Text('Settings'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -919,6 +947,18 @@ class _HeightAdjustmentDialogState extends State<_HeightAdjustmentDialog> {
             },
             onChangeEnd: (value) {
               widget.onHeightChanged(value.round());
+            },
+          ),
+          const SizedBox(height: 16),
+          SwitchListTile(
+            title: const Text('Start collapsed'),
+            subtitle: const Text('Original sentence starts collapsed'),
+            value: _startCollapsed,
+            onChanged: (value) {
+              setState(() {
+                _startCollapsed = value;
+              });
+              widget.onStartCollapsedChanged(value);
             },
           ),
         ],
