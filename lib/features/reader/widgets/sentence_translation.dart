@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/sentence_translation.dart';
@@ -544,18 +545,46 @@ class _SentenceTranslationWidgetState
                           .speakSentence(widget.sentence, 0);
                     }
 
-                    return IconButton(
-                      icon: Icon(icon),
-                      color: color,
-                      onPressed: onPressed,
-                      tooltip: isCurrentSentence && ttsState.isPlaying
-                          ? 'Stop TTS'
-                          : 'Read sentence',
-                      constraints: const BoxConstraints(
-                        minWidth: 40,
-                        minHeight: 40,
-                      ),
-                      padding: EdgeInsets.zero,
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.copy),
+                          color: context.m3Primary,
+                          onPressed: () {
+                            Clipboard.setData(
+                              ClipboardData(text: widget.sentence),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Original text copied to clipboard',
+                                ),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          },
+                          tooltip: 'Copy original text',
+                          constraints: const BoxConstraints(
+                            minWidth: 40,
+                            minHeight: 40,
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                        IconButton(
+                          icon: Icon(icon),
+                          color: color,
+                          onPressed: onPressed,
+                          tooltip: isCurrentSentence && ttsState.isPlaying
+                              ? 'Stop TTS'
+                              : 'Read sentence',
+                          constraints: const BoxConstraints(
+                            minWidth: 40,
+                            minHeight: 40,
+                          ),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ],
                     );
                   },
                 ),
