@@ -21,6 +21,8 @@ cd LuteForMobile
 python3 setup_pwa.py
 ```
 
+use `python setup_pwa.py` if `python3` is not available.
+
 That's it! The script will:
 - ✅ Auto-detect your Lute installation (pip/venv, Docker, or source)
 - ✅ Find the correct static directory
@@ -77,7 +79,7 @@ The `/index.html` is required - Flask doesn't auto-serve it from directories.
 
 ### Multiple Lute installations?
 
-If you have multiple Lute installations, edit the script to choose which one to deploy to.
+If the script cannot choose the right install automatically, use the manual setup section in [PWA_SETUP_GUIDE.md](PWA_SETUP_GUIDE.md).
 
 ---
 
@@ -86,5 +88,5 @@ If you have multiple Lute installations, edit the script to choose which one to 
 See the full [PWA_SETUP_GUIDE.md](PWA_SETUP_GUIDE.md) for detailed information about:
 - Docker deployments
 - Manual setup
-- CORS proxy option
-- Advanced configuration
+- Windows paths
+- CORS troubleshooting
