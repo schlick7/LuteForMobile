@@ -214,6 +214,9 @@ class _LanguageSettingsCardState extends ConsumerState<LanguageSettingsCard> {
         );
       } else {
         await contentService.saveLanguageCardSettings(payload);
+        await ref
+            .read(dictionaryServiceProvider)
+            .refreshDictionariesForLanguage(payload.languageId);
       }
 
       if (!mounted) return;

@@ -189,10 +189,13 @@ class SettingsNotifier extends Notifier<Settings> {
       isUrlValid: isValid,
     );
 
+    final cacheManager = ref.read(cacheManagerProvider);
     if (previousServerUrl != state.serverUrl) {
-      await ref.read(cacheManagerProvider).clearServerDependentCaches();
+      await cacheManager.clearServerDependentCaches();
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
+    } else {
+      await cacheManager.clearDictionaryPreferences();
     }
   }
 
@@ -210,10 +213,13 @@ class SettingsNotifier extends Notifier<Settings> {
       state = state.copyWith(serverUrl: localUrl, isUrlValid: isValid);
     }
 
+    final cacheManager = ref.read(cacheManagerProvider);
     if (previousServerUrl != state.serverUrl) {
-      await ref.read(cacheManagerProvider).clearServerDependentCaches();
+      await cacheManager.clearServerDependentCaches();
       await clearCurrentBook();
       ref.read(readerProvider.notifier).clearPageData();
+    } else {
+      await cacheManager.clearDictionaryPreferences();
     }
 
     final isReachable = await ServerHealthService.isReachable(state.serverUrl);

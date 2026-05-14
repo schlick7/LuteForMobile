@@ -159,6 +159,30 @@ class DictionaryService {
     );
   }
 
+  Future<void> clearDictionariesForLanguage(int languageId) async {
+    _dictionariesCache.remove(languageId);
+    _sentenceDictionariesCache.remove(languageId);
+
+    final prefs = await SharedPreferences.getInstance();
+    await Future.wait([
+      prefs.remove('dictionaries_$languageId'),
+      prefs.remove('sentence_dictionaries_$languageId'),
+    ]);
+  }
+
+  Future<void> refreshDictionariesForLanguage(int languageId) async {
+    final htmlContent = await _fetchLanguageSettingsHtml(languageId) ?? '';
+    final dictionaries = htmlContent.isEmpty
+        ? <DictionarySource>[]
+        : _htmlParser.parseLanguageDictionaries(htmlContent);
+    final sentenceDictionaries = htmlContent.isEmpty
+        ? <DictionarySource>[]
+        : _htmlParser.parseSentenceDictionaries(htmlContent);
+
+    await setDictionariesForLanguage(languageId, dictionaries);
+    await setSentenceDictionariesForLanguage(languageId, sentenceDictionaries);
+  }
+
   Future<String?> getLastUsedDictionary(int languageId) async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('last_dictionary_$languageId');
