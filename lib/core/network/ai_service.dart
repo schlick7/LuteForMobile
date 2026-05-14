@@ -75,7 +75,18 @@ class OpenAIService implements AIService {
     this.model,
     required this.promptConfigs,
   }) {
-    _client = OpenAIClient(apiKey: apiKey, baseUrl: baseUrl);
+    _client = OpenAIClient.withApiKey(apiKey, baseUrl: baseUrl);
+  }
+
+  Future<String> _createChatCompletion(String prompt) async {
+    final response = await _client.chat.completions.create(
+      ChatCompletionCreateRequest(
+        model: model ?? 'gpt-4o',
+        messages: [ChatMessage.user(prompt)],
+      ),
+    );
+
+    return response.text ?? 'No response available';
   }
 
   @override
@@ -97,19 +108,10 @@ class OpenAIService implements AIService {
         prompt: prompt,
       );
 
-      final response = await _client.createChatCompletion(
-        request: CreateChatCompletionRequest(
-          model: ChatCompletionModel.modelId(model ?? 'gpt-4o'),
-          messages: [
-            ChatCompletionMessage.user(
-              content: ChatCompletionUserMessageContent.string(prompt),
-            ),
-          ],
-        ),
-      );
-
-      return response.choices.first.message.content ??
-          'No translation available';
+      final response = await _createChatCompletion(prompt);
+      return response == 'No response available'
+          ? 'No translation available'
+          : response;
     } catch (e) {
       developer.log('Error translating term: $e', name: 'OpenAIService');
       rethrow;
@@ -136,19 +138,10 @@ class OpenAIService implements AIService {
         prompt: prompt,
       );
 
-      final response = await _client.createChatCompletion(
-        request: CreateChatCompletionRequest(
-          model: ChatCompletionModel.modelId(model ?? 'gpt-4o'),
-          messages: [
-            ChatCompletionMessage.user(
-              content: ChatCompletionUserMessageContent.string(prompt),
-            ),
-          ],
-        ),
-      );
-
-      return response.choices.first.message.content ??
-          'No translation available';
+      final response = await _createChatCompletion(prompt);
+      return response == 'No response available'
+          ? 'No translation available'
+          : response;
     } catch (e) {
       developer.log(
         'Error fetching more term translations: $e',
@@ -172,19 +165,10 @@ class OpenAIService implements AIService {
         prompt: prompt,
       );
 
-      final response = await _client.createChatCompletion(
-        request: CreateChatCompletionRequest(
-          model: ChatCompletionModel.modelId(model ?? 'gpt-4o'),
-          messages: [
-            ChatCompletionMessage.user(
-              content: ChatCompletionUserMessageContent.string(prompt),
-            ),
-          ],
-        ),
-      );
-
-      return response.choices.first.message.content ??
-          'No translation available';
+      final response = await _createChatCompletion(prompt);
+      return response == 'No response available'
+          ? 'No translation available'
+          : response;
     } catch (e) {
       developer.log('Error translating sentence: $e', name: 'OpenAIService');
       rethrow;
@@ -194,7 +178,7 @@ class OpenAIService implements AIService {
   @override
   Future<List<String>> fetchAvailableModels() async {
     try {
-      final response = await _client.listModels();
+      final response = await _client.models.list();
       return response.data.map((m) => m.id).toList();
     } catch (e) {
       developer.log('Error fetching models: $e', name: 'OpenAIService');
@@ -255,19 +239,10 @@ class OpenAIService implements AIService {
         prompt: prompt,
       );
 
-      final response = await _client.createChatCompletion(
-        request: CreateChatCompletionRequest(
-          model: ChatCompletionModel.modelId(model ?? 'gpt-4o'),
-          messages: [
-            ChatCompletionMessage.user(
-              content: ChatCompletionUserMessageContent.string(prompt),
-            ),
-          ],
-        ),
-      );
-
-      return response.choices.first.message.content ??
-          'No dictionary entry available';
+      final response = await _createChatCompletion(prompt);
+      return response == 'No response available'
+          ? 'No dictionary entry available'
+          : response;
     } catch (e) {
       developer.log(
         'Error getting virtual dictionary entry: $e',
@@ -296,19 +271,10 @@ class OpenAIService implements AIService {
         prompt: prompt,
       );
 
-      final response = await _client.createChatCompletion(
-        request: CreateChatCompletionRequest(
-          model: ChatCompletionModel.modelId(model ?? 'gpt-4o'),
-          messages: [
-            ChatCompletionMessage.user(
-              content: ChatCompletionUserMessageContent.string(prompt),
-            ),
-          ],
-        ),
-      );
-
-      return response.choices.first.message.content ??
-          'No explanation available';
+      final response = await _createChatCompletion(prompt);
+      return response == 'No response available'
+          ? 'No explanation available'
+          : response;
     } catch (e) {
       developer.log(
         'Error getting term explanation: $e',

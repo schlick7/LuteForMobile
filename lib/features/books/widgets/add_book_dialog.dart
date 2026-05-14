@@ -123,7 +123,7 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
 
   Future<void> _pickTextFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const ['txt', 'epub', 'pdf', 'srt', 'vtt'],
       );
@@ -150,7 +150,7 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
 
   Future<void> _pickAudioFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const [
           'mp3',

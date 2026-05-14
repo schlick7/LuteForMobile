@@ -64,7 +64,7 @@ class _EditBookDialogState extends ConsumerState<EditBookDialog> {
 
   Future<void> _pickAudioFile() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const [
           'mp3',
