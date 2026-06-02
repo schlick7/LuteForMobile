@@ -9,6 +9,30 @@ enum AIPromptType {
   termExplanation,
 }
 
+enum ReasoningEffort {
+  none,
+  minimal,
+  low,
+  medium,
+  high;
+
+  String get displayName => switch (this) {
+        ReasoningEffort.none => 'Off',
+        ReasoningEffort.minimal => 'Minimal',
+        ReasoningEffort.low => 'Low',
+        ReasoningEffort.medium => 'Medium',
+        ReasoningEffort.high => 'High',
+      };
+
+  int? toGeminiThinkingBudget() => switch (this) {
+        ReasoningEffort.none => 0,
+        ReasoningEffort.minimal => 512,
+        ReasoningEffort.low => 1024,
+        ReasoningEffort.medium => 8192,
+        ReasoningEffort.high => 24576,
+      };
+}
+
 @immutable
 class AISettings {
   final AIProvider provider;
@@ -76,12 +100,14 @@ class AISettingsConfig {
   final String? baseUrl;
   final String? model;
   final String? endpointUrl;
+  final ReasoningEffort? reasoningEffort;
 
   const AISettingsConfig({
     this.apiKey,
     this.baseUrl,
     this.model,
     this.endpointUrl,
+    this.reasoningEffort,
   });
 
   AISettingsConfig copyWith({
@@ -89,12 +115,16 @@ class AISettingsConfig {
     String? baseUrl,
     String? model,
     String? endpointUrl,
+    ReasoningEffort? reasoningEffort,
+    bool clearReasoningEffort = false,
   }) {
     return AISettingsConfig(
       apiKey: apiKey ?? this.apiKey,
       baseUrl: baseUrl ?? this.baseUrl,
       model: model ?? this.model,
       endpointUrl: endpointUrl ?? this.endpointUrl,
+      reasoningEffort:
+          clearReasoningEffort ? null : (reasoningEffort ?? this.reasoningEffort),
     );
   }
 
@@ -105,11 +135,13 @@ class AISettingsConfig {
         other.apiKey == apiKey &&
         other.baseUrl == baseUrl &&
         other.model == model &&
-        other.endpointUrl == endpointUrl;
+        other.endpointUrl == endpointUrl &&
+        other.reasoningEffort == reasoningEffort;
   }
 
   @override
-  int get hashCode => Object.hash(apiKey, baseUrl, model, endpointUrl);
+  int get hashCode =>
+      Object.hash(apiKey, baseUrl, model, endpointUrl, reasoningEffort);
 }
 
 @immutable

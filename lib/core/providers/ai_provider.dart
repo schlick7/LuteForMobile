@@ -10,6 +10,7 @@ final aiServiceProvider = Provider<AIService>((ref) {
   final provider = settings.provider;
   final config = settings.providerConfigs[provider];
   final promptConfigs = settings.promptConfigs;
+  final reasoningEffort = config?.reasoningEffort;
 
   switch (provider) {
     case AIProvider.openAI:
@@ -18,6 +19,7 @@ final aiServiceProvider = Provider<AIService>((ref) {
         baseUrl: config?.baseUrl,
         model: config?.model,
         promptConfigs: promptConfigs,
+        reasoningEffort: reasoningEffort,
       );
     case AIProvider.localOpenAI:
       return LocalOpenAIService(
@@ -25,12 +27,14 @@ final aiServiceProvider = Provider<AIService>((ref) {
         model: config?.model,
         apiKey: config?.apiKey,
         promptConfigs: promptConfigs,
+        reasoningEffort: reasoningEffort,
       );
     case AIProvider.gemini:
       return GeminiService(
         apiKey: config?.apiKey ?? '',
         model: config?.model,
         promptConfigs: promptConfigs,
+        reasoningEffort: reasoningEffort,
       );
     case AIProvider.none:
       return NoAIService();

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/ai_settings_provider.dart';
 import 'package:lute_for_mobile/features/settings/widgets/model_selector.dart';
+import 'package:lute_for_mobile/features/settings/widgets/reasoning_effort_selector.dart';
 import 'package:lute_for_mobile/shared/theme/theme_extensions.dart';
 
 class AISettingsSection extends ConsumerStatefulWidget {
@@ -600,6 +601,12 @@ class _OpenAISettingsState extends ConsumerState<_OpenAISettings> {
           hintText: 'e.g., gpt-4o',
           onModelSelected: widget.onModelSelected,
         ),
+        const SizedBox(height: 16),
+        const ReasoningEffortSelector(
+          provider: AIProvider.openAI,
+          hint:
+              'Maps to the OpenAI reasoning_effort field (minimal/low/medium/high). Requires a reasoning-capable model (o1, o3, gpt-5, etc.).',
+        ),
       ],
     );
   }
@@ -689,6 +696,12 @@ class _LocalOpenAISettingsState extends ConsumerState<_LocalOpenAISettings> {
           controller: _apiKeyController,
           onSubmitted: widget.onApiKeyChanged,
         ),
+        const SizedBox(height: 16),
+        const ReasoningEffortSelector(
+          provider: AIProvider.localOpenAI,
+          hint:
+              'Sends reasoning_effort and chat_template_kwargs.enable_thinking to a llama.cpp / OpenAI-compatible server (b9474+).',
+        ),
       ],
     );
   }
@@ -755,6 +768,12 @@ class _GeminiSettingsState extends ConsumerState<_GeminiSettings> {
           labelText: 'Model',
           hintText: 'e.g., gemini-1.5-flash',
           onModelSelected: widget.onModelSelected,
+        ),
+        const SizedBox(height: 16),
+        const ReasoningEffortSelector(
+          provider: AIProvider.gemini,
+          hint:
+              'Maps to a Gemini thinkingBudget (0/512/1024/8192/24576). Requires a thinking-capable model (gemini-2.5+, etc.).',
         ),
       ],
     );

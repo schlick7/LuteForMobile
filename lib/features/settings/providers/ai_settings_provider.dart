@@ -100,10 +100,19 @@ class AISettingsNotifier extends Notifier<AISettings> {
         baseUrl: json['baseUrl'] as String?,
         model: json['model'] as String?,
         endpointUrl: json['endpointUrl'] as String?,
+        reasoningEffort: _decodeReasoningEffort(json['reasoningEffort']),
       );
     } catch (_) {
       return null;
     }
+  }
+
+  ReasoningEffort? _decodeReasoningEffort(dynamic value) {
+    if (value is! String) return null;
+    return ReasoningEffort.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => ReasoningEffort.none,
+    );
   }
 
   Future<Map<AIPromptType, AIPromptConfig>?> _loadPromptConfigs(
@@ -161,6 +170,33 @@ class AISettingsNotifier extends Notifier<AISettings> {
     state = state.updateProviderConfig(AIProvider.gemini, config);
   }
 
+  Future<void> updateOpenAIReasoningEffort(ReasoningEffort effort) async {
+    final config = state.providerConfigs[AIProvider.openAI];
+    if (config == null) return;
+    final updated = effort == ReasoningEffort.none
+        ? config.copyWith(clearReasoningEffort: true)
+        : config.copyWith(reasoningEffort: effort);
+    await updateOpenAIConfig(updated);
+  }
+
+  Future<void> updateLocalOpenAIReasoningEffort(ReasoningEffort effort) async {
+    final config = state.providerConfigs[AIProvider.localOpenAI];
+    if (config == null) return;
+    final updated = effort == ReasoningEffort.none
+        ? config.copyWith(clearReasoningEffort: true)
+        : config.copyWith(reasoningEffort: effort);
+    await updateLocalOpenAIConfig(updated);
+  }
+
+  Future<void> updateGeminiReasoningEffort(ReasoningEffort effort) async {
+    final config = state.providerConfigs[AIProvider.gemini];
+    if (config == null) return;
+    final updated = effort == ReasoningEffort.none
+        ? config.copyWith(clearReasoningEffort: true)
+        : config.copyWith(reasoningEffort: effort);
+    await updateGeminiConfig(updated);
+  }
+
   Future<void> updatePromptConfig(
     AIPromptType type,
     AIPromptConfig config,
@@ -180,6 +216,8 @@ class AISettingsNotifier extends Notifier<AISettings> {
       if (config.baseUrl != null) 'baseUrl': config.baseUrl,
       if (config.model != null) 'model': config.model,
       if (config.endpointUrl != null) 'endpointUrl': config.endpointUrl,
+      if (config.reasoningEffort != null)
+        'reasoningEffort': config.reasoningEffort!.name,
     };
     await prefs.setString(key, jsonEncode(json));
   }

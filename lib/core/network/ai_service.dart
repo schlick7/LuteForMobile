@@ -1,5 +1,5 @@
 import 'dart:developer' as developer;
-import 'package:openai_dart/openai_dart.dart';
+import 'package:openai_dart/openai_dart.dart' as openai;
 import 'package:dio/dio.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:lute_for_mobile/features/settings/models/ai_settings.dart';
@@ -66,23 +66,33 @@ class OpenAIService implements AIService {
   final String? baseUrl;
   final String? model;
   final Map<AIPromptType, AIPromptConfig> promptConfigs;
+  final ReasoningEffort? reasoningEffort;
 
-  late final OpenAIClient _client;
+  late final openai.OpenAIClient _client;
 
   OpenAIService({
     required this.apiKey,
     this.baseUrl,
     this.model,
     required this.promptConfigs,
+    this.reasoningEffort,
   }) {
-    _client = OpenAIClient.withApiKey(apiKey, baseUrl: baseUrl);
+    _client = openai.OpenAIClient.withApiKey(apiKey, baseUrl: baseUrl);
+  }
+
+  ReasoningEffort? get _openAiReasoningEffort {
+    if (reasoningEffort == null || reasoningEffort == ReasoningEffort.none) {
+      return null;
+    }
+    return reasoningEffort;
   }
 
   Future<String> _createChatCompletion(String prompt) async {
     final response = await _client.chat.completions.create(
-      ChatCompletionCreateRequest(
+      openai.ChatCompletionCreateRequest(
         model: model ?? 'gpt-4o',
-        messages: [ChatMessage.user(prompt)],
+        messages: [openai.ChatMessage.user(prompt)],
+        reasoningEffort: _openAiReasoningEffort?._toOpenAiEnum(),
       ),
     );
 
@@ -290,6 +300,7 @@ class LocalOpenAIService implements AIService {
   final String? model;
   final String? apiKey;
   final Map<AIPromptType, AIPromptConfig> promptConfigs;
+  final ReasoningEffort? reasoningEffort;
 
   late final Dio _dio;
 
@@ -298,6 +309,7 @@ class LocalOpenAIService implements AIService {
     this.model,
     this.apiKey,
     required this.promptConfigs,
+    this.reasoningEffort,
   }) {
     _dio = Dio(
       BaseOptions(
@@ -305,6 +317,32 @@ class LocalOpenAIService implements AIService {
         headers: apiKey != null ? {'Authorization': 'Bearer $apiKey'} : null,
       ),
     );
+  }
+
+  bool get _reasoningEnabled =>
+      reasoningEffort != null && reasoningEffort != ReasoningEffort.none;
+
+  Map<String, dynamic> _buildRequestBody(String prompt) {
+    final body = <String, dynamic>{
+      'model': model ?? 'gpt-4o',
+      'messages': [
+        {'role': 'user', 'content': prompt},
+      ],
+    };
+
+    if (_reasoningEnabled) {
+      final effort = reasoningEffort!.name;
+      // OpenAI-compatible: top-level reasoning_effort for llama.cpp / vLLM / Qwen3.
+      body['reasoning_effort'] = effort;
+      // llama.cpp also honours chat_template_kwargs for the Jinja template.
+      final kwargs = <String, dynamic>{
+        'enable_thinking': true,
+        'reasoning_effort': effort,
+      };
+      body['chat_template_kwargs'] = kwargs;
+    }
+
+    return body;
   }
 
   @override
@@ -328,16 +366,10 @@ class LocalOpenAIService implements AIService {
 
       final response = await _dio.post(
         '/chat/completions',
-        data: {
-          'model': model ?? 'gpt-4o',
-          'messages': [
-            {'role': 'user', 'content': prompt},
-          ],
-        },
+        data: _buildRequestBody(prompt),
       );
 
-      return response.data['choices'][0]['message']['content'] ??
-          'No translation available';
+      return _extractContent(response.data) ?? 'No translation available';
     } catch (e) {
       developer.log('Error translating term: $e', name: 'LocalOpenAIService');
       rethrow;
@@ -366,16 +398,10 @@ class LocalOpenAIService implements AIService {
 
       final response = await _dio.post(
         '/chat/completions',
-        data: {
-          'model': model ?? 'gpt-4o',
-          'messages': [
-            {'role': 'user', 'content': prompt},
-          ],
-        },
+        data: _buildRequestBody(prompt),
       );
 
-      return response.data['choices'][0]['message']['content'] ??
-          'No translation available';
+      return _extractContent(response.data) ?? 'No translation available';
     } catch (e) {
       developer.log(
         'Error fetching more term translations: $e',
@@ -401,16 +427,10 @@ class LocalOpenAIService implements AIService {
 
       final response = await _dio.post(
         '/chat/completions',
-        data: {
-          'model': model ?? 'gpt-4o',
-          'messages': [
-            {'role': 'user', 'content': prompt},
-          ],
-        },
+        data: _buildRequestBody(prompt),
       );
 
-      return response.data['choices'][0]['message']['content'] ??
-          'No translation available';
+      return _extractContent(response.data) ?? 'No translation available';
     } catch (e) {
       developer.log(
         'Error translating sentence: $e',
@@ -471,6 +491,19 @@ class LocalOpenAIService implements AIService {
     return result;
   }
 
+  String? _extractContent(dynamic data) {
+    if (data is! Map) return null;
+    final choices = data['choices'];
+    if (choices is! List || choices.isEmpty) return null;
+    final first = choices.first;
+    if (first is! Map) return null;
+    final message = first['message'];
+    if (message is! Map) return null;
+    final content = message['content'];
+    if (content is String) return content;
+    return null;
+  }
+
   @override
   Future<String> getVirtualDictionaryEntry(
     String sentence,
@@ -490,16 +523,10 @@ class LocalOpenAIService implements AIService {
 
       final response = await _dio.post(
         '/chat/completions',
-        data: {
-          'model': model ?? 'gpt-4o',
-          'messages': [
-            {'role': 'user', 'content': prompt},
-          ],
-        },
+        data: _buildRequestBody(prompt),
       );
 
-      return response.data['choices'][0]['message']['content'] ??
-          'No dictionary entry available';
+      return _extractContent(response.data) ?? 'No dictionary entry available';
     } catch (e) {
       developer.log(
         'Error getting virtual dictionary entry: $e',
@@ -530,16 +557,10 @@ class LocalOpenAIService implements AIService {
 
       final response = await _dio.post(
         '/chat/completions',
-        data: {
-          'model': model ?? 'gpt-4o',
-          'messages': [
-            {'role': 'user', 'content': prompt},
-          ],
-        },
+        data: _buildRequestBody(prompt),
       );
 
-      return response.data['choices'][0]['message']['content'] ??
-          'No explanation available';
+      return _extractContent(response.data) ?? 'No explanation available';
     } catch (e) {
       developer.log(
         'Error getting term explanation: $e',
@@ -554,18 +575,87 @@ class GeminiService implements AIService {
   final String apiKey;
   final String? model;
   final Map<AIPromptType, AIPromptConfig> promptConfigs;
+  final ReasoningEffort? reasoningEffort;
 
   late final GenerativeModel _generativeModel;
+  late final Dio _dio;
 
   GeminiService({
     required this.apiKey,
     this.model,
     required this.promptConfigs,
+    this.reasoningEffort,
   }) {
     _generativeModel = GenerativeModel(
       model: model ?? 'gemini-1.5-flash',
       apiKey: apiKey,
     );
+    _dio = Dio(
+      BaseOptions(baseUrl: 'https://generativelanguage.googleapis.com'),
+    );
+  }
+
+  String get _modelName => model ?? 'gemini-1.5-flash';
+
+  bool get _reasoningEnabled =>
+      reasoningEffort != null && reasoningEffort != ReasoningEffort.none;
+
+  Map<String, dynamic>? _thinkingConfigPayload() {
+    if (!_reasoningEnabled) return null;
+    return {
+      'thinkingConfig': {
+        'thinkingBudget': reasoningEffort!.toGeminiThinkingBudget(),
+        'includeThoughts': false,
+      },
+    };
+  }
+
+  Future<String> _generateContent(
+    String prompt, {
+    String fallback = 'No response available',
+  }) async {
+    if (!_reasoningEnabled) {
+      final response = await _generativeModel.generateContent([
+        Content.text(prompt),
+      ]);
+      return response.text ?? fallback;
+    }
+
+    final body = <String, dynamic>{
+      'contents': [
+        {
+          'role': 'user',
+          'parts': [
+            {'text': prompt},
+          ],
+        },
+      ],
+      'generationConfig': _thinkingConfigPayload(),
+    };
+
+    final response = await _dio.post(
+      '/v1beta/models/$_modelName:generateContent',
+      queryParameters: {'key': apiKey},
+      data: body,
+    );
+
+    final candidates = response.data['candidates'] as List?;
+    if (candidates == null || candidates.isEmpty) {
+      return fallback;
+    }
+    final content = candidates.first['content'];
+    if (content is! Map) return fallback;
+    final parts = content['parts'] as List?;
+    if (parts == null) return fallback;
+
+    final buffer = StringBuffer();
+    for (final part in parts) {
+      if (part is Map && part['text'] is String) {
+        buffer.write(part['text']);
+      }
+    }
+    final result = buffer.toString();
+    return result.isEmpty ? fallback : result;
   }
 
   @override
@@ -587,11 +677,7 @@ class GeminiService implements AIService {
         prompt: prompt,
       );
 
-      final response = await _generativeModel.generateContent([
-        Content.text(prompt),
-      ]);
-
-      return response.text ?? 'No translation available';
+      return await _generateContent(prompt, fallback: 'No translation available');
     } catch (e) {
       developer.log('Error translating term: $e', name: 'GeminiService');
       rethrow;
@@ -618,11 +704,7 @@ class GeminiService implements AIService {
         prompt: prompt,
       );
 
-      final response = await _generativeModel.generateContent([
-        Content.text(prompt),
-      ]);
-
-      return response.text ?? 'No translation available';
+      return await _generateContent(prompt, fallback: 'No translation available');
     } catch (e) {
       developer.log(
         'Error fetching more term translations: $e',
@@ -646,11 +728,7 @@ class GeminiService implements AIService {
         prompt: prompt,
       );
 
-      final response = await _generativeModel.generateContent([
-        Content.text(prompt),
-      ]);
-
-      return response.text ?? 'No translation available';
+      return await _generateContent(prompt, fallback: 'No translation available');
     } catch (e) {
       developer.log('Error translating sentence: $e', name: 'GeminiService');
       rethrow;
@@ -661,11 +739,7 @@ class GeminiService implements AIService {
   Future<List<String>> fetchAvailableModels() async {
     try {
       // Use Dio to call the Google AI REST API to list models
-      final dio = Dio(
-        BaseOptions(baseUrl: 'https://generativelanguage.googleapis.com'),
-      );
-
-      final response = await dio.get(
+      final response = await _dio.get(
         '/v1beta/models',
         queryParameters: {'key': apiKey},
       );
@@ -740,11 +814,10 @@ class GeminiService implements AIService {
         prompt: prompt,
       );
 
-      final response = await _generativeModel.generateContent([
-        Content.text(prompt),
-      ]);
-
-      return response.text ?? 'No dictionary entry available';
+      return await _generateContent(
+        prompt,
+        fallback: 'No dictionary entry available',
+      );
     } catch (e) {
       developer.log(
         'Error getting virtual dictionary entry: $e',
@@ -773,11 +846,10 @@ class GeminiService implements AIService {
         prompt: prompt,
       );
 
-      final response = await _generativeModel.generateContent([
-        Content.text(prompt),
-      ]);
-
-      return response.text ?? 'No explanation available';
+      return await _generateContent(
+        prompt,
+        fallback: 'No explanation available',
+      );
     } catch (e) {
       developer.log(
         'Error getting term explanation: $e',
@@ -862,5 +934,22 @@ class NoAIService implements AIService {
       name: 'NoAIService',
     );
     return 'AI term explanation is not enabled';
+  }
+}
+
+extension on ReasoningEffort {
+  openai.ReasoningEffort? _toOpenAiEnum() {
+    switch (this) {
+      case ReasoningEffort.minimal:
+        return openai.ReasoningEffort.minimal;
+      case ReasoningEffort.low:
+        return openai.ReasoningEffort.low;
+      case ReasoningEffort.medium:
+        return openai.ReasoningEffort.medium;
+      case ReasoningEffort.high:
+        return openai.ReasoningEffort.high;
+      case ReasoningEffort.none:
+        return null;
+    }
   }
 }
