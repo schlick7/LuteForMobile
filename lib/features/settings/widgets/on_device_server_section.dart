@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/core/services/embedded_server_service.dart';
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
+import 'package:lute_for_mobile/features/settings/widgets/on_device_first_run_dialog.dart';
 
 /// Settings card for the "On-device" lute-v3 server option.
 ///
@@ -77,6 +78,12 @@ class _OnDeviceServerSectionState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Server running at $url')),
       );
+      // First-time setup: if the user hasn't done the on-device
+      // first-run flow yet, show the chooser. This includes a fresh
+      // install, OR a re-install after wiping the embedded server.
+      if (!ref.read(settingsProvider).onDeviceFirstRunCompleted) {
+        await showOnDeviceFirstRunDialog(context);
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

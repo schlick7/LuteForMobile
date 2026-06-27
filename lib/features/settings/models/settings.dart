@@ -44,6 +44,12 @@ class Settings {
   final bool autoRefreshFullStats;
   final bool experimentalBookDetailsFullStatsEndpoint;
 
+  /// Set the first time the embedded on-device server is started, so
+  /// the app can show a one-time "Restore from backup / Start fresh"
+  /// chooser. Reset to false if the user removes the embedded server
+  /// artifact and re-installs, so they get the chooser again.
+  final bool onDeviceFirstRunCompleted;
+
   static const String termuxUrl = 'http://127.0.0.1:5001';
 
   /// The lute-v3 server version this build of the app is pinned to.
@@ -89,6 +95,7 @@ class Settings {
     this.maxConcurrentTooltipFetches = 4,
     this.autoRefreshFullStats = false,
     this.experimentalBookDetailsFullStatsEndpoint = false,
+    this.onDeviceFirstRunCompleted = false,
   });
 
   Settings copyWith({
@@ -132,6 +139,7 @@ class Settings {
     int? maxConcurrentTooltipFetches,
     bool? autoRefreshFullStats,
     bool? experimentalBookDetailsFullStatsEndpoint,
+    bool? onDeviceFirstRunCompleted,
   }) {
     return Settings(
       localUrl: localUrl ?? this.localUrl,
@@ -193,6 +201,9 @@ class Settings {
       experimentalBookDetailsFullStatsEndpoint:
           experimentalBookDetailsFullStatsEndpoint ??
           this.experimentalBookDetailsFullStatsEndpoint,
+      onDeviceFirstRunCompleted:
+          onDeviceFirstRunCompleted ??
+          this.onDeviceFirstRunCompleted,
     );
   }
 
@@ -236,6 +247,7 @@ class Settings {
       maxConcurrentTooltipFetches: 4,
       autoRefreshFullStats: false,
       experimentalBookDetailsFullStatsEndpoint: false,
+      onDeviceFirstRunCompleted: false,
     );
   }
 
@@ -282,7 +294,8 @@ class Settings {
         other.maxConcurrentTooltipFetches == maxConcurrentTooltipFetches &&
         other.autoRefreshFullStats == autoRefreshFullStats &&
         other.experimentalBookDetailsFullStatsEndpoint ==
-            experimentalBookDetailsFullStatsEndpoint;
+            experimentalBookDetailsFullStatsEndpoint &&
+        other.onDeviceFirstRunCompleted == onDeviceFirstRunCompleted;
   }
 
   @override
@@ -324,6 +337,7 @@ class Settings {
     maxConcurrentTooltipFetches,
     autoRefreshFullStats,
     experimentalBookDetailsFullStatsEndpoint,
+    onDeviceFirstRunCompleted,
   ]);
 
   bool isValidServerUrl(String url) {

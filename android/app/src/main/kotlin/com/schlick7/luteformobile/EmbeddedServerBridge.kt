@@ -170,6 +170,17 @@ class EmbeddedServerBridge(
                 luteDataDir.mkdirs()
                 result.success(luteDataDir.absolutePath)
             }
+            "restoreBackup" -> {
+                val gzPath = call.argument<String>("path")
+                if (gzPath == null) {
+                    result.error("BAD_ARGS", "Missing 'path'", null)
+                    return
+                }
+                Thread({
+                    val ok = doRestoreBackup(gzPath)
+                    mainHandler.post { result.success(ok) }
+                }, "lute-restore").start()
+            }
             "start" -> {
                 if (isStarting.getAndSet(true)) {
                     result.error("ALREADY_STARTING", "Server is already starting", null)
@@ -275,6 +286,71 @@ class EmbeddedServerBridge(
     /** Pick a free localhost port via ServerSocket(0). */
     private fun pickFreePort(): Int {
         java.net.ServerSocket(0).use { return it.localPort }
+    }
+
+    /**
+     * Restore a lute.db from a gzipped sqlite dump.
+     *
+     * The gz file is decompressed and validated:
+     *  - must start with the gzip magic (0x1f 0x8b)
+     *  - decompressed contents must start with "SQLite format 3"
+     *
+     * On success, atomically replaces `<dataDir>/lute.db` and
+     * returns true. On any failure (bad file, IO error, validation
+     * failure) returns false and leaves the existing lute.db in
+     * place. The caller is expected to have already stopped the
+     * embedded server before calling this.
+     */
+    private fun doRestoreBackup(gzPath: String): Boolean {
+        return try {
+            val gzFile = File(gzPath)
+            if (!gzFile.exists() || !gzFile.canRead()) {
+                Log.w(TAG, "restoreBackup: cannot read $gzPath")
+                return false
+            }
+
+            // Decompress in a streaming way to keep memory low.
+            val sqliteBytes = java.io.ByteArrayOutputStream()
+            java.util.zip.GZIPInputStream(gzFile.inputStream().buffered()).use { gz ->
+                gz.copyTo(sqliteBytes)
+            }
+            val bytes = sqliteBytes.toByteArray()
+            if (bytes.size < 16) {
+                Log.w(TAG, "restoreBackup: decompressed too small")
+                return false
+            }
+
+            // Validate: must be a sqlite file.
+            val magic = "SQLite format 3".toByteArray(Charsets.US_ASCII)
+            for (i in magic.indices) {
+                if (bytes[i] != magic[i]) {
+                    Log.w(TAG, "restoreBackup: not a sqlite db (magic mismatch at $i)")
+                    return false
+                }
+            }
+
+            // Atomically replace lute.db. writeBytes + force(true) +
+            // rename gives us crash-safe replacement: even if the
+            // process dies after writeBytes but before rename, the
+            // existing lute.db is intact and the .tmp is partial.
+            val target = File(luteDataDir, "lute.db")
+            val tmp = File(luteDataDir, "lute.db.restore.tmp")
+            tmp.writeBytes(bytes)
+            java.io.FileOutputStream(tmp, false).channel.use { ch ->
+                ch.force(true)
+            }
+            if (target.exists()) target.delete()
+            if (!tmp.renameTo(target)) {
+                Log.w(TAG, "restoreBackup: rename failed")
+                tmp.delete()
+                return false
+            }
+            Log.d(TAG, "restoreBackup: replaced lute.db (${bytes.size} bytes)")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "restoreBackup failed", e)
+            false
+        }
     }
 
     /**

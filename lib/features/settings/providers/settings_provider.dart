@@ -69,6 +69,8 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyAutoRefreshFullStats = 'auto_refresh_full_stats';
   static const String _keyExperimentalBookDetailsFullStatsEndpoint =
       'experimental_book_details_full_stats_endpoint';
+  static const String _keyOnDeviceFirstRunCompleted =
+      'on_device_first_run_completed';
 
   @override
   Settings build() {
@@ -168,6 +170,8 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getBool(_keyAutoRefreshFullStats) ?? false;
     final experimentalBookDetailsFullStatsEndpoint =
         prefs.getBool(_keyExperimentalBookDetailsFullStatsEndpoint) ?? false;
+    final onDeviceFirstRunCompleted =
+        prefs.getBool(_keyOnDeviceFirstRunCompleted) ?? false;
 
     final currentBookId = prefs.getInt(_keyCurrentBookId);
     final currentBookLangId = prefs.getInt(_keyCurrentBookLangId);
@@ -197,6 +201,7 @@ class SettingsNotifier extends Notifier<Settings> {
       showKnownTermsCount: showKnownTermsCount,
       showTermStatsCard: showTermStatsCard,
       experimentalBackupRestoreFeatures: experimentalBackupRestoreFeatures,
+      onDeviceFirstRunCompleted: onDeviceFirstRunCompleted,
       autoLoadTermStatsCards: autoLoadTermStatsCards,
       showPageNumbers: showPageNumbers,
       enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
@@ -498,6 +503,23 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(experimentalBackupRestoreFeatures: enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyExperimentalBackupRestoreFeatures, enabled);
+  }
+
+  /// Mark the first-time on-device setup flow as completed. Called
+  /// after the user picks "Restore from backup" or "Start fresh".
+  Future<void> markOnDeviceFirstRunCompleted() async {
+    state = state.copyWith(onDeviceFirstRunCompleted: true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyOnDeviceFirstRunCompleted, true);
+  }
+
+  /// Reset the on-device first-run flag. Called when the user removes
+  /// the embedded server artifact (so re-installing triggers the
+  /// chooser again).
+  Future<void> resetOnDeviceFirstRun() async {
+    state = state.copyWith(onDeviceFirstRunCompleted: false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyOnDeviceFirstRunCompleted, false);
   }
 
   Future<void> updateAutoLoadTermStatsCards(bool enabled) async {

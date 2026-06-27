@@ -221,6 +221,35 @@ class EmbeddedServerService {
     }
   }
 
+  /// Absolute path of the lute data dir (where lute.db lives).
+  /// Used by the first-time flow to drop in a restored backup.
+  Future<String> luteDataDir() async {
+    if (kIsWeb || !Platform.isAndroid) {
+      throw UnsupportedError('On-device server is Android-only');
+    }
+    return await _methodChannel.invokeMethod<String>('dataDir') ?? '';
+  }
+
+  /// Restore the embedded lute.db from a gzipped sqlite dump.
+  /// Returns true on success. The Kotlin side does the gzip
+  /// decompression and atomic file replacement. The caller is
+  /// expected to have stopped the server first.
+  Future<bool> restoreBackup(String gzPath) async {
+    if (kIsWeb || !Platform.isAndroid) {
+      throw UnsupportedError('On-device server is Android-only');
+    }
+    try {
+      final result =
+          await _methodChannel.invokeMethod<bool>('restoreBackup', {
+        'path': gzPath,
+      });
+      return result ?? false;
+    } on PlatformException catch (e) {
+      print('EmbeddedServerService.restoreBackup: ${e.message}');
+      return false;
+    }
+  }
+
   /// Most recent error string (if any).
   String? get lastError => _lastError;
 
