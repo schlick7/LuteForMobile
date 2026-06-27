@@ -1,6 +1,6 @@
 
 cd /home/cody/LuteForMobile
-./new_release.sh 1.2.3
+scripts/release_app.sh 1.2.3
 
 
 
@@ -35,3 +35,15 @@ cd /home/cody/LuteForMobile
 - cd build/web
 - sudo zip -r ../../LuteForMobilePWA.zip * -x "*.last_build_id"
 - rename to LuteForMobilePWA-vX.X.X.zip
+
+# On-device lute-server release (optional, separate cadence)
+
+Only needed when you want to publish a new lute-v3 server artifact,
+e.g. when upstream LuteOrg/lute-v3 releases a new version.
+
+    scripts/release_lute_server.sh 3.11.0
+
+This will:
+1. Build lute-server-android-arm64-v3.11.0.tar.gz
+2. Update Settings.luteServerPinnedVersion in lib/features/settings/models/settings.dart
+3. Publish a lute-server-v3.11.0 GitHub release with the tarball + sha256

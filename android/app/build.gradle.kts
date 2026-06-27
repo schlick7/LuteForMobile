@@ -58,6 +58,7 @@ android {
 dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.apache.commons:commons-compress:1.26.1")
 }
 
 flutter {

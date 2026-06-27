@@ -9,6 +9,7 @@ import '../../../shared/theme/theme_presets.dart';
 import '../../../shared/theme/theme_serialization.dart';
 import '../../../core/cache/providers/cache_manager_provider.dart';
 import '../../../features/reader/providers/reader_provider.dart';
+import '../../../core/services/embedded_server_service.dart';
 import '../../../core/services/termux_service.dart';
 import '../../../core/services/server_health_service.dart';
 import '../../../shared/providers/server_status_provider.dart';
@@ -53,6 +54,7 @@ class SettingsNotifier extends Notifier<Settings> {
   static const String _keyEnableTripleTapToMarkKnown =
       'enable_triple_tap_to_mark_known';
   static const String _keyEnablePagePreload = 'enable_page_preload';
+  static const String _keyLocalServerMode = 'local_server_mode';
   static const String _keyTermuxIntegrationEnabled =
       'termux_integration_enabled';
   static const String _keyStatsCalcSampleSize = 'stats_calc_sample_size';
@@ -77,16 +79,55 @@ class SettingsNotifier extends Notifier<Settings> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     final localUrl = prefs.getString(_keyLocalUrl) ?? '';
-    final useTermux = prefs.getBool(_keyUseTermux) ?? false;
-    final serverUrl = useTermux ? Settings.termuxUrl : localUrl;
 
+    // Resolve localServerMode: prefer the new key, fall back to the legacy
+    // use_termux and termux_integration_enabled booleans, default to remote.
+    LocalServerMode localServerMode = LocalServerMode.remote;
+    final storedMode = prefs.getString(_keyLocalServerMode);
+    if (storedMode != null) {
+      localServerMode = LocalServerMode.values.firstWhere(
+        (m) => m.name == storedMode,
+        orElse: () => LocalServerMode.remote,
+      );
+    } else {
+      // Legacy migration.
+      final legacyUseTermux = prefs.getBool(_keyUseTermux) ?? false;
+      final legacyTermuxIntegration =
+          prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
+      if (legacyTermuxIntegration && legacyUseTermux) {
+        localServerMode = LocalServerMode.termux;
+      } else if (legacyTermuxIntegration) {
+        // Old "Termux integration on but server not in use" state.
+        localServerMode = LocalServerMode.termux;
+      }
+    }
+
+    final serverUrl = _resolveServerUrl(localServerMode, localUrl);
     state = Settings.defaultSettings().copyWith(
       localUrl: localUrl,
       serverUrl: serverUrl,
       isUrlValid: _isValidUrl(serverUrl),
+      localServerMode: localServerMode,
     );
 
     _loadOtherSettings(prefs);
+  }
+
+  /// Compute the URL the API service should use, given the current mode.
+  /// On-device mode returns the cached embedded server URL if known,
+  /// otherwise empty (the on-device section will populate it after start).
+  String _resolveServerUrl(LocalServerMode mode, String localUrl) {
+    switch (mode) {
+      case LocalServerMode.remote:
+        return localUrl;
+      case LocalServerMode.termux:
+        return Settings.termuxUrl;
+      case LocalServerMode.onDevice:
+        // We can't know the port until the embedded server is started;
+        // the on-device section is responsible for updating Settings.serverUrl
+        // via setOnDeviceServerUrl when start() succeeds.
+        return EmbeddedServerService.instance.snapshot.url ?? '';
+    }
   }
 
   Future<void> _loadOtherSettings(SharedPreferences prefs) async {
@@ -114,8 +155,6 @@ class SettingsNotifier extends Notifier<Settings> {
     final enableTripleTapToMarkKnown =
         prefs.getBool(_keyEnableTripleTapToMarkKnown) ?? false;
     final enablePagePreload = prefs.getBool(_keyEnablePagePreload) ?? false;
-    final termuxIntegrationEnabled =
-        prefs.getBool(_keyTermuxIntegrationEnabled) ?? false;
     final statsCalcSampleSize = prefs.getInt(_keyStatsCalcSampleSize) ?? 5;
     final stats500SampleSize = prefs.getInt(_keyStats500SampleSize) ?? 100;
     final statsRefreshBatchSize = prefs.getInt(_keyStatsRefreshBatchSize) ?? 1;
@@ -162,7 +201,6 @@ class SettingsNotifier extends Notifier<Settings> {
       showPageNumbers: showPageNumbers,
       enableTripleTapToMarkKnown: enableTripleTapToMarkKnown,
       enablePagePreload: enablePagePreload,
-      termuxIntegrationEnabled: termuxIntegrationEnabled,
       statsCalcSampleSize: statsCalcSampleSize,
       stats500SampleSize: stats500SampleSize,
       statsRefreshBatchSize: statsRefreshBatchSize,
@@ -180,9 +218,11 @@ class SettingsNotifier extends Notifier<Settings> {
     final previousServerUrl = state.serverUrl;
     await prefs.setString(_keyLocalUrl, url);
     final isValid = _isValidUrl(url);
-    final serverUrl = prefs.getBool(_keyUseTermux) ?? false
-        ? Settings.termuxUrl
-        : url;
+    // Only the remote mode actually consumes localUrl; the other modes
+    // ignore changes to the URL field.
+    final serverUrl = state.localServerMode == LocalServerMode.remote
+        ? url
+        : _resolveServerUrl(state.localServerMode, url);
     state = state.copyWith(
       localUrl: url,
       serverUrl: serverUrl,
@@ -199,19 +239,62 @@ class SettingsNotifier extends Notifier<Settings> {
     }
   }
 
-  Future<void> setServerSelection(bool useTermux) async {
+  /// Switch the active server mode (Remote / On-device / Termux).
+  /// Side effects:
+  ///  - For Termux: kick off `TermuxService.startServer()` (best-effort).
+  ///  - For On-device: do not auto-start; the user starts it from the
+  ///    OnDeviceServerSection.
+  ///  - For Remote: clear any active embedded server (best-effort).
+  Future<void> setLocalServerMode(LocalServerMode mode) async {
     final prefs = await SharedPreferences.getInstance();
     final previousServerUrl = state.serverUrl;
-    await prefs.setBool(_keyUseTermux, useTermux);
+    final previousMode = state.localServerMode;
+    await prefs.setString(_keyLocalServerMode, mode.name);
 
-    if (useTermux) {
-      state = state.copyWith(serverUrl: Settings.termuxUrl, isUrlValid: true);
-      await TermuxService.startServer();
-    } else {
-      final localUrl = prefs.getString(_keyLocalUrl) ?? '';
-      final isValid = _isValidUrl(localUrl);
-      state = state.copyWith(serverUrl: localUrl, isUrlValid: isValid);
+    String serverUrl;
+    bool isUrlValid = state.isUrlValid;
+    switch (mode) {
+      case LocalServerMode.remote:
+        final localUrl = prefs.getString(_keyLocalUrl) ?? '';
+        isUrlValid = _isValidUrl(localUrl);
+        serverUrl = localUrl;
+        // Stop embedded server if we were in that mode.
+        if (previousMode == LocalServerMode.onDevice) {
+          try {
+            await EmbeddedServerService.instance.stop();
+          } catch (_) {}
+        }
+        break;
+      case LocalServerMode.termux:
+        serverUrl = Settings.termuxUrl;
+        isUrlValid = true;
+        if (previousMode != LocalServerMode.termux) {
+          if (previousMode == LocalServerMode.onDevice) {
+            try {
+              await EmbeddedServerService.instance.stop();
+            } catch (_) {}
+          }
+          try {
+            await TermuxService.startServer();
+          } catch (_) {}
+        }
+        break;
+      case LocalServerMode.onDevice:
+        serverUrl = EmbeddedServerService.instance.snapshot.url ?? '';
+        isUrlValid = serverUrl.isNotEmpty;
+        if (previousMode == LocalServerMode.termux) {
+          try {
+            await TermuxService.stopServer();
+          } catch (_) {}
+        }
+        break;
     }
+
+    state = state.copyWith(
+      localServerMode: mode,
+      serverUrl: serverUrl,
+      isUrlValid: isUrlValid,
+    );
 
     final cacheManager = ref.read(cacheManagerProvider);
     if (previousServerUrl != state.serverUrl) {
@@ -222,8 +305,34 @@ class SettingsNotifier extends Notifier<Settings> {
       await cacheManager.clearDictionaryPreferences();
     }
 
-    final isReachable = await ServerHealthService.isReachable(state.serverUrl);
-    ServerStatusManager.setReachable(isReachable);
+    if (state.serverUrl.isNotEmpty) {
+      final isReachable =
+          await ServerHealthService.isReachable(state.serverUrl);
+      ServerStatusManager.setReachable(isReachable);
+    } else {
+      ServerStatusManager.setReachable(false);
+    }
+  }
+
+  /// Called by the OnDeviceServerSection when the embedded server
+  /// successfully starts, so that the active URL is reflected in
+  /// `Settings.serverUrl` for the rest of the app.
+  Future<void> setOnDeviceServerUrl(String url) async {
+    if (state.localServerMode != LocalServerMode.onDevice) return;
+    final previousServerUrl = state.serverUrl;
+    state = state.copyWith(serverUrl: url, isUrlValid: url.isNotEmpty);
+    final cacheManager = ref.read(cacheManagerProvider);
+    if (previousServerUrl != state.serverUrl) {
+      await cacheManager.clearServerDependentCaches();
+      await clearCurrentBook();
+      ref.read(readerProvider.notifier).clearPageData();
+    } else {
+      await cacheManager.clearDictionaryPreferences();
+    }
+    if (url.isNotEmpty) {
+      final isReachable = await ServerHealthService.isReachable(url);
+      ServerStatusManager.setReachable(isReachable);
+    }
   }
 
   Future<void> updateTranslationProvider(String provider) async {
@@ -415,12 +524,6 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setBool(_keyEnablePagePreload, enabled);
   }
 
-  Future<void> updateTermuxIntegrationEnabled(bool enabled) async {
-    state = state.copyWith(termuxIntegrationEnabled: enabled);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_keyTermuxIntegrationEnabled, enabled);
-  }
-
   Future<void> updateStatsCalcSampleSize(int value) async {
     state = state.copyWith(statsCalcSampleSize: value);
     final prefs = await SharedPreferences.getInstance();
@@ -488,6 +591,8 @@ class SettingsNotifier extends Notifier<Settings> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyLocalUrl);
     await prefs.remove(_keyUseTermux);
+    await prefs.remove(_keyLocalServerMode);
+    await prefs.remove(_keyTermuxIntegrationEnabled);
     await prefs.remove(_keyTranslationProvider);
     await prefs.remove(_keyShowTags);
     await prefs.remove(_keyShowLastRead);

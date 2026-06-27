@@ -241,6 +241,14 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
         }
         await Future.delayed(const Duration(milliseconds: 500));
       }
+    } else if (settings.localServerMode == LocalServerMode.onDevice) {
+      // For the on-device server, main.dart already tried to start it.
+      // If we got a URL, the embedded server is up; refresh data once.
+      if (settings.serverUrl.isNotEmpty && _needsDataRefresh) {
+        _needsDataRefresh = false;
+        ref.read(booksProvider.notifier).loadBooks(forceRefresh: true);
+        _loadLastReadBook();
+      }
     }
   }
 

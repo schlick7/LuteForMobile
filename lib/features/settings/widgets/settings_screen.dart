@@ -16,6 +16,7 @@ import 'theme_selector_screen.dart';
 import 'tts_settings_section.dart';
 import 'ai_settings_section.dart';
 import 'backup_restore_card.dart';
+import 'on_device_server_section.dart';
 import 'termux_screen.dart';
 import 'language_settings_card.dart';
 
@@ -376,82 +377,80 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ],
                     if (!kIsWeb &&
                         defaultTargetPlatform == TargetPlatform.android) ...[
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Server mode',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      ...LocalServerMode.values.map((mode) {
+                        final isSelected = settings.localServerMode == mode;
+                        final title = switch (mode) {
+                          LocalServerMode.remote => 'Remote',
+                          LocalServerMode.onDevice => 'On-device',
+                          LocalServerMode.termux => 'Termux (advanced)',
+                        };
+                        final subtitle = switch (mode) {
+                          LocalServerMode.remote =>
+                            'Use the server URL above.',
+                          LocalServerMode.onDevice =>
+                            'Run Lute directly on your phone. '
+                                'No Termux required.',
+                          LocalServerMode.termux =>
+                            'Run Lute inside the Termux app. '
+                                'Kept for users with existing setups.',
+                        };
+                        return InkWell(
+                          onTap: () async {
+                            if (isSelected) return;
+                            await ref
+                                .read(settingsProvider.notifier)
+                                .setLocalServerMode(mode);
+                          },
+                          child: Padding(
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 6.0),
+                            child: Row(
                               children: [
-                                const Text(
-                                  'Termux Integration',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                Radio<LocalServerMode>(
+                                  value: mode,
+                                  groupValue: settings.localServerMode,
+                                  onChanged: (v) {
+                                    if (v == null) return;
+                                    ref
+                                        .read(settingsProvider.notifier)
+                                        .setLocalServerMode(v);
+                                  },
                                 ),
-                                Text(
-                                  'Enable Termux server features',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.6),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w600),
+                                      ),
+                                      Text(
+                                        subtitle,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurface
+                                              .withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          Transform.scale(
-                            scale: 0.8,
-                            child: Switch(
-                              value: settings.termuxIntegrationEnabled,
-                              onChanged: (value) {
-                                ref
-                                    .read(settingsProvider.notifier)
-                                    .updateTermuxIntegrationEnabled(value);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    if (settings.termuxIntegrationEnabled) ...[
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Server Selection',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                Text(
-                                  'Use Termux server (localhost)',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Transform.scale(
-                            scale: 0.8,
-                            child: Switch(
-                              value: settings.serverUrl == Settings.termuxUrl,
-                              onChanged: (value) {
-                                ref
-                                    .read(settingsProvider.notifier)
-                                    .setServerSelection(value);
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
+                        );
+                      }),
                     ],
                   ],
                 ),
@@ -459,7 +458,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
             const SizedBox(height: 16),
             const BackupRestoreCard(),
-            if (settings.termuxIntegrationEnabled) ...[
+            if (!kIsWeb &&
+                defaultTargetPlatform == TargetPlatform.android &&
+                settings.localServerMode == LocalServerMode.onDevice) ...[
+              const SizedBox(height: 16),
+              const OnDeviceServerSection(),
+            ],
+            if (!kIsWeb &&
+                defaultTargetPlatform == TargetPlatform.android &&
+                settings.localServerMode == LocalServerMode.termux) ...[
               const SizedBox(height: 16),
               Card(
                 elevation: 2,

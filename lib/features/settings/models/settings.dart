@@ -34,7 +34,7 @@ class Settings {
   final AIProvider? aiProvider;
   final bool enableTripleTapToMarkKnown;
   final bool enablePagePreload;
-  final bool termuxIntegrationEnabled;
+  final LocalServerMode localServerMode;
   final int statsCalcSampleSize;
   final int stats500SampleSize;
   final int statsRefreshBatchSize;
@@ -45,6 +45,16 @@ class Settings {
   final bool experimentalBookDetailsFullStatsEndpoint;
 
   static const String termuxUrl = 'http://127.0.0.1:5001';
+
+  /// The lute-v3 server version this build of the app is pinned to.
+  /// Used to build the on-device server download URL.
+  static const String luteServerPinnedVersion = '3.10.1';
+
+  /// Base URL for the on-device server download artifacts. Tag pattern is
+  /// lute-server-v<version>, with files named lute-server-android-arm64-v<version>.tar.gz
+  /// and a sibling .sha256 sidecar.
+  static const String luteServerReleaseBase =
+      'https://github.com/schlick7/LuteForMobile/releases/download';
 
   const Settings({
     required this.localUrl,
@@ -76,7 +86,7 @@ class Settings {
     this.aiProvider,
     this.enableTripleTapToMarkKnown = false,
     this.enablePagePreload = false,
-    this.termuxIntegrationEnabled = false,
+    this.localServerMode = LocalServerMode.remote,
     this.statsCalcSampleSize = 5,
     this.stats500SampleSize = 100,
     this.statsRefreshBatchSize = 1,
@@ -119,7 +129,7 @@ class Settings {
     AIProvider? aiProvider,
     bool? enableTripleTapToMarkKnown,
     bool? enablePagePreload,
-    bool? termuxIntegrationEnabled,
+    LocalServerMode? localServerMode,
     int? statsCalcSampleSize,
     int? stats500SampleSize,
     int? statsRefreshBatchSize,
@@ -174,8 +184,7 @@ class Settings {
       enableTripleTapToMarkKnown:
           enableTripleTapToMarkKnown ?? this.enableTripleTapToMarkKnown,
       enablePagePreload: enablePagePreload ?? this.enablePagePreload,
-      termuxIntegrationEnabled:
-          termuxIntegrationEnabled ?? this.termuxIntegrationEnabled,
+      localServerMode: localServerMode ?? this.localServerMode,
       statsCalcSampleSize: statsCalcSampleSize ?? this.statsCalcSampleSize,
       stats500SampleSize: stats500SampleSize ?? this.stats500SampleSize,
       statsRefreshBatchSize:
@@ -224,7 +233,7 @@ class Settings {
       aiProvider: AIProvider.none,
       enableTripleTapToMarkKnown: false,
       enablePagePreload: false,
-      termuxIntegrationEnabled: false,
+      localServerMode: LocalServerMode.remote,
       statsCalcSampleSize: 5,
       stats500SampleSize: 100,
       statsRefreshBatchSize: 1,
@@ -271,7 +280,7 @@ class Settings {
         other.aiProvider == aiProvider &&
         other.enableTripleTapToMarkKnown == enableTripleTapToMarkKnown &&
         other.enablePagePreload == enablePagePreload &&
-        other.termuxIntegrationEnabled == termuxIntegrationEnabled &&
+        other.localServerMode == localServerMode &&
         other.statsCalcSampleSize == statsCalcSampleSize &&
         other.statsRefreshBatchSize == statsRefreshBatchSize &&
         other.statsRefreshCooldownHours == statsRefreshCooldownHours &&
@@ -313,7 +322,7 @@ class Settings {
     aiProvider,
     enableTripleTapToMarkKnown,
     enablePagePreload,
-    termuxIntegrationEnabled,
+    localServerMode,
     statsCalcSampleSize,
     statsRefreshBatchSize,
     statsRefreshCooldownHours,
@@ -492,4 +501,17 @@ class BookDisplaySettings {
 
   @override
   int get hashCode => showTags.hashCode ^ showLastRead.hashCode;
+}
+
+/// How the app resolves its Lute v3 server.
+///
+/// - [remote]: talk to a user-configured remote URL.
+/// - [onDevice]: use the embedded on-device Python server (downloaded
+///   on demand from GitHub Releases).
+/// - [termux]: legacy path, runs Lute inside the Termux app. Kept for
+///   users with existing Termux setups.
+enum LocalServerMode {
+  remote,
+  onDevice,
+  termux,
 }

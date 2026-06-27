@@ -4,6 +4,8 @@ import android.content.SharedPreferences
 import android.os.Bundle
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.MethodChannel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -11,6 +13,7 @@ import kotlinx.coroutines.launch
 
 class MainActivity : FlutterActivity() {
     private var termuxBridge: TermuxBridge? = null
+    private var embeddedServerBridge: EmbeddedServerBridge? = null
     private val mainScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var hasAutoLaunched = false
 
@@ -34,13 +37,26 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         android.util.Log.d("MainActivity", ">>> configureFlutterEngine() <<<")
+
         termuxBridge = TermuxBridge(this)
         termuxBridge?.registerMethodChannel(flutterEngine)
+
+        embeddedServerBridge = EmbeddedServerBridge(this)
+        val methodChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            EmbeddedServerBridge.METHOD_CHANNEL,
+        )
+        val eventChannel = EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            EmbeddedServerBridge.EVENT_CHANNEL,
+        )
+        embeddedServerBridge?.register(methodChannel, eventChannel)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         termuxBridge?.dispose()
+        embeddedServerBridge?.dispose()
     }
 
     /**
