@@ -215,14 +215,16 @@ class EmbeddedServerBridge(
 
         try {
             // 1. Fetch the SHA256 first (small file, fails fast).
-            Log.d(TAG, "Fetching sha256 from $sha256Url()")
-            val expectedSha = fetchToFile(URL(sha256Url()), shaFile).trim().lowercase()
+            val shaUrl = sha256Url()
+            Log.d(TAG, "Fetching sha256 from $shaUrl")
+            val expectedSha = fetchToFile(URL(shaUrl), shaFile).trim().lowercase()
             val expectedHash = expectedSha.split(" ").first()
             Log.d(TAG, "Expected sha256: $expectedHash")
 
             // 2. Download the tarball with progress.
-            Log.d(TAG, "Downloading $tarballUrl()")
-            val conn = URL(tarballUrl()).openConnection() as HttpURLConnection
+            val tarUrl = tarballUrl()
+            Log.d(TAG, "Downloading $tarUrl")
+            val conn = URL(tarUrl).openConnection() as HttpURLConnection
             conn.connectTimeout = 15000
             conn.readTimeout = 60000
             conn.requestMethod = "GET"

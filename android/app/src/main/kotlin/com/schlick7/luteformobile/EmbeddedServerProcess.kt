@@ -154,7 +154,7 @@ class EmbeddedServerProcess(
         port = null
 
         try {
-            Log.d(TAG, "Sending SIGTERM to lute-server (pid=${p.pid()})")
+            Log.d(TAG, "Sending SIGTERM to lute-server")
             p.destroy()
         } catch (e: Exception) {
             Log.w(TAG, "destroy() failed: ${e.message}")
