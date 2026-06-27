@@ -167,11 +167,13 @@ class App extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: switch (themeSettings.themeType) {
           ThemeType.blackAndWhite => AppTheme.blackAndWhiteTheme(themeSettings),
-          ThemeType.gruvboxDark => AppTheme.gruvboxDarkTheme(themeSettings),
           ThemeType.gruvboxLight => AppTheme.gruvboxLightTheme(themeSettings),
           _ => AppTheme.lightTheme(themeSettings),
         },
-        darkTheme: AppTheme.darkTheme(themeSettings),
+        darkTheme: switch (themeSettings.themeType) {
+          ThemeType.gruvboxDark => AppTheme.gruvboxDarkTheme(themeSettings),
+          _ => AppTheme.darkTheme(themeSettings),
+        },
         themeMode: themeMode,
         home: const MainNavigation(),
       ),

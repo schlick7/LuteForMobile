@@ -147,16 +147,16 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
   ),
 );
 
-/// Gruvbox Dark theme preset - retro groove dark palette
+/// Gruvbox Dark theme preset - retro groove dark palette (morhetz/gruvbox)
 final AppThemeColorScheme gruvboxDarkThemePreset = AppThemeColorScheme(
   text: const TextColors(
     primary: Color(0xFFEBDBB2),
     secondary: Color(0xFFBDAE93),
     disabled: Color(0xFF7C6F64),
-    headline: Color(0xFFEBDBB2),
+    headline: Color(0xFFFBF1C7),
     onPrimary: Color(0xFF282828),
     onSecondary: Color(0xFF282828),
-    onPrimaryContainer: Color(0xFFEBDBB2),
+    onPrimaryContainer: Color(0xFFFBF1C7),
     onSecondaryContainer: Color(0xFFEBDBB2),
     onTertiary: Color(0xFF282828),
     onTertiaryContainer: Color(0xFFEBDBB2),
@@ -170,10 +170,10 @@ final AppThemeColorScheme gruvboxDarkThemePreset = AppThemeColorScheme(
   semantic: const SemanticColors(
     success: Color(0xFFB8BB26),
     onSuccess: Color(0xFF282828),
-    warning: Color(0xFFFEBC2A),
+    warning: Color(0xFFFABD2F),
     onWarning: Color(0xFF282828),
     error: Color(0xFFFB4934),
-    onError: Color(0xFFEBDBB2),
+    onError: Color(0xFF282828),
     info: Color(0xFF83A598),
     onInfo: Color(0xFF282828),
     connected: Color(0xFFB8BB26),
@@ -184,7 +184,7 @@ final AppThemeColorScheme gruvboxDarkThemePreset = AppThemeColorScheme(
   status: const StatusColors(
     status0: Color(0xFF83A598),
     status1: Color(0x99D3869B),
-    status2: Color(0x99FEBC2A),
+    status2: Color(0x99FABD2F),
     status3: Color(0x99D79921),
     status4: Color(0x99A89984),
     status5: Color(0x337C6F64),
@@ -220,7 +220,7 @@ final AppThemeColorScheme gruvboxDarkThemePreset = AppThemeColorScheme(
   ),
 );
 
-/// Gruvbox Light theme preset - retro groove light palette
+/// Gruvbox Light theme preset - retro groove light palette (morhetz/gruvbox)
 final AppThemeColorScheme gruvboxLightThemePreset = AppThemeColorScheme(
   text: const TextColors(
     primary: Color(0xFF3C3836),
@@ -229,7 +229,7 @@ final AppThemeColorScheme gruvboxLightThemePreset = AppThemeColorScheme(
     headline: Color(0xFF282828),
     onPrimary: Color(0xFFFBF1C7),
     onSecondary: Color(0xFFFBF1C7),
-    onPrimaryContainer: Color(0xFF3C3836),
+    onPrimaryContainer: Color(0xFFFBF1C7),
     onSecondaryContainer: Color(0xFF3C3836),
     onTertiary: Color(0xFFFBF1C7),
     onTertiaryContainer: Color(0xFF3C3836),
@@ -255,13 +255,13 @@ final AppThemeColorScheme gruvboxLightThemePreset = AppThemeColorScheme(
     localProvider: Color(0xFF076678),
   ),
   status: const StatusColors(
-    status0: Color(0xCC076678),
-    status1: Color(0x888F3F71),
-    status2: Color(0x88B57614),
-    status3: Color(0x88D79921),
-    status4: Color(0x88928642),
+    status0: Color(0xFF076678),
+    status1: Color(0x998F3F71),
+    status2: Color(0x99B57614),
+    status3: Color(0x99D79921),
+    status4: Color(0x99928642),
     status5: Color(0x44A89984),
-    status98: Color(0xFFA89984),
+    status98: Color(0xFF7C6F64),
     status99: Color(0xFF79740E),
     highlightedText: Color(0xFF3C3836),
     wordGlowColor: Color(0xFFD79921),
@@ -289,7 +289,7 @@ final AppThemeColorScheme gruvboxLightThemePreset = AppThemeColorScheme(
     tertiary: Color(0xFF8F3F71),
     primaryContainer: Color(0xFFEBDBB2),
     secondaryContainer: Color(0xFFD5C4A1),
-    tertiaryContainer: Color(0xFFD5C4A1),
+    tertiaryContainer: Color(0xFFBDAE93),
   ),
 );
 

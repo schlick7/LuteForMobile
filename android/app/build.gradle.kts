@@ -8,7 +8,7 @@ plugins {
 }
 
 buildscript {
-    extra["kotlinVersion"] = "2.2.0"
+    extra["kotlinVersion"] = "2.2.20"
 }
 
 val keystoreProperties = Properties()
