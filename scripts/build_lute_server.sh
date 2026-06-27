@@ -6,13 +6,19 @@
 #   dist/lute-server-android-arm64-v<version>.tar.gz.sha256
 #
 # Requirements on the build host:
-#   - Python 3.10+ (matching the lute-v3 minimum)
-#   - Docker (recommended) OR a Linux aarch64 build environment
-#   - ~3 GB free disk
+#   - Docker with binfmt support for aarch64 (see setup notes below)
+#   - 3-5 GB free disk
 #
 # Usage:
-#   scripts/build_lute_server.sh [LUTE_VERSION]
-#   scripts/build_lute_server.sh 3.10.1
+#   scripts/build_lute_server.sh                  # defaults to 3.10.1
+#   scripts/build_lute_server.sh 3.11.0
+#
+# First-time setup: the host needs qemu registered with binfmt_misc so
+# Docker can run arm64 images. Run this once:
+#
+#   sudo docker run --rm --privileged tonistiigi/binfmt --install all
+#
+# Without that, the manylinux entrypoint fails with "exec format error".
 
 set -euo pipefail
 
@@ -23,62 +29,42 @@ DIST_DIR="${ROOT_DIR}/dist"
 TARBALL_NAME="lute-server-android-arm64-v${LUTE_VERSION}.tar.gz"
 TARBALL="${DIST_DIR}/${TARBALL_NAME}"
 
-echo "==> Cloning LuteOrg/lute-v3 at tag ${LUTE_VERSION}"
-rm -rf "${BUILD_DIR}"
-git clone --depth 1 --branch "${LUTE_VERSION}" \
-  https://github.com/LuteOrg/lute-v3.git "${BUILD_DIR}"
+# Build script that runs inside the container. We pass this as a file
+# (not a heredoc) so qemu emulation on the host doesn't get confused by
+# the script content while transferring.
+CONTAINER_SCRIPT="$(mktemp /tmp/opencode/lute-build-XXXXXX.sh)"
+mkdir -p "$(dirname "${CONTAINER_SCRIPT}")"
+cat > "${CONTAINER_SCRIPT}" <<'BASH'
+#!/bin/bash
+# This script runs inside the manylinux2014_aarch64 container.
+set -ex
 
-echo "==> Building arm64 artifact"
-mkdir -p "${DIST_DIR}"
-
-# Strategy: build a standalone Python environment that we can tar up.
-# The recipient (Android app) extracts the tarball and runs
-# <extract-dir>/python -m lute.main --port N --datapath ...
-#
-# We use the 'manylinux' aarch64 build of CPython as the interpreter.
-# This is the standard way to ship Python-on-Android without Chaquopy.
-#
-# If you don't have Docker, replace the docker run with a manual build
-# (see the "manual" branch below).
-
-PYTHON_VERSION="3.11"
-PYTHON_IMAGE="quay.io/pypa/manylinux2014_aarch64"
-
-if command -v docker >/dev/null 2>&1; then
-  echo "==> Building inside ${PYTHON_IMAGE}"
-  docker run --rm -v "${BUILD_DIR}:/src" -v "${DIST_DIR}:/out" \
-    "${PYTHON_IMAGE}" bash -s <<'BASH'
-set -euo pipefail
 PY_VERSION="3.11"
-SRC=/src
-DEST=/out/build
-rm -rf "${DEST}"
-mkdir -p "${DEST}/python" "${DEST}/lute"
-
-# Install a relocatable Python.
-PY_PREFIX="/opt/_internal/cpython-${PY_VERSION}.*/bin"
-# manylinux images have multiple Python versions under /opt/_internal.
 PY_BIN_DIR=$(ls -d /opt/_internal/cpython-${PY_VERSION}.* 2>/dev/null | head -1 || true)
-if [ -z "${PY_BIN_DIR}" ]; then
-  echo "ERROR: Python ${PY_VERSION} not found in manylinux image."
-  echo "Available versions:"
+if [[ -z "${PY_BIN_DIR}" ]]; then
+  echo "ERROR: Python ${PY_VERSION} not found in this image."
+  echo "Available interpreters:"
   ls /opt/_internal/ 2>/dev/null || true
   exit 1
 fi
 echo "Using Python from ${PY_BIN_DIR}"
 
-# Copy the Python install into our artifact, stripped down.
+DEST=/out/build
+rm -rf "${DEST}"
+mkdir -p "${DEST}/python"
+
+# Copy Python install, strip test/bytecode to save space.
 cp -a "${PY_BIN_DIR}/." "${DEST}/python/"
-# Drop test packages we don't need.
 rm -rf "${DEST}/python/lib/python${PY_VERSION}/test"
-rm -rf "${DEST}/python/lib/python${PY_VERSION}/__pycache__"
+find "${DEST}/python" -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
 
-# Install pip into this Python.
-"${DEST}/python/bin/python${PY_VERSION}" -m ensurepip --upgrade
+# Bootstrap pip.
+"${DEST}/python/bin/python${PY_VERSION}" -m ensurepip --upgrade 2>&1 | tail -3
 
-# Install lute's runtime deps into lute-deps/, skipping natto-py (the
-# MeCab C extension, which can't build for aarch64-linux-android and
-# isn't bundled in v1).
+# Install lute runtime deps into lute-deps/. Skip natto-py: it's a C
+# extension for MeCab that can't build for aarch64-linux-android and
+# isn't bundled in v1.
+mkdir -p "${DEST}/lute-deps"
 DEPS=(
   "Flask-SQLAlchemy>=3.1.1,<4"
   "Flask-WTF>=1.2.1,<2"
@@ -98,13 +84,12 @@ DEPS=(
 "${DEST}/python/bin/pip${PY_VERSION}" install \
   --no-cache-dir \
   --target "${DEST}/lute-deps" \
-  "${DEPS[@]}"
+  "${DEPS[@]}" 2>&1 | tail -10
 
-# Copy the lute package itself on top of lute-deps/ so it sits at
-# lute-deps/lute/. The launcher uses PYTHONPATH=<dest>/lute-deps.
-cp -a "${SRC}/lute/." "${DEST}/lute-deps/lute/"
+# Copy lute package itself on top of lute-deps/lute/ so it's importable.
+cp -a /src/lute/. "${DEST}/lute-deps/lute/"
 
-# Make a tiny launcher that adds lute-deps to PYTHONPATH and invokes lute.
+# Launcher.
 cat > "${DEST}/lute-server" <<'EOF'
 #!/bin/sh
 # Embedded lute-v3 launcher.
@@ -117,22 +102,52 @@ exec "${PY}" -m lute.main "$@"
 EOF
 chmod +x "${DEST}/lute-server"
 
-echo "==> Built lute-server at ${DEST}"
-BASH
+# Make the build output readable by the host user.
+chown -R $(stat -c %u:%g /src) "${DEST}"
 
-  # Copy out the build dir from the container.
-  SRC_OUT="${DIST_DIR}/build"
-  echo "==> Collecting artifact from ${SRC_OUT}"
-  tar -czf "${TARBALL}" -C "${SRC_OUT}" .
-  rm -rf "${SRC_OUT}"
-else
-  echo "ERROR: Docker is required for cross-compiling Python for aarch64."
-  echo "Install Docker, or extend this script to use a native aarch64 host."
+echo "Container build complete."
+ls -la "${DEST}"
+BASH
+chmod +x "${CONTAINER_SCRIPT}"
+
+# --- 1. Clean previous build -------------------------------------------
+echo "==> [1/4] Cleaning previous build artifacts"
+if [[ -d "${BUILD_DIR}" ]]; then
+  rm -rf "${BUILD_DIR}"
+fi
+if [[ -d "${DIST_DIR}" ]]; then
+  rm -rf "${DIST_DIR}"
+fi
+mkdir -p "${DIST_DIR}"
+
+# --- 2. Clone upstream -------------------------------------------------
+echo "==> [2/4] Cloning LuteOrg/lute-v3 at tag ${LUTE_VERSION}"
+git clone --depth 1 --branch "${LUTE_VERSION}" \
+  https://github.com/LuteOrg/lute-v3.git "${BUILD_DIR}"
+
+# --- 3. Build inside container ----------------------------------------
+echo "==> [3/4] Building arm64 artifact (this takes 5-10 minutes under qemu emulation)"
+docker run --rm --platform linux/arm64 \
+  -v "${BUILD_DIR}:/src:ro" \
+  -v "${DIST_DIR}:/out" \
+  -v "${CONTAINER_SCRIPT}:/build.sh:ro" \
+  quay.io/pypa/manylinux2014_aarch64 \
+  bash /build.sh
+
+# --- 4. Tar + hash ----------------------------------------------------
+echo "==> [4/4] Packaging artifact"
+if [[ ! -d "${DIST_DIR}/build" ]]; then
+  echo "ERROR: container did not produce ${DIST_DIR}/build"
   exit 1
 fi
+cd "${DIST_DIR}"
+tar -czf "${TARBALL_NAME}" -C build .
+cd "${ROOT_DIR}"
+rm -rf "${DIST_DIR}/build"
 
-echo "==> Computing SHA256"
 sha256sum "${TARBALL}" | awk '{print $1}' > "${TARBALL}.sha256"
+
+rm -f "${CONTAINER_SCRIPT}"
 
 echo ""
 echo "Built: ${TARBALL}"
