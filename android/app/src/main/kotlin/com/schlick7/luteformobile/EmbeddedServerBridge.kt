@@ -1,6 +1,8 @@
 package com.schlick7.luteformobile
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
@@ -60,6 +62,7 @@ class EmbeddedServerBridge(
     }
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val mainHandler = Handler(Looper.getMainLooper())
     private var downloadJob: Job? = null
     private var process: EmbeddedServerProcess? = null
     private var eventSink: EventChannel.EventSink? = null
@@ -398,6 +401,10 @@ class EmbeddedServerBridge(
         val payload = HashMap<String, Any?>(data.size + 1)
         payload["type"] = type
         payload.putAll(data)
-        sink.success(payload)
+        // EventSink.success() must be called on the platform (main)
+        // thread. Background coroutines on Dispatchers.IO will throw
+        // IllegalStateException if they try to deliver directly, which
+        // surfaces as a crash to the user.
+        mainHandler.post { sink.success(payload) }
     }
 }
