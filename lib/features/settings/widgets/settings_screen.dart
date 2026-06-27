@@ -1265,6 +1265,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return 'Dark';
       case ThemeType.blackAndWhite:
         return 'Black and White device';
+      case ThemeType.gruvboxDark:
+        return 'Gruvbox Dark';
+      case ThemeType.gruvboxLight:
+        return 'Gruvbox Light';
     }
   }
 
@@ -1280,6 +1284,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         return 'Dark interface for low light';
       case ThemeType.blackAndWhite:
         return 'Optimized for black and white screens';
+      case ThemeType.gruvboxDark:
+        return 'Retro groove dark palette';
+      case ThemeType.gruvboxLight:
+        return 'Retro groove light palette';
     }
   }
 }

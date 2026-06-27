@@ -1197,6 +1197,10 @@ class ThemeSettingsNotifier extends Notifier<ThemeSettings> {
         return darkThemePreset;
       case ThemeType.blackAndWhite:
         return blackAndWhiteThemePreset;
+      case ThemeType.gruvboxDark:
+        return gruvboxDarkThemePreset;
+      case ThemeType.gruvboxLight:
+        return gruvboxLightThemePreset;
     }
   }
 

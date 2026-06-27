@@ -221,6 +221,12 @@ class ThemeSelectorScreen extends ConsumerWidget {
       ThemeType.blackAndWhite => AppTheme.blackAndWhiteTheme(
         ref.watch(themeSettingsProvider),
       ),
+      ThemeType.gruvboxDark => AppTheme.gruvboxDarkTheme(
+        ref.watch(themeSettingsProvider),
+      ),
+      ThemeType.gruvboxLight => AppTheme.gruvboxLightTheme(
+        ref.watch(themeSettingsProvider),
+      ),
     };
 
     return Card(
@@ -342,6 +348,10 @@ class ThemeSelectorScreen extends ConsumerWidget {
         return 'Dark';
       case ThemeType.blackAndWhite:
         return 'Black and White device';
+      case ThemeType.gruvboxDark:
+        return 'Gruvbox Dark';
+      case ThemeType.gruvboxLight:
+        return 'Gruvbox Light';
     }
   }
 
@@ -353,6 +363,10 @@ class ThemeSelectorScreen extends ConsumerWidget {
         return 'Dark interface for low light';
       case ThemeType.blackAndWhite:
         return 'Optimized for black and white screens';
+      case ThemeType.gruvboxDark:
+        return 'Retro groove dark palette';
+      case ThemeType.gruvboxLight:
+        return 'Retro groove light palette';
     }
   }
 }

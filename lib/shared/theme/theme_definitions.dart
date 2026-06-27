@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-enum ThemeType { dark, light, blackAndWhite }
+enum ThemeType { dark, light, blackAndWhite, gruvboxDark, gruvboxLight }
 
 enum StatusMode { text, background, none }
 

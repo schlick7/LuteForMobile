@@ -147,6 +147,152 @@ final AppThemeColorScheme lightThemePreset = AppThemeColorScheme(
   ),
 );
 
+/// Gruvbox Dark theme preset - retro groove dark palette
+final AppThemeColorScheme gruvboxDarkThemePreset = AppThemeColorScheme(
+  text: const TextColors(
+    primary: Color(0xFFEBDBB2),
+    secondary: Color(0xFFBDAE93),
+    disabled: Color(0xFF7C6F64),
+    headline: Color(0xFFEBDBB2),
+    onPrimary: Color(0xFF282828),
+    onSecondary: Color(0xFF282828),
+    onPrimaryContainer: Color(0xFFEBDBB2),
+    onSecondaryContainer: Color(0xFFEBDBB2),
+    onTertiary: Color(0xFF282828),
+    onTertiaryContainer: Color(0xFFEBDBB2),
+  ),
+  background: const BackgroundColors(
+    background: Color(0xFF282828),
+    surface: Color(0xFF1D2021),
+    surfaceVariant: Color(0xFF3C3836),
+    surfaceContainerHighest: Color(0xFF504945),
+  ),
+  semantic: const SemanticColors(
+    success: Color(0xFFB8BB26),
+    onSuccess: Color(0xFF282828),
+    warning: Color(0xFFFEBC2A),
+    onWarning: Color(0xFF282828),
+    error: Color(0xFFFB4934),
+    onError: Color(0xFFEBDBB2),
+    info: Color(0xFF83A598),
+    onInfo: Color(0xFF282828),
+    connected: Color(0xFFB8BB26),
+    disconnected: Color(0xFFFB4934),
+    aiProvider: Color(0xFFD3869B),
+    localProvider: Color(0xFF83A598),
+  ),
+  status: const StatusColors(
+    status0: Color(0xFF83A598),
+    status1: Color(0x99D3869B),
+    status2: Color(0x99FEBC2A),
+    status3: Color(0x99D79921),
+    status4: Color(0x99A89984),
+    status5: Color(0x337C6F64),
+    status98: Color(0xFFA89984),
+    status99: Color(0xFFB8BB26),
+    highlightedText: Color(0xFFEBDBB2),
+    wordGlowColor: Color(0xFFFABD2F),
+    multiTermSelectionColor: Color(0xFFFE8019),
+  ),
+  border: const BorderColors(
+    outline: Color(0xFFA89984),
+    outlineVariant: Color(0xFF504945),
+    dividerColor: Color(0xFF504945),
+  ),
+  audio: const AudioColors(
+    background: Color(0xFF458588),
+    icon: Color(0xFFEBDBB2),
+    bookmark: Color(0xFFFABD2F),
+    error: Color(0xFFFB4934),
+    errorBackground: Color(0x33FB4934),
+  ),
+  error: const ErrorColors(
+    error: Color(0xFFFB4934),
+    onError: Color(0xFFEBDBB2),
+  ),
+  material3: const Material3ColorScheme(
+    primary: Color(0xFFFE8019),
+    secondary: Color(0xFFB8BB26),
+    tertiary: Color(0xFFD3869B),
+    primaryContainer: Color(0xFF3C3836),
+    secondaryContainer: Color(0xFF504945),
+    tertiaryContainer: Color(0xFF665C54),
+  ),
+);
+
+/// Gruvbox Light theme preset - retro groove light palette
+final AppThemeColorScheme gruvboxLightThemePreset = AppThemeColorScheme(
+  text: const TextColors(
+    primary: Color(0xFF3C3836),
+    secondary: Color(0xFF7C6F64),
+    disabled: Color(0xFFA89984),
+    headline: Color(0xFF282828),
+    onPrimary: Color(0xFFFBF1C7),
+    onSecondary: Color(0xFFFBF1C7),
+    onPrimaryContainer: Color(0xFF3C3836),
+    onSecondaryContainer: Color(0xFF3C3836),
+    onTertiary: Color(0xFFFBF1C7),
+    onTertiaryContainer: Color(0xFF3C3836),
+  ),
+  background: const BackgroundColors(
+    background: Color(0xFFFBF1C7),
+    surface: Color(0xFFF9F5D7),
+    surfaceVariant: Color(0xFFEBDBB2),
+    surfaceContainerHighest: Color(0xFFD5C4A1),
+  ),
+  semantic: const SemanticColors(
+    success: Color(0xFF79740E),
+    onSuccess: Color(0xFFFBF1C7),
+    warning: Color(0xFFB57614),
+    onWarning: Color(0xFFFBF1C7),
+    error: Color(0xFF9D0006),
+    onError: Color(0xFFFBF1C7),
+    info: Color(0xFF076678),
+    onInfo: Color(0xFFFBF1C7),
+    connected: Color(0xFF79740E),
+    disconnected: Color(0xFF9D0006),
+    aiProvider: Color(0xFF8F3F71),
+    localProvider: Color(0xFF076678),
+  ),
+  status: const StatusColors(
+    status0: Color(0xCC076678),
+    status1: Color(0x888F3F71),
+    status2: Color(0x88B57614),
+    status3: Color(0x88D79921),
+    status4: Color(0x88928642),
+    status5: Color(0x44A89984),
+    status98: Color(0xFFA89984),
+    status99: Color(0xFF79740E),
+    highlightedText: Color(0xFF3C3836),
+    wordGlowColor: Color(0xFFD79921),
+    multiTermSelectionColor: Color(0xFFAF3A03),
+  ),
+  border: const BorderColors(
+    outline: Color(0xFF7C6F64),
+    outlineVariant: Color(0xFFD5C4A1),
+    dividerColor: Color(0xFFD5C4A1),
+  ),
+  audio: const AudioColors(
+    background: Color(0xFF458588),
+    icon: Color(0xFFFBF1C7),
+    bookmark: Color(0xFFD79921),
+    error: Color(0xFF9D0006),
+    errorBackground: Color(0x339D0006),
+  ),
+  error: const ErrorColors(
+    error: Color(0xFF9D0006),
+    onError: Color(0xFFFBF1C7),
+  ),
+  material3: const Material3ColorScheme(
+    primary: Color(0xFFAF3A03),
+    secondary: Color(0xFF79740E),
+    tertiary: Color(0xFF8F3F71),
+    primaryContainer: Color(0xFFEBDBB2),
+    secondaryContainer: Color(0xFFD5C4A1),
+    tertiaryContainer: Color(0xFFD5C4A1),
+  ),
+);
+
 /// Black and White theme preset - optimized for black and white screens
 final AppThemeColorScheme blackAndWhiteThemePreset = AppThemeColorScheme(
   text: const TextColors(

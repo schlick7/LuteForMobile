@@ -153,6 +153,12 @@ class App extends ConsumerWidget {
       case ThemeType.blackAndWhite:
         themeMode = ThemeMode.light;
         break;
+      case ThemeType.gruvboxDark:
+        themeMode = ThemeMode.dark;
+        break;
+      case ThemeType.gruvboxLight:
+        themeMode = ThemeMode.light;
+        break;
     }
 
     return RestartWidget(
@@ -161,6 +167,8 @@ class App extends ConsumerWidget {
         debugShowCheckedModeBanner: false,
         theme: switch (themeSettings.themeType) {
           ThemeType.blackAndWhite => AppTheme.blackAndWhiteTheme(themeSettings),
+          ThemeType.gruvboxDark => AppTheme.gruvboxDarkTheme(themeSettings),
+          ThemeType.gruvboxLight => AppTheme.gruvboxLightTheme(themeSettings),
           _ => AppTheme.lightTheme(themeSettings),
         },
         darkTheme: AppTheme.darkTheme(themeSettings),

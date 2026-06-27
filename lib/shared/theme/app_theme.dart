@@ -731,6 +731,283 @@ class AppTheme {
     );
   }
 
+  static ThemeData gruvboxDarkTheme(ThemeSettings themeSettings) {
+    final scheme = _resolveColorScheme(
+      themeSettings,
+      themePreset: gruvboxDarkThemePreset,
+    );
+    final statusModes = _resolveStatusModes(themeSettings);
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.dark(
+        primary: scheme.material3.primary,
+        onPrimary: scheme.text.onPrimary,
+        primaryContainer: scheme.material3.primaryContainer,
+        onPrimaryContainer: scheme.text.onPrimaryContainer,
+        secondary: scheme.material3.secondary,
+        onSecondary: scheme.text.onSecondary,
+        secondaryContainer: scheme.material3.secondaryContainer,
+        onSecondaryContainer: scheme.text.onSecondaryContainer,
+        tertiary: scheme.material3.tertiary,
+        onTertiary: scheme.text.onTertiary,
+        tertiaryContainer: scheme.material3.tertiaryContainer,
+        onTertiaryContainer: scheme.text.onTertiaryContainer,
+        surface: scheme.background.background,
+        onSurface: scheme.text.primary,
+        surfaceContainerHighest: scheme.background.surfaceContainerHighest,
+        onSurfaceVariant: scheme.text.secondary,
+        outline: scheme.border.outline,
+        outlineVariant: scheme.border.outlineVariant,
+        error: scheme.error.error,
+        onError: scheme.error.onError,
+      ),
+      textTheme: TextTheme(
+        displayLarge: TextStyle(
+          fontSize: 57,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.primary,
+        ),
+        displayMedium: TextStyle(
+          fontSize: 45,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.primary,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 36,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.primary,
+        ),
+        headlineLarge: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.headline,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.headline,
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.headline,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.primary,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.primary,
+        ),
+        titleSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.primary,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.primary,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.primary,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.secondary,
+        ),
+        labelLarge: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.primary,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.secondary,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.secondary,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: scheme.material3.primary,
+          foregroundColor: scheme.text.onPrimary,
+          elevation: 1,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: scheme.material3.primary),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.material3.primary,
+          side: const BorderSide(color: Color(0xFFA89984)),
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: scheme.background.surface,
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: scheme.background.background,
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: scheme.background.background,
+        modalBackgroundColor: scheme.background.background,
+      ),
+      extensions: [
+        AppThemeColorExtension(colorScheme: scheme, statusModes: statusModes),
+      ],
+    );
+  }
+
+  static ThemeData gruvboxLightTheme(ThemeSettings themeSettings) {
+    final scheme = _resolveColorScheme(
+      themeSettings,
+      themePreset: gruvboxLightThemePreset,
+    );
+    final statusModes = _resolveStatusModes(themeSettings);
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      colorScheme: ColorScheme.light(
+        primary: scheme.material3.primary,
+        onPrimary: scheme.text.onPrimary,
+        primaryContainer: scheme.material3.primaryContainer,
+        onPrimaryContainer: scheme.text.onPrimaryContainer,
+        secondary: scheme.material3.secondary,
+        onSecondary: scheme.text.onSecondary,
+        secondaryContainer: scheme.material3.secondaryContainer,
+        onSecondaryContainer: scheme.text.onSecondaryContainer,
+        tertiary: scheme.material3.tertiary,
+        onTertiary: scheme.text.onTertiary,
+        tertiaryContainer: scheme.material3.tertiaryContainer,
+        onTertiaryContainer: scheme.text.onTertiaryContainer,
+        surface: scheme.background.surface,
+        onSurface: scheme.text.primary,
+        surfaceContainerHighest: scheme.background.surfaceContainerHighest,
+        onSurfaceVariant: scheme.text.secondary,
+        outline: scheme.border.outline,
+        outlineVariant: scheme.border.outlineVariant,
+        error: scheme.error.error,
+        onError: scheme.error.onError,
+      ),
+      textTheme: TextTheme(
+        displayLarge: TextStyle(
+          fontSize: 57,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.primary,
+        ),
+        displayMedium: TextStyle(
+          fontSize: 45,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.primary,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 36,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.primary,
+        ),
+        headlineLarge: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.headline,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 28,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.headline,
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.headline,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.primary,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.primary,
+        ),
+        titleSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.primary,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.primary,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.primary,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: scheme.text.secondary,
+        ),
+        labelLarge: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.primary,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.secondary,
+        ),
+        labelSmall: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          color: scheme.text.secondary,
+        ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: scheme.material3.primary,
+          foregroundColor: scheme.text.onPrimary,
+          elevation: 1,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(foregroundColor: scheme.material3.primary),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.material3.primary,
+          side: const BorderSide(color: Color(0xFF7C6F64)),
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: scheme.background.surface,
+        elevation: 1,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      extensions: [
+        AppThemeColorExtension(colorScheme: scheme, statusModes: statusModes),
+      ],
+    );
+  }
+
   static AppThemeColorScheme _resolveColorScheme(
     ThemeSettings themeSettings, {
     required AppThemeColorScheme themePreset,
