@@ -108,7 +108,7 @@ class SettingsNotifier extends Notifier<Settings> {
     state = Settings.defaultSettings().copyWith(
       localUrl: localUrl,
       serverUrl: serverUrl,
-      isUrlValid: _isValidUrl(serverUrl),
+      isUrlValid: _isValidUrl(localUrl),
       localServerMode: localServerMode,
     );
 
@@ -257,11 +257,9 @@ class SettingsNotifier extends Notifier<Settings> {
     await prefs.setString(_keyLocalServerMode, mode.name);
 
     String serverUrl;
-    bool isUrlValid = state.isUrlValid;
     switch (mode) {
       case LocalServerMode.remote:
         final localUrl = prefs.getString(_keyLocalUrl) ?? '';
-        isUrlValid = _isValidUrl(localUrl);
         serverUrl = localUrl;
         // Stop embedded server if we were in that mode.
         if (previousMode == LocalServerMode.onDevice) {
@@ -272,7 +270,6 @@ class SettingsNotifier extends Notifier<Settings> {
         break;
       case LocalServerMode.termux:
         serverUrl = Settings.termuxUrl;
-        isUrlValid = true;
         if (previousMode != LocalServerMode.termux) {
           if (previousMode == LocalServerMode.onDevice) {
             try {
@@ -286,7 +283,6 @@ class SettingsNotifier extends Notifier<Settings> {
         break;
       case LocalServerMode.onDevice:
         serverUrl = EmbeddedServerService.instance.snapshot.url ?? '';
-        isUrlValid = serverUrl.isNotEmpty;
         if (previousMode == LocalServerMode.termux) {
           try {
             await TermuxService.stopServer();
@@ -295,10 +291,15 @@ class SettingsNotifier extends Notifier<Settings> {
         break;
     }
 
+    // isUrlValid tracks the localUrl format (it's shown as
+    // "Invalid URL format" under the Local URL field). The active
+    // serverUrl in on-device / termux modes is a different URL and
+    // doesn't affect this flag.
+    final localUrl = prefs.getString(_keyLocalUrl) ?? '';
     state = state.copyWith(
       localServerMode: mode,
       serverUrl: serverUrl,
-      isUrlValid: isUrlValid,
+      isUrlValid: _isValidUrl(localUrl),
     );
 
     final cacheManager = ref.read(cacheManagerProvider);

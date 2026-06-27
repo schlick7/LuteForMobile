@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * Events:   com.schlick7.luteformobile/embedded_server_progress
  *
  * Methods:
- *  - getState()       -> { state, port }
+ *  - getState()       -> { state, port, installedVersion }
  *  - start()          -> port (server URL is http://127.0.0.1:<port>/)
  *  - stop()           -> null
  *  - dataDir()        -> absolute path of the lute data dir
@@ -45,6 +45,13 @@ class EmbeddedServerBridge(
         private const val SHUTDOWN_GRACE_MS = 5_000L
         private const val LAUNCHER_MODULE = "launcher"
         private const val SERVER_STATE_KEY = "lute_server_running"
+
+        // Bundled lute-v3 version, must match lute/__init__.py
+        // __version__ and Settings.luteServerPinnedVersion on the
+        // Dart side. Returned in getState so the Dart side knows
+        // the server artifact is present and can auto-start on
+        // app launch when on-device mode is selected.
+        private const val INSTALLED_VERSION = "3.10.1"
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -133,7 +140,11 @@ class EmbeddedServerBridge(
             serverProcess != null && isServerAlive() -> "running"
             else -> "ready"
         }
-        return mapOf("state" to state, "port" to port)
+        return mapOf(
+            "state" to state,
+            "port" to port,
+            "installedVersion" to INSTALLED_VERSION,
+        )
     }
 
     /// Read the last N log lines captured from the Python server's
@@ -335,9 +346,12 @@ class EmbeddedServerBridge(
             // existing lute.db is intact and the .tmp is partial.
             val target = File(luteDataDir, "lute.db")
             val tmp = File(luteDataDir, "lute.db.restore.tmp")
-            tmp.writeBytes(bytes)
-            java.io.FileOutputStream(tmp, false).channel.use { ch ->
-                ch.force(true)
+            val fos = java.io.FileOutputStream(tmp)
+            try {
+                fos.write(bytes)
+                fos.fd.sync()
+            } finally {
+                fos.close()
             }
             if (target.exists()) target.delete()
             if (!tmp.renameTo(target)) {

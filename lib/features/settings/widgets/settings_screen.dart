@@ -251,20 +251,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _localUrlController,
+                      enabled: settings.localServerMode == LocalServerMode.remote,
                       decoration: InputDecoration(
                         labelText: 'Local URL',
                         hintText: 'http://192.168.1.100:5001',
+                        helperText: settings.localServerMode == LocalServerMode.remote
+                            ? null
+                            : switch (settings.localServerMode) {
+                                LocalServerMode.onDevice =>
+                                  'On-device mode uses a built-in server, not this URL.',
+                                LocalServerMode.termux =>
+                                  'Termux mode uses ${Settings.termuxUrl}, not this URL.',
+                                LocalServerMode.remote => null,
+                              },
                         labelStyle: Theme.of(context).textTheme.labelMedium
                             ?.copyWith(
-                              color: settings.serverUrl == Settings.termuxUrl
-                                  ? context.appColorScheme.text.primary
-                                        .withValues(alpha: 0.4)
-                                  : context.m3Secondary,
+                              color: settings.localServerMode ==
+                                      LocalServerMode.remote
+                                  ? context.m3Secondary
+                                  : context.appColorScheme.text.primary
+                                        .withValues(alpha: 0.4),
                             ),
                         border: const OutlineInputBorder(),
-                        errorText: settings.isUrlValid
-                            ? null
-                            : 'Invalid URL format',
+                        errorText: settings.localServerMode ==
+                                    LocalServerMode.remote &&
+                                !settings.isUrlValid
+                            ? 'Invalid URL format'
+                            : null,
                         suffixIcon: _connectionStatus != null
                             ? Icon(
                                 _connectionTestPassed
@@ -278,12 +291,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             ? Icon(Icons.check_circle, color: context.connected)
                             : Icon(Icons.error, color: context.error),
                       ),
-                      style: settings.serverUrl == Settings.termuxUrl
-                          ? TextStyle(
+                      style: settings.localServerMode == LocalServerMode.remote
+                          ? null
+                          : TextStyle(
                               color: context.appColorScheme.text.primary
                                   .withValues(alpha: 0.5),
-                            )
-                          : null,
+                            ),
                       keyboardType: TextInputType.url,
                       onChanged: (_) {
                         _connectionTestPassed = false;
@@ -313,7 +326,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: _isTesting ? null : _testConnection,
+                            onPressed: (_isTesting ||
+                                    settings.localServerMode !=
+                                        LocalServerMode.remote)
+                                ? null
+                                : _testConnection,
                             child: _isTesting
                                 ? const SizedBox(
                                     height: 20,
@@ -328,7 +345,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: _saveSettings,
+                            onPressed:
+                                settings.localServerMode == LocalServerMode.remote
+                                    ? _saveSettings
+                                    : null,
                             child: const Text('Save Settings'),
                           ),
                         ),

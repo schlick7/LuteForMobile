@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
 
 /// State of the on-device lute-v3 server.
@@ -228,6 +230,157 @@ class EmbeddedServerService {
       throw UnsupportedError('On-device server is Android-only');
     }
     return await _methodChannel.invokeMethod<String>('dataDir') ?? '';
+  }
+
+  /// Reset the on-device server's `backup_dir` user setting to the
+  /// path the Kotlin side uses (`<dataDir>/backups`). A restored
+  /// lute.db may carry a `backup_dir` from a different machine
+  /// (e.g. a Termux path, or a Windows desktop path) which the new
+  /// server can't write to. The lute settings form has
+  /// `InputRequired`/`NumberRange` validators on several fields, so
+  /// a partial POST (just `backup_dir`) will fail. The safe pattern
+  /// (mirrored from the Termux restore path) is to GET the current
+  /// settings, change only `backup_dir`, and POST the entire form
+  /// back unchanged. Best-effort: returns true on success, false
+  /// if anything fails. The user can always fix the setting
+  /// manually via Settings.
+  Future<bool> fixRestoredBackupDir(String serverUrl) async {
+    if (serverUrl.isEmpty) return false;
+    try {
+      final dataDir = await luteDataDir();
+      if (dataDir.isEmpty) return false;
+      final newBackupDir = '$dataDir/backups';
+
+      // GET the current settings, scrape the LUTE_USER_SETTINGS
+      // JSON blob out of the page (same parsing as
+      // BackupService.getAllSettings / updateBackupDirSafe).
+      final getResp = await http
+          .get(Uri.parse('$serverUrl/settings/index'))
+          .timeout(const Duration(seconds: 5));
+      if (getResp.statusCode != 200) return false;
+
+      final settings = _parseLuteUserSettings(getResp.body);
+      if (settings == null) return false;
+
+      // Build the form body with every field, overriding
+      // backup_dir only. Mirror BackupService.updateBackupDirSafe.
+      const checkboxFields = <String>[
+        'backup_enabled',
+        'backup_auto',
+        'backup_warn',
+        'show_highlights',
+        'open_popup_in_new_tab',
+        'stop_audio_on_term_form_open',
+        'term_popup_promote_parent_translation',
+        'term_popup_show_components',
+        'use_ankiconnect',
+      ];
+      const textFields = <String>[
+        'backup_dir',
+        'backup_count',
+        'current_theme',
+        'custom_styles',
+        'mecab_path',
+        'japanese_reading',
+        'stats_calc_sample_size',
+        'ankiconnect_url',
+      ];
+
+      bool isCheckboxTrue(dynamic v) {
+        if (v is bool) return v;
+        if (v is String) return v == '1' || v.toLowerCase() == 'true';
+        if (v is int) return v != 0;
+        return false;
+      }
+
+      final formBody = <MapEntry<String, String>>[];
+      for (final f in checkboxFields) {
+        if (isCheckboxTrue(settings[f])) {
+          formBody.add(MapEntry(f, 'y'));
+        }
+      }
+      for (final f in textFields) {
+        final v = settings[f]?.toString() ?? '';
+        formBody.add(MapEntry(f, v));
+      }
+      final idx = formBody.indexWhere((e) => e.key == 'backup_dir');
+      if (idx >= 0) {
+        formBody[idx] = MapEntry('backup_dir', newBackupDir);
+      } else {
+        formBody.add(MapEntry('backup_dir', newBackupDir));
+      }
+      formBody.add(const MapEntry('submit', 'Save'));
+
+      final postResp = await http
+          .post(
+            Uri.parse('$serverUrl/settings/index'),
+            headers: const {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formBody,
+          )
+          .timeout(const Duration(seconds: 5));
+      return postResp.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Pull the `LUTE_USER_SETTINGS = {...}` object out of the
+  /// settings page HTML. Mirrors BackupService.getAllSettings so we
+  /// don't have to depend on BackupService here. Returns null if
+  /// the marker isn't found or the JSON is malformed.
+  static Map<String, dynamic>? _parseLuteUserSettings(String html) {
+    const marker = 'LUTE_USER_SETTINGS';
+    final markerIndex = html.indexOf(marker);
+    if (markerIndex == -1) return null;
+    final equalsIndex = html.indexOf('=', markerIndex);
+    if (equalsIndex == -1) return null;
+    final objectStart = html.indexOf('{', equalsIndex);
+    if (objectStart == -1) return null;
+
+    int depth = 0;
+    bool inString = false;
+    String? stringDelimiter;
+    bool escaping = false;
+
+    for (int i = objectStart; i < html.length; i++) {
+      final ch = html[i];
+      if (inString) {
+        if (escaping) {
+          escaping = false;
+          continue;
+        }
+        if (ch == r'\') {
+          escaping = true;
+          continue;
+        }
+        if (ch == stringDelimiter) {
+          inString = false;
+          stringDelimiter = null;
+        }
+        continue;
+      }
+      if (ch == '"' || ch == "'") {
+        inString = true;
+        stringDelimiter = ch;
+        continue;
+      }
+      if (ch == '{') {
+        depth++;
+      } else if (ch == '}') {
+        depth--;
+        if (depth == 0) {
+          try {
+            final jsonStr = html.substring(objectStart, i + 1);
+            return Map<String, dynamic>.from(json.decode(jsonStr));
+          } catch (_) {
+            return null;
+          }
+        }
+      }
+    }
+    return null;
   }
 
   /// Restore the embedded lute.db from a gzipped sqlite dump.

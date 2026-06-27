@@ -1,9 +1,11 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/core/services/backup_service.dart';
+import 'package:lute_for_mobile/core/services/embedded_server_service.dart';
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
 import 'package:lute_for_mobile/features/settings/providers/settings_provider.dart';
 import 'package:lute_for_mobile/shared/theme/theme_extensions.dart';
@@ -20,12 +22,16 @@ class _BackupRestoreCardState extends ConsumerState<BackupRestoreCard> {
   bool _isLoading = false;
   bool _isCreating = false;
   bool _isUploading = false;
+  bool _isRestoringOnDevice = false;
   List<Map<String, dynamic>>? _backups;
   String? _error;
   String? _lastLoadedServerUrl;
   final Set<String> _downloadingBackups = {};
   final Set<String> _restoringBackups = {};
   final Set<String> _deletingBackups = {};
+
+  bool get _isAndroid => !kIsWeb &&
+      defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void didChangeDependencies() {
@@ -320,6 +326,74 @@ class _BackupRestoreCardState extends ConsumerState<BackupRestoreCard> {
     );
   }
 
+  /// Restore the on-device server's lute.db from a user-picked
+  /// .db.gz file. This is the only restore path that works when the
+  /// embedded server is in error state (broken DB) — the normal
+  /// `/backup/do_restore` lute HTTP API is unreachable because the
+  /// server isn't running. Talks directly to the Kotlin
+  /// `restoreBackup` MethodChannel.
+  Future<void> _restoreOnDeviceFromFile() async {
+    if (_isRestoringOnDevice) return;
+    final result = await FilePicker.pickFiles(
+      type: FileType.any,
+      withData: false,
+      allowMultiple: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final picked = result.files.single;
+    final path = picked.path;
+    if (path == null || path.isEmpty) {
+      if (!mounted) return;
+      _showSnackBar(
+        "Couldn't read the picked file. Try a local file.",
+        context.appColorScheme.error.error,
+      );
+      return;
+    }
+
+    setState(() {
+      _isRestoringOnDevice = true;
+    });
+    try {
+      // No-op if the server isn't running.
+      await EmbeddedServerService.instance.stop();
+      final ok = await EmbeddedServerService.instance.restoreBackup(path);
+      if (!ok) {
+        if (!mounted) return;
+        _showSnackBar(
+          'Backup file is not a valid lute .db.gz',
+          context.appColorScheme.error.error,
+        );
+        return;
+      }
+      // Restart so the user is back to a working server.
+      final url = await EmbeddedServerService.instance.start();
+      // The restored DB carries a `backup_dir` setting from the
+      // previous machine; overwrite it with the on-device path so
+      // backups work here. Best-effort.
+      if (url.isNotEmpty) {
+        await EmbeddedServerService.instance.fixRestoredBackupDir(url);
+      }
+      if (!mounted) return;
+      _showSnackBar(
+        'Backup restored, server restarted',
+        context.appColorScheme.semantic.success,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      _showSnackBar(
+        'Restore failed: ${e.toString().replaceFirst('Exception: ', '')}',
+        context.appColorScheme.error.error,
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRestoringOnDevice = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -432,6 +506,57 @@ class _BackupRestoreCardState extends ConsumerState<BackupRestoreCard> {
                     ),
                   ],
                 ),
+                if (_isAndroid &&
+                    settings.localServerMode == LocalServerMode.onDevice) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: context.appColorScheme.background.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'On-device restore',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Replaces the embedded server\'s lute.db with a '
+                          'gzipped sqlite file you pick. Use this if the '
+                          'on-device server won\'t start because its '
+                          'database is broken.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: context.appColorScheme.text.secondary,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: _isRestoringOnDevice
+                              ? null
+                              : _restoreOnDeviceFromFile,
+                          icon: _isRestoringOnDevice
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.upload_file),
+                          label: Text(
+                            _isRestoringOnDevice
+                                ? 'Restoring…'
+                                : 'Restore from .db.gz',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 16),
                 if (_isLoading)
                   const Padding(

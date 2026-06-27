@@ -1,8 +1,8 @@
 import 'dart:async';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lute_for_mobile/core/services/embedded_server_service.dart';
@@ -33,6 +33,7 @@ class _OnDeviceServerSectionState
   EmbeddedServerSnapshot? _snapshot;
   final List<String> _logBuffer = [];
   bool _showLogs = false;
+  bool _isRestoringFromFile = false;
 
   bool get _isAndroid => !kIsWeb &&
       defaultTargetPlatform == TargetPlatform.android;
@@ -97,6 +98,84 @@ class _OnDeviceServerSectionState
     if (!mounted) return;
     // After stop, the URL is no longer reachable. Clear it.
     await ref.read(settingsProvider.notifier).setOnDeviceServerUrl('');
+  }
+
+  /// Restore the embedded lute.db from a user-picked .db.gz file.
+  ///
+  /// Recovery path for when the on-disk `lute.db` is broken
+  /// (corrupted, missing tables, etc.) and the server fails to start
+  /// with a sqlite3.OperationalError. The first-run chooser only
+  /// appears after a successful start, so users in this state have
+  /// no other way to push in a new DB without uninstalling.
+  ///
+  /// Steps:
+  ///  1. Pick a .db.gz file.
+  ///  2. Stop the server (no-op if it's already in error state).
+  ///  3. Replace `[filesDir]/lute/lute.db` via the Kotlin bridge.
+  ///  4. Restart the server.
+  Future<void> _restoreFromFile() async {
+    if (_isRestoringFromFile) return;
+    final result = await FilePicker.pickFiles(
+      type: FileType.any,
+      withData: false,
+      allowMultiple: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final picked = result.files.single;
+    final path = picked.path;
+    if (path == null || path.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Couldn't read the picked file. Try a local file."),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isRestoringFromFile = true;
+      _logBuffer.clear();
+    });
+    try {
+      // Best-effort stop. If the server is in error state, this is a
+      // no-op on the Kotlin side (serverProcess is null).
+      await EmbeddedServerService.instance.stop();
+      final ok = await EmbeddedServerService.instance.restoreBackup(path);
+      if (!ok) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Backup file is not a valid lute .db.gz'),
+          ),
+        );
+        return;
+      }
+      // Restart with the restored DB. This is the same call the
+      // Retry button makes, so it'll either succeed (and we're done)
+      // or fail again (and the error body will show the new error).
+      final url = await EmbeddedServerService.instance.start();
+      // The restored DB carries a `backup_dir` setting from the
+      // previous machine; the path it points to doesn't exist on
+      // this device, so the first auto-backup or manual backup
+      // would fail. Reset it to the on-device path. Best-effort;
+      // if the server just failed to start, url is empty and we
+      // skip. The user can fix it manually if needed.
+      if (url.isNotEmpty) {
+        await EmbeddedServerService.instance.fixRestoredBackupDir(url);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Restore failed: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRestoringFromFile = false;
+        });
+      }
+    }
   }
 
   @override
@@ -199,10 +278,14 @@ class _OnDeviceServerSectionState
     }
   }
 
-  /// Error body: show the error message, a Retry button, and a
-  /// collapsible "Show logs" section that pulls the Python server's
-  /// recent stdout/stderr from Kotlin. This is how the user figures
-  /// out why startup failed (missing dep, import error, DB issue, etc).
+  /// Error body: show the error message, a Retry button, a
+  /// "Restore from .db.gz" button, and a collapsible "Show logs"
+  /// section that pulls the Python server's recent stdout/stderr
+  /// from Kotlin. The Restore button is the recovery path when the
+  /// on-disk `lute.db` is the cause of the failure (corrupted file,
+  /// missing _migrations table, etc.) — the first-run chooser only
+  /// appears after a successful start, so users would otherwise be
+  /// stuck unless they uninstalled.
   Widget _buildErrorBody(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -212,17 +295,35 @@ class _OnDeviceServerSectionState
           style: TextStyle(color: Theme.of(context).colorScheme.error),
         ),
         const SizedBox(height: 12),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             ElevatedButton.icon(
-              onPressed: _start,
+              onPressed: _isRestoringFromFile ? null : _start,
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
             ),
-            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: _isRestoringFromFile ? null : _restoreFromFile,
+              icon: _isRestoringFromFile
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.upload_file),
+              label: Text(
+                _isRestoringFromFile
+                    ? 'Restoring…'
+                    : 'Restore from .db.gz',
+              ),
+            ),
             OutlinedButton.icon(
               onPressed: _toggleLogs,
-              icon: Icon(_showLogs ? Icons.expand_less : Icons.expand_more),
+              icon: Icon(
+                _showLogs ? Icons.expand_less : Icons.expand_more,
+              ),
               label: Text(_showLogs ? 'Hide logs' : 'Show logs'),
             ),
           ],
