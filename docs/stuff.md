@@ -6,53 +6,16 @@
 
 ---
 
+add archive button to book complete dialog
 
 ---
 
+Fix axis scalling in the stats screen
 
 ---
 
 The install termux button brings you to the github
 Tapping termux in the status bring you to play store
-
----
-
-# Termux
--
-
-# Requests 
--
-
-# Settings
-- 
-
-# Reader
-- 
-
-# Sentence Reader
--
-
-# TTS
-- 
-
-# AI
-- done? gemini
-
-# Books Screen
-- 
-
-# Terms Screen
-- 
- 
-# Statistics Screen  
-- 
-
-# Help Screen
--
-
-# Theme
--
-
 
 
 # Future:
