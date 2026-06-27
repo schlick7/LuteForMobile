@@ -1,0 +1,365 @@
+<!-- The default language selector.  This is moved into the datatables toolbar during setup. -->
+<select id="defaultLanguageSelect" class="dataTables_filter" title="Default language">
+  {% for lang_choice in language_choices %}
+    <option value="{{ lang_choice[0] }}">{{ lang_choice[1] }}</option>
+  {% endfor %}
+</select>
+
+<table id="booktable" class="table dataTable stripe">
+  <thead>
+    <tr>
+      <th style="text-align: left">Title</th>
+      <th style="text-align: left">Language</th>
+      <th style="text-align: left">Tags</th>
+      <th style="text-align: left">Word count</th>
+      <th style="text-align: left">Statuses
+        <a href="/refresh_all_stats" class="refresh" title="Refresh stats for all books"></a>
+      </th>
+      <th style="text-align: left">Last read</th>
+      <th style="text-align: left">Actions</th>
+    </tr>
+  </thead>
+</table>
+
+<!-- the config widget for datatables.  Moved into the datatables table footer during setup. -->
+<div id="datatables_config_widget">
+  <img
+    src="{{ url_for('static', filename='icn/settings-gear-icon.svg') }}"
+    title="configuration"
+    id="datatables_config_toggle"
+    style="width: 1rem"
+    />
+</div>
+
+<div id="datatables_config_items" style="display: none;"></div>
+
+{# Hidden form for archive, unarchive, delete. #}
+<form id="actionposter" method="post" action="">
+</form>
+
+<script type="text/javascript" src="{{ url_for('static', filename='vendor/dayjs/dayjs.min.js') }}" charset="utf-8"></script>
+<script type="text/javascript" src="{{ url_for('static', filename='vendor/dayjs/relativeTime.js') }}" charset="utf-8"></script>
+<script>
+  var thresholds = [
+  { l: 's', r: 1 },
+  { l: 'm', r: 1 },
+  { l: 'mm', r: 55, d: 'minute' },
+  { l: 'h', r: 1 },
+  { l: 'hh', r: 22, d: 'hour' },
+  { l: 'd', r: 1 },
+  { l: 'dd', r: 25, d: 'day' },
+  { l: 'M', r: 1 },
+  { l: 'MM', r: 11, d: 'month' },
+  { l: 'y', r: 1 },
+  { l: 'yy', d: 'year' }
+  ];
+  var config = {
+    thresholds: thresholds
+  }
+  dayjs.extend(dayjs_plugin_relativeTime, config);
+</script>
+
+<script>
+
+  /* The book listing. */
+  var book_listing_table;
+
+  let setup_book_datatable = function(initial_search) {
+    book_listing_table = $('#booktable').DataTable({
+      layout: {
+        topStart: 'pageLength',
+        topEnd: [
+          function() {
+            return $('#defaultLanguageSelect');
+          },
+          'search'
+        ],
+        bottomStart: [
+          function() {
+            return $('#datatables_config_widget');
+          },
+          {
+            info: {
+              callback: function (s, start, end, max, total, result) {
+                return `${start} to ${end} of ${max}`;
+              }
+            }
+          },
+          'buttons'
+        ],
+        bottomEnd: 'paging'
+      },
+      buttons: [
+        {
+          extend: 'colvis'
+        }
+      ],
+      {% if status != 'Archived' %}
+      "language": {
+            "emptyTable": "No books available. <a href='/book/new'>Create one?</a>"
+      },
+      {% endif %}
+      responsive: true,
+      select: false,
+      lengthMenu: [ 10, 25, 50, 100 ],
+      pageLength: 25,
+      paging: true,
+      info: true,
+      searching: true,
+      processing: true,
+      serverSide: true,
+      stateSave: true,
+      stateDuration: 0,  /* never expire saved state. */
+      search: { search: initial_search },
+      columns: [
+        { name: "BkTitle", width: "40%", render: render_book_title },
+        { name: "LgName", width: "10%", data: "LgName" },
+        { name: "TagList", width: "10%", data: "TagList" },
+        { name: "WordCount", width: "10%", data: "WordCount" },
+        { name: "UnknownPercent", "searchable": false, render: render_book_stats_graph_placeholder },
+        { name: "LastOpenedDate", "searchable": false, render: render_last_opened_date },
+        { width: "8%", "searchable": false, "orderable": false, render: render_book_actions },
+      ],
+      createdRow: function(row, data, dataIndex) { ajax_in_book_stats(row, data, dataIndex); },
+      ajax: {
+        url: "/book/datatables/{{ status or 'active' }}",
+        // Additional filters.  func calls are required to get the
+        // current filter field values.  These are included in the
+        // data sent to the controller.
+        data: {
+          filtLanguage: () => $("#defaultLanguageSelect").val(),
+        },
+
+        type: "POST",
+        dataType: "json"
+      },
+
+    });
+  } // end setup_book_datatable
+
+
+  let setup_language_filter = function(current_language_id = 0) {
+    const dropdown = $('#defaultLanguageSelect');
+    dropdown.val(current_language_id);
+    const lang_count = $("#defaultLanguageSelect option").length;
+    if (lang_count == 1) {
+      dropdown.css("display", "none");
+    }
+
+    dropdown.on('change', function() {
+      const langid = $(this).val();
+      $.post(`/settings/set/current_language_id/${langid}`);
+      $('#booktable').DataTable().draw();
+    });
+  };
+
+
+  let move_datatables_controls_to_config_widget = function() {
+    const widget = $('#datatables_config_items');
+    const append_children = [ '.dt-buttons', '.dt-length' ];
+    for (let c of append_children) {
+      const el = $(`div${c}`);
+      el.css({ padding: '0.2rem', margin: '0rem', display: 'inline' });
+      widget.append(el);
+    }
+  }
+
+  $(document).ready(function () {
+    const current_language_id = {{ current_language_id }};
+    // Language filter is set up first, because its value
+    // is used during the initial datatable draw.
+    setup_language_filter(current_language_id);
+    setup_book_datatable("{{ initial_search or '' }}");
+
+    move_datatables_controls_to_config_widget();
+
+    $("#datatables_config_toggle").click(function() {
+      $("#datatables_config_items").toggle();
+    });
+  });
+
+
+  function do_action_post(action, bookid) {
+    let f = $('#actionposter');
+    f.attr('action', `/book/${action}/${bookid}`);
+    f.submit();
+  }
+
+  function confirm_archive(el) {
+    const booktitle = decodeURIComponent($(el).data('bktitle'));
+    const bookid = $(el).data('bkid');
+    if (!confirm(`Archiving "${booktitle}".  Click OK to proceed, or Cancel.`)) {
+      return;
+    }
+    do_action_post('archive', bookid);
+  }
+
+  function confirm_unarchive(el) {
+    const bookid = $(el).data('bkid');
+    do_action_post('unarchive', bookid);
+  }
+
+  //  function confirm_reparse(bookid) {
+  //    if (!confirm(`Reparse the book using parsing rules defined for its language.  This will also reset you to the first page of the book.  Click OK to proceed, or Cancel.`)) {
+  //      return;
+  //    }
+  //    do_action_post('reparse', bookid);
+  //  }
+
+  function edit_book(el) {
+    const bookid = $(el).data('bkid');
+    document.location = `/book/edit/${bookid}`;
+  }
+
+  function confirm_delete(el) {
+    const booktitle = decodeURIComponent($(el).data('bktitle'));
+    const bookid = $(el).data('bkid');
+    if (!confirm(`Deleting "${booktitle}".  Click OK to proceed, or Cancel.`)) {
+      return;
+    }
+    do_action_post('delete', bookid);
+  }
+
+  // Rendering helpers. =================================================
+  // each row in the table is a json dict, the keys are the SQL column names.
+
+  let render_book_title = function ( data, type, row, meta ) {
+    const bkid = parseInt(row['BkID']);
+    const pgnum = parseInt(row['PageNum']);
+    const pgcount = parseInt(row['PageCount']);
+    let pgfraction = '';
+
+    const completed = (parseInt(row['IsCompleted']) == 1);
+    let book_title_classes = ['book-title'];
+    if (completed) {
+      book_title_classes.push('completed_book');
+    }
+    if (pgnum > 1) {
+      pgfraction = ` (${pgnum}/${pgcount})`;
+    }
+
+    return `<a class="${book_title_classes.join(' ')}" href="/read/${bkid}">${row['BkTitle']}${pgfraction}</a>`;
+  };
+
+  /* Replaced by the status graph after the ajax call kicked off by createdRow. */
+  let render_book_stats_graph_placeholder = function(data, type, row, meta) {
+    return `<span class="book-stats-ajax-cell"><img src="{{ url_for('static', filename='icn/waiting2.gif') }}" title="Calculating ..." /></span>`;
+  };
+
+  /* Ajax called from createdRow datatables hook. */
+  let ajax_in_book_stats = function(row, data, dataIndex) {
+    var cell = $(row).find('.book-stats-ajax-cell');
+    cell.html(`<img src="{{ url_for('static', filename='icn/waiting2.gif') }}" title="Calculating ..." />`);
+    $.ajax({
+      url: '/book/table_stats/' + data['BkID'],
+      method: 'GET',
+      success: function(response) {
+        cell.removeClass("refreshed");
+        const result = JSON.parse(response.status_distribution);
+        const graph = render_stats_graph(result);
+        cell.html(graph);
+      },
+      error: function() {
+        cell.text('Error loading data');
+        cell.removeClass("refreshed");
+      }
+    });
+  };
+
+  /* Generate stats graph <div> from statuscounts JSON. */
+  let render_stats_graph = function(statuscounts) {
+    statuscounts["99"] = statuscounts["98"] + statuscounts["99"];
+    delete statuscounts['98'];
+    const totalcount = Object.values(statuscounts).reduce((acc, val) => acc + val, 0);
+    if (totalcount == 0) {
+      return empty_stats;
+    }
+    const statuspct = {};
+    Object.entries(statuscounts).forEach(([key, value]) => {
+      let pct = (value * 100.0) / totalcount;
+      statuspct[key] = pct.toFixed(0);
+    });
+    // return JSON.stringify(statuspct);
+
+    let make_bar = function(stid, title) {
+      const p = statuspct[stid];
+      const msg = `${p}% (${statuscounts[stid]} words)`;
+      const smallestP = window.matchMedia("(max-width: 980px)").matches ? 2 : 1;
+      let display = "inline-flex"
+      if (p < smallestP)
+        display = "none";
+      return `<div
+        class="status-bar${stid} status-bar"
+        title="${title}: ${msg}"
+        style="flex: ${p}; display: ${display}"
+        ></div>`;
+    };
+
+    const bar_titles = {
+      "0": "Unknown",
+      "1": 1, "2": 2, "3": 3, "4": 4, "5": 5,
+      "99": "Well Known or Ignored"
+    };
+    ret = `<div class="status-bar-container">`;
+    Object.entries(bar_titles).forEach(([key, title]) => {
+      ret += make_bar(key, title);
+    });
+    ret += `</div>`;
+    return ret;
+  };
+
+  let render_last_opened_date = function ( data, type, row, meta ) {
+    const dt = row["LastOpenedDate"];
+    if (dt == null) {
+      return '';
+    }
+    const djs = dayjs(dt);
+    const txt = djs.fromNow();
+    return `<span title="${dt}">${txt}</span>`;
+  };
+
+  let render_book_actions = function ( data, type, row, meta ) {
+    // TODO zzfuture fix: security - add CSRF token
+    const bkid = row['BkID'];
+    const bktitle = encodeURIComponent(row['BkTitle']);
+    const is_active = (row['BkArchived'] == 0);
+
+    const links = [];
+    const make_link = function(label, func) {
+      const s = `<a href="#" data-bkid="${bkid}" data-bktitle="${bktitle}" onclick="${func}(this)">${label}</a>`;
+      links.push(s);
+    };
+
+    make_link('Edit', "edit_book");
+    if (is_active) {
+      make_link('Archive', "confirm_archive");
+    }
+    else {
+      make_link('Unarchive', "confirm_unarchive");
+    }
+    make_link('Delete', "confirm_delete");
+
+    return `<div class="book-action-dropdown"><span>&hellip;</span>
+      <div class="book-action-dropdown-content">${links.join('')}</div>
+    </div>`;
+  };
+
+  // added class is used for changing static image to rotating arrow animation
+  document.querySelector(".refresh").addEventListener("click", function(e) {
+    e.target.classList.add("refreshed");
+    e.stopPropagation();
+  });
+
+  /**
+   * Clearing the state is required for acceptance tests,
+   * because otherwise state is accidentally applied to
+   * following tests, messing up test results.
+   * I tried various things such as setting and clearing
+   * the filter input box, but this was the only method
+   * that worked reliably.
+   * This is called from the lute_test_client.py.
+   */
+  function clear_datatable_state() {
+    book_listing_table.state.clear();
+  }
+</script>

@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+
+{% block title %}Term Tags{% endblock %}
+{% block header %}Term Tags{% endblock %}
+
+{% block body %}
+
+<div style="margin-top: 10px; margin-bottom: 10px;">
+  <a href="/termtag/new">Create new</a>
+</div>
+
+<table id="termtagtable" class="table dataTable stripe" style="table-layout:fixed;" >
+  <thead>
+    <tr>
+      <th>Tag</th>
+      <th>Comment</th>
+      <th>Term Count</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+</table>
+
+{# Hidden form for archive, unarchive, delete. #}
+<form id="actionposter" method="post" action="">
+</form>
+
+<script>
+  
+  let setup_datatable = function() {
+    var table = $('#termtagtable').DataTable({
+      responsive: true,
+      select: false,
+      lengthMenu: [ 10, 25, 50 ],
+      paging: true,
+      info: true,
+      searching: true,
+      processing: true,
+      serverSide: true,
+      stateSave: true,
+      columns: [
+        { name: "TgText", render: render_tag_text },
+        { name: "TgComment", data: "TgComment" },
+        { name: "TermCount", render: render_term_count },
+        { data: null, searchable: false, orderable: false, render: render_delete },
+      ],
+
+      // Ajax call
+      ajax: {
+        url: '/termtag/datatables',
+        type: "POST",
+        dataType: "json"
+      },
+
+    });
+
+  } // end setup datatable
+
+  let render_tag_text = function ( data, type, row, meta ) {
+    return `<a href="/termtag/edit/${row['TgID']}">${row['TgText']}</a>`;
+  }
+
+  let render_term_count = function ( data, type, row, meta ) {
+    const count = parseInt(row['TermCount']);
+    if (count == 0)
+      return '-';
+    return count;
+  }
+
+  let render_delete = function ( data, type, row, meta ) {
+    // TODO zzfuture fix: security - add CSRF token
+    const tgid = row['TgID'];
+    return `<span id="deltermtag${tgid}" onclick="confirm_delete(${tgid})"><img src="{{ url_for('static', filename='/icn/minus-button.png') }}" title="Delete" /></span>`;
+  }
+
+  $(document).ready(function () {
+    setup_datatable();
+  });
+
+  function do_action_post(action, termtagid) {
+    let f = $('#actionposter');
+    f.attr('action', `/termtag/${action}/${termtagid}`);
+    f.submit();
+  }
+
+  function confirm_delete(termtagid) {
+    if (!confirm(`Deleting tag.  Click OK to proceed, or Cancel.`)) {
+      return;
+    }
+    do_action_post('delete', termtagid);
+  }
+
+</script>
+
+{% endblock %}

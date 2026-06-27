@@ -1,0 +1,102 @@
+name: Polish
+dictionaries:
+- for: terms
+  type: embedded
+  url: https://en.wiktionary.org/wiki/[LUTE]#Polish
+  active: true
+- for: terms
+  type: embedded
+  url: https://pl.wiktionary.org/wiki/[LUTE]
+  active: false
+- for: terms
+  type: popup
+  url: https://dictionary.cambridge.org/dictionary/polish-english/[LUTE]
+  active: false
+- for: terms
+  type: popup
+  url: https://en.glosbe.com/pl/en/[LUTE]
+  active: false
+- for: terms
+  type: popup
+  url: https://en.bab.la/dictionary/polish-english/[LUTE]
+  active: false
+- for: terms
+  type: popup
+  url: https://tr-ex.me/translation/polish-english/ulica?search=[LUTE]
+  active: false
+- for: terms
+  type: popup
+  url: https://dictionary.reverso.net/polish-english/[LUTE]
+  active: false
+- for: terms
+  type: embedded
+  url: https://context.reverso.net/translation/polish-english/[LUTE]
+  active: false
+- for: terms
+  type: embedded
+  url: https://www.linguee.com/english-polish/search?source=polish&query=[LUTE]
+  active: false
+- for: terms
+  type: embedded
+  url: https://wsjp.pl/haslo/podglad/1665/[LUTE]
+  active: false
+- for: terms
+  type: embedded
+  url: https://sjp.pwn.pl/szukaj/[LUTE].html
+  active: true
+- for: terms
+  type: embedded
+  url: https://dobryslownik.pl/slowo/[LUTE]/3232/
+  active: false
+- for: terms
+  type: embedded
+  url: https://www.dict.com/?t=pl&set=_enpl&w=[LUTE]
+  active: false
+- for: terms
+  type: popup
+  url: https://tatoeba.org/en/sentences/search?from=pol&query=[LUTE]&to=eng
+  active: false
+- for: terms
+  type: embedded
+  url: https://www.verbix.com/webverbix/go.php?&D1=201&T1=[LUTE]
+  active: true
+- for: terms
+  type: embedded
+  url: https://www.verbix.com/webverbix/go.php?&D1=1201&T1=[LUTE]
+  active: false
+- for: terms
+  type: embedded
+  url: https://cooljugator.com/pl/[LUTE]
+  active: false
+- for: sentences
+  type: popup
+  url: https://www.deepl.com/en/translator#pl/en/[LUTE]
+  active: true
+- for: sentences
+  type: popup
+  url: https://translate.google.com/?sl=pl&tl=en&text=[LUTE]&op=translate
+  active: false
+- for: sentences
+  type: embedded
+  url: https://www.reverso.net/text-translation#sl=pol&tl=eng&text=[LUTE]
+  active: false
+- for: sentences
+  type: popup
+  url: https://translate.yandex.com/?source_lang=pl&target_lang=en&text=[LUTE]
+  active: false
+- for: sentences
+  type: popup
+  url: https://www.online-translator.com/translation/polish-english?text=[LUTE]
+  active: false
+- for: sentences
+  type: embedded
+  url: https://www.bing.com/translator/?from=pl&to=en&text=[LUTE]
+  active: false
+show_romanization: false
+right_to_left: false
+parser_type: spacedel
+character_substitutions: ´='|`='|’='|‘='|...=…|..=‥
+split_sentences: .!?
+split_sentence_exceptions: blm.|blp.|bm.|br.|cdn.|d.|daw.|etc.|g.|gł.|głęb.|godz.|itd.|itp.|mies.|n.e.|np.|o.|odc.|ok.|oo.|p.Chr.|p.n.e.|pchor.|pot.|ppłk.|ppor.|proc.|r.|s.|scs.|sp.
+  z o.o.|szer.|św.|t.|tj.|tow.|ts.|tydz.|tzn.|tzw.|ul.|ur.|ww.|z d.|z.|zm.|zob.
+word_chars: a-zA-ZĄąĆćĘęŁłŃńÓóŚśŹźŻż'

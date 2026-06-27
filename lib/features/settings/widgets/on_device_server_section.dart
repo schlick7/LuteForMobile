@@ -28,10 +28,10 @@ class OnDeviceServerSection extends ConsumerStatefulWidget {
 class _OnDeviceServerSectionState
     extends ConsumerState<OnDeviceServerSection> {
   StreamSubscription<EmbeddedServerSnapshot>? _stateSub;
-  StreamSubscription<DownloadProgress>? _progressSub;
+  StreamSubscription<String>? _logSub;
   EmbeddedServerSnapshot? _snapshot;
-  DownloadProgress? _progress;
-  bool _checking = false;
+  final List<String> _logBuffer = [];
+  bool _showLogs = false;
 
   bool get _isAndroid => !kIsWeb &&
       defaultTargetPlatform == TargetPlatform.android;
@@ -43,9 +43,14 @@ class _OnDeviceServerSectionState
       _stateSub = EmbeddedServerService.instance.stream.listen((s) {
         if (mounted) setState(() => _snapshot = s);
       });
-      _progressSub = EmbeddedServerService.instance.downloadProgressStream
-          .listen((p) {
-        if (mounted) setState(() => _progress = p);
+      _logSub = EmbeddedServerService.instance.logs.listen((line) {
+        if (!mounted) return;
+        setState(() {
+          _logBuffer.add(line);
+          if (_logBuffer.length > 200) {
+            _logBuffer.removeRange(0, _logBuffer.length - 200);
+          }
+        });
       });
       // Pull initial state.
       EmbeddedServerService.instance.refresh();
@@ -55,27 +60,15 @@ class _OnDeviceServerSectionState
   @override
   void dispose() {
     _stateSub?.cancel();
-    _progressSub?.cancel();
+    _logSub?.cancel();
     super.dispose();
-  }
-
-  Future<void> _download() async {
-    try {
-      await EmbeddedServerService.instance.download();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Download failed: $e')),
-      );
-    }
-  }
-
-  Future<void> _cancelDownload() async {
-    await EmbeddedServerService.instance.cancelDownload();
   }
 
   Future<void> _start() async {
     try {
+      // Clear any logs from a previous run so the user sees fresh
+      // output if the new run also fails.
+      setState(() => _logBuffer.clear());
       final url = await EmbeddedServerService.instance.start();
       if (!mounted) return;
       // Push the new URL into Settings so the rest of the app picks it up.
@@ -99,66 +92,12 @@ class _OnDeviceServerSectionState
     await ref.read(settingsProvider.notifier).setOnDeviceServerUrl('');
   }
 
-  Future<void> _remove() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Remove on-device server?'),
-        content: const Text(
-          'This deletes the downloaded server. Your data (books, terms) '
-          'is not affected. You can re-download at any time.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Remove'),
-          ),
-        ],
-      ),
-    );
-    if (confirm == true) {
-      await EmbeddedServerService.instance.remove();
-    }
-  }
-
-  Future<void> _checkForUpdate() async {
-    setState(() => _checking = true);
-    try {
-      final result = await EmbeddedServerService.instance.checkForUpdate();
-      if (!mounted) return;
-      if (result.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Update check failed: ${result.error}')),
-        );
-      } else if (result.updateAvailable) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Update available: ${result.latestTag}. '
-              'Re-download the app or use Remove + Download.',
-            ),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Up to date (${result.latestTag ?? "v${Settings.luteServerPinnedVersion}"}).')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _checking = false);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (!_isAndroid) return const SizedBox.shrink();
     final snap = _snapshot;
     final pinnedVersion = snap?.pinnedVersion ?? Settings.luteServerPinnedVersion;
-    final state = snap?.state ?? EmbeddedServerState.notInstalled;
+    final state = snap?.state ?? EmbeddedServerState.running;
 
     return Card(
       elevation: 2,
@@ -210,85 +149,6 @@ class _OnDeviceServerSectionState
 
   Widget _buildBody(EmbeddedServerState state) {
     switch (state) {
-      case EmbeddedServerState.notInstalled:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Not installed.'),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _download,
-                    icon: const Icon(Icons.download),
-                    label: const Text('Download'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: _checking ? null : _checkForUpdate,
-                  child: const Text('Updates'),
-                ),
-              ],
-            ),
-          ],
-        );
-
-      case EmbeddedServerState.downloading:
-        final p = _progress;
-        final frac = p?.fraction ?? 0.0;
-        final doneMb = (p?.bytesDone ?? 0) / 1024 / 1024;
-        final totalMb = (p?.bytesTotal ?? 0) / 1024 / 1024;
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(p == null
-                ? 'Downloading…'
-                : 'Downloading: ${doneMb.toStringAsFixed(1)} / '
-                    '${totalMb.toStringAsFixed(1)} MB'),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(value: p == null ? null : frac),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _cancelDownload,
-              icon: const Icon(Icons.close),
-              label: const Text('Cancel'),
-            ),
-          ],
-        );
-
-      case EmbeddedServerState.ready:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.check_circle, size: 18),
-                const SizedBox(width: 6),
-                const Text('Installed · ready to start'),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _start,
-                    icon: const Icon(Icons.play_arrow),
-                    label: const Text('Start'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: _remove,
-                  child: const Text('Remove'),
-                ),
-              ],
-            ),
-          ],
-        );
-
       case EmbeddedServerState.starting:
         return Row(
           children: const [
@@ -319,49 +179,101 @@ class _OnDeviceServerSectionState
               style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _stop,
-                    icon: const Icon(Icons.stop),
-                    label: const Text('Stop'),
-                  ),
-                ),
-              ],
+            OutlinedButton.icon(
+              onPressed: _stop,
+              icon: const Icon(Icons.stop),
+              label: const Text('Stop'),
             ),
           ],
         );
 
       case EmbeddedServerState.error:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return _buildErrorBody(context);
+    }
+  }
+
+  /// Error body: show the error message, a Retry button, and a
+  /// collapsible "Show logs" section that pulls the Python server's
+  /// recent stdout/stderr from Kotlin. This is how the user figures
+  /// out why startup failed (missing dep, import error, DB issue, etc).
+  Widget _buildErrorBody(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Error: ${_snapshot?.lastError ?? "Unknown"}',
+          style: TextStyle(color: Theme.of(context).colorScheme.error),
+        ),
+        const SizedBox(height: 12),
+        Row(
           children: [
-            Text(
-              'Error: ${_snapshot?.lastError ?? "Unknown"}',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.error,
-              ),
+            ElevatedButton.icon(
+              onPressed: _start,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: _download,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Retry download'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: _remove,
-                  child: const Text('Remove'),
-                ),
-              ],
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              onPressed: _toggleLogs,
+              icon: Icon(_showLogs ? Icons.expand_less : Icons.expand_more),
+              label: Text(_showLogs ? 'Hide logs' : 'Show logs'),
             ),
           ],
-        );
+        ),
+        if (_showLogs) _buildLogViewer(),
+      ],
+    );
+  }
+
+  Future<void> _toggleLogs() async {
+    if (!_showLogs) {
+      // Fetch any logs the server produced before we asked.
+      final fetched = await EmbeddedServerService.instance.fetchLogs();
+      if (!mounted) return;
+      setState(() {
+        _logBuffer
+          ..clear()
+          ..addAll(fetched);
+        _showLogs = true;
+      });
+    } else {
+      setState(() => _showLogs = false);
     }
+  }
+
+  Widget _buildLogViewer() {
+    if (_logBuffer.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: Text(
+          '(no log output captured yet)',
+          style: TextStyle(
+            fontSize: 11,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Container(
+        height: 220,
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: ListView.builder(
+          itemCount: _logBuffer.length,
+          itemBuilder: (ctx, i) => Text(
+            _logBuffer[i],
+            style: const TextStyle(
+              fontFamily: 'monospace',
+              fontSize: 10,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }

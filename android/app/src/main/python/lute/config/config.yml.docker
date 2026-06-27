@@ -1,0 +1,12 @@
+ENV: prod
+DBNAME: lute.db
+
+# The folder _inside_ the container.
+# This needs to be mounted to a volume on the host.
+DATAPATH: /lute_data
+
+# Folder where backups should be stored.
+# Needs to mounted to a volume on the host.
+BACKUP_PATH: /lute_backup
+
+IS_DOCKER: true

@@ -1,0 +1,24 @@
+{% set sentence_id = 1 %}
+
+{% for para in paragraphs %}
+
+<p>
+  {% for sentence in para %}
+  <span class="textsentence" id="sent_{{ sentence_id }}">
+    {# Note: do not add paragraphs between the renders, it messes up some online chinese dictionary tools. #}
+    {% for item in sentence %}{% include 'read/textitem.html' %}{% endfor %}
+  </span>
+  {% set sentence_id = sentence_id + 1 %}
+  {% endfor %}
+
+  {# Add a blank element for empty paragraphs (blank lines) to show up. #}
+  <span class="textitem">&ZeroWidthSpace;</span>
+</p>
+
+{% endfor %}
+
+<script>
+  // Defined in lute.js
+  parent.reset_cursor_marker();
+  parent.add_status_classes();
+</script>

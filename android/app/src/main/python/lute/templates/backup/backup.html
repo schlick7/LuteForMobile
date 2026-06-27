@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block header %}Backing up ...{% endblock %}
+
+{% block body %}
+
+<p>
+  Creating {{ backuptype }} backup at {{ backup_folder }}.
+</p>
+<p>
+  <b>Don't refresh this page, or another backup process will be kicked off!</b>
+</p>
+
+<div id="failedBackup" style="visibility:hidden;">
+  <br />
+  <p>Backup failed:</p>
+  <br />
+  <pre><code><p id="failureDetails" /></code></pre>
+  <br />
+  <p>
+    <a href="/backup/backup">Try again</a>,
+    fix your <a href="/settings/index">backup settings</a>,
+    or <a href="/backup/skip_this_backup">skip this backup</a>.
+  </p>
+</div>
+
+<script>
+  $(document).ready(function() {
+    // The route adds a flash message about the new file.
+
+    $.post('/backup/do_backup', { type: '{{ backuptype }}' })
+      .done(function(msg) { window.location = "/"; })
+      .fail( function(xhr, textStatus, errorThrown) {
+        const p = JSON.parse(xhr.responseText);
+        const msg = "BACKUP ERROR: " + p.errmsg;
+        $('#failureDetails').html(msg.replace(/__BREAK__/g, '<br />'));
+        $('#failedBackup').css({ visibility: 'visible' })
+      });
+  });
+</script>
+
+{% endblock %}

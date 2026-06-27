@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Languages{% endblock %}
+
+{% block header %}Languages{% endblock %}
+
+{% block body %}
+
+{% if language_data|length == 0 %}
+  <p>No languages defined.</p>
+{% else %}
+
+<div style="width: 70%">
+<table id="languagetable" class="table dataTable no-footer" style="margin: 0;">
+  <thead>
+    <tr>
+      <th>Language</th>
+      <th>Books</th>
+      <th>Terms</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for lang in language_data %}
+    <tr>
+      <td>
+        <a href="/language/edit/{{ lang.LgID }}">
+          {{ lang.LgName }}
+        </a>
+      </td>
+      <td>{{ lang.book_count or '-' }}</td>
+      <td>{{ lang.term_count or '-' }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% endif %}
+
+<br />
+<p><a href="{{ url_for('language.list_predefined') }}">Load predefined language and sample stories</a></p>
+<p><a href="{{ url_for('language.new') }}">Create new</a></p>
+
+<script>
+  var language_listing_table;
+
+  let setup_lang_datatable = function() {
+    lang_listing_table = $('#languagetable').DataTable({
+      responsive: true,
+      select: false,
+      lengthMenu: [ 10, 25, 50 ],
+      pageLength: 25,
+      paging: true,
+      info: true,
+      searching: true,
+      processing: true,
+      stateSave: true,
+    });
+  }; // end setup_lang_datatable
+
+  $(document).ready(function () {
+    setup_lang_datatable();
+  });
+</script>
+
+{% endblock %}

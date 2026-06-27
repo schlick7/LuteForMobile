@@ -47,14 +47,8 @@ class Settings {
   static const String termuxUrl = 'http://127.0.0.1:5001';
 
   /// The lute-v3 server version this build of the app is pinned to.
-  /// Used to build the on-device server download URL.
+  /// Embedded into the APK as the bundled Python server's source.
   static const String luteServerPinnedVersion = '3.10.1';
-
-  /// Base URL for the on-device server download artifacts. Tag pattern is
-  /// lute-server-v<version>, with files named lute-server-android-arm64-v<version>.tar.gz
-  /// and a sibling .sha256 sidecar.
-  static const String luteServerReleaseBase =
-      'https://github.com/schlick7/LuteForMobile/releases/download';
 
   const Settings({
     required this.localUrl,

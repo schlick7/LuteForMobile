@@ -3,20 +3,10 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:lute_for_mobile/core/services/lute_server_manifest.dart';
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
 
 /// State of the on-device lute-v3 server.
 enum EmbeddedServerState {
-  /// No artifact installed under the pinned version.
-  notInstalled,
-
-  /// Download in progress.
-  downloading,
-
-  /// Artifact extracted, not running.
-  ready,
-
   /// Process being spawned, waiting for /info 200.
   starting,
 
@@ -27,24 +17,26 @@ enum EmbeddedServerState {
   error,
 }
 
-/// Snapshot of the on-device server as reported by Kotlin.
+/// Snapshot of the on-device server. The server, when running, is
+/// always at `http://127.0.0.1:<port>/` where `<port>` is whatever
+/// ephemeral port Kotlin picked. The Dart side never needs to know
+/// the port number — it just uses [url].
 class EmbeddedServerSnapshot {
   final EmbeddedServerState state;
   final String? installedVersion;
   final String pinnedVersion;
-  final int? port;
 
   /// Last error message (when [state] == [EmbeddedServerState.error]).
   final String? lastError;
 
-  /// Optional URL of the running server, e.g. `http://127.0.0.1:51234/`.
+  /// URL of the running server, e.g. `http://127.0.0.1:51234/`.
+  /// Null when the server isn't running.
   final String? url;
 
   const EmbeddedServerSnapshot({
     required this.state,
     this.installedVersion,
     required this.pinnedVersion,
-    this.port,
     this.lastError,
     this.url,
   });
@@ -53,7 +45,7 @@ class EmbeddedServerSnapshot {
     final stateStr = map['state'] as String? ?? 'notInstalled';
     final state = EmbeddedServerState.values.firstWhere(
       (s) => s.name == stateStr,
-      orElse: () => EmbeddedServerState.notInstalled,
+      orElse: () => EmbeddedServerState.error,
     );
     final port = map['port'] as int?;
     return EmbeddedServerSnapshot(
@@ -61,7 +53,6 @@ class EmbeddedServerSnapshot {
       installedVersion: map['installedVersion'] as String?,
       pinnedVersion:
           map['pinnedVersion'] as String? ?? Settings.luteServerPinnedVersion,
-      port: port,
       url: port == null ? null : 'http://127.0.0.1:$port/',
     );
   }
@@ -69,47 +60,7 @@ class EmbeddedServerSnapshot {
   @override
   String toString() =>
       'EmbeddedServerSnapshot(state: $state, version: $installedVersion, '
-      'pinned: $pinnedVersion, port: $port)';
-}
-
-/// Info about the downloadable lute-server tarball.
-class TarballInfo {
-  final String pinnedVersion;
-  final String tarballUrl;
-  final String sha256Url;
-  const TarballInfo({
-    required this.pinnedVersion,
-    required this.tarballUrl,
-    required this.sha256Url,
-  });
-
-  factory TarballInfo.fromMap(Map<dynamic, dynamic> map) {
-    return TarballInfo(
-      pinnedVersion: map['pinnedVersion'] as String? ?? '',
-      tarballUrl: map['tarballUrl'] as String? ?? '',
-      sha256Url: map['sha256Url'] as String? ?? '',
-    );
-  }
-}
-
-/// Result of an update check against GitHub.
-class UpdateCheckResult {
-  final String? latestTag;
-  final bool updateAvailable;
-  final String? error;
-  const UpdateCheckResult({
-    this.latestTag,
-    required this.updateAvailable,
-    this.error,
-  });
-
-  factory UpdateCheckResult.fromMap(Map<dynamic, dynamic> map) {
-    return UpdateCheckResult(
-      latestTag: map['latestTag'] as String?,
-      updateAvailable: (map['updateAvailable'] as bool?) ?? false,
-      error: map['error'] as String?,
-    );
-  }
+      'pinned: $pinnedVersion, url: $url)';
 }
 
 /// Dart facade for the on-device lute-v3 server.
@@ -140,12 +91,14 @@ class EmbeddedServerService {
 
   StreamSubscription<dynamic>? _eventSubscription;
   EmbeddedServerSnapshot _snapshot = EmbeddedServerSnapshot(
-    state: EmbeddedServerState.notInstalled,
+    state: EmbeddedServerState.running,
     pinnedVersion: Settings.luteServerPinnedVersion,
   );
   final _snapshotController =
       StreamController<EmbeddedServerSnapshot>.broadcast();
+  final _logController = StreamController<String>.broadcast();
   String? _lastError;
+  List<String> _recentLogs = const [];
 
   /// Current snapshot of the on-device server state.
   EmbeddedServerSnapshot get snapshot => _snapshot;
@@ -158,19 +111,6 @@ class EmbeddedServerService {
     if (raw is! Map) return;
     final type = raw['type'] as String? ?? '';
     switch (type) {
-      case 'download_progress':
-        final done = (raw['bytesDone'] as num?)?.toInt() ?? 0;
-        final total = (raw['bytesTotal'] as num?)?.toInt() ?? 0;
-        _progressController.add(DownloadProgress(done, total));
-        break;
-      case 'download_complete':
-        _lastError = null;
-        _setState(EmbeddedServerState.ready);
-        break;
-      case 'download_error':
-        _lastError = raw['message'] as String?;
-        _setState(EmbeddedServerState.error);
-        break;
       case 'started':
         final port = raw['port'] as int?;
         _lastError = null;
@@ -178,20 +118,28 @@ class EmbeddedServerService {
           state: EmbeddedServerState.running,
           installedVersion: _snapshot.installedVersion,
           pinnedVersion: _snapshot.pinnedVersion,
-          port: port,
           url: port == null ? null : 'http://127.0.0.1:$port/',
         );
         _snapshotController.add(_snapshot);
         break;
       case 'stopped':
-        _setState(EmbeddedServerState.ready);
+        _setState(EmbeddedServerState.running);
+        // 'running' as the "not running, ready to start" state.
+        break;
+      case 'log':
+        final line = raw['line'] as String? ?? '';
+        if (line.isNotEmpty) {
+          _recentLogs = [..._recentLogs, line];
+          // Keep the in-memory buffer bounded too.
+          if (_recentLogs.length > 200) {
+            _recentLogs = _recentLogs.sublist(_recentLogs.length - 200);
+          }
+          _logController.add(line);
+        }
         break;
       case 'error':
         _lastError = raw['message'] as String?;
         _setState(EmbeddedServerState.error);
-        break;
-      case 'log':
-        // Captured by the log stream separately; nothing to do here.
         break;
     }
   }
@@ -201,7 +149,6 @@ class EmbeddedServerService {
       state: state,
       installedVersion: _snapshot.installedVersion,
       pinnedVersion: _snapshot.pinnedVersion,
-      port: _snapshot.port,
       lastError: _lastError,
       url: _snapshot.url,
     );
@@ -224,7 +171,6 @@ class EmbeddedServerService {
             state: _snapshot.state,
             installedVersion: _snapshot.installedVersion,
             pinnedVersion: _snapshot.pinnedVersion,
-            port: _snapshot.port,
             url: _snapshot.url,
             lastError: _lastError,
           );
@@ -237,48 +183,9 @@ class EmbeddedServerService {
     return _snapshot;
   }
 
-  /// Returns metadata about the pinned tarball (for the UI to display).
-  Future<TarballInfo> getTarballInfo() async {
-    if (kIsWeb || !Platform.isAndroid) {
-      return TarballInfo(
-        pinnedVersion: Settings.luteServerPinnedVersion,
-        tarballUrl: LuteServerManifest.arm64TarballUrl,
-        sha256Url: LuteServerManifest.arm64Sha256Url,
-      );
-    }
-    final map = await _methodChannel.invokeMapMethod<String, Object>(
-      'getTarballInfo',
-    );
-    if (map == null) {
-      throw StateError('Kotlin returned null tarball info');
-    }
-    return TarballInfo.fromMap(map);
-  }
-
-  /// Start a background download. Resolves immediately; the actual
-  /// download is observed via [stream] (and the [downloadProgressStream]
-  /// for byte-level progress).
-  Future<void> download() async {
-    if (kIsWeb || !Platform.isAndroid) {
-      throw UnsupportedError('On-device server is Android-only');
-    }
-    _lastError = null;
-    _setState(EmbeddedServerState.downloading);
-    try {
-      await _methodChannel.invokeMethod<void>('download');
-    } on PlatformException catch (e) {
-      _lastError = e.message;
-      _setState(EmbeddedServerState.error);
-      rethrow;
-    }
-  }
-
-  Future<void> cancelDownload() async {
-    if (kIsWeb || !Platform.isAndroid) return;
-    await _methodChannel.invokeMethod<void>('cancelDownload');
-  }
-
-  /// Start the installed server. Returns the bound URL.
+  /// Start the bundled server. Returns the bound URL.
+  /// The server is bundled into the APK via Chaquopy; no download
+  /// or install step is needed.
   Future<String> start() async {
     if (kIsWeb || !Platform.isAndroid) {
       throw UnsupportedError('On-device server is Android-only');
@@ -294,7 +201,6 @@ class EmbeddedServerService {
         state: EmbeddedServerState.running,
         installedVersion: _snapshot.installedVersion,
         pinnedVersion: _snapshot.pinnedVersion,
-        port: port,
         url: url,
       );
       _snapshotController.add(_snapshot);
@@ -315,49 +221,39 @@ class EmbeddedServerService {
     }
   }
 
-  Future<void> remove() async {
-    if (kIsWeb || !Platform.isAndroid) return;
-    await _methodChannel.invokeMethod<bool>('remove');
-    _snapshot = EmbeddedServerSnapshot(
-      state: EmbeddedServerState.notInstalled,
-      pinnedVersion: _snapshot.pinnedVersion,
-    );
-    _snapshotController.add(_snapshot);
-  }
-
-  Future<UpdateCheckResult> checkForUpdate() async {
-    if (kIsWeb || !Platform.isAndroid) {
-      return const UpdateCheckResult(updateAvailable: false);
-    }
-    final map = await _methodChannel.invokeMapMethod<String, Object>(
-      'checkForUpdate',
-    );
-    if (map == null) {
-      return const UpdateCheckResult(updateAvailable: false);
-    }
-    return UpdateCheckResult.fromMap(map);
-  }
-
-  /// Separate stream of byte-level download progress, distinct from
-  /// the state snapshot stream.
-  Stream<DownloadProgress> get downloadProgressStream =>
-      _progressController.stream;
-  final _progressController = StreamController<DownloadProgress>.broadcast();
-
   /// Most recent error string (if any).
   String? get lastError => _lastError;
+
+  /// Stream of Python stdout/stderr lines from the server process.
+  /// Emits one line at a time as the server runs. Lines are also
+  /// retained in [recentLogs] for late subscribers.
+  Stream<String> get logs => _logController.stream;
+
+  /// Last ~200 log lines from the running server. Useful for showing
+  /// the user a snapshot when the server has already exited.
+  List<String> get recentLogs => List.unmodifiable(_recentLogs);
+
+  /// Fetch the full Python log buffer from Kotlin. Returns a possibly
+  /// larger set than [recentLogs] (Kotlin's ring buffer is also 200
+  /// lines, so in practice they match). Used on error to show
+  /// everything the server said before it died.
+  Future<List<String>> fetchLogs() async {
+    if (kIsWeb || !Platform.isAndroid) return const [];
+    try {
+      final result = await _methodChannel.invokeListMethod<String>('getLogs');
+      if (result != null) {
+        _recentLogs = result;
+      }
+      return result ?? const [];
+    } on PlatformException catch (e) {
+      print('EmbeddedServerService.fetchLogs: ${e.message}');
+      return const [];
+    }
+  }
 
   void dispose() {
     _eventSubscription?.cancel();
     _snapshotController.close();
-    _progressController.close();
+    _logController.close();
   }
-}
-
-/// Byte-level download progress, reported by the Kotlin side.
-class DownloadProgress {
-  final int bytesDone;
-  final int bytesTotal;
-  const DownloadProgress(this.bytesDone, this.bytesTotal);
-  double get fraction => bytesTotal <= 0 ? 0 : bytesDone / bytesTotal;
 }

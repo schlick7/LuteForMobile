@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}New Book{% endblock %}
+{% block header %}Create new book{% endblock %}
+
+{% block body %}
+
+{% for field_name, field_errors in form.errors.items() %}
+{% for error in field_errors %}
+<div class="flash-notice-narrow">{{ error }}</div>
+{% endfor %}
+{% endfor %}
+
+<form method="POST" enctype="multipart/form-data">
+  {{ form.hidden_tag() }}
+
+  <table id="book">
+  <tbody>
+
+    <tr id="languageSel" {% if not show_language_selector %}style="display:none;"{% endif %}>
+      <td>Language</td>
+      <td>{{ form.language_id(class="form-control") }}</td>
+    </tr>
+
+    <tr>
+      <td>{{ form.title.label }}</td>
+      <td>{{ form.title(class="form-control", autofocus=True) }}</td>
+    </tr>
+
+    <tr>
+      <td>{{ form.text.label }}</td>
+      <td>{{ form.text(class="form-largetextarea") }}</td>
+    </tr>
+
+    <tr>
+      <td>{{ form.textfile.label }}<br />
+        <span class="formfieldcomment">txt, epub, pdf, srt, vtt</span>
+      </td>
+      <td>{{ form.textfile() }}</td>
+    </tr>
+
+    <tr>
+      <td>{{ form.source_uri.label }}</td>
+      <td>{{ form.source_uri(class="form-control") }}</td>
+    </tr>
+
+    <tr>
+      <td>{{ form.audiofile.label }}<br />
+        <span class="formfieldcomment">mp3, m4a, wav, ogg, opus, aac, flac, webm</span>
+      </td>
+      <td>{{ form.audiofile() }}</td>
+    </tr>
+
+    <tr>
+      <td>{{ form.book_tags.label }}</td>
+      <td>{{ form.book_tags(class="form-control") }}</td>
+    </tr>
+
+    <tr>
+      <td> {{ form.split_by.label }}</td>
+      <td> {{ form.split_by(class="form-control") }}</td>
+    </tr>
+
+    <tr>
+      <td> {{ form.threshold_page_tokens.label }}</td>
+      <td> {{ form.threshold_page_tokens(class="form-control") }}</td>
+    </tr>
+
+  </tbody>
+  </table>
+
+  <button id="save" type="submit" class="btn btn-primary">Save</button>
+  <button id="cancel" onclick="window.location = '/'; return false;" class="btn">Cancel</button>
+</form>
+
+
+<script type="text/javascript">
+  var TAGS = {{ tags | safe }};
+  const LANG_RTL_MAP = {{ rtl_map | safe }}
+
+  let setup_book_tags_tagify = function(input) {
+    const tagify = new Tagify(input, {
+      placeholder: 'Tags',
+      editTags: false,
+      autoComplete: { rightKey: true, tabKey: true },
+      dropdown: { enabled: 1 },
+      enforceWhitelist: false,
+      whitelist: TAGS
+    });  // end tagify
+    return tagify;
+  };
+
+  /* On language change, may need to change field directions. */
+  let set_field_directions = function() {
+    const new_id = parseInt($("#language_id").val());
+    let is_rtl = LANG_RTL_MAP[new_id] ?? false;
+    const direction = is_rtl ? "rtl" : "ltr";
+    $('#title, #text').css('direction', direction);
+  };
+
+  $(document).ready(function () {
+    var tagslist = document.getElementById('book_tags');
+    var tags_tagify = setup_book_tags_tagify(tagslist);
+
+    set_field_directions();
+    $("#language_id").change(set_field_directions);
+    function getFilenameWithoutExtension(filename) {
+      return filename.split('.').slice(0, -1).join('.');
+    }
+    function autoFillTitle() {
+      var filename = $('#textfile').prop('files')[0].name;
+      var titleField = $('#title');
+      if (titleField.val() === '' && filename !== '') {
+        titleField.val(getFilenameWithoutExtension(filename));
+      }
+    }
+    $('#textfile').on('change', function() {
+      autoFillTitle();
+    });
+  });
+</script>
+
+{% endblock %}

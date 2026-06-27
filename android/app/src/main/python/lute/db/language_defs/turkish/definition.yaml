@@ -1,0 +1,33 @@
+name: Turkish
+dictionaries:
+- for: terms
+  type: embedded
+  url: https://tureng.com/tr/turkce-ingilizce/[LUTE]
+  active: true
+- for: terms
+  type: embedded
+  url: https://en.wiktionary.org/wiki/[LUTE]#Turkish
+  active: true
+- for: sentences
+  type: popup
+  url: https://www.deepl.com/translator#tr/en/[LUTE]
+  active: true
+- for: terms
+  type: embedded
+  url: https://sozluk.gov.tr/?ara=[LUTE]
+  active: true
+- for: terms
+  type: embedded
+  url: https://lugatim.com/s/[LUTE]
+  active: true
+- for: terms
+  type: embedded
+  url: https://www.nisanyansozluk.com/kelime/[LUTE]
+  active: true
+show_romanization: true
+right_to_left: false
+parser_type: turkish
+character_substitutions: ´='|`='|’='|‘='|...=…|..=‥
+split_sentences: .!?
+split_sentence_exceptions: '[A-Z].|[À-Ö].|vb.|M.Ö.|Sh.|A.Ş.|T.C.|vs.|var.|Ş.|M.A.'
+word_chars: a-zA-ZÀ-ÖØ-öø-ȳáéíóúÁÉÍÓÚñÑğĞıİöÖüÜşŞçÇ

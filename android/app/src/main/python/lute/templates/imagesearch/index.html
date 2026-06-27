@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>Images</title>
+    <script type="text/javascript" src="{{ url_for('static', filename='vendor/jquery/jquery.js') }}" charset="utf-8"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/styles.css') }}" />
+    <link rel="stylesheet" type="text/css" href="/theme/current">
+    <link rel="stylesheet" type="text/css" href="/theme/custom_styles">
+  </head>
+
+  <body>
+    <div id="termimagesearch" class="container">
+
+      <!-- form post is handled via javascript, added below -->
+      <form id="manual_image_upload" method="post" enctype="multipart/form-data" style="display: none">
+        <input type="hidden" name="langid" value="{{ langid }}">
+        <input type="hidden" name="text" value="{{ text }}">
+        <input type="file" name="manual_image_file" id="manual_image_file" />
+      </form>
+
+      <p class="termimagesearchtitle">
+        Click an image below,
+        <span id="upload_image_link" class="imageAction">upload an image</span>, or
+        <span class="imageAction" title="Click to set focus in this window">click here</span>
+        then paste from your clipboard.
+      </p>
+
+      <p id="image_search_feedback"><i>Searching ...</i></p>
+
+    </div>
+  </body>
+
+  <script>
+    let _update_term_form_image = function(filename, new_url) {
+      // Well, this took **far** too long to figure out ...
+      let fr = window.parent.frames['wordframe'];
+      if (fr == null) {
+        // This feels clumsy.  Summary of bad code: this imagesearch
+        // file is used on the reading pane, where it is presented as a
+        // child iframe inside _another_ iframe.  It is _also_ used on
+        // the term index page, where it is an iframe, but _not_ inside
+        // another iframe.  In this latter case, there is no
+        // window.parent.frames['wordframe'].
+        //
+        // There is probably a much better way of doing this,
+        // but I don't know what it is, and can't be bothered to spend
+        // the time to make this code more "pure."  Suggestions welcome!
+        fr = window.parent;
+      }
+      var el = fr.document.getElementById('current_image');
+      el.value = filename;
+      const img = fr.document.getElementById('term_image');
+      // image block initially has no size to not take up space
+      img.style.gridColumn = "-1";
+      img.style.display = "block";
+
+      var timestamp = new Date().getTime();
+      const newsrc = `${new_url}?${timestamp}`;
+      // console.log(`switching source to ${newsrc}`);
+      img.src = newsrc;
+    }
+
+    function save_image_locally(src, langid, text) {
+      $.ajax({
+        url: '/bing/save',
+        data: {
+          src: src,
+          langid: langid,
+          text: text
+        },
+        type: 'POST',
+        dataType: 'json',
+        success: function(data) {
+          // console.log("Saved: " + data + "\nStatus: " + status);
+          _update_term_form_image(data.filename, data.url);
+          $('.saved').removeClass('saved');
+          $('.highlight').addClass('saved').removeClass('highlight');
+        }
+      });
+    }
+
+    function highlight_image(el) {
+      $(el).addClass('highlight');
+    }
+
+    function un_highlight_image(el) {
+      $(el).removeClass('highlight');
+    }
+
+
+    $(document).ready(function() {
+      $('#manual_image_upload').submit(function(event) {
+        event.preventDefault();
+        var formData = new FormData(this);
+        $.ajax({
+          url: '/bing/manual_image_post',
+          type: 'POST',
+          data: formData,
+          processData: false,
+          contentType: false,
+          success: function(data) {
+            // console.log("Saved: " + data + "\nStatus: " + status);
+            _update_term_form_image(data.filename, data.url);
+          },
+          error: function(xhr, status, error) {
+            console.error(`Error submitting form.  ${error}; ${status}; ${xhr.responseText}`);
+          }
+        });
+      });
+
+      $(window).on('paste', function(event) {
+        const e = event.originalEvent;
+        if (e && e.clipboardData && e.clipboardData.files) {
+          $("#manual_image_file").prop('files', e.clipboardData.files);
+          $('#manual_image_upload').submit();
+        }
+      });
+
+      $("#upload_image_link").on('click', function(event) {
+        $("#manual_image_file").click();
+      });
+
+      $("#manual_image_file").on('change', function(event) {
+        event.preventDefault();
+        $('#manual_image_upload').submit();
+      });
+
+    });
+
+    $(document).ready(function() {
+      const searchUrl = '{{ search_url }}';
+      const container = document.getElementById('termimagesearch');
+
+      $.ajax({
+        url: searchUrl,
+        type: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          if (data.error_message !== "") {
+            const msg = `Error: ${data.error_message}`;
+            console.error(msg);
+            $("#image_search_feedback").text(msg);
+            return;
+          }
+
+          $("#image_search_feedback").hide();
+          if (data.images.length === 0) {
+            const p = document.createElement('p');
+            p.textContent = 'No images found.';
+            container.appendChild(p);
+            return;
+          }
+
+          // Make Bing API call for images asynchronously
+          // This avoids blocking the page load
+          data.images.forEach(function(item) {
+            const imgWrapper = create_imageWrapper_element(item.src, data.langid, data.text);
+            container.appendChild(imgWrapper);
+          });
+        },
+        error: function(xhr, status, error) {
+          const msg = `Error ${error}; ${status}; ${xhr.responseText}`;
+          console.error(msg);
+          $("#image_search_feedback").val(msg);
+        }
+      });
+    });
+
+    function create_imageWrapper_element(src, langid, text) {
+      const imgWrapper = document.createElement('span');
+      imgWrapper.classList.add('initial');
+      imgWrapper.style.margin = '2px';
+      imgWrapper.style.display = 'inline-block';
+      imgWrapper.onmouseover = () => highlight_image(imgWrapper);
+      imgWrapper.onmouseout = () => un_highlight_image(imgWrapper);
+      imgWrapper.onclick = () => save_image_locally(src, langid, text);
+
+      const img = document.createElement('img');
+      img.src = src;
+      
+      imgWrapper.appendChild(img);
+
+      return imgWrapper;
+    }
+  </script>
+
+</html>

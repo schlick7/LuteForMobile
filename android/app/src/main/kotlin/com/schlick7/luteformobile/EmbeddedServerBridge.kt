@@ -4,50 +4,34 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import com.chaquo.python.PyObject
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.BufferedInputStream
 import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
-import java.security.MessageDigest
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
-import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * MethodChannel bridge for the on-device lute-v3 server.
  *
- * Channel: com.schlick7.luteformobile/embedded_server
- * EventChannel (progress): com.schlick7.luteformobile/embedded_server_progress
+ * The server is bundled into the APK via the Chaquopy Gradle plugin
+ * (see android/app/build.gradle.kts). On start, we hand a port and
+ * the user's data dir to the Python `launcher` module, which spawns
+ * waitress in a background thread. The Dart side polls GET /info on
+ * 127.0.0.1:<port> until ready, then uses that URL as the API base.
+ *
+ * Channel:  com.schlick7.luteformobile/embedded_server
+ * Events:   com.schlick7.luteformobile/embedded_server_progress
  *
  * Methods:
- *  - getState(): { state, installedVersion, port }
- *  - getTarballInfo(): { url, sha256Url, pinnedVersion }  (so the UI can show them)
- *  - download(): kicks off background download
- *  - cancelDownload()
- *  - start(): starts the installed server, returns the URL
- *  - stop(): stops the server
- *  - remove(): removes the installed artifact
- *  - checkForUpdate(): queries GitHub for a newer lute-server release tag
- *
- * Events (EventChannel):
- *  - { type: "download_progress", bytesDone, bytesTotal }
- *  - { type: "download_complete", installDir }
- *  - { type: "download_error", message }
- *  - { type: "started", port }
- *  - { type: "stopped", exitCode }
- *  - { type: "log", line }
- *  - { type: "error", message }
+ *  - getState()       -> { state, port }
+ *  - start()          -> port (server URL is http://127.0.0.1:<port>/)
+ *  - stop()           -> null
+ *  - dataDir()        -> absolute path of the lute data dir
  */
 class EmbeddedServerBridge(
     private val context: Context,
@@ -56,29 +40,34 @@ class EmbeddedServerBridge(
         private const val TAG = "EmbeddedServerBridge"
         const val METHOD_CHANNEL = "com.schlick7.luteformobile/embedded_server"
         const val EVENT_CHANNEL = "com.schlick7.luteformobile/embedded_server_progress"
-        private const val PINNED_LUTE_VERSION = "3.10.1"
-        private const val GITHUB_RELEASES_API =
-            "https://api.github.com/repos/schlick7/LuteForMobile/releases"
+        private const val STARTUP_TIMEOUT_MS = 30_000L
+        private const val POLL_INTERVAL_MS = 250L
+        private const val SHUTDOWN_GRACE_MS = 5_000L
+        private const val LAUNCHER_MODULE = "launcher"
+        private const val SERVER_STATE_KEY = "lute_server_running"
     }
 
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val mainHandler = Handler(Looper.getMainLooper())
-    private var downloadJob: Job? = null
-    private var process: EmbeddedServerProcess? = null
     private var eventSink: EventChannel.EventSink? = null
-    private var appSupportDir: File? = null
+    private var serverProcess: PyObject? = null
+    private var port: Int? = null
+    private val isStarting = AtomicBoolean(false)
+
+    /** Underlying lute data dir. Lives in app-private filesDir. */
+    private val luteDataDir: File by lazy {
+        File(context.filesDir, "lute")
+    }
+
+    /** Auto-generated config.yml. Created on first start. */
+    private val luteConfigFile: File by lazy {
+        File(luteDataDir, "config.yml")
+    }
 
     fun register(
         methodChannel: MethodChannel,
         eventChannel: EventChannel,
     ) {
-        // Prefer the app's external files dir (visible to the user as
-        // /Android/data/<pkg>/files) so the data is recoverable if the
-        // app is uninstalled but the dir isn't cleaned. Fall back to the
-        // internal files dir on devices without external storage.
-        val external = context.getExternalFilesDir(null)
-        appSupportDir = external ?: context.filesDir
-        Log.d(TAG, "App support dir: ${appSupportDir?.absolutePath}")
+        ensurePythonStarted()
 
         methodChannel.setMethodCallHandler { call, result -> onMethodCall(call, result) }
         eventChannel.setStreamHandler(object : EventChannel.StreamHandler {
@@ -92,28 +81,83 @@ class EmbeddedServerBridge(
     }
 
     fun dispose() {
-        scope.cancel()
-        process?.stop()
+        try {
+            stop()
+        } catch (_: Exception) {
+        }
+    }
+
+    /**
+     * Start polling the Python log buffer every second and forwarding
+     * new lines through the EventChannel as `log` events. Stops when
+     * the EventChannel is cancelled (e.g. UI page closes) or the
+     * server exits.
+     */
+    private fun startLogPoller() {
+        // Track the last index we've emitted so we don't repeat lines.
+        var lastEmittedIndex = 0
+        val pollRunnable = object : Runnable {
+            override fun run() {
+                val lines = readLogLines()
+                // Emit only lines we haven't sent yet.
+                if (lastEmittedIndex < lines.size) {
+                    for (i in lastEmittedIndex until lines.size) {
+                        emit("log", mapOf("line" to lines[i]))
+                    }
+                    lastEmittedIndex = lines.size
+                }
+                // Continue polling as long as the sink is active and
+                // we have something to do.
+                if (eventSink != null && isServerAlive()) {
+                    mainHandler.postDelayed(this, 1000L)
+                }
+            }
+        }
+        mainHandler.postDelayed(pollRunnable, 500L)
+    }
+
+    // --- Python startup ---
+
+    private fun ensurePythonStarted() {
+        if (!Python.isStarted()) {
+            Python.start(AndroidPlatform(context))
+            Log.d(TAG, "Chaquopy Python runtime started")
+        }
     }
 
     // --- State ---
 
     private fun currentState(): Map<String, Any?> {
-        val support = appSupportDir ?: return mapOf("state" to "notInstalled")
-        val versionDir = File(support, "lute-server/$PINNED_LUTE_VERSION")
-        val installed = versionDir.exists() && File(versionDir, "lute-server").exists()
         val state = when {
-            !installed -> "notInstalled"
-            downloadJob?.isActive == true -> "downloading"
-            process?.isRunning == true -> "running"
+            isStarting.get() -> "starting"
+            serverProcess != null && isServerAlive() -> "running"
             else -> "ready"
         }
-        return mapOf(
-            "state" to state,
-            "installedVersion" to if (installed) PINNED_LUTE_VERSION else null,
-            "pinnedVersion" to PINNED_LUTE_VERSION,
-            "port" to process?.port,
-        )
+        return mapOf("state" to state, "port" to port)
+    }
+
+    /// Read the last N log lines captured from the Python server's
+    /// stdout/stderr. Used by the UI to surface "why did it fail".
+    private fun readLogLines(): List<String> {
+        val proc = serverProcess ?: return emptyList()
+        return try {
+            @Suppress("UNCHECKED_CAST")
+            proc.callAttr("log_lines").asList() as List<String>
+        } catch (e: Exception) {
+            Log.w(TAG, "readLogLines failed: ${e.message}")
+            emptyList()
+        }
+    }
+
+    private fun isServerAlive(): Boolean {
+        val proc = serverProcess ?: return false
+        return try {
+            // Call launcher.is_alive(); returns True until stop() is called.
+            proc.callAttr("is_alive").toBoolean()
+        } catch (e: Exception) {
+            Log.w(TAG, "is_alive check failed: ${e.message}")
+            false
+        }
     }
 
     // --- Method dispatch ---
@@ -121,277 +165,135 @@ class EmbeddedServerBridge(
     private fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
             "getState" -> result.success(currentState())
-            "getTarballInfo" -> result.success(
-                mapOf(
-                    "pinnedVersion" to PINNED_LUTE_VERSION,
-                    "tarballUrl" to tarballUrl(),
-                    "sha256Url" to sha256Url(),
-                )
-            )
-            "download" -> {
-                if (downloadJob?.isActive == true) {
-                    result.error("ALREADY_DOWNLOADING", "Download already in progress", null)
-                    return
-                }
-                downloadJob = scope.launch { runDownload() }
-                result.success(null)
-            }
-            "cancelDownload" -> {
-                downloadJob?.cancel()
-                downloadJob = null
-                result.success(null)
+            "getLogs" -> result.success(readLogLines())
+            "dataDir" -> {
+                luteDataDir.mkdirs()
+                result.success(luteDataDir.absolutePath)
             }
             "start" -> {
-                scope.launch {
+                if (isStarting.getAndSet(true)) {
+                    result.error("ALREADY_STARTING", "Server is already starting", null)
+                    return
+                }
+                Thread({
                     try {
-                        val port = ensureProcess().start()
-                        emit("started", mapOf("port" to port))
-                        withContext(Dispatchers.Main) { result.success(port) }
+                        val p = doStart()
+                        port = p
+                        emit("started", mapOf("port" to p))
+                        mainHandler.post { result.success(p) }
                     } catch (e: Exception) {
                         Log.e(TAG, "start failed", e)
                         emit("error", mapOf("message" to (e.message ?: e.toString())))
-                        withContext(Dispatchers.Main) {
-                            result.error("START_FAILED", e.message, null)
-                        }
+                        mainHandler.post { result.error("START_FAILED", e.message, null) }
+                    } finally {
+                        isStarting.set(false)
                     }
-                }
+                }, "lute-server-start").start()
             }
             "stop" -> {
                 try {
-                    process?.stop()
+                    stop()
                     emit("stopped", mapOf("exitCode" to 0))
                     result.success(null)
                 } catch (e: Exception) {
                     result.error("STOP_FAILED", e.message, null)
                 }
             }
-            "remove" -> {
-                scope.launch {
-                    val ok = withContext(Dispatchers.IO) { removeInstalled() }
-                    withContext(Dispatchers.Main) { result.success(ok) }
-                }
-            }
-            "checkForUpdate" -> {
-                scope.launch {
-                    val res = withContext(Dispatchers.IO) { checkForUpdate() }
-                    withContext(Dispatchers.Main) { result.success(res) }
-                }
-            }
             else -> result.notImplemented()
         }
     }
 
-    // --- Process ---
+    // --- Start / stop ---
 
-    private fun ensureProcess(): EmbeddedServerProcess {
-        val existing = process
-        if (existing != null) return existing
-        val support = appSupportDir
-            ?: throw IllegalStateException("App support dir not initialized")
-        val installDir = File(support, "lute-server/$PINNED_LUTE_VERSION")
-        val dataDir = File(support, "lute")
-        val p = EmbeddedServerProcess(installDir, dataDir) { line ->
-            emit("log", mapOf("line" to line))
+    private fun doStart(): Int {
+        // Pre-create the data dir and config if missing.
+        if (!luteDataDir.exists() && !luteDataDir.mkdirs()) {
+            throw IllegalStateException("Could not create ${luteDataDir.absolutePath}")
         }
-        process = p
-        return p
+        ensureConfig()
+
+        // Pick a free port.
+        val pickedPort = pickFreePort()
+
+        // Hand off to the Python launcher.
+        val py = Python.getInstance()
+        val launcher = py.getModule(LAUNCHER_MODULE)
+        val handle = launcher.callAttr(
+            "start",
+            pickedPort,
+            luteDataDir.absolutePath,
+            luteConfigFile.absolutePath,
+        )
+        serverProcess = handle
+        startLogPoller()
+
+        // Poll /info on 127.0.0.1:<pickedPort> until 200.
+        val deadline = System.currentTimeMillis() + STARTUP_TIMEOUT_MS
+        while (System.currentTimeMillis() < deadline) {
+            if (!isServerAlive()) {
+                throw IllegalStateException("lute-server exited before becoming ready")
+            }
+            if (isReady(pickedPort)) {
+                Log.d(TAG, "lute-server ready on port $pickedPort")
+                return pickedPort
+            }
+            Thread.sleep(POLL_INTERVAL_MS)
+        }
+        // Timed out. Tear down.
+        stop()
+        throw IllegalStateException(
+            "lute-server did not respond to /info within ${STARTUP_TIMEOUT_MS}ms"
+        )
     }
 
-    // --- Download ---
-
-    private fun tarballUrl() =
-        "https://github.com/schlick7/LuteForMobile/releases/download/" +
-            "lute-server-v$PINNED_LUTE_VERSION/" +
-            "lute-server-android-arm64-v$PINNED_LUTE_VERSION.tar.gz"
-
-    private fun sha256Url() = "${tarballUrl()}.sha256"
-
-    private suspend fun runDownload() {
-        val support = appSupportDir
-            ?: run {
-                emit("download_error", mapOf("message" to "App support dir unavailable"))
-                return
-            }
-        val cacheDir = File(support, "lute-server/.cache").apply { mkdirs() }
-        val tarball = File(cacheDir, "lute-server.tar.gz")
-        val shaFile = File(cacheDir, "lute-server.tar.gz.sha256")
-
+    private fun stop() {
+        val proc = serverProcess ?: return
+        serverProcess = null
+        port = null
         try {
-            // 1. Fetch the SHA256 first (small file, fails fast).
-            val shaUrl = sha256Url()
-            Log.d(TAG, "Fetching sha256 from $shaUrl")
-            val expectedSha = fetchToFile(URL(shaUrl), shaFile).trim().lowercase()
-            val expectedHash = expectedSha.split(" ").first()
-            Log.d(TAG, "Expected sha256: $expectedHash")
-
-            // 2. Download the tarball with progress.
-            val tarUrl = tarballUrl()
-            Log.d(TAG, "Downloading $tarUrl")
-            val conn = URL(tarUrl).openConnection() as HttpURLConnection
-            conn.connectTimeout = 15000
-            conn.readTimeout = 60000
-            conn.requestMethod = "GET"
-            conn.connect()
-            val total = conn.contentLengthLong.takeIf { it > 0 } ?: -1L
-            var done = 0L
-            conn.inputStream.use { input ->
-                FileOutputStream(tarball).use { output ->
-                    val buf = ByteArray(64 * 1024)
-                    while (true) {
-                        val n = input.read(buf)
-                        if (n <= 0) break
-                        output.write(buf, 0, n)
-                        done += n
-                        if (total > 0) {
-                            emit("download_progress", mapOf(
-                                "bytesDone" to done,
-                                "bytesTotal" to total,
-                            ))
-                        }
-                    }
-                }
-            }
-
-            // 3. Verify.
-            val actualHash = sha256Of(tarball)
-            if (actualHash.lowercase() != expectedHash) {
-                tarball.delete()
-                shaFile.delete()
-                emit("download_error", mapOf(
-                    "message" to "SHA256 mismatch: expected $expectedHash, got $actualHash"
-                ))
-                return
-            }
-
-            // 4. Remove old install (if any), then extract.
-            val versionDir = File(support, "lute-server/$PINNED_LUTE_VERSION")
-            if (versionDir.exists()) versionDir.deleteRecursively()
-            versionDir.mkdirs()
-            extractTarGz(tarball, versionDir)
-            // Ensure the binary is executable after extraction.
-            val binary = File(versionDir, "lute-server")
-            if (binary.exists()) binary.setExecutable(true)
-
-            // 5. Clean up.
-            tarball.delete()
-            shaFile.delete()
-
-            emit("download_complete", mapOf("installDir" to versionDir.absolutePath))
-        } catch (e: kotlinx.coroutines.CancellationException) {
-            Log.d(TAG, "Download cancelled")
-            tarball.delete()
-            shaFile.delete()
-            emit("download_error", mapOf("message" to "Cancelled"))
-            throw e
+            proc.callAttr("stop")
         } catch (e: Exception) {
-            Log.e(TAG, "Download failed", e)
-            tarball.delete()
-            shaFile.delete()
-            emit("download_error", mapOf("message" to (e.message ?: e.toString())))
-        } finally {
-            downloadJob = null
+            Log.w(TAG, "Python stop() raised: ${e.message}")
         }
     }
 
-    private fun fetchToFile(url: URL, dest: File): String {
-        val text = StringBuilder()
-        url.openStream().use { input ->
-            BufferedInputStream(input).use { bis ->
-                FileOutputStream(dest).use { out ->
-                    val buf = ByteArray(8 * 1024)
-                    while (true) {
-                        val n = bis.read(buf)
-                        if (n <= 0) break
-                        out.write(buf, 0, n)
-                        text.append(String(buf, 0, n))
-                    }
-                }
-            }
-        }
-        return text.toString()
-    }
-
-    private fun sha256Of(file: File): String {
-        val md = MessageDigest.getInstance("SHA-256")
-        FileInputStream(file).use { input ->
-            val buf = ByteArray(64 * 1024)
-            while (true) {
-                val n = input.read(buf)
-                if (n <= 0) break
-                md.update(buf, 0, n)
-            }
-        }
-        return md.digest().joinToString("") { "%02x".format(it) }
-    }
-
-    private fun extractTarGz(tarGz: File, destDir: File) {
-        FileInputStream(tarGz).use { fis ->
-            GzipCompressorInputStream(fis).use { gzis ->
-                TarArchiveInputStream(gzis).use { tais ->
-                    var entry = tais.nextEntry
-                    while (entry != null) {
-                        val outFile = File(destDir, entry.name)
-                        if (entry.isDirectory) {
-                            outFile.mkdirs()
-                        } else {
-                            outFile.parentFile?.mkdirs()
-                            FileOutputStream(outFile).use { fos ->
-                                tais.copyTo(fos)
-                            }
-                            // Preserve executable bit if set in the tar.
-                        }
-                        entry = tais.nextEntry
-                    }
-                }
-            }
-        }
-    }
-
-    private fun removeInstalled(): Boolean {
-        val support = appSupportDir ?: return false
-        val versionDir = File(support, "lute-server/$PINNED_LUTE_VERSION")
-        return if (versionDir.exists()) {
-            process?.stop()
-            process = null
-            versionDir.deleteRecursively()
-        } else true
-    }
-
-    // --- Update check ---
-
-    private fun checkForUpdate(): Map<String, Any?> {
-        // Returns { latestTag: String?, updateAvailable: bool, error: String? }
+    private fun isReady(port: Int): Boolean {
         return try {
-            val conn = URL(GITHUB_RELEASES_API).openConnection() as HttpURLConnection
-            conn.connectTimeout = 5000
-            conn.readTimeout = 10000
+            val conn = URL("http://127.0.0.1:$port/info").openConnection()
+                    as HttpURLConnection
+            conn.connectTimeout = 1000
+            conn.readTimeout = 1000
             conn.requestMethod = "GET"
-            conn.setRequestProperty("Accept", "application/vnd.github+json")
-            conn.connect()
-            if (conn.responseCode !in 200..299) {
-                return mapOf(
-                    "latestTag" to null,
-                    "updateAvailable" to false,
-                    "error" to "GitHub returned ${conn.responseCode}",
-                )
-            }
-            val text = conn.inputStream.bufferedReader().use { it.readText() }
-            // Naive scan: find any tag matching lute-server-v<ver> pattern.
-            val regex = Regex("\"tag_name\"\\s*:\\s*\"(lute-server-v[^\"]+)\"")
-            val matches = regex.findAll(text).map { it.groupValues[1] }.toList()
-            val latest = matches.firstOrNull()
-            mapOf(
-                "latestTag" to latest,
-                "updateAvailable" to (latest != null && latest != "lute-server-v$PINNED_LUTE_VERSION"),
-                "error" to null,
-            )
+            val code = conn.responseCode
+            conn.disconnect()
+            code in 200..299
         } catch (e: Exception) {
-            mapOf(
-                "latestTag" to null,
-                "updateAvailable" to false,
-                "error" to (e.message ?: e.toString()),
-            )
+            false
         }
+    }
+
+    /** Pick a free localhost port via ServerSocket(0). */
+    private fun pickFreePort(): Int {
+        java.net.ServerSocket(0).use { return it.localPort }
+    }
+
+    /**
+     * Write a config.yml for lute, pointing DATAPATH at the data dir.
+     * This is auto-generated on first run; users don't edit it.
+     */
+    private fun ensureConfig() {
+        if (luteConfigFile.exists()) return
+
+        val template = """
+            ENV: prod
+            IS_DOCKER: false
+            DBNAME: lute.db
+            DATAPATH: ${luteDataDir.absolutePath}
+            BACKUP_PATH: ${luteDataDir.absolutePath}/backups
+            """.trimIndent() + "\n"
+
+        luteConfigFile.writeText(template)
+        Log.d(TAG, "Wrote config to ${luteConfigFile.absolutePath}")
     }
 
     // --- Event sink ---
@@ -401,10 +303,6 @@ class EmbeddedServerBridge(
         val payload = HashMap<String, Any?>(data.size + 1)
         payload["type"] = type
         payload.putAll(data)
-        // EventSink.success() must be called on the platform (main)
-        // thread. Background coroutines on Dispatchers.IO will throw
-        // IllegalStateException if they try to deliver directly, which
-        // surfaces as a crash to the user.
         mainHandler.post { sink.success(payload) }
     }
 }
