@@ -233,6 +233,20 @@ class EmbeddedServerBridge(
             throw IllegalStateException("Could not create ${luteDataDir.absolutePath}")
         }
         ensureConfig()
+        // Ensure the user backup directory exists with mode 0o755.
+        // The Python side creates it in _setup_app_dirs, but if
+        // it was created out-of-band (e.g. via run-as sqlite3 to
+        // fix a bad backup_dir after a restore) the perms may be
+        // restrictive and shutil.copytree will fail with EACCES.
+        // chmod here as a defensive fix.
+        val backupDir = File(luteDataDir, "backups")
+        if (backupDir.exists()) {
+            backupDir.setReadable(true, false)
+            backupDir.setWritable(true, false)
+            backupDir.setExecutable(true, false)
+        } else if (!backupDir.mkdirs()) {
+            Log.w(TAG, "could not create backup dir ${backupDir.absolutePath}")
+        }
 
         // Pick a free port.
         val pickedPort = pickFreePort()

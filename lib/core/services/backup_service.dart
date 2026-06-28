@@ -512,6 +512,17 @@ class BackupService {
         '${settings['backup_dir']}',
       );
 
+      // The form has a SelectField for current_theme that only
+      // accepts theme filenames bundled with the running lute.
+      // A restored DB may carry a theme name from a different
+      // lute (e.g. Termux) that's not in this build, and
+      // validation would fail. Fetch the live choice list and
+      // substitute a valid default if the stored value isn't
+      // present.
+      final validThemes = await _fetchThemeChoices(serverUrl, timeout: timeout);
+      final currentTheme = settings['current_theme']?.toString() ?? '';
+      final safeTheme = validThemes.contains(currentTheme) ? currentTheme : '-';
+
       final formBody = <MapEntry<String, String>>[];
 
       for (final field in _checkboxFields) {
@@ -523,7 +534,8 @@ class BackupService {
 
       for (final field in _textFieldFields) {
         final value = settings[field];
-        final strValue = value?.toString() ?? '';
+        String strValue = value?.toString() ?? '';
+        if (field == 'current_theme') strValue = safeTheme;
         formBody.add(MapEntry(field, strValue));
       }
 
@@ -538,8 +550,8 @@ class BackupService {
 
       // ignore: avoid_print
       print(
-        'updateBackupDirSafe: formBody keys = '
-        '${formBody.map((e) => e.key).toList()}',
+        'updateBackupDirSafe: formBody values = '
+        '${formBody.map((e) => '${e.key}=${e.value}').toList()}',
       );
 
       final response = await http
@@ -550,13 +562,6 @@ class BackupService {
           )
           .timeout(timeout);
 
-      // The lute route returns 200 on both save success and
-      // validation failure. On success it redirects (302) to
-      // "/", so the follow-up GET (auto-followed by http) returns
-      // the home page. On failure, it re-renders the form (with
-      // the <input name="backup_dir" ...> field present). So the
-      // presence of `name="backup_dir"` in the response body
-      // means the save did NOT go through.
       final body = response.body;
       final saved = !body.contains('name="backup_dir"');
       // ignore: avoid_print
@@ -575,6 +580,35 @@ class BackupService {
       );
     } catch (e) {
       throw Exception('Failed to update backup_dir safely: $e');
+    }
+  }
+
+  /// Scrape the current theme <option> values from the rendered
+  /// settings form. The form is rendered server-side with all
+  /// available themes, so we can read them straight from the
+  /// <select> element. Returns an empty set if scraping fails;
+  /// the caller will then fall back to the default theme.
+  static Future<Set<String>> _fetchThemeChoices(
+    String serverUrl, {
+    Duration timeout = defaultTimeout,
+  }) async {
+    try {
+      final response = await http
+          .get(Uri.parse('$serverUrl/settings/index'))
+          .timeout(timeout);
+      if (response.statusCode != 200) return <String>{};
+      final html = response.body;
+      final choices = <String>{};
+      final optionRegex = RegExp(
+        r'<option[^>]*value="([^"]+)"[^>]*>',
+        dotAll: true,
+      );
+      for (final m in optionRegex.allMatches(html)) {
+        choices.add(m.group(1)!);
+      }
+      return choices;
+    } catch (_) {
+      return <String>{};
     }
   }
 }
