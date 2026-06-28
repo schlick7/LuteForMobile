@@ -12,6 +12,24 @@ void _logAIPrompt({
   developer.log(prompt, name: '$service.${type.name}.prompt');
 }
 
+/// Strips chain-of-thought / reasoning blocks that some models (DeepSeek,
+/// Qwen3, llama.cpp with enable_thinking, etc.) inline into chat responses.
+/// Handles <think>...</think> and the slash variants <think>/.../think>,
+/// including across newlines. Also drops the few leading sentences that
+/// models often leak when they forget to close the tag.
+final RegExp _thinkTagPattern = RegExp(
+  r'<think>[\s\S]*?</think>|<think>[\s\S]*?/think>',
+  caseSensitive: false,
+);
+
+String _stripThinkTags(String text) {
+  var stripped = _thinkTagPattern.allMatches(text).isEmpty
+      ? text
+      : text.replaceAll(_thinkTagPattern, '');
+  stripped = stripped.trim();
+  return stripped.isEmpty ? text.trim() : stripped;
+}
+
 abstract class AIService {
   Future<String> translateTerm(
     String term,
@@ -96,7 +114,8 @@ class OpenAIService implements AIService {
       ),
     );
 
-    return response.text ?? 'No response available';
+    final raw = response.text ?? 'No response available';
+    return _stripThinkTags(raw);
   }
 
   @override
@@ -500,7 +519,7 @@ class LocalOpenAIService implements AIService {
     final message = first['message'];
     if (message is! Map) return null;
     final content = message['content'];
-    if (content is String) return content;
+    if (content is String) return _stripThinkTags(content);
     return null;
   }
 
@@ -651,10 +670,13 @@ class GeminiService implements AIService {
     final buffer = StringBuffer();
     for (final part in parts) {
       if (part is Map && part['text'] is String) {
-        buffer.write(part['text']);
+        final isThought = part['thought'] == true;
+        if (isThought) continue;
+        buffer.write(part['text'] as String);
       }
     }
-    final result = buffer.toString();
+    final raw = buffer.toString();
+    final result = raw.isEmpty ? fallback : _stripThinkTags(raw);
     return result.isEmpty ? fallback : result;
   }
 
