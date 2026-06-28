@@ -67,7 +67,7 @@ class WordsReadChart extends StatelessWidget {
                   ),
                   minX: 0,
                   maxX: maxDate.difference(minDate).inDays.toDouble(),
-                  minY: 0,
+                  minY: _calculateMinY(lineBarsData),
                   maxY: _calculateMaxY(lineBarsData),
                   lineTouchData: LineTouchData(
                     touchTooltipData: LineTouchTooltipData(
@@ -198,12 +198,30 @@ class WordsReadChart extends StatelessWidget {
     return maxY > 0 ? maxY * 1.1 : 100;
   }
 
+  double _calculateMinY(List<LineChartBarData> lines) {
+    double minY = double.infinity;
+    for (final line in lines) {
+      for (final spot in line.spots) {
+        if (spot.y < minY) minY = spot.y;
+      }
+    }
+    if (minY == double.infinity) return 0;
+    final maxY = _calculateMaxY(lines);
+    final range = maxY - minY;
+    if (range <= 0) return 0;
+    final padding = range * 0.1;
+    final padded = minY - padding;
+    return padded < 0 ? 0 : padded;
+  }
+
   double _calculateInterval(List<LineChartBarData> lines) {
     final maxY = _calculateMaxY(lines);
-    if (maxY <= 1000) return 200;
-    if (maxY <= 10000) return 2000;
-    if (maxY <= 50000) return 10000;
-    if (maxY <= 100000) return 20000;
+    final minY = _calculateMinY(lines);
+    final range = maxY - minY;
+    if (range <= 1000) return 200;
+    if (range <= 10000) return 2000;
+    if (range <= 50000) return 10000;
+    if (range <= 100000) return 20000;
     return 50000;
   }
 

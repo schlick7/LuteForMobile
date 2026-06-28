@@ -812,7 +812,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     }
 
     final settings = ref.watch(settingsProvider);
-    if (!settings.isUrlValid) {
+    if (!settings.isUrlValid &&
+        settings.localServerMode != LocalServerMode.onDevice) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
