@@ -6,8 +6,6 @@
 
 ---
 
-add archive button to book complete dialog
-
 ---
 
 Fix axis scalling in the stats screen
