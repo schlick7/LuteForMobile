@@ -180,9 +180,17 @@ class Service:
         "Copy the images to backup."
         target_dir = os.path.join(outdir, "userimages_backup")
         target_dir = os.path.abspath(target_dir)
-        if not os.path.exists(target_dir):
-            os.mkdir(target_dir)
-        shutil.copytree(userimagespath, target_dir, dirs_exist_ok=True)
+        if os.path.exists(target_dir):
+            shutil.rmtree(target_dir)
+        os.mkdir(target_dir)
+        # Chaquopy's Python process can't create files inside
+        # the backup subdir (SELinux denies the create operation
+        # even though the dir is owned by the app and chmod'd
+        # to 755). Call back into the Kotlin bridge which
+        # runs in the main app process and has full fs
+        # access.
+        from lute.bridge import mirror_images_from_kotlin
+        return mirror_images_from_kotlin(userimagespath, target_dir)
 
     def list_backups(self, outdir) -> List[DatabaseBackupFile]:
         "List all backup files."

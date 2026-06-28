@@ -76,6 +76,12 @@ def _setup_app_dirs(app_config):
     """
     App needs the data dir, backups, and other directories.
     """
+    # Chaquopy's Python defaults to umask 0o077, so any dir it
+    # creates here ends up mode 0o700. That breaks the backup
+    # flow (shutil.copytree fails with EACCES writing into a
+    # 700 dir even though the process owns it). Force 0o755 on
+    # the backup dir so the Python process can write into it
+    # without first having to chmod it elsewhere.
     dp = app_config.datapath
     required_dirs = [
         [dp, "Lute data folder."],

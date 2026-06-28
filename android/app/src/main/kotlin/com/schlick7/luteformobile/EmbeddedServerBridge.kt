@@ -233,20 +233,6 @@ class EmbeddedServerBridge(
             throw IllegalStateException("Could not create ${luteDataDir.absolutePath}")
         }
         ensureConfig()
-        // Ensure the user backup directory exists with mode 0o755.
-        // The Python side creates it in _setup_app_dirs, but if
-        // it was created out-of-band (e.g. via run-as sqlite3 to
-        // fix a bad backup_dir after a restore) the perms may be
-        // restrictive and shutil.copytree will fail with EACCES.
-        // chmod here as a defensive fix.
-        val backupDir = File(luteDataDir, "backups")
-        if (backupDir.exists()) {
-            backupDir.setReadable(true, false)
-            backupDir.setWritable(true, false)
-            backupDir.setExecutable(true, false)
-        } else if (!backupDir.mkdirs()) {
-            Log.w(TAG, "could not create backup dir ${backupDir.absolutePath}")
-        }
 
         // Pick a free port.
         val pickedPort = pickFreePort()
@@ -398,6 +384,49 @@ class EmbeddedServerBridge(
 
         luteConfigFile.writeText(template)
         Log.d(TAG, "Wrote config to ${luteConfigFile.absolutePath}")
+    }
+
+    /**
+     * Mirror the user images into the backup dir. We do this from
+     * Kotlin (not from the Chaquopy Python process) because
+     * shutil.copytree inside Chaquopy's Python fails with
+     * EACCES on the backup subdir — the Chaquopy process runs
+     * in a SELinux context that can't create files inside
+     * `<dataDir>/backups/userimages_backup/`, even though the
+     * directory is owned by the app and chmod'd to 755. Doing
+     * the copy from the main app process (this Kotlin code)
+     * avoids the SELinux denial entirely.
+     *
+     * Called from the Python backup service via a MethodChannel
+     * call (lute.backup.service imports
+     * EmbeddedServerBridge.mirror_images).
+     */
+    fun mirrorImages(srcDir: File, dstDir: File): Boolean {
+        return try {
+            dstDir.mkdirs()
+            copyDirRecursive(srcDir, dstDir)
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "mirrorImages failed: ${e.message}", e)
+            false
+        }
+    }
+
+    private fun copyDirRecursive(src: File, dst: File) {
+        if (!src.isDirectory) return
+        if (!dst.exists()) dst.mkdirs()
+        src.listFiles()?.forEach { child ->
+            val target = File(dst, child.name)
+            if (child.isDirectory) {
+                copyDirRecursive(child, target)
+            } else {
+                child.inputStream().use { input ->
+                    target.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+        }
     }
 
     // --- Event sink ---
