@@ -3,6 +3,7 @@ import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
+import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
 import 'package:lute_for_mobile/shared/providers/network_providers.dart';
 import 'package:lute_for_mobile/shared/theme/theme_extensions.dart';
 import 'package:lute_for_mobile/shared/widgets/status_distribution_bar.dart';
@@ -104,6 +105,7 @@ class _BookCompletionCelebrationDialogState
                 const SizedBox(height: 24),
                 _buildPickAnotherButton(context),
                 const SizedBox(height: 12),
+                _buildArchiveButton(context),
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
                   child: const Text('Stay Here'),
@@ -303,6 +305,25 @@ class _BookCompletionCelebrationDialogState
         icon: const Icon(Icons.library_books),
         label: const Text('Pick Another Book'),
         style: ElevatedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildArchiveButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          await ref
+              .read(booksProvider.notifier)
+              .archiveBook(widget.book.id);
+          if (context.mounted) Navigator.of(context).pop();
+        },
+        icon: const Icon(Icons.archive),
+        label: const Text('Archive Book'),
+        style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 12),
         ),
       ),
