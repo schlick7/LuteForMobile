@@ -2,7 +2,7 @@
 - 
 
 # New Feature
-- 
+- Built in lute server wrapper. No more need for Termux for running an on device server 
 
 # Other Changes
 - reasoning effort toggle
