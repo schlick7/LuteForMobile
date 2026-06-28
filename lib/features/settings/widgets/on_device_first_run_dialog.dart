@@ -89,9 +89,11 @@ class _OnDeviceFirstRunDialogState
       setState(() {
         _statusMessage = 'Restarting embedded server…';
       });
+      String url;
       try {
-        await EmbeddedServerService.instance.start();
+        url = await EmbeddedServerService.instance.start();
       } catch (e) {
+        if (!mounted) return;
         setState(() {
           _isError = true;
           _statusMessage =
@@ -99,6 +101,14 @@ class _OnDeviceFirstRunDialogState
               'Try Stop / Start in Settings.';
         });
         return;
+      }
+      // The restored DB carries a `backup_dir` setting from the
+      // previous machine; overwrite it with the on-device path so
+      // backups work here. Best-effort.
+      // ignore: avoid_print
+      print('on_device_first_run_dialog: start url=$url');
+      if (url.isNotEmpty) {
+        await EmbeddedServerService.instance.fixRestoredBackupDir(url);
       }
 
       await ref

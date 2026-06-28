@@ -368,6 +368,8 @@ class _BackupRestoreCardState extends ConsumerState<BackupRestoreCard> {
       }
       // Restart so the user is back to a working server.
       final url = await EmbeddedServerService.instance.start();
+      // ignore: avoid_print
+      print('backup_restore_card: start url=$url');
       // The restored DB carries a `backup_dir` setting from the
       // previous machine; overwrite it with the on-device path so
       // backups work here. Best-effort.

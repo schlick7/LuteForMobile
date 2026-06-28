@@ -155,6 +155,8 @@ class _OnDeviceServerSectionState
       // Retry button makes, so it'll either succeed (and we're done)
       // or fail again (and the error body will show the new error).
       final url = await EmbeddedServerService.instance.start();
+      // ignore: avoid_print
+      print('on_device_server_section: start url=$url');
       // The restored DB carries a `backup_dir` setting from the
       // previous machine; the path it points to doesn't exist on
       // this device, so the first auto-backup or manual backup
@@ -183,7 +185,7 @@ class _OnDeviceServerSectionState
     if (!_isAndroid) return const SizedBox.shrink();
     final snap = _snapshot;
     final pinnedVersion = snap?.pinnedVersion ?? Settings.luteServerPinnedVersion;
-    final state = snap?.state ?? EmbeddedServerState.running;
+    final state = snap?.state ?? EmbeddedServerState.stopped;
 
     return Card(
       elevation: 2,
@@ -269,6 +271,26 @@ class _OnDeviceServerSectionState
               onPressed: _stop,
               icon: const Icon(Icons.stop),
               label: const Text('Stop'),
+            ),
+          ],
+        );
+
+      case EmbeddedServerState.stopped:
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.circle, size: 12, color: Colors.grey),
+                SizedBox(width: 6),
+                Text('Not running'),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: _start,
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Start'),
             ),
           ],
         );

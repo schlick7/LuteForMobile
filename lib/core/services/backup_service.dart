@@ -338,14 +338,27 @@ class BackupService {
     Duration timeout = defaultTimeout,
   }) async {
     try {
+      // ignore: avoid_print
+      print('getAllSettings: GET $serverUrl/settings/index');
       final response = await http
           .get(Uri.parse('$serverUrl/settings/index'))
           .timeout(timeout);
+      // ignore: avoid_print
+      print(
+        'getAllSettings: GET returned status=${response.statusCode}, '
+        'body length=${response.body.length}',
+      );
 
       if (response.statusCode == 200) {
         final html = response.body;
         final jsonStr = _extractLuteUserSettingsJson(html);
-        return Map<String, dynamic>.from(json.decode(jsonStr));
+        final settings = Map<String, dynamic>.from(json.decode(jsonStr));
+        // ignore: avoid_print
+        print(
+          'getAllSettings: parsed ${settings.length} keys, '
+          'backup_dir=${settings['backup_dir']}',
+        );
+        return settings;
       } else {
         throw Exception('Failed to load settings: ${response.statusCode}');
       }
@@ -487,8 +500,17 @@ class BackupService {
     String newBackupDir, {
     Duration timeout = defaultTimeout,
   }) async {
+    // ignore: avoid_print
+    print(
+      'updateBackupDirSafe: enter serverUrl=$serverUrl newDir=$newBackupDir',
+    );
     try {
       final settings = await getAllSettings(serverUrl, timeout: timeout);
+      // ignore: avoid_print
+      print(
+        'updateBackupDirSafe: getAllSettings returned, current backup_dir = '
+        '${settings['backup_dir']}',
+      );
 
       final formBody = <MapEntry<String, String>>[];
 
@@ -514,18 +536,38 @@ class BackupService {
 
       formBody.add(const MapEntry('submit', 'Save'));
 
+      // ignore: avoid_print
+      print(
+        'updateBackupDirSafe: formBody keys = '
+        '${formBody.map((e) => e.key).toList()}',
+      );
+
       final response = await http
           .post(
             Uri.parse('$serverUrl/settings/index'),
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: formBody,
+            body: Map<String, String>.fromEntries(formBody),
           )
           .timeout(timeout);
 
-      if (response.statusCode == 200) {
-        return;
-      } else {
-        throw Exception('Failed to update backup_dir: ${response.statusCode}');
+      // The lute route returns 200 on both save success and
+      // validation failure. On success it redirects (302) to
+      // "/", so the follow-up GET (auto-followed by http) returns
+      // the home page. On failure, it re-renders the form (with
+      // the <input name="backup_dir" ...> field present). So the
+      // presence of `name="backup_dir"` in the response body
+      // means the save did NOT go through.
+      final body = response.body;
+      final saved = !body.contains('name="backup_dir"');
+      // ignore: avoid_print
+      print(
+        'updateBackupDirSafe: POST status=${response.statusCode}, '
+        'body_len=${body.length}, saved=$saved',
+      );
+      if (!saved) {
+        throw Exception(
+          'Form validation failed; backup_dir was NOT saved.',
+        );
       }
     } on TimeoutException {
       throw Exception(

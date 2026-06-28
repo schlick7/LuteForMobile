@@ -1,10 +1,9 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
+import 'package:lute_for_mobile/core/services/backup_service.dart';
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
 
 /// State of the on-device lute-v3 server.
@@ -14,6 +13,11 @@ enum EmbeddedServerState {
 
   /// Process is alive and responding.
   running,
+
+  /// Not running. The user can tap Start to spawn it. This is the
+  /// initial state on app launch (the server is bundled in the APK
+  /// and ready to start) and the state after Stop completes.
+  stopped,
 
   /// Last operation failed; see [EmbeddedServerSnapshot.lastError].
   error,
@@ -45,8 +49,10 @@ class EmbeddedServerSnapshot {
 
   factory EmbeddedServerSnapshot.fromMap(Map<dynamic, dynamic> map) {
     final stateStr = map['state'] as String? ?? 'notInstalled';
+    // Kotlin reports "ready" when the server is bundled but not
+    // currently running; treat that the same as "stopped" here.
     final state = EmbeddedServerState.values.firstWhere(
-      (s) => s.name == stateStr,
+      (s) => s.name == stateStr || (stateStr == 'ready' && s.name == 'stopped'),
       orElse: () => EmbeddedServerState.error,
     );
     final port = map['port'] as int?;
@@ -125,8 +131,16 @@ class EmbeddedServerService {
         _snapshotController.add(_snapshot);
         break;
       case 'stopped':
-        _setState(EmbeddedServerState.running);
-        // 'running' as the "not running, ready to start" state.
+        // Process has exited; clear the URL and transition to
+        // the "ready to start" state.
+        _lastError = null;
+        _snapshot = EmbeddedServerSnapshot(
+          state: EmbeddedServerState.stopped,
+          installedVersion: _snapshot.installedVersion,
+          pinnedVersion: _snapshot.pinnedVersion,
+          url: null,
+        );
+        _snapshotController.add(_snapshot);
         break;
       case 'log':
         final line = raw['line'] as String? ?? '';
@@ -233,154 +247,40 @@ class EmbeddedServerService {
   }
 
   /// Reset the on-device server's `backup_dir` user setting to the
-  /// path the Kotlin side uses (`<dataDir>/backups`). A restored
-  /// lute.db may carry a `backup_dir` from a different machine
-  /// (e.g. a Termux path, or a Windows desktop path) which the new
-  /// server can't write to. The lute settings form has
-  /// `InputRequired`/`NumberRange` validators on several fields, so
-  /// a partial POST (just `backup_dir`) will fail. The safe pattern
-  /// (mirrored from the Termux restore path) is to GET the current
-  /// settings, change only `backup_dir`, and POST the entire form
-  /// back unchanged. Best-effort: returns true on success, false
-  /// if anything fails. The user can always fix the setting
-  /// manually via Settings.
+  /// on-device path. A restored lute.db may carry a `backup_dir`
+  /// from a different machine (e.g. a Termux path) which the new
+  /// server can't write to. Uses the same Termux flow
+  /// (BackupService.updateBackupDirSafe) — only the new path
+  /// differs. Best-effort.
   Future<bool> fixRestoredBackupDir(String serverUrl) async {
-    if (serverUrl.isEmpty) return false;
-    try {
-      final dataDir = await luteDataDir();
-      if (dataDir.isEmpty) return false;
-      final newBackupDir = '$dataDir/backups';
-
-      // GET the current settings, scrape the LUTE_USER_SETTINGS
-      // JSON blob out of the page (same parsing as
-      // BackupService.getAllSettings / updateBackupDirSafe).
-      final getResp = await http
-          .get(Uri.parse('$serverUrl/settings/index'))
-          .timeout(const Duration(seconds: 5));
-      if (getResp.statusCode != 200) return false;
-
-      final settings = _parseLuteUserSettings(getResp.body);
-      if (settings == null) return false;
-
-      // Build the form body with every field, overriding
-      // backup_dir only. Mirror BackupService.updateBackupDirSafe.
-      const checkboxFields = <String>[
-        'backup_enabled',
-        'backup_auto',
-        'backup_warn',
-        'show_highlights',
-        'open_popup_in_new_tab',
-        'stop_audio_on_term_form_open',
-        'term_popup_promote_parent_translation',
-        'term_popup_show_components',
-        'use_ankiconnect',
-      ];
-      const textFields = <String>[
-        'backup_dir',
-        'backup_count',
-        'current_theme',
-        'custom_styles',
-        'mecab_path',
-        'japanese_reading',
-        'stats_calc_sample_size',
-        'ankiconnect_url',
-      ];
-
-      bool isCheckboxTrue(dynamic v) {
-        if (v is bool) return v;
-        if (v is String) return v == '1' || v.toLowerCase() == 'true';
-        if (v is int) return v != 0;
-        return false;
-      }
-
-      final formBody = <MapEntry<String, String>>[];
-      for (final f in checkboxFields) {
-        if (isCheckboxTrue(settings[f])) {
-          formBody.add(MapEntry(f, 'y'));
-        }
-      }
-      for (final f in textFields) {
-        final v = settings[f]?.toString() ?? '';
-        formBody.add(MapEntry(f, v));
-      }
-      final idx = formBody.indexWhere((e) => e.key == 'backup_dir');
-      if (idx >= 0) {
-        formBody[idx] = MapEntry('backup_dir', newBackupDir);
-      } else {
-        formBody.add(MapEntry('backup_dir', newBackupDir));
-      }
-      formBody.add(const MapEntry('submit', 'Save'));
-
-      final postResp = await http
-          .post(
-            Uri.parse('$serverUrl/settings/index'),
-            headers: const {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: formBody,
-          )
-          .timeout(const Duration(seconds: 5));
-      return postResp.statusCode == 200;
-    } catch (_) {
+    // ignore: avoid_print
+    print('fixRestoredBackupDir: enter serverUrl=$serverUrl');
+    if (serverUrl.isEmpty) {
+      // ignore: avoid_print
+      print('fixRestoredBackupDir: empty serverUrl, bailing');
       return false;
     }
-  }
-
-  /// Pull the `LUTE_USER_SETTINGS = {...}` object out of the
-  /// settings page HTML. Mirrors BackupService.getAllSettings so we
-  /// don't have to depend on BackupService here. Returns null if
-  /// the marker isn't found or the JSON is malformed.
-  static Map<String, dynamic>? _parseLuteUserSettings(String html) {
-    const marker = 'LUTE_USER_SETTINGS';
-    final markerIndex = html.indexOf(marker);
-    if (markerIndex == -1) return null;
-    final equalsIndex = html.indexOf('=', markerIndex);
-    if (equalsIndex == -1) return null;
-    final objectStart = html.indexOf('{', equalsIndex);
-    if (objectStart == -1) return null;
-
-    int depth = 0;
-    bool inString = false;
-    String? stringDelimiter;
-    bool escaping = false;
-
-    for (int i = objectStart; i < html.length; i++) {
-      final ch = html[i];
-      if (inString) {
-        if (escaping) {
-          escaping = false;
-          continue;
-        }
-        if (ch == r'\') {
-          escaping = true;
-          continue;
-        }
-        if (ch == stringDelimiter) {
-          inString = false;
-          stringDelimiter = null;
-        }
-        continue;
+    try {
+      final dataDir = await luteDataDir();
+      // ignore: avoid_print
+      print('fixRestoredBackupDir: dataDir=$dataDir');
+      if (dataDir.isEmpty) {
+        // ignore: avoid_print
+        print('fixRestoredBackupDir: empty dataDir, bailing');
+        return false;
       }
-      if (ch == '"' || ch == "'") {
-        inString = true;
-        stringDelimiter = ch;
-        continue;
-      }
-      if (ch == '{') {
-        depth++;
-      } else if (ch == '}') {
-        depth--;
-        if (depth == 0) {
-          try {
-            final jsonStr = html.substring(objectStart, i + 1);
-            return Map<String, dynamic>.from(json.decode(jsonStr));
-          } catch (_) {
-            return null;
-          }
-        }
-      }
+      final newDir = '$dataDir/backups';
+      // ignore: avoid_print
+      print('fixRestoredBackupDir: calling updateBackupDirSafe newDir=$newDir');
+      await BackupService.updateBackupDirSafe(serverUrl, newDir);
+      // ignore: avoid_print
+      print('fixRestoredBackupDir: updateBackupDirSafe returned OK');
+      return true;
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('fixRestoredBackupDir: FAILED: $e\n$st');
+      return false;
     }
-    return null;
   }
 
   /// Restore the embedded lute.db from a gzipped sqlite dump.
