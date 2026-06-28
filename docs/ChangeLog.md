@@ -8,3 +8,4 @@
 - reasoning effort toggle
 - gruvbox dark/light themes
 - add archive button to book completion dialog
+- changed stats axis to be dynamic
