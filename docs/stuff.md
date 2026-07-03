@@ -8,12 +8,7 @@
 
 ---
 
-Fix axis scalling in the stats screen
 
----
-
-The install termux button brings you to the github
-Tapping termux in the status bring you to play store
 
 
 # Future:
