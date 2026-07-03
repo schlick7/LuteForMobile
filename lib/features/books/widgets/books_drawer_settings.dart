@@ -406,12 +406,12 @@ class _SampleSizeTextFieldState extends ConsumerState<_SampleSizeTextField> {
       onChanged: (value) {
         final intValue = int.tryParse(value);
         if (intValue != null && intValue >= 1 && intValue <= 500) {
+          // updateStatsCalcSampleSize mirrors the value into the lute
+          // DB (which is the source of truth) and into Dart, so no
+          // extra setUserSetting call is needed here.
           ref
               .read(settingsProvider.notifier)
               .updateStatsCalcSampleSize(intValue);
-          ref
-              .read(contentServiceProvider)
-              .setUserSetting(widget.settingKey, intValue.toString());
         }
       },
     );

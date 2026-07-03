@@ -13,6 +13,7 @@ import '../../../core/services/embedded_server_service.dart';
 import '../../../core/services/termux_service.dart';
 import '../../../core/services/server_health_service.dart';
 import '../../../shared/providers/server_status_provider.dart';
+import '../../../shared/providers/network_providers.dart';
 
 typedef DrawerSettingsBuilder =
     Widget Function(BuildContext context, WidgetRef ref);
@@ -166,10 +167,11 @@ class SettingsNotifier extends Notifier<Settings> {
         prefs.getBool(_keyAlwaysRefreshBookDetails) ?? true;
     final maxConcurrentTooltipFetches =
         prefs.getInt(_keyMaxConcurrentTooltipFetches) ?? 4;
-    final autoRefreshFullStats =
-        prefs.getBool(_keyAutoRefreshFullStats) ?? false;
+    final autoRefreshFullStats = prefs.getBool(_keyAutoRefreshFullStats) ??
+        (state.localServerMode == LocalServerMode.onDevice);
     final experimentalBookDetailsFullStatsEndpoint =
-        prefs.getBool(_keyExperimentalBookDetailsFullStatsEndpoint) ?? false;
+        prefs.getBool(_keyExperimentalBookDetailsFullStatsEndpoint) ??
+            (state.localServerMode == LocalServerMode.onDevice);
     final onDeviceFirstRunCompleted =
         prefs.getBool(_keyOnDeviceFirstRunCompleted) ?? false;
 
@@ -551,6 +553,21 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(statsCalcSampleSize: value);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyStatsCalcSampleSize, value);
+    // Mirror to the lute DB, which is the source of truth. We keep
+    // the Dart write unconditional — Dart is just a cache and is
+    // allowed to be briefly ahead of the lute DB if the network
+    // call fails. The lute web UI's Settings page is the
+    // authoritative surface.
+    try {
+      final contentService = ref.read(contentServiceProvider);
+      await contentService.setUserSetting(
+        'stats_calc_sample_size',
+        value.toString(),
+      );
+    } catch (_) {
+      // Swallow: the Dart value still updated; the lute DB write
+      // will be retried the next time the value is changed.
+    }
   }
 
   Future<void> updateStats500SampleSize(int value) async {

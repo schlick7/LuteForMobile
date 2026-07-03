@@ -7,6 +7,7 @@ import '../models/book.dart';
 import '../models/book_create.dart';
 import '../repositories/books_repository.dart';
 import '../../../shared/providers/network_providers.dart';
+import '../../settings/models/settings.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../../shared/providers/app_startup_providers.dart';
 import '../../../core/cache/providers/books_cache_provider.dart';
@@ -295,10 +296,21 @@ class BooksNotifier extends Notifier<BooksState> {
           timeout: const Duration(seconds: 15),
         );
 
-        await _repository.contentService.setUserSetting(
-          'stats_calc_sample_size',
-          settings.stats500SampleSize.toString(),
-        );
+        // On-device server (the schlick7/lute-v3 `fullstats` fork) supports
+        // the `full_book=true` + `force_recalc=true` query params on
+        // /book/table_stats/<id>, which is much faster than the legacy
+        // `stats_calc_sample_size=500` workaround. Use the new endpoint
+        // there and skip the user-setting dance entirely. Remote / Termux
+        // users keep the old workaround, which is the only way to get
+        // "full-ish" stats out of a stock lute-v3 server.
+        final isOnDevice =
+            settings.localServerMode == LocalServerMode.onDevice;
+        if (!isOnDevice) {
+          await _repository.contentService.setUserSetting(
+            'stats_calc_sample_size',
+            settings.stats500SampleSize.toString(),
+          );
+        }
 
         final updatedActiveBooks = List<Book>.from(state.activeBooks);
 
@@ -309,6 +321,8 @@ class BooksNotifier extends Notifier<BooksState> {
                 book.id,
                 updatedBooksList: updatedActiveBooks,
                 timeout: statsTimeout,
+                forceRecalc: isOnDevice,
+                fullBook: isOnDevice,
               ),
             )
             .toList();
@@ -332,12 +346,17 @@ class BooksNotifier extends Notifier<BooksState> {
         }
         rethrow;
       } finally {
+        // Only restore the user setting if we changed it. The on-device
+        // path doesn't touch `stats_calc_sample_size` at all, so there's
+        // nothing to restore for it.
         try {
           final settings = ref.read(settingsProvider);
-          await _repository.contentService.setUserSetting(
-            'stats_calc_sample_size',
-            settings.statsCalcSampleSize.toString(),
-          );
+          if (settings.localServerMode != LocalServerMode.onDevice) {
+            await _repository.contentService.setUserSetting(
+              'stats_calc_sample_size',
+              settings.statsCalcSampleSize.toString(),
+            );
+          }
         } catch (e) {
           ApiLogger.logError('restoreSampleSize', e);
         }
@@ -353,8 +372,13 @@ class BooksNotifier extends Notifier<BooksState> {
     int bookId, {
     List<Book>? updatedBooksList,
     Duration? timeout,
+    bool forceRecalc = false,
+    bool fullBook = false,
   }) async {
-    ApiLogger.logRequest('_refreshBookSimple', details: 'bookId=$bookId');
+    ApiLogger.logRequest(
+      '_refreshBookSimple',
+      details: 'bookId=$bookId, forceRecalc=$forceRecalc, fullBook=$fullBook',
+    );
 
     final booksList = updatedBooksList ?? state.activeBooks;
     final existingBook = booksList.firstWhere(
@@ -365,6 +389,8 @@ class BooksNotifier extends Notifier<BooksState> {
     final statsBook = await _repository.contentService.getBookStats(
       bookId,
       timeout: timeout,
+      forceRecalc: forceRecalc,
+      fullBook: fullBook,
     );
     ApiLogger.logRequest(
       '_refreshBookSimple',
@@ -398,12 +424,24 @@ class BooksNotifier extends Notifier<BooksState> {
     _refreshRequestedAfterNavigate = false;
 
     final settings = ref.read(settingsProvider);
+    // The on-device (fullstats fork) server has a `full_book=true`
+    // endpoint, so the 500-sample dance is unnecessary there. The
+    // re-entry caller in _refreshBookSimple's finally already routes
+    // on-device calls to _refreshBookSimple(fullBook: true) instead.
+    // This guard is defensive — it lets the method still execute its
+    // body (so the in-place state update and cache save below happen)
+    // while skipping the lute-DB write/restore that would clobber the
+    // user's stats_calc_sample_size.
+    final useLegacyDance =
+        settings.localServerMode != LocalServerMode.onDevice;
 
     try {
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        settings.stats500SampleSize.toString(),
-      );
+      if (useLegacyDance) {
+        await _repository.contentService.setUserSetting(
+          'stats_calc_sample_size',
+          settings.stats500SampleSize.toString(),
+        );
+      }
 
       final booksList = updatedBooksList ?? state.activeBooks;
       final existingBook = booksList.firstWhere(
@@ -477,11 +515,16 @@ class BooksNotifier extends Notifier<BooksState> {
     } finally {
       _isRefreshingBook = false;
       try {
-        final settings = ref.read(settingsProvider);
-        await _repository.contentService.setUserSetting(
-          'stats_calc_sample_size',
-          settings.statsCalcSampleSize.toString(),
-        );
+        // Only restore if we changed it. The on-device path
+        // (useLegacyDance == false) doesn't touch
+        // stats_calc_sample_size, so there's nothing to restore.
+        if (useLegacyDance) {
+          final settings = ref.read(settingsProvider);
+          await _repository.contentService.setUserSetting(
+            'stats_calc_sample_size',
+            settings.statsCalcSampleSize.toString(),
+          );
+        }
       } catch (e) {
         ApiLogger.logError('restoreSampleSize', e);
       }
@@ -489,7 +532,23 @@ class BooksNotifier extends Notifier<BooksState> {
         _refreshRequestedAfterNavigate = false;
         final currentBookId = state.currentBookId;
         if (currentBookId != null) {
-          await _refreshBookWith500SampleSize(currentBookId);
+          // Re-entry path: a reader nav requested a refresh while we
+          // were busy. On the on-device (fullstats fork) server, use the
+          // new endpoint instead of the legacy 500-sample workaround.
+          // On remote / Termux, keep the workaround — it's the only
+          // way to get "full-ish" stats out of a stock lute-v3 server.
+          final settings = ref.read(settingsProvider);
+          final isOnDevice =
+              settings.localServerMode == LocalServerMode.onDevice;
+          if (isOnDevice) {
+            await _refreshBookSimple(
+              currentBookId,
+              forceRecalc: true,
+              fullBook: true,
+            );
+          } else {
+            await _refreshBookWith500SampleSize(currentBookId);
+          }
         }
       }
     }
@@ -502,10 +561,18 @@ class BooksNotifier extends Notifier<BooksState> {
 
     try {
       final settings = ref.read(settingsProvider);
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        settings.statsCalcSampleSize.toString(),
-      );
+      // The lute DB's stats_calc_sample_size is the source of truth.
+      // On the on-device (fullstats fork) server we don't need to
+      // prime it before listing — the BookStats cache is already
+      // populated via the new full_book=true endpoint — and writing
+      // here would clobber whatever the user has set in the lute
+      // web UI's Settings page.
+      if (settings.localServerMode != LocalServerMode.onDevice) {
+        await _repository.contentService.setUserSetting(
+          'stats_calc_sample_size',
+          settings.statsCalcSampleSize.toString(),
+        );
+      }
 
       _activePage = 0;
       final networkBooks = await _repository.getActiveBooks(
@@ -596,10 +663,14 @@ class BooksNotifier extends Notifier<BooksState> {
 
     try {
       final settings = ref.read(settingsProvider);
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        settings.statsCalcSampleSize.toString(),
-      );
+      // See _loadBooksFromNetwork: skip on on-device to avoid
+      // clobbering the user-set value in the lute DB.
+      if (settings.localServerMode != LocalServerMode.onDevice) {
+        await _repository.contentService.setUserSetting(
+          'stats_calc_sample_size',
+          settings.statsCalcSampleSize.toString(),
+        );
+      }
 
       _archivedPage = 0;
       final archived = await _repository.getArchivedBooks(
@@ -701,10 +772,14 @@ class BooksNotifier extends Notifier<BooksState> {
 
     try {
       final settings = ref.read(settingsProvider);
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        settings.statsCalcSampleSize.toString(),
-      );
+      // See _loadBooksFromNetwork: skip on on-device to avoid
+      // clobbering the user-set value in the lute DB.
+      if (settings.localServerMode != LocalServerMode.onDevice) {
+        await _repository.contentService.setUserSetting(
+          'stats_calc_sample_size',
+          settings.statsCalcSampleSize.toString(),
+        );
+      }
 
       final networkBooks = await _repository.getActiveBooks();
       final archived = state.archivedBooks;
@@ -738,10 +813,14 @@ class BooksNotifier extends Notifier<BooksState> {
 
     try {
       final settings = ref.read(settingsProvider);
-      await _repository.contentService.setUserSetting(
-        'stats_calc_sample_size',
-        settings.statsCalcSampleSize.toString(),
-      );
+      // See _loadBooksFromNetwork: skip on on-device to avoid
+      // clobbering the user-set value in the lute DB.
+      if (settings.localServerMode != LocalServerMode.onDevice) {
+        await _repository.contentService.setUserSetting(
+          'stats_calc_sample_size',
+          settings.statsCalcSampleSize.toString(),
+        );
+      }
 
       final networkBooks = await _repository.getArchivedBooks();
       final active = state.activeBooks;

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:dio/dio.dart';
 import '../../../core/logger/widget_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../shared/widgets/app_bar_leading.dart';
+import '../../../shared/providers/network_providers.dart';
 import '../providers/settings_provider.dart';
 import '../../books/providers/books_provider.dart';
 import '../../../shared/theme/theme_extensions.dart';
@@ -127,6 +129,36 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _localUrlController.text = savedUrl;
       }
     });
+    // The lute DB is the source of truth for stats_calc_sample_size.
+    // Re-read it on screen open so the slider reflects anything the
+    // user changed in the lute web UI's Settings page since we last
+    // saw it. Fire-and-forget; if the read fails (server unreachable,
+    // etc.) the Dart value stays as-is and the next change from the
+    // slider will reconcile both sides.
+    unawaited(_syncStatsCalcSampleSizeFromLute());
+  }
+
+  Future<void> _syncStatsCalcSampleSizeFromLute() async {
+    try {
+      final contentService = ref.read(contentServiceProvider);
+      final live = await contentService.getUserSetting(
+        'stats_calc_sample_size',
+      );
+      if (live == null || !mounted) return;
+      final liveValue = int.tryParse(live);
+      if (liveValue == null) return;
+      final dartValue = ref.read(settingsProvider).statsCalcSampleSize;
+      if (liveValue != dartValue) {
+        // updateStatsCalcSampleSize also writes the value to the lute
+        // DB; that's a no-op here since we just read the same value,
+        // but it keeps the mirror logic in one place.
+        await ref
+            .read(settingsProvider.notifier)
+            .updateStatsCalcSampleSize(liveValue);
+      }
+    } catch (_) {
+      // Swallow: best-effort sync.
+    }
   }
 
   @override
@@ -1019,7 +1051,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             'Experimental Book Details Full Stats Endpoint',
                           ),
                           subtitle: const Text(
-                            'Dev server only. Experimental proof of concept for the new backend stats refresh endpoint. Leave this off on normal servers.',
+                            'On by default when using the on-device server '
+                            '(which supports the new endpoint). Turn off if you '
+                            'point the on-device app at a stock lute-v3 server, '
+                            'or if the book-details stats screen misbehaves.',
                           ),
                           value:
                               settings.experimentalBookDetailsFullStatsEndpoint,

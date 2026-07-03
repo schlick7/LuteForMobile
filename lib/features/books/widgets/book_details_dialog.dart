@@ -4,6 +4,7 @@ import '../../../core/network/content_service.dart';
 import '../../../shared/theme/theme_extensions.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
 import '../../../shared/providers/network_providers.dart';
+import '../../settings/models/settings.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../models/book.dart';
 import '../providers/books_provider.dart';
@@ -92,6 +93,22 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
     int refreshSampleSize,
     int defaultSampleSize,
   ) async {
+    final settings = ref.read(settingsProvider);
+    // On the on-device (fullstats fork) server, the user-edited
+    // stats_calc_sample_size in the lute DB is the source of truth
+    // and must not be clobbered by this dance. The fork also gives
+    // us full_book=true on /book/table_stats, so the sample-size
+    // workaround is unnecessary there. Bypass entirely and use the
+    // new endpoint.
+    if (settings.localServerMode == LocalServerMode.onDevice) {
+      return contentService.getBookStats(
+        bookId,
+        timeout: const Duration(seconds: 15),
+        forceRecalc: true,
+        fullBook: true,
+      );
+    }
+
     await contentService.setUserSetting(
       'stats_calc_sample_size',
       refreshSampleSize.toString(),
