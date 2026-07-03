@@ -217,6 +217,9 @@ This project is licensed under the MIT License.
   - Thanks to opencode for free access to Big Pickle, GLM-4.7, and MiniMax M2.1
   - Thanks to Qwen Code for 2000 free requests
 - Uses [Lute v3](https://github.com/LuteOrg/lute-v3) backend
+  (on-device server bundled in the APK is built from the
+  [schlick7/lute-v3](https://github.com/schlick7/lute-v3/tree/fullstats)
+  `fullstats` branch)
 - Icons from [CupertinoIcons](https://pub.dev/packages/cupertino_icons)
 - Fonts from various open source projects (see font directories for licenses)
 

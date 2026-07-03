@@ -4,10 +4,12 @@
 # for one release cycle, then will be removed.
 #
 # New entry point: scripts/release_app.sh
-# Lute-server releases: scripts/release_lute_server.sh
+# Lute-server source updates: see docs/on-device-server.md
+# (server is bundled in the APK, no separate release script)
 #
-# The old --with-server flag is silently ignored. If you need to release
-# a lute-server artifact, run scripts/release_lute_server.sh separately.
+# The old --with-server flag is silently ignored. The lute-v3 server
+# is bundled in the APK and ships with the app release; there is no
+# separate server-tarball release step.
 
 set -euo pipefail
 
@@ -19,10 +21,10 @@ echo " The --with-server flag is no longer supported here."
 echo ""
 echo " New flow:"
 echo "   - App release:    scripts/release_app.sh [VERSION] [BUILD]"
-echo "   - Server release: scripts/release_lute_server.sh [LUTE_VERSION]"
+echo "   - Server source:  re-apply the fork overlay per docs/on-device-server.md"
 echo ""
-echo " The lute server has its own release cadence and is published"
-echo " independently of the app. See docs/on-device-server.md for details."
+echo " The lute server is bundled in the APK; there is no separate"
+echo " server release. See docs/on-device-server.md for details."
 echo "================================================================"
 echo ""
 

@@ -1,4 +1,15 @@
-# Lute on-device server: implementation plan (final)
+# Lute on-device server: implementation plan (historical)
+
+> **Status: superseded.** This document captures the original implementation
+> plan for the on-device lute-v3 server. The plan described a
+> download-tarball-from-releases design; the implementation that actually
+> shipped (see commit `aef5fda` "add server to main apk instead of download")
+> bundles the Python source directly into the APK instead. For the
+> current state, see [`docs/on-device-server.md`](on-device-server.md).
+>
+> This file is kept for historical reference only. The script names
+> (`build_lute_server.sh`, `release_lute_server.sh`, `publish_lute_server.sh`)
+> mentioned throughout **no longer exist**.
 
 ## Goal
 

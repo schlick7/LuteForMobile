@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
 # Build and stage the LuteForMobile app release artifacts (APK + PWA zip).
 #
-# The lute-v3 server artifact is NOT built here. It has its own release
-# cadence and is published separately via scripts/release_lute_server.sh.
+# The lute-v3 server source is bundled directly into the APK at
+# android/app/src/main/python/lute/ — see docs/on-device-server.md.
+# There is no separate server-tarball release step; bumping the
+# bundled lute-v3 means re-applying the fork overlay and bumping
+# Settings.luteServerPinnedVersion + lute/__init__.py before running
+# this script.
 #
 # Usage:
 #   scripts/release_app.sh                  # interactive: prompts for version
@@ -139,7 +143,8 @@ echo "- ${ROOT_DIR}/${APK_OUT}"
 echo "- ${ROOT_DIR}/${PWA_OUT}"
 echo "Version: ${NEW_VERSION} (Build ${NEW_BUILD_NUMBER})"
 echo
-echo "Note: the on-device lute-v3 server artifact is released separately."
-echo "      Run scripts/release_lute_server.sh <lute_version> to publish one."
+echo "Note: the on-device lute-v3 server is bundled in the APK. To update it,"
+echo "      follow docs/on-device-server.md (fork overlay + version bump)"
+echo "      before running this script."
 echo
 echo "Remember to commit the pubspec.yaml version bump."

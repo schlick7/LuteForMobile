@@ -36,14 +36,26 @@ scripts/release_app.sh 1.2.3
 - sudo zip -r ../../LuteForMobilePWA.zip * -x "*.last_build_id"
 - rename to LuteForMobilePWA-vX.X.X.zip
 
-# On-device lute-server release (optional, separate cadence)
+# On-device lute-v3 server source update
 
-Only needed when you want to publish a new lute-v3 server artifact,
-e.g. when upstream LuteOrg/lute-v3 releases a new version.
+The lute-v3 server is **bundled in the APK** (under
+`android/app/src/main/python/lute/`), not released as a separate
+artifact. There is no `scripts/release_lute_server.sh` step.
 
-    scripts/release_lute_server.sh 3.11.0
+To bump the bundled server:
 
-This will:
-1. Build lute-server-android-arm64-v3.11.0.tar.gz
-2. Update Settings.luteServerPinnedVersion in lib/features/settings/models/settings.dart
-3. Publish a lute-server-v3.11.0 GitHub release with the tarball + sha256
+1. Follow the overlay procedure in `docs/on-device-server.md`:
+   - Clone `https://github.com/schlick7/lute-v3` at branch `fullstats`.
+   - `rsync` its `lute/` tree over `android/app/src/main/python/lute/`,
+     excluding `bridge.py` and `db/language_defs/` (both are
+     Android-specific and not in the fork).
+   - Restore the three Android-specific patches listed in
+     `docs/on-device-server.md` (bridge.py, app_factory.py,
+     backup/service.py).
+2. Bump `__version__` in
+   `android/app/src/main/python/lute/__init__.py` to match the
+   pinned version label.
+3. Bump `luteServerPinnedVersion` in
+   `lib/features/settings/models/settings.dart` to the same label.
+4. Then run `scripts/release_app.sh <app-version>` to ship the APK +
+   PWA with the new server.
