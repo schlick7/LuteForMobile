@@ -729,7 +729,7 @@ class _SupertonicFastApiTTSSettingsState
         _availableVoices = voices;
         _isLoadingVoices = false;
         _voiceError = voices.isEmpty
-            ? 'No voices returned from /voices.'
+            ? 'No voices returned from /v1/styles.'
             : null;
       });
     } catch (e) {
@@ -886,7 +886,7 @@ class _SupertonicFastApiTTSSettingsState
         ),
         const SizedBox(height: 8),
         Text(
-          'Uses GET /voices and POST $_supertonicPath with voice=$selectedVoice, lang=$selectedLanguage, total_steps=$qualitySteps.',
+          'Uses GET /v1/styles and POST /v1/tts with voice=$selectedVoice, lang=$selectedLanguage, total_steps=$qualitySteps.',
           style: TextStyle(
             color: context.appColorScheme.text.secondary,
             fontSize: 12,
@@ -898,7 +898,6 @@ class _SupertonicFastApiTTSSettingsState
     );
   }
 
-  static const String _supertonicPath = '/synthesize';
 }
 
 class _TestSpeechButton extends ConsumerStatefulWidget {

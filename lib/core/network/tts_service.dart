@@ -618,7 +618,7 @@ class SupertonicFastApiTTSService implements TTSService {
       });
   }
 
-  String get _synthesizeUrl => '$endpointUrl/synthesize';
+  String get _synthesizeUrl => '$endpointUrl/v1/tts';
 
   @override
   Future<void> speak(String text) async {
@@ -652,12 +652,12 @@ class SupertonicFastApiTTSService implements TTSService {
   @override
   Future<List<TTSVoice>> getAvailableVoices() async {
     try {
-      final response = await _dio.get('$endpointUrl/voices');
+      final response = await _dio.get('$endpointUrl/v1/styles');
       final data = response.data;
 
-      if (data is Map && data['voices'] is List) {
-        return (data['voices'] as List)
-            .map((v) => TTSVoice(name: v.toString(), locale: languageCode))
+      if (data is Map && data['styles'] is List) {
+        return (data['styles'] as List)
+            .map((v) => TTSVoice(name: v['name'].toString(), locale: languageCode))
             .toList();
       }
 
