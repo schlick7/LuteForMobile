@@ -5,7 +5,6 @@ import '../providers/books_provider.dart';
 import '../../settings/providers/settings_provider.dart';
 import '../../../shared/providers/network_providers.dart';
 import '../../../shared/providers/language_data_provider.dart';
-import '../../../shared/theme/theme_extensions.dart';
 
 final _userSettingsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final contentService = ref.read(contentServiceProvider);
@@ -49,158 +48,121 @@ class BooksDrawerSettings extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ExpansionTile(
-            title: const Text(
-              'Book Settings',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            initiallyExpanded: false,
-            children: [
-              const SizedBox(height: 8),
-              Text(
-                'Display Options',
-                style: Theme.of(
+          _buildSectionCard(
+            context,
+            title: 'Display',
+            icon: Icons.visibility,
+            child: Column(
+              children: [
+                _buildToggleRow(
                   context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  const Text(
-                    'Show Tags',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  Transform.scale(
-                    scale: 0.8,
-                    child: Switch(
-                      value: settings.showTags,
-                      onChanged: (value) async {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .updateShowTags(value);
-                        await ref.read(booksProvider.notifier).loadBooks();
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  const Text(
-                    'Show Last Read',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  const Spacer(),
-                  Transform.scale(
-                    scale: 0.8,
-                    child: Switch(
-                      value: settings.showLastRead,
-                      onChanged: (value) async {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .updateShowLastRead(value);
-                        await ref.read(booksProvider.notifier).loadBooks();
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Filter by Language',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: context.appColorScheme.border.outline,
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
-                child: DropdownButton<String>(
-                  value: settings.languageFilter,
-                  isExpanded: true,
-                  underline: const SizedBox.shrink(),
-                  items: [
-                    const DropdownMenuItem<String>(
-                      value: null,
-                      child: Text('All Languages'),
-                    ),
-                    ...languagesState.when(
-                      data: (languages) => languages.map(
-                        (lang) => DropdownMenuItem<String>(
-                          value: lang,
-                          child: Text(lang),
-                        ),
-                      ),
-                      loading: () => [],
-                      error: (error, _) => [],
-                    ),
-                  ],
+                  label: 'Show Tags',
+                  value: settings.showTags,
                   onChanged: (value) async {
-                    ref
-                        .read(settingsProvider.notifier)
-                        .updateLanguageFilter(value);
+                    ref.read(settingsProvider.notifier).updateShowTags(value);
                     await ref.read(booksProvider.notifier).loadBooks();
                   },
                 ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Stats Refresh Settings',
-                style: Theme.of(
+                const SizedBox(height: 8),
+                _buildToggleRow(
                   context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              Consumer(
-                builder: (context, ref, child) {
-                  final asyncValue = ref.watch(_userSettingsProvider);
-                  return asyncValue.when(
-                    data: (settings) {
-                      final sampleSize =
-                          int.tryParse(
-                            settings['stats_calc_sample_size']?.toString() ??
-                                '',
-                          ) ??
-                          5;
-                      return _SampleSizeTextField(
-                        initialValue: sampleSize.toString(),
-                        settingKey: 'stats_calc_sample_size',
-                      );
-                    },
-                    loading: () => const SizedBox(
-                      height: 48,
-                      child: Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                  label: 'Show Last Read',
+                  value: settings.showLastRead,
+                  onChanged: (value) async {
+                    ref.read(settingsProvider.notifier).updateShowLastRead(value);
+                    await ref.read(booksProvider.notifier).loadBooks();
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildSectionCard(
+            context,
+            title: 'Filters',
+            icon: Icons.filter_list,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Filter by Language',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildDropdownContainer(
+                  context,
+                  child: DropdownButton<String>(
+                    value: settings.languageFilter,
+                    isExpanded: true,
+                    underline: const SizedBox.shrink(),
+                    icon: Icon(
+                      Icons.keyboard_arrow_down,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: null,
+                        child: Text('All Languages'),
                       ),
-                    ),
-                    error: (_, __) => _SampleSizeTextField(
-                      initialValue: '15',
+                      ...languagesState.when(
+                        data: (languages) => languages.map(
+                          (lang) => DropdownMenuItem<String>(
+                            value: lang,
+                            child: Text(lang),
+                          ),
+                        ),
+                        loading: () => [],
+                        error: (error, _) => [],
+                      ),
+                    ],
+                    onChanged: (value) async {
+                      ref
+                          .read(settingsProvider.notifier)
+                          .updateLanguageFilter(value);
+                      await ref.read(booksProvider.notifier).loadBooks();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildSectionCard(
+            context,
+            title: 'Stats',
+            icon: Icons.bar_chart,
+            child: Consumer(
+              builder: (context, ref, child) {
+                final asyncValue = ref.watch(_userSettingsProvider);
+                return asyncValue.when(
+                  data: (settings) {
+                    final sampleSize =
+                        int.tryParse(
+                          settings['stats_calc_sample_size']?.toString() ?? '',
+                        ) ??
+                        5;
+                    return _SampleSizeTextField(
+                      initialValue: sampleSize.toString(),
                       settingKey: 'stats_calc_sample_size',
+                    );
+                  },
+                  loading: () => const SizedBox(
+                    height: 48,
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
-                  );
-                },
-              ),
-              const SizedBox(height: 8),
-            ],
+                  ),
+                  error: (_, __) => _SampleSizeTextField(
+                    initialValue: '15',
+                    settingKey: 'stats_calc_sample_size',
+                  ),
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 24),
-          Text(
-            'Actions',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
@@ -226,6 +188,101 @@ class BooksDrawerSettings extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSectionCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: Icon(icon, size: 20),
+          title: Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          initiallyExpanded: true,
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [child],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleRow(
+    BuildContext context, {
+    required String label,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        Transform.scale(
+          scale: 0.8,
+          child: Switch(
+            value: value,
+            onChanged: onChanged,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDropdownContainer(BuildContext context, {required Widget child}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: child,
     );
   }
 }
