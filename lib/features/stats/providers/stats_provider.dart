@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:lute_for_mobile/features/stats/models/stats_cache_entry.dart';
 import 'package:lute_for_mobile/features/stats/models/language_stats.dart';
 import 'package:lute_for_mobile/shared/providers/network_providers.dart';
 import 'package:lute_for_mobile/shared/providers/language_data_provider.dart';
 import '../../../features/settings/providers/settings_provider.dart';
 import 'stats_repository_provider.dart';
+
+const _kStatsPeriodKey = 'stats_selected_period';
 
 enum StatsPeriod { week, month, quarter, year, all }
 
@@ -26,7 +29,16 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
       }
     });
 
-    return const StatsState();
+    final prefs = await SharedPreferences.getInstance();
+    final savedPeriod = prefs.getString(_kStatsPeriodKey);
+    final period = savedPeriod != null
+        ? StatsPeriod.values.firstWhere(
+            (e) => e.name == savedPeriod,
+            orElse: () => StatsPeriod.all,
+          )
+        : StatsPeriod.all;
+
+    return StatsState(selectedPeriod: period);
   }
 
   Future<void> _onServerChanged() async {
@@ -76,12 +88,13 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
           }
         }
 
+        final currentPeriod = state.value?.selectedPeriod ?? StatsPeriod.all;
         final result = StatsState(
           isLoading: false,
           cacheEntry: cacheEntry,
           languages: languages,
           selectedLanguage: selectedLanguage,
-          selectedPeriod: StatsPeriod.all,
+          selectedPeriod: currentPeriod,
           selectedFilter: StatsFilter.all,
         );
 
@@ -101,10 +114,12 @@ class StatsNotifier extends AsyncNotifier<StatsState> {
     await loadStats();
   }
 
-  void setPeriod(StatsPeriod period) {
+  Future<void> setPeriod(StatsPeriod period) async {
     final current = state.value;
     if (current != null) {
       state = AsyncData(current.copyWith(selectedPeriod: period));
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kStatsPeriodKey, period.name);
     }
   }
 
