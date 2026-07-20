@@ -130,6 +130,8 @@ class ReaderDrawerSettings extends ConsumerWidget {
                 ],
                 const SizedBox(height: 8),
                 _buildTooltipImagesToggle(context, ref, termFormSettings),
+                const SizedBox(height: 8),
+                _buildTooltipRomanizationToggle(context, ref, termFormSettings),
                 if (currentRoute != 'sentence-reader') ...[
                   const SizedBox(height: 8),
                   _buildPageNumbersToggle(context, ref, settings),
@@ -643,6 +645,23 @@ class ReaderDrawerSettings extends ConsumerWidget {
         ref
             .read(termFormSettingsProvider.notifier)
             .updateShowTooltipImages(value);
+      },
+    );
+  }
+
+  Widget _buildTooltipRomanizationToggle(
+    BuildContext context,
+    WidgetRef ref,
+    TermFormSettings termFormSettings,
+  ) {
+    return _buildToggleRow(
+      context,
+      label: 'Show Tooltip Romanization',
+      value: termFormSettings.showRomanizationInTooltip,
+      onChanged: (value) {
+        ref
+            .read(termFormSettingsProvider.notifier)
+            .updateShowRomanizationInTooltip(value);
       },
     );
   }

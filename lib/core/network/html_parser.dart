@@ -134,10 +134,28 @@ class HtmlParser {
     final termElement = document.querySelector('b');
     final term = termElement?.text.trim() ?? '';
 
+    // Filter out flash-notice and romanization paragraphs before
+    // extracting the translation.  The Lute server produces:
+    //   <p><b>term</b></p>                          (always)
+    //   <p class="small-flash-notice">...</p>       (optional flash)
+    //   <p><i>romanization</i></p>                   (optional romanization)
+    //   <p>translation</p>                           (the real translation)
     final paragraphs = document.querySelectorAll('p');
+    final contentParagraphs = <html.Element>[];
+    String? romanization;
+    for (final p in paragraphs) {
+      if (p.classes.contains('small-flash-notice')) continue;
+      // Romanization is wrapped in <i> inside a <p> with no other text.
+      if (p.children.length == 1 && p.children.first.localName == 'i') {
+        romanization = p.text.trim();
+        continue;
+      }
+      contentParagraphs.add(p);
+    }
+
     String? translation;
-    if (paragraphs.length > 1) {
-      final paragraph = paragraphs[1];
+    if (contentParagraphs.length > 1) {
+      final paragraph = contentParagraphs[1];
       ApiLogger.logLoading(
         'parsePageTranslation',
         details: 'innerHtml="${paragraph.innerHtml}"',
@@ -376,6 +394,7 @@ class HtmlParser {
     return TermTooltip(
       term: term,
       translation: translation,
+      romanization: romanization,
       termId: termId,
       status: status,
       sentences: sentences,

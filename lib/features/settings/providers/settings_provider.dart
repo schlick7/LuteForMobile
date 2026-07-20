@@ -672,6 +672,7 @@ class TermFormSettings {
   final bool showTags;
   final bool showImages;
   final bool showTooltipImages;
+  final bool showRomanizationInTooltip;
   final bool autoSave;
   final bool showParentsInDictionary;
   final bool wordGlowEnabled;
@@ -683,6 +684,7 @@ class TermFormSettings {
     this.showTags = false,
     this.showImages = true,
     this.showTooltipImages = true,
+    this.showRomanizationInTooltip = true,
     this.autoSave = true,
     this.showParentsInDictionary = true,
     this.wordGlowEnabled = true,
@@ -695,6 +697,7 @@ class TermFormSettings {
     bool? showTags,
     bool? showImages,
     bool? showTooltipImages,
+    bool? showRomanizationInTooltip,
     bool? autoSave,
     bool? showParentsInDictionary,
     bool? wordGlowEnabled,
@@ -706,6 +709,8 @@ class TermFormSettings {
       showTags: showTags ?? this.showTags,
       showImages: showImages ?? this.showImages,
       showTooltipImages: showTooltipImages ?? this.showTooltipImages,
+      showRomanizationInTooltip:
+          showRomanizationInTooltip ?? this.showRomanizationInTooltip,
       autoSave: autoSave ?? this.autoSave,
       showParentsInDictionary:
           showParentsInDictionary ?? this.showParentsInDictionary,
@@ -726,6 +731,7 @@ class TermFormSettings {
         other.showTags == showTags &&
         other.showImages == showImages &&
         other.showTooltipImages == showTooltipImages &&
+        other.showRomanizationInTooltip == showRomanizationInTooltip &&
         other.autoSave == autoSave &&
         other.showParentsInDictionary == showParentsInDictionary &&
         other.wordGlowEnabled == wordGlowEnabled &&
@@ -740,6 +746,7 @@ class TermFormSettings {
       showTags.hashCode ^
       showImages.hashCode ^
       showTooltipImages.hashCode ^
+      showRomanizationInTooltip.hashCode ^
       autoSave.hashCode ^
       showParentsInDictionary.hashCode ^
       wordGlowEnabled.hashCode ^
@@ -754,6 +761,8 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
   static const String _keyShowTags = 'show_tags';
   static const String _keyShowImages = 'show_images';
   static const String _keyShowTooltipImages = 'show_tooltip_images';
+  static const String _keyShowRomanizationInTooltip =
+      'show_romanization_in_tooltip';
   static const String _keyAutoSave = 'auto_save';
   static const String _keyShowParentsInDictionary =
       'show_parents_in_dictionary';
@@ -778,6 +787,8 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
     final showTags = prefs.getBool(_keyShowTags) ?? false;
     final showImages = prefs.getBool(_keyShowImages) ?? true;
     final showTooltipImages = prefs.getBool(_keyShowTooltipImages) ?? true;
+    final showRomanizationInTooltip =
+        prefs.getBool(_keyShowRomanizationInTooltip) ?? true;
     final autoSave = prefs.getBool(_keyAutoSave) ?? true;
     final showParentsInDictionary =
         prefs.getBool(_keyShowParentsInDictionary) ?? true;
@@ -792,6 +803,7 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
       showTags: showTags,
       showImages: showImages,
       showTooltipImages: showTooltipImages,
+      showRomanizationInTooltip: showRomanizationInTooltip,
       autoSave: autoSave,
       showParentsInDictionary: showParentsInDictionary,
       wordGlowEnabled: wordGlowEnabled,
@@ -829,6 +841,13 @@ class TermFormSettingsNotifier extends Notifier<TermFormSettings> {
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyShowTooltipImages, show);
+  }
+
+  Future<void> updateShowRomanizationInTooltip(bool show) async {
+    state = state.copyWith(showRomanizationInTooltip: show);
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyShowRomanizationInTooltip, show);
   }
 
   Future<void> updateAutoSave(bool autoSave) async {

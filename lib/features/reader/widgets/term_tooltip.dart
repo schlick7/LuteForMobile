@@ -102,6 +102,11 @@ class _TooltipContent extends ConsumerWidget {
     final showTooltipImages = ref.watch(
       termFormSettingsProvider.select((settings) => settings.showTooltipImages),
     );
+    final showRomanization = ref.watch(
+      termFormSettingsProvider.select(
+        (settings) => settings.showRomanizationInTooltip,
+      ),
+    );
 
     return Material(
       elevation: 8,
@@ -154,6 +159,20 @@ class _TooltipContent extends ConsumerWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
+            if (showRomanization && termTooltip.romanization != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                termTooltip.romanization!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontStyle: FontStyle.italic,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
             if (termTooltip.translation != null) ...[
               const SizedBox(height: 4),
               Text(
