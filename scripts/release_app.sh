@@ -22,6 +22,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Resolve flutter path before sudo resets PATH.
+FLUTTER="$(which flutter)"
+if [[ -z "${FLUTTER}" ]]; then
+  echo "Error: flutter not found in PATH"
+  exit 1
+fi
+
 PUBSPEC_FILE="pubspec.yaml"
 APK_SRC="build/app/outputs/flutter-apk/app-release.apk"
 
@@ -92,15 +99,15 @@ echo "Updated ${PUBSPEC_FILE} -> version: ${FULL_VERSION}"
 
 echo
 echo "1) Cleaning build artifacts..."
-flutter clean
+"$FLUTTER" clean
 
 echo
 echo "2) Getting dependencies..."
-flutter pub get
+"$FLUTTER" pub get
 
 echo
 echo "3) Building Android APK..."
-flutter build apk --release
+"$FLUTTER" build apk --release
 
 if [[ ! -f "$APK_SRC" ]]; then
   echo "Error: APK not found at $APK_SRC"
@@ -111,7 +118,7 @@ echo "Created: $APK_OUT"
 
 echo
 echo "4) Building web app..."
-flutter build web
+"$FLUTTER" build web
 
 if [[ ! -f "setup_pwa.py" ]]; then
   echo "Error: setup_pwa.py not found in project root"
