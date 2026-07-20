@@ -92,57 +92,62 @@ class ReaderDrawerSettings extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 16),
-          ExpansionTile(
-            title: Text(
-              'Text Formatting',
-              style: Theme.of(context).textTheme.titleLarge,
+          _buildSectionCard(
+            context,
+            title: 'Text Formatting',
+            icon: Icons.text_fields,
+            child: Column(
+              children: [
+                _buildTextSizeSlider(context, ref, textSettings),
+                const SizedBox(height: 12),
+                _buildLineSpacingSlider(context, ref, textSettings),
+                const SizedBox(height: 12),
+                _buildFontDropdown(context, ref, textSettings),
+                const SizedBox(height: 12),
+                _buildFontWeightSlider(
+                  context,
+                  ref,
+                  textSettings,
+                  weightIndexDouble,
+                  availableWeights,
+                ),
+                const SizedBox(height: 12),
+                _buildItalicToggle(context, ref, textSettings),
+              ],
             ),
-            initiallyExpanded: false,
-            children: [
-              const SizedBox(height: 8),
-              _buildTextSizeSlider(context, ref, textSettings),
-              const SizedBox(height: 16),
-              _buildLineSpacingSlider(context, ref, textSettings),
-              const SizedBox(height: 16),
-              _buildFontDropdown(context, ref, textSettings),
-              const SizedBox(height: 16),
-              _buildFontWeightSlider(
-                context,
-                ref,
-                textSettings,
-                weightIndexDouble,
-                availableWeights,
-              ),
-              const SizedBox(height: 16),
-              _buildItalicToggle(context, ref, textSettings),
-              const SizedBox(height: 16),
-            ],
           ),
-          const SizedBox(height: 16),
-          _buildFullscreenToggle(context, ref, textSettings),
-          if (currentRoute != 'sentence-reader') ...[
-            const SizedBox(height: 24),
-            _buildWordGlowToggle(context, ref),
-          ],
-          const SizedBox(height: 24),
-          _buildTooltipImagesToggle(context, ref, termFormSettings),
-          const SizedBox(height: 24),
-          if (currentRoute != 'sentence-reader')
-            _buildPageNumbersToggle(context, ref, settings),
-          const SizedBox(height: 24),
-          Consumer(
-            builder: (context, ref, _) {
-              final reader = ref.watch(readerProvider);
-              if (reader.pageData?.hasAudio == true) {
-                return Column(
-                  children: [_buildAudioPlayerToggle(context, ref, settings)],
-                );
-              }
-              return const SizedBox.shrink();
-            },
+          const SizedBox(height: 12),
+          _buildSectionCard(
+            context,
+            title: 'Display',
+            icon: Icons.visibility,
+            child: Column(
+              children: [
+                _buildFullscreenToggle(context, ref, textSettings),
+                if (currentRoute != 'sentence-reader') ...[
+                  const SizedBox(height: 8),
+                  _buildWordGlowToggle(context, ref),
+                ],
+                const SizedBox(height: 8),
+                _buildTooltipImagesToggle(context, ref, termFormSettings),
+                if (currentRoute != 'sentence-reader') ...[
+                  const SizedBox(height: 8),
+                  _buildPageNumbersToggle(context, ref, settings),
+                ],
+                const SizedBox(height: 8),
+                Consumer(
+                  builder: (context, ref, _) {
+                    final reader = ref.watch(readerProvider);
+                    if (reader.pageData?.hasAudio == true) {
+                      return _buildAudioPlayerToggle(context, ref, settings);
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 12),
           // Show tooltip cache management when enabled
           Consumer(
             builder: (context, ref, _) {
@@ -493,21 +498,40 @@ class ReaderDrawerSettings extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Font', style: TextStyle(fontWeight: FontWeight.bold)),
+        Text(
+          'Font',
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         const SizedBox(height: 8),
-        DropdownButton<String>(
-          value: textSettings.fontFamily,
-          isExpanded: true,
-          items: fonts.map((String font) {
-            return DropdownMenuItem<String>(value: font, child: Text(font));
-          }).toList(),
-          onChanged: (String? newValue) {
-            if (newValue != null) {
-              ref
-                  .read(textFormattingSettingsProvider.notifier)
-                  .updateFontFamily(newValue);
-            }
-          },
+        _buildDropdownContainer(
+          context,
+          child: DropdownButton<String>(
+            value: textSettings.fontFamily,
+            isExpanded: true,
+            underline: const SizedBox.shrink(),
+            icon: Icon(
+              Icons.keyboard_arrow_down,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            items: fonts.map((String font) {
+              return DropdownMenuItem<String>(
+                value: font,
+                child: Text(
+                  font,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              );
+            }).toList(),
+            onChanged: (String? newValue) {
+              if (newValue != null) {
+                ref
+                    .read(textFormattingSettingsProvider.notifier)
+                    .updateFontFamily(newValue);
+              }
+            },
+          ),
         ),
       ],
     );
@@ -548,22 +572,15 @@ class ReaderDrawerSettings extends ConsumerWidget {
     WidgetRef ref,
     dynamic textSettings,
   ) {
-    return Row(
-      children: [
-        const Text('Italic', style: TextStyle(fontWeight: FontWeight.bold)),
-        const Spacer(),
-        Transform.scale(
-          scale: 0.8,
-          child: Switch(
-            value: textSettings.isItalic,
-            onChanged: (value) {
-              ref
-                  .read(textFormattingSettingsProvider.notifier)
-                  .updateIsItalic(value);
-            },
-          ),
-        ),
-      ],
+    return _buildToggleRow(
+      context,
+      label: 'Italic',
+      value: textSettings.isItalic,
+      onChanged: (value) {
+        ref
+            .read(textFormattingSettingsProvider.notifier)
+            .updateIsItalic(value);
+      },
     );
   }
 
@@ -572,25 +589,15 @@ class ReaderDrawerSettings extends ConsumerWidget {
     WidgetRef ref,
     dynamic textSettings,
   ) {
-    return Row(
-      children: [
-        const Text(
-          'Fullscreen Mode',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const Spacer(),
-        Transform.scale(
-          scale: 0.8,
-          child: Switch(
-            value: textSettings.fullscreenMode,
-            onChanged: (value) {
-              ref
-                  .read(textFormattingSettingsProvider.notifier)
-                  .updateFullscreenMode(value);
-            },
-          ),
-        ),
-      ],
+    return _buildToggleRow(
+      context,
+      label: 'Fullscreen Mode',
+      value: textSettings.fullscreenMode,
+      onChanged: (value) {
+        ref
+            .read(textFormattingSettingsProvider.notifier)
+            .updateFullscreenMode(value);
+      },
     );
   }
 
@@ -599,44 +606,27 @@ class ReaderDrawerSettings extends ConsumerWidget {
     WidgetRef ref,
     dynamic settings,
   ) {
-    return Row(
-      children: [
-        const Text(
-          'Show Audio Player',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        const Spacer(),
-        Transform.scale(
-          scale: 0.8,
-          child: Switch(
-            value: settings.showAudioPlayer,
-            onChanged: (value) {
-              ref.read(settingsProvider.notifier).updateShowAudioPlayer(value);
-            },
-          ),
-        ),
-      ],
+    return _buildToggleRow(
+      context,
+      label: 'Show Audio Player',
+      value: settings.showAudioPlayer,
+      onChanged: (value) {
+        ref.read(settingsProvider.notifier).updateShowAudioPlayer(value);
+      },
     );
   }
 
   Widget _buildWordGlowToggle(BuildContext context, WidgetRef ref) {
     final termFormSettings = ref.watch(termFormSettingsProvider);
-    return Row(
-      children: [
-        const Text('Word Glow', style: TextStyle(fontWeight: FontWeight.bold)),
-        const Spacer(),
-        Transform.scale(
-          scale: 0.8,
-          child: Switch(
-            value: termFormSettings.wordGlowEnabled,
-            onChanged: (value) {
-              ref
-                  .read(termFormSettingsProvider.notifier)
-                  .updateWordGlowEnabled(value);
-            },
-          ),
-        ),
-      ],
+    return _buildToggleRow(
+      context,
+      label: 'Word Glow',
+      value: termFormSettings.wordGlowEnabled,
+      onChanged: (value) {
+        ref
+            .read(termFormSettingsProvider.notifier)
+            .updateWordGlowEnabled(value);
+      },
     );
   }
 
@@ -645,26 +635,15 @@ class ReaderDrawerSettings extends ConsumerWidget {
     WidgetRef ref,
     TermFormSettings termFormSettings,
   ) {
-    return Row(
-      children: [
-        const Expanded(
-          child: Text(
-            'Show Tooltip Images',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-        Transform.scale(
-          scale: 0.8,
-          child: Switch(
-            value: termFormSettings.showTooltipImages,
-            onChanged: (value) {
-              ref
-                  .read(termFormSettingsProvider.notifier)
-                  .updateShowTooltipImages(value);
-            },
-          ),
-        ),
-      ],
+    return _buildToggleRow(
+      context,
+      label: 'Show Tooltip Images',
+      value: termFormSettings.showTooltipImages,
+      onChanged: (value) {
+        ref
+            .read(termFormSettingsProvider.notifier)
+            .updateShowTooltipImages(value);
+      },
     );
   }
 
@@ -673,20 +652,37 @@ class ReaderDrawerSettings extends ConsumerWidget {
     WidgetRef ref,
     dynamic settings,
   ) {
+    return _buildToggleRow(
+      context,
+      label: 'Show Page Numbers',
+      value: settings.showPageNumbers,
+      onChanged: (value) {
+        ref.read(settingsProvider.notifier).updateShowPageNumbers(value);
+      },
+    );
+  }
+
+  Widget _buildToggleRow(
+    BuildContext context, {
+    required String label,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+  }) {
     return Row(
       children: [
-        const Text(
-          'Show Page Numbers',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
-        const Spacer(),
         Transform.scale(
           scale: 0.8,
           child: Switch(
-            value: settings.showPageNumbers,
-            onChanged: (value) {
-              ref.read(settingsProvider.notifier).updateShowPageNumbers(value);
-            },
+            value: value,
+            onChanged: onChanged,
           ),
         ),
       ],
@@ -699,5 +695,73 @@ class ReaderDrawerSettings extends ConsumerWidget {
       return reader.pageData!.paragraphs[0].textItems.first.langId ?? 0;
     }
     return 0;
+  }
+
+  Widget _buildSectionCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.05)
+            : Colors.black.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: Icon(icon, size: 20),
+          title: Text(
+            title,
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          initiallyExpanded: true,
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [child],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdownContainer(BuildContext context, {required Widget child}) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark
+            ? Colors.white.withValues(alpha: 0.08)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outline.withValues(alpha: 0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: child,
+    );
   }
 }
