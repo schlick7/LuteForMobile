@@ -145,6 +145,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     with WidgetsBindingObserver {
   int _buildCount = 0;
   TermForm? _currentTermForm;
+  bool _isDictionaryOpen = false;
   bool _isUiVisible = true;
   bool _lastFullscreenMode = false;
   Timer? _hideUiTimer;
@@ -1271,6 +1272,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     String? initialReaderStatus,
   }) {
     _currentTermForm = termForm;
+    _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
       context: context,
@@ -1291,7 +1293,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           duration: const Duration(milliseconds: 100),
           curve: Curves.easeOut,
           child: PopScope(
-            canPop: true,
+            canPop: !_isDictionaryOpen,
             onPopInvoked: (didPop) async {
               if (didPop && settings.autoSave && _shouldAutoSaveOnClose) {
                 final updatedForm = _currentTermForm ?? termForm;
@@ -1311,12 +1313,16 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             child: StatefulBuilder(
               builder: (context, setModalState) {
                 return GestureDetector(
-                  onVerticalDragEnd: (details) {
-                    if (details.primaryVelocity != null &&
-                        details.primaryVelocity! > 500) {
-                      Navigator.of(context).pop();
-                    }
-                  },
+                  onVerticalDragStart: _isDictionaryOpen ? (_) {} : null,
+                  onVerticalDragUpdate: _isDictionaryOpen ? (_) {} : null,
+                  onVerticalDragEnd: _isDictionaryOpen
+                      ? (_) {}
+                      : (details) {
+                          if (details.primaryVelocity != null &&
+                              details.primaryVelocity! > 500) {
+                            Navigator.of(context).pop();
+                          }
+                        },
                   child: TermFormWidget(
                     termForm: _currentTermForm ?? termForm,
                     sentence: sentence,
@@ -1364,6 +1370,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
+                      _isDictionaryOpen = isOpen;
                       setModalState(() {});
                     },
                     onParentDoubleTap: (parent) async {
@@ -1420,6 +1427,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
     String? sentence,
     void Function(TermParent)? onParentUpdated,
   }) {
+    _isDictionaryOpen = false;
     bool _shouldAutoSaveOnClose = true;
     showModalBottomSheet(
       context: context,
@@ -1439,7 +1447,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
           duration: const Duration(milliseconds: 100),
           curve: Curves.easeOut,
           child: PopScope(
-            canPop: true,
+            canPop: !_isDictionaryOpen,
             onPopInvoked: (didPop) async {
               if (didPop && settings.autoSave && _shouldAutoSaveOnClose) {
                 final updatedForm = termForm;
@@ -1462,12 +1470,16 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 var currentForm = termForm;
 
                 return GestureDetector(
-                  onVerticalDragEnd: (details) {
-                    if (details.primaryVelocity != null &&
-                        details.primaryVelocity! > 500) {
-                      Navigator.of(context).pop();
-                    }
-                  },
+                  onVerticalDragStart: _isDictionaryOpen ? (_) {} : null,
+                  onVerticalDragUpdate: _isDictionaryOpen ? (_) {} : null,
+                  onVerticalDragEnd: _isDictionaryOpen
+                      ? (_) {}
+                      : (details) {
+                          if (details.primaryVelocity != null &&
+                              details.primaryVelocity! > 500) {
+                            Navigator.of(context).pop();
+                          }
+                        },
                   child: TermFormWidget(
                     termForm: currentForm,
                     sentence: sentence,
@@ -1512,6 +1524,7 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                       Navigator.of(context).pop();
                     },
                     onDictionaryToggle: (isOpen) {
+                      _isDictionaryOpen = isOpen;
                       setModalState(() {});
                     },
                     onParentDoubleTap: (parent) async {
