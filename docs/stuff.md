@@ -5,11 +5,11 @@
   
 
 ---
-
+Update to JDK 25??
 ---
 
 
-
+Conflicts between scrolling dictionary webviews. I think it is being caused by the swipe down/close 
 
 # Future:
 - add a toggle to book details to select between Server parsing or App parsing

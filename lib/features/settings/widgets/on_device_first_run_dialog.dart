@@ -43,19 +43,17 @@ class _OnDeviceFirstRunDialogState
       _isError = false;
     });
     try {
-      final result = await FilePicker.pickFiles(
+      final result = await FilePicker.pickFile(
         type: FileType.any,
-        withData: false, // we need a path, not bytes
-        allowMultiple: false,
       );
-      if (result == null || result.files.isEmpty) {
+      if (result == null) {
         setState(() {
           _busy = false;
           _statusMessage = null;
         });
         return;
       }
-      final picked = result.files.single;
+      final picked = result;
       final path = picked.path;
       if (path == null || path.isEmpty) {
         setState(() {

@@ -1064,12 +1064,10 @@ class _TermFormWidgetState extends ConsumerState<TermFormWidget> {
   }
 
   Future<void> _pickAndUploadImage() async {
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.pickFile(
       type: FileType.image,
-      allowMultiple: false,
-      withData: false,
     );
-    final path = result?.files.single.path;
+    final path = result?.path;
     if (path == null || path.isEmpty) {
       return;
     }

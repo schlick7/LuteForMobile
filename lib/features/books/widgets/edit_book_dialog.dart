@@ -64,7 +64,7 @@ class _EditBookDialogState extends ConsumerState<EditBookDialog> {
 
   Future<void> _pickAudioFile() async {
     try {
-      final result = await FilePicker.pickFiles(
+      final file = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: const [
           'mp3',
@@ -77,9 +77,8 @@ class _EditBookDialogState extends ConsumerState<EditBookDialog> {
           'webm',
         ],
       );
-      if (result == null || result.files.isEmpty) return;
+      if (file == null) return;
 
-      final file = result.files.single;
       if (file.path == null || file.path!.isEmpty) {
         _showError('Could not access selected file path.');
         return;

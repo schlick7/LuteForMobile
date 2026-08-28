@@ -115,13 +115,11 @@ class _OnDeviceServerSectionState
   ///  4. Restart the server.
   Future<void> _restoreFromFile() async {
     if (_isRestoringFromFile) return;
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.pickFile(
       type: FileType.any,
-      withData: false,
-      allowMultiple: false,
     );
-    if (result == null || result.files.isEmpty) return;
-    final picked = result.files.single;
+    if (result == null) return;
+    final picked = result;
     final path = picked.path;
     if (path == null || path.isEmpty) {
       if (!mounted) return;

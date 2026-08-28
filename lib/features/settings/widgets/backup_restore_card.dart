@@ -117,11 +117,11 @@ class _BackupRestoreCardState extends ConsumerState<BackupRestoreCard> {
   }
 
   Future<void> _pickAndUploadBackup() async {
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.pickFile(
       type: FileType.custom,
       allowedExtensions: const ['gz'],
     );
-    final path = result?.files.single.path;
+    final path = result?.path;
     if (path == null) {
       return;
     }
@@ -334,13 +334,11 @@ class _BackupRestoreCardState extends ConsumerState<BackupRestoreCard> {
   /// `restoreBackup` MethodChannel.
   Future<void> _restoreOnDeviceFromFile() async {
     if (_isRestoringOnDevice) return;
-    final result = await FilePicker.pickFiles(
+    final result = await FilePicker.pickFile(
       type: FileType.any,
-      withData: false,
-      allowMultiple: false,
     );
-    if (result == null || result.files.isEmpty) return;
-    final picked = result.files.single;
+    if (result == null) return;
+    final picked = result;
     final path = picked.path;
     if (path == null || path.isEmpty) {
       if (!mounted) return;

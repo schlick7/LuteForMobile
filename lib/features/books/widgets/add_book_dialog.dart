@@ -123,13 +123,12 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
 
   Future<void> _pickTextFile() async {
     try {
-      final result = await FilePicker.pickFiles(
+      final file = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: const ['txt', 'epub', 'pdf', 'srt', 'vtt'],
       );
-      if (result == null || result.files.isEmpty) return;
+      if (file == null) return;
 
-      final file = result.files.single;
       if (file.path == null || file.path!.isEmpty) {
         _showError('Could not access selected file path.');
         return;
@@ -150,7 +149,7 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
 
   Future<void> _pickAudioFile() async {
     try {
-      final result = await FilePicker.pickFiles(
+      final file = await FilePicker.pickFile(
         type: FileType.custom,
         allowedExtensions: const [
           'mp3',
@@ -163,9 +162,8 @@ class _AddBookDialogState extends ConsumerState<AddBookDialog> {
           'webm',
         ],
       );
-      if (result == null || result.files.isEmpty) return;
+      if (file == null) return;
 
-      final file = result.files.single;
       if (file.path == null || file.path!.isEmpty) {
         _showError('Could not access selected file path.');
         return;
