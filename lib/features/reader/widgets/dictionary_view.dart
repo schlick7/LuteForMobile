@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -874,7 +875,12 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
       builder: (context, constraints) {
         return SizedBox(
           height: constraints.maxHeight,
-          child: WebViewWidget(controller: _controllerFor(dictionary, url, index)),
+          child: WebViewWidget(
+            controller: _controllerFor(dictionary, url, index),
+            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+              Factory(() => VerticalDragGestureRecognizer()),
+            },
+          ),
         );
       },
     );
