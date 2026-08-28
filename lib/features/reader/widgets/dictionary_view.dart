@@ -1,9 +1,8 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import '../../../core/network/dictionary_service.dart';
 import '../../settings/models/ai_settings.dart';
 import '../../settings/providers/ai_settings_provider.dart';
@@ -44,7 +43,8 @@ class DictionaryView extends ConsumerStatefulWidget {
 class _DictionaryViewState extends ConsumerState<DictionaryView> {
   late PageController _pageController;
   int _currentPage = 0;
-  final Map<int, InAppWebViewController> _webviewControllers = {};
+  final Map<int, WebViewController> _webviewControllers = {};
+  WebViewController? _emptyController;
   bool _hasLoaded = false;
   DictionaryTabType _currentTab = DictionaryTabType.dictionary;
   AITabType _currentAITab = AITabType.translation;
@@ -770,9 +770,9 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
-    return InAppWebView(
-      initialSettings: InAppWebViewSettings(javaScriptEnabled: true),
-    );
+    _emptyController ??= WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted);
+    return WebViewWidget(controller: _emptyController!);
   }
 
   Widget _buildNarrowHeader(BuildContext context) {
@@ -874,29 +874,31 @@ class _DictionaryViewState extends ConsumerState<DictionaryView> {
       builder: (context, constraints) {
         return SizedBox(
           height: constraints.maxHeight,
-          child: InAppWebView(
-            initialUrlRequest: URLRequest(url: WebUri(url)),
-            initialSettings: InAppWebViewSettings(
-              sharedCookiesEnabled: true,
-              cacheEnabled: true,
-              javaScriptEnabled: true,
-              userAgent:
-                  'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-            ),
-            gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-              Factory(() => VerticalDragGestureRecognizer()),
-            },
-            onWebViewCreated: (controller) {
-              _webviewControllers[dictionary.hashCode] = controller;
-            },
-            onLoadStop: (controller, url) {
+          child: WebViewWidget(controller: _controllerFor(dictionary, url, index)),
+        );
+      },
+    );
+  }
+
+  WebViewController _controllerFor(
+    DictionarySource dictionary,
+    String url,
+    int index,
+  ) {
+    return _webviewControllers.putIfAbsent(dictionary.hashCode, () {
+      return WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setUserAgent(kDictionaryWebViewUserAgent)
+        ..setNavigationDelegate(
+          NavigationDelegate(
+            onPageFinished: (finishedUrl) {
               if (index == _currentPage) {
                 _preloadAdjacentPages();
               }
             },
           ),
-        );
-      },
-    );
+        )
+        ..loadRequest(Uri.parse(url));
+    });
   }
 }

@@ -1,7 +1,9 @@
 import 'dart:convert';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'html_parser.dart';
+
+const String kDictionaryWebViewUserAgent =
+    'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36';
 
 enum AIType { translation, virtualDictionary }
 
@@ -45,7 +47,6 @@ class DictionarySource {
 class DictionaryService {
   final Map<int, List<DictionarySource>> _dictionariesCache = {};
   final Map<int, List<DictionarySource>> _sentenceDictionariesCache = {};
-  final Map<String, InAppWebViewController> _webviewCache = {};
   final HtmlParser _htmlParser;
   final Future<String?> Function(int) _fetchLanguageSettingsHtml;
 
@@ -250,21 +251,5 @@ class DictionaryService {
   Future<void> setSentenceReaderSplitRatio(int ratio) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('sentence_reader_split_ratio', ratio);
-  }
-
-  String getWebviewCacheKey(String dictionaryName, String term) {
-    return '${dictionaryName}_${term.hashCode}';
-  }
-
-  InAppWebViewController? getCachedWebview(String cacheKey) {
-    return _webviewCache[cacheKey];
-  }
-
-  void cacheWebview(String cacheKey, InAppWebViewController controller) {
-    _webviewCache[cacheKey] = controller;
-  }
-
-  void clearCache() {
-    _webviewCache.clear();
   }
 }

@@ -1,9 +1,8 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import '../models/sentence_translation.dart';
 import '../../settings/models/ai_settings.dart';
 import '../../settings/providers/ai_settings_provider.dart';
@@ -47,7 +46,7 @@ class _SentenceTranslationWidgetState
   late PageController _pageController;
   List<DictionarySource> _dictionaries = [];
   int _currentPage = 0;
-  final Map<int, InAppWebViewController> _webviewControllers = {};
+  final Map<int, WebViewController> _webviewControllers = {};
   bool _hasLoaded = false;
   bool _isLoadingAI = false;
   String? _aiTranslation;
@@ -653,27 +652,29 @@ class _SentenceTranslationWidgetState
       dictionary.urlTemplate,
     );
 
-    return InAppWebView(
-      initialUrlRequest: URLRequest(url: WebUri(url)),
-      initialSettings: InAppWebViewSettings(
-        sharedCookiesEnabled: true,
-        cacheEnabled: true,
-        javaScriptEnabled: true,
-        userAgent:
-            'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
-      ),
-      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-        Factory(() => VerticalDragGestureRecognizer()),
-      },
-      onWebViewCreated: (controller) {
-        _webviewControllers[dictionary.hashCode] = controller;
-      },
-      onLoadStop: (controller, url) {
-        if (index == _currentPage) {
-          _preloadAdjacentPages();
-        }
-      },
-    );
+    return WebViewWidget(controller: _controllerFor(dictionary, url, index));
+  }
+
+  WebViewController _controllerFor(
+    DictionarySource dictionary,
+    String url,
+    int index,
+  ) {
+    return _webviewControllers.putIfAbsent(dictionary.hashCode, () {
+      return WebViewController()
+        ..setJavaScriptMode(JavaScriptMode.unrestricted)
+        ..setUserAgent(kDictionaryWebViewUserAgent)
+        ..setNavigationDelegate(
+          NavigationDelegate(
+            onPageFinished: (finishedUrl) {
+              if (index == _currentPage) {
+                _preloadAdjacentPages();
+              }
+            },
+          ),
+        )
+        ..loadRequest(Uri.parse(url));
+    });
   }
 
   Widget _buildVirtualDictionaryContent(BuildContext context) {
