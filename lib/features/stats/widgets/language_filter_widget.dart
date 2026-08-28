@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/stats_provider.dart';
 import '../models/language_stats.dart';
+import '../../../shared/utils/number_formatting.dart';
 
 class LanguageFilterWidget extends ConsumerWidget {
   const LanguageFilterWidget({super.key});
@@ -33,7 +34,7 @@ class LanguageFilterWidget extends ConsumerWidget {
             return DropdownMenuItem<LanguageReadingStats?>(
               value: lang,
               child: Text(
-                '${lang.language} (${_formatNumber(lang.totalWords)} words)',
+                '${lang.language} (${formatNumber(lang.totalWords)} words)',
               ),
             );
           }),
@@ -49,12 +50,4 @@ class LanguageFilterWidget extends ConsumerWidget {
     );
   }
 
-  String _formatNumber(int number) {
-    if (number >= 1000000) {
-      return '${(number / 1000000).toStringAsFixed(1)}M';
-    } else if (number >= 1000) {
-      return '${(number / 1000).toStringAsFixed(1)}K';
-    }
-    return number.toString();
-  }
 }

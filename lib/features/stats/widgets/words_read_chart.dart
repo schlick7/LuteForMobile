@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../models/language_stats.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../shared/utils/number_formatting.dart';
 
 class WordsReadChart extends StatelessWidget {
   final List<LanguageReadingStats> languages;
@@ -81,7 +82,7 @@ class WordsReadChart extends StatelessWidget {
                           final lineIndex = spot.barIndex;
                           final language = languages[lineIndex];
                           return LineTooltipItem(
-                            '${language.language}: ${_formatNumber(spot.y.toInt())}',
+                            '${language.language}: ${formatNumber(spot.y.toInt())}',
                             TextStyle(
                               color: lineBarsData[lineIndex].color,
                               fontWeight: FontWeight.bold,
@@ -177,7 +178,7 @@ class WordsReadChart extends StatelessWidget {
           reservedSize: 40,
           getTitlesWidget: (value, meta) {
             return Text(
-              _formatNumber(value.toInt()),
+              formatNumber(value.toInt()),
               style: const TextStyle(fontSize: 10),
             );
           },
@@ -239,15 +240,6 @@ class WordsReadChart extends StatelessWidget {
       Colors.cyan,
       Colors.indigo,
     ];
-  }
-
-  String _formatNumber(int number) {
-    if (number >= 1000000) {
-      return '${(number / 1000000).toStringAsFixed(1)}M';
-    } else if (number >= 1000) {
-      return '${(number / 1000).toStringAsFixed(0)}K';
-    }
-    return number.toString();
   }
 
   Widget _buildLegend(BuildContext context) {

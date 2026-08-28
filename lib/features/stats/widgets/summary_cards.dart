@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/language_stats.dart';
 import '../models/stats_data.dart';
 import '../../../shared/theme/theme_extensions.dart';
+import '../../../shared/utils/number_formatting.dart';
 
 class SummaryCards extends StatelessWidget {
   final List<LanguageReadingStats> languages;
@@ -26,8 +27,8 @@ class SummaryCards extends StatelessWidget {
                 context,
                 icon: Icons.today,
                 label: 'Today',
-                value: _formatNumber(todayStats.wordcount),
-                subtitle: 'Record: ${_formatNumber(records.bestDay)} words',
+                value: formatNumber(todayStats.wordcount),
+                subtitle: 'Record: ${formatNumber(records.bestDay)} words',
                 iconColor: context.appColorScheme.material3.primary,
               ),
             ),
@@ -37,8 +38,8 @@ class SummaryCards extends StatelessWidget {
                 context,
                 icon: Icons.date_range,
                 label: 'This Week',
-                value: _formatNumber(weekStats.wordcount),
-                subtitle: 'Record: ${_formatNumber(records.bestWeek)} words',
+                value: formatNumber(weekStats.wordcount),
+                subtitle: 'Record: ${formatNumber(records.bestWeek)} words',
                 iconColor: context.appColorScheme.material3.secondary,
               ),
             ),
@@ -59,7 +60,7 @@ class SummaryCards extends StatelessWidget {
           context,
           icon: Icons.library_books,
           label: 'Total Words',
-          value: _formatNumber(totalStats.wordcount),
+          value: formatNumber(totalStats.wordcount),
           subtitle:
               '${totalStats.days} days across ${languages.length} language${languages.length != 1 ? 's' : ''}',
           iconColor: context.appColorScheme.material3.tertiary,
@@ -230,15 +231,6 @@ class SummaryCards extends StatelessWidget {
     }
 
     return (bestDay: bestDay, bestWeek: bestWeek);
-  }
-
-  String _formatNumber(int number) {
-    if (number >= 1000000) {
-      return '${(number / 1000000).toStringAsFixed(1)}M';
-    } else if (number >= 1000) {
-      return '${(number / 1000).toStringAsFixed(1)}K';
-    }
-    return number.toString();
   }
 
   Widget _buildSummaryCard(

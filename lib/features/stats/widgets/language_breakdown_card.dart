@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/language_stats.dart';
 import '../../../shared/utils/language_flag_mapper.dart';
+import '../../../shared/utils/number_formatting.dart';
 import '../../../shared/theme/theme_extensions.dart';
 
 class LanguageBreakdownCard extends StatelessWidget {
@@ -72,7 +73,7 @@ class LanguageBreakdownCard extends StatelessWidget {
                 ),
               ),
               Text(
-                '${_formatNumber(lang.totalWords)} words',
+                '${formatNumber(lang.totalWords)} words',
                 style: Theme.of(
                   context,
                 ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -103,14 +104,14 @@ class LanguageBreakdownCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                'Weekly: ${_formatNumber(weeklyWords)}',
+                'Weekly: ${formatNumber(weeklyWords)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: context.appColorScheme.text.secondary,
                 ),
               ),
               const SizedBox(width: 16),
               Text(
-                'Daily avg: ${_formatNumber(dailyAverage)}',
+                'Daily avg: ${formatNumber(dailyAverage)}',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: context.appColorScheme.text.secondary,
                 ),
@@ -140,12 +141,4 @@ class LanguageBreakdownCard extends StatelessWidget {
     return (total / lang.dailyStats.length).round();
   }
 
-  String _formatNumber(int number) {
-    if (number >= 1000000) {
-      return '${(number / 1000000).toStringAsFixed(1)}M';
-    } else if (number >= 1000) {
-      return '${(number / 1000).toStringAsFixed(1)}K';
-    }
-    return number.toString();
-  }
 }
