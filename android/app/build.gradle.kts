@@ -1,5 +1,6 @@
 import java.util.Properties
 import java.io.FileInputStream
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     id("com.android.application")
@@ -9,7 +10,7 @@ plugins {
 }
 
 buildscript {
-    extra["kotlinVersion"] = "2.2.20"
+    extra["kotlinVersion"] = "2.3.20"
 }
 
 val keystoreProperties = Properties()
@@ -26,10 +27,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
     signingConfigs {
@@ -67,6 +64,12 @@ android {
         release {
             signingConfig = signingConfigs.getByName("release")
         }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_11
     }
 }
 
