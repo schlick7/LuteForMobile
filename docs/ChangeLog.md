@@ -10,4 +10,6 @@
 - gruvbox dark/light themes
 - add archive button to book completion dialog
 - changed stats axis to be dynamic
+- changed stats decimal settings 
 - UI adjustments for sidebar settings
+- First launch Onboarding
