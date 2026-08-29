@@ -1313,10 +1313,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
             child: StatefulBuilder(
               builder: (context, setModalState) {
                 return GestureDetector(
-                  onVerticalDragStart: _isDictionaryOpen ? (_) {} : null,
-                  onVerticalDragUpdate: _isDictionaryOpen ? (_) {} : null,
                   onVerticalDragEnd: _isDictionaryOpen
-                      ? (_) {}
+                      ? null
                       : (details) {
                           if (details.primaryVelocity != null &&
                               details.primaryVelocity! > 500) {
@@ -1470,10 +1468,8 @@ class ReaderScreenState extends ConsumerState<ReaderScreen>
                 var currentForm = termForm;
 
                 return GestureDetector(
-                  onVerticalDragStart: _isDictionaryOpen ? (_) {} : null,
-                  onVerticalDragUpdate: _isDictionaryOpen ? (_) {} : null,
                   onVerticalDragEnd: _isDictionaryOpen
-                      ? (_) {}
+                      ? null
                       : (details) {
                           if (details.primaryVelocity != null &&
                               details.primaryVelocity! > 500) {
