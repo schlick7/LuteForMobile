@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lute_for_mobile/core/logger/api_logger.dart';
 import 'package:lute_for_mobile/features/reader/widgets/reader_screen.dart';
@@ -21,8 +22,13 @@ import 'package:lute_for_mobile/shared/widgets/app_drawer.dart';
 import 'package:lute_for_mobile/features/books/providers/books_provider.dart';
 import 'package:lute_for_mobile/features/books/models/book.dart';
 import 'package:lute_for_mobile/core/services/termux_service.dart';
+import 'package:lute_for_mobile/core/services/embedded_server_service.dart';
+import 'package:lute_for_mobile/core/services/backup_folder_service.dart';
 import 'package:lute_for_mobile/shared/providers/app_startup_providers.dart';
 import 'package:lute_for_mobile/shared/providers/network_providers.dart';
+import 'package:lute_for_mobile/features/settings/widgets/onboarding_dialog.dart';
+import 'package:lute_for_mobile/features/settings/widgets/backup_location_prompt.dart';
+import 'package:lute_for_mobile/features/settings/widgets/on_device_first_run_dialog.dart';
 
 class RestartWidget extends StatefulWidget {
   final Widget child;
@@ -197,8 +203,8 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       GlobalKey<State<StatefulWidget>>();
   final GlobalKey<State<StatefulWidget>> _statsKey =
       GlobalKey<State<StatefulWidget>>();
-  final GlobalKey<State<StatefulWidget>> _settingsKey =
-      GlobalKey<State<StatefulWidget>>();
+  final GlobalKey<SettingsScreenState> _settingsKey =
+      GlobalKey<SettingsScreenState>();
   final GlobalKey<SentenceReaderScreenState> _sentenceReaderKey =
       GlobalKey<SentenceReaderScreenState>();
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -219,6 +225,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
       _updateDrawerSettings();
       _checkAndStartLute3IfNeeded();
       _loadLastReadBook();
+      _maybeShowOnboarding();
     });
     _navigationController.addReaderListener(_handleNavigateToReader);
     _navigationController.addScreenListener(_handleNavigateToScreen);
@@ -257,6 +264,85 @@ class _MainNavigationState extends ConsumerState<MainNavigation> {
     _navigationController.removeReaderListener(_handleNavigateToReader);
     _navigationController.removeScreenListener(_handleNavigateToScreen);
     super.dispose();
+  }
+
+  /// First-launch onboarding: ask the user whether they want to
+  /// connect to an existing server or use the integrated one. Runs
+  /// once (see `onboarding_completed`).
+  Future<void> _maybeShowOnboarding() async {
+    try {
+      final notifier = ref.read(settingsProvider.notifier);
+      if (await notifier.onboardingCompleted()) return;
+      if (!await notifier.isFreshInstall()) {
+        // Existing user upgrading; don't force the first-launch flow.
+        await notifier.markOnboardingCompleted();
+        return;
+      }
+      // Let the app settle before presenting the dialog.
+      await Future.delayed(const Duration(milliseconds: 800));
+      if (!mounted) return;
+      final choice = await showOnboardingDialog(context);
+      await notifier.markOnboardingCompleted();
+      if (!mounted) return;
+      switch (choice) {
+        case OnboardingChoice.existing:
+          await _handleExistingServerChoice();
+        case OnboardingChoice.integrated:
+          await _handleIntegratedChoice();
+        case null:
+          // Dismissed; stay on the default (remote) mode.
+          break;
+      }
+    } catch (e, st) {
+      ApiLogger.logError('_maybeShowOnboarding', e, stackTrace: st);
+    }
+  }
+
+  Future<void> _handleExistingServerChoice() async {
+    await ref
+        .read(settingsProvider.notifier)
+        .setLocalServerMode(LocalServerMode.remote);
+    _handleNavigateToScreen('settings');
+    await Future.delayed(const Duration(milliseconds: 150));
+    _settingsKey.currentState?.focusLocalUrlField();
+  }
+
+  Future<void> _handleIntegratedChoice() async {
+    final notifier = ref.read(settingsProvider.notifier);
+    await notifier.setLocalServerMode(LocalServerMode.onDevice);
+
+    String url = '';
+    try {
+      url = await EmbeddedServerService.instance.start();
+    } catch (e) {
+      ApiLogger.logError('onboarding integrated server start', e);
+    }
+    if (url.isNotEmpty) {
+      await notifier.setOnDeviceServerUrl(url);
+    }
+    if (!mounted) return;
+
+    if (url.isEmpty) {
+      // Server failed to start; land on the on-device section, which
+      // shows the error and recovery options.
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('The on-device server failed to start.'),
+        ),
+      );
+      _handleNavigateToScreen('settings');
+      return;
+    }
+
+    // Restore-from-backup / start-fresh chooser for the fresh DB.
+    await showOnDeviceFirstRunDialog(context);
+    if (!mounted) return;
+
+    // Ask for a durable backup location (skip if already configured).
+    final configured = await BackupFolderService.instance.isConfigured();
+    if (!configured) {
+      await showBackupLocationPrompt(context);
+    }
   }
 
   void _handleNavigateToReader(int bookId, [int? pageNum]) {

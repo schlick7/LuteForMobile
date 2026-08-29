@@ -108,12 +108,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key, this.scaffoldKey});
 
   @override
-  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => SettingsScreenState();
 }
 
-class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+class SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _localUrlController = TextEditingController();
+  final _localUrlFocusNode = FocusNode();
+  final _localUrlFieldKey = GlobalKey();
   int _buildCount = 0;
   bool _isTesting = false;
   String? _connectionStatus;
@@ -165,7 +167,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   void dispose() {
     _localUrlController.dispose();
+    _localUrlFocusNode.dispose();
     super.dispose();
+  }
+
+  /// Switch to Remote mode and bring the Local URL field into view and
+  /// focus, so the user can immediately enter their server URL. Used by
+  /// the first-launch onboarding ("connect to an existing server").
+  Future<void> focusLocalUrlField() async {
+    final settings = ref.read(settingsProvider);
+    if (settings.localServerMode != LocalServerMode.remote) {
+      await ref
+          .read(settingsProvider.notifier)
+          .setLocalServerMode(LocalServerMode.remote);
+    }
+    if (!mounted) return;
+    final ctx = _localUrlFieldKey.currentContext;
+    if (ctx != null) {
+      await Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 300),
+        alignment: 0.2,
+      );
+    }
+    _localUrlFocusNode.requestFocus();
   }
 
   Future<void> _testConnection() async {
@@ -283,7 +308,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
+                      key: _localUrlFieldKey,
                       controller: _localUrlController,
+                      focusNode: _localUrlFocusNode,
                       enabled: settings.localServerMode == LocalServerMode.remote,
                       decoration: InputDecoration(
                         labelText: 'Local URL',

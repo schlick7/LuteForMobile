@@ -72,6 +72,7 @@ class SettingsNotifier extends Notifier<Settings> {
       'experimental_book_details_full_stats_endpoint';
   static const String _keyOnDeviceFirstRunCompleted =
       'on_device_first_run_completed';
+  static const String _keyOnboardingCompleted = 'onboarding_completed';
 
   @override
   Settings build() {
@@ -514,6 +515,31 @@ class SettingsNotifier extends Notifier<Settings> {
     state = state.copyWith(onDeviceFirstRunCompleted: true);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyOnDeviceFirstRunCompleted, true);
+  }
+
+  /// True if the app-wide first-launch onboarding (choose between an
+  /// existing server and the integrated on-device server) has been
+  /// completed.
+  Future<bool> onboardingCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyOnboardingCompleted) ?? false;
+  }
+
+  /// True when this looks like a genuinely fresh install (no server
+  /// configured yet), so we only show onboarding to new users and not
+  /// to existing ones upgrading to a version that adds it.
+  Future<bool> isFreshInstall() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasServerMode = prefs.containsKey(_keyLocalServerMode);
+    final localUrl = prefs.getString(_keyLocalUrl) ?? '';
+    return !hasServerMode && localUrl.isEmpty;
+  }
+
+  /// Record that the first-launch onboarding was completed, so it
+  /// isn't shown again.
+  Future<void> markOnboardingCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyOnboardingCompleted, true);
   }
 
   /// Reset the on-device first-run flag. Called when the user removes
