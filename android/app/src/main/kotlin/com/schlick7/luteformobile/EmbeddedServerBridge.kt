@@ -237,7 +237,9 @@ class EmbeddedServerBridge(
         // Pick a free port.
         val pickedPort = pickFreePort()
 
-        // Hand off to the Python launcher.
+        // Hand off to the Python launcher. We pass `this` so Python can call
+        // back into the main app process (e.g. mirror images into the
+        // backup dir, which Chaquopy's Python cannot write to).
         val py = Python.getInstance()
         val launcher = py.getModule(LAUNCHER_MODULE)
         val handle = launcher.callAttr(
@@ -245,6 +247,7 @@ class EmbeddedServerBridge(
             pickedPort,
             luteDataDir.absolutePath,
             luteConfigFile.absolutePath,
+            this,
         )
         serverProcess = handle
         startLogPoller()
@@ -384,6 +387,49 @@ class EmbeddedServerBridge(
 
         luteConfigFile.writeText(template)
         Log.d(TAG, "Wrote config to ${luteConfigFile.absolutePath}")
+    }
+
+    /**
+     * Copy a directory tree from the main app process.
+     *
+     * Called from the on-device Python backup flow via the bridge
+     * object passed into `launcher.start(...)`. Chaquopy's Python
+     * process cannot create files inside
+     * `<dataDir>/backups/userimages_backup/` (EACCES) even though it
+     * shares the app UID/process, but the main process can — so the
+     * image mirror is done here.
+     */
+    fun mirrorImages(srcDir: String, dstDir: String): Boolean {
+        return try {
+            val src = File(srcDir)
+            if (!src.isDirectory) {
+                Log.d(TAG, "mirrorImages: src not a dir ($srcDir); nothing to do")
+                return true
+            }
+            val dst = File(dstDir)
+            copyDirRecursive(src, dst)
+            Log.d(TAG, "mirrorImages: $srcDir -> $dstDir OK")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "mirrorImages failed: ${e.message}", e)
+            false
+        }
+    }
+
+    private fun copyDirRecursive(src: File, dst: File) {
+        if (!dst.exists()) dst.mkdirs()
+        src.listFiles()?.forEach { child ->
+            val target = File(dst, child.name)
+            if (child.isDirectory) {
+                copyDirRecursive(child, target)
+            } else {
+                child.inputStream().use { input ->
+                    target.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+            }
+        }
     }
 
     // --- Event sink ---

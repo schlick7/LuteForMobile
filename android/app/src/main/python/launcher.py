@@ -24,6 +24,12 @@ from collections import deque
 # Number of log lines kept in the ring buffer.
 LOG_BUFFER_SIZE = 200
 
+# Kotlin bridge object (the EmbeddedServerBridge instance passed into
+# start()). Lets Python call back into the main app process for
+# operations Chaquopy's Python cannot do (e.g. writing into the
+# backup subdir). Set when the server is started via the bridge.
+_BRIDGE = None
+
 
 class _LogCapture:
     """Thread-safe ring buffer + tee to original stream.
@@ -269,10 +275,16 @@ def _wakeup_loop(port, stop_event):
 _ServerHandle._current = None
 
 
-def start(port, datapath, config_path):
+def start(port, datapath, config_path, bridge=None):
     """
     Spawn lute.main in a background thread and return a handle.
+
+    `bridge` is the Kotlin EmbeddedServerBridge object (or None when
+    not running on-device). It lets Python delegate operations to the
+    main app process via `mirror_images_from_host`.
     """
+    global _BRIDGE
+    _BRIDGE = bridge
     stop_event = threading.Event()
     log_capture = _LogCapture(sys.stdout)
     handle = _ServerHandle(port, None, stop_event, log_capture)
@@ -286,3 +298,22 @@ def start(port, datapath, config_path):
     _ServerHandle._current = handle
     thread.start()
     return handle
+
+
+def mirror_images_from_host(src_dir, dst_dir):
+    """
+    Mirror src_dir into dst_dir using the Kotlin bridge in the main
+    app process. Chaquopy's Python can't create files inside the
+    backup subdir (EACCES), but the main process can. Returns True on
+    success, False if the bridge is unavailable or the copy fails.
+    """
+    if _BRIDGE is None:
+        return False
+    try:
+        return bool(_BRIDGE.mirrorImages(src_dir, dst_dir))
+    except Exception as e:
+        print(
+            f"[launcher] mirror_images_from_host failed: {type(e).__name__}: {e}",
+            file=__import__("sys").stderr,
+        )
+        return False

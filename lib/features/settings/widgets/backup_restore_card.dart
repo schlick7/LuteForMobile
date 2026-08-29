@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lute_for_mobile/core/services/backup_folder_service.dart';
 import 'package:lute_for_mobile/core/services/backup_service.dart';
 import 'package:lute_for_mobile/core/services/embedded_server_service.dart';
 import 'package:lute_for_mobile/features/settings/models/settings.dart';
@@ -95,6 +96,31 @@ class _BackupRestoreCardState extends ConsumerState<BackupRestoreCard> {
 
     try {
       await BackupService.createBackup(serverUrl);
+      // If the user chose an external SAF backup folder, mirror the
+      // newest backup there too so a copy survives clear-data/uninstall.
+      final folder = await BackupFolderService.instance.getFolder();
+      if (folder != null) {
+        try {
+          final exported = await BackupService.exportLatestBackupToFolder(
+            serverUrl,
+          );
+          if (!mounted) return;
+          _showSnackBar(
+            exported != null
+                ? 'Backup created & saved to ${folder.name}'
+                : 'Backup created (could not copy to ${folder.name})',
+            context.appColorScheme.semantic.success,
+          );
+        } catch (_) {
+          if (!mounted) return;
+          _showSnackBar(
+            'Backup created, but exporting to ${folder.name} failed',
+            context.appColorScheme.error.error,
+          );
+        }
+        await _loadBackups();
+        return;
+      }
       if (!mounted) return;
       _showSnackBar(
         'Backup created successfully',

@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 class MainActivity : FlutterActivity() {
     private var termuxBridge: TermuxBridge? = null
     private var embeddedServerBridge: EmbeddedServerBridge? = null
+    private var backupFolderBridge: BackupFolderBridge? = null
     private val mainScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
     private var hasAutoLaunched = false
 
@@ -51,12 +52,26 @@ class MainActivity : FlutterActivity() {
             EmbeddedServerBridge.EVENT_CHANNEL,
         )
         embeddedServerBridge?.register(methodChannel, eventChannel)
+
+        backupFolderBridge = BackupFolderBridge(this)
+        val backupFolderChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            BackupFolderBridge.CHANNEL,
+        )
+        backupFolderBridge?.register(backupFolderChannel)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         termuxBridge?.dispose()
         embeddedServerBridge?.dispose()
+        backupFolderBridge = null
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: android.content.Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        backupFolderBridge?.handleActivityResult(requestCode, resultCode, data)
     }
 
     /**

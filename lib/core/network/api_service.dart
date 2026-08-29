@@ -858,6 +858,19 @@ class ApiService {
         if (enableLogging) {
           debugPrint('AUTO BACKUP: backup request completed');
         }
+        // Mirror the newest backup into the user-chosen external SAF
+        // folder (if any) so a durable copy survives clear-data/uninstall.
+        try {
+          final exported =
+              await BackupService.exportLatestBackupToFolder(baseUrl);
+          if (enableLogging) {
+            debugPrint('AUTO BACKUP: exported to folder: $exported');
+          }
+        } catch (e) {
+          if (enableLogging) {
+            debugPrint('AUTO BACKUP: folder export failed: $e');
+          }
+        }
       } else {
         if (enableLogging) {
           debugPrint('AUTO BACKUP: skipped');

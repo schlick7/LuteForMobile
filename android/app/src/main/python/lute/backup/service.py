@@ -190,18 +190,28 @@ class Service:
         if os.path.exists(target_dir):
             print(f"[backup] removing stale {target_dir}")
             shutil.rmtree(target_dir)
-        os.mkdir(target_dir)
+        # Chaquopy's Python process can't create files inside the
+        # backup subdir (EACCES) even though it shares the app
+        # UID/process; the main app process (Kotlin) can. Prefer the
+        # host bridge when it's available (on-device mode), and fall
+        # back to a plain copytree otherwise (Termux / remote server,
+        # where Python can write).
+        try:
+            from launcher import mirror_images_from_host
+            ok = mirror_images_from_host(userimagespath, target_dir)
+            print(f"[backup] image mirror via host bridge: ok={ok}")
+            return ok
+        except Exception as e:
+            print(
+                f"[backup] host bridge unavailable "
+                f"({type(e).__name__}: {e}); using shutil.copytree"
+            )
         try:
             shutil.copytree(userimagespath, target_dir, dirs_exist_ok=True)
-            n = sum(
-                len(files)
-                for _, _, files in os.walk(target_dir)
-            )
+            n = sum(len(files) for _, _, files in os.walk(target_dir))
             print(f"[backup] mirrored {n} files to {target_dir}")
             return True
         except Exception as e:
-            # Track down what actually fails here (this was previously
-            # routed through a Kotlin bridge that no-oped).
             print(f"[backup] image mirror FAILED: {type(e).__name__}: {e}")
             import traceback
             traceback.print_exc()

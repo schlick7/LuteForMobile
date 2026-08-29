@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart';
+import 'package:lute_for_mobile/core/services/backup_folder_service.dart';
 
 class BackupService {
   static const Duration defaultTimeout = Duration(seconds: 30);
@@ -188,6 +190,57 @@ class BackupService {
       }
     } catch (e) {
       throw Exception('Failed to download backup: $e');
+    }
+  }
+
+  static Future<Uint8List> fetchBackupBytes(
+    String serverUrl,
+    String filename, {
+    Duration timeout = defaultTimeout,
+  }) async {
+    final response = await http
+        .get(Uri.parse('$serverUrl/backup/download/$filename'))
+        .timeout(timeout);
+    if (response.statusCode != 200) {
+      throw Exception('Failed to download backup: ${response.statusCode}');
+    }
+    return response.bodyBytes;
+  }
+
+  /// Export the newest backup on the server into the user-chosen SAF
+  /// backup folder (if configured). Returns the exported filename, or
+  /// null if no folder is configured / nothing to export / failure.
+  ///
+  /// Retention: the folder is pruned to [maxKeep] newest lute backups
+  /// so we never pile up dozens of .db files there.
+  static Future<String?> exportLatestBackupToFolder(
+    String serverUrl, {
+    int? maxKeep,
+  }) async {
+    final folder = await BackupFolderService.instance.getFolder();
+    if (folder == null) return null;
+
+    final backups = await listBackups(serverUrl);
+    if (backups.isEmpty) return null;
+    backups.sort((a, b) =>
+        (b['lastModified'] as int? ?? 0).compareTo(a['lastModified'] as int? ?? 0));
+    final newest = backups.first;
+    final filename = (newest['downloadFilename'] as String? ??
+            newest['filename'] as String?)
+        ?.toString();
+    if (filename == null || filename.isEmpty) return null;
+
+    try {
+      final bytes = await fetchBackupBytes(serverUrl, filename);
+      await BackupFolderService.instance.exportBackup(
+        bytes,
+        filename,
+        maxKeep: maxKeep ?? BackupFolderService.defaultMaxKeep,
+      );
+      return filename;
+    } catch (e) {
+      debugPrint('exportLatestBackupToFolder: failed: $e');
+      return null;
     }
   }
 

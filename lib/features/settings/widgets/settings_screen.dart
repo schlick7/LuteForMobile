@@ -17,6 +17,7 @@ import '../../../app.dart';
 import 'theme_selector_screen.dart';
 import 'tts_settings_section.dart';
 import 'ai_settings_section.dart';
+import 'backup_folder_card.dart';
 import 'backup_restore_card.dart';
 import 'on_device_server_section.dart';
 import 'termux_screen.dart';
@@ -514,8 +515,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 defaultTargetPlatform == TargetPlatform.android &&
                 settings.localServerMode == LocalServerMode.onDevice) ...[
               const SizedBox(height: 16),
-              const OnDeviceServerSection(),
-            ],
+const OnDeviceServerSection(),
+            const SizedBox(height: 16),
+            const BackupFolderCard(),
+          ],
             if (!kIsWeb &&
                 defaultTargetPlatform == TargetPlatform.android &&
                 settings.localServerMode == LocalServerMode.termux) ...[

@@ -147,7 +147,12 @@ object StorageHelper {
         return Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
             addFlags(
                 Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                    // Required so the chosen tree grant can be persisted
+                    // (takePersistableUriPermission). Without this the
+                    // grant only lasts for the current activity session,
+                    // and later writes fail with "Invalid URI".
+                    Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
             )
         }
     }
