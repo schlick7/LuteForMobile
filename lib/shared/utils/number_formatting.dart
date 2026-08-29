@@ -8,9 +8,9 @@ String formatNumber(int number) {
   if (number >= 1000000000) {
     return '${_stripTrailingZeros((number / 1000000000).toStringAsFixed(2))}B';
   } else if (number >= 100000000) {
-    return '${_stripTrailingZeros((number / 1000000).toStringAsFixed(1))}M';
+    return '${_stripTrailingZeros((number / 1000000).toStringAsFixed(2))}M';
   } else if (number >= 1000000) {
-    return '${_stripTrailingZeros((number / 1000000).toStringAsFixed(1))}M';
+    return '${_stripTrailingZeros((number / 1000000).toStringAsFixed(2))}M';
   } else if (number >= 10000) {
     return '${_stripTrailingZeros((number / 1000).toStringAsFixed(1))}K';
   } else if (number >= 1000) {
