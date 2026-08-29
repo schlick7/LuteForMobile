@@ -286,35 +286,3 @@ def start(port, datapath, config_path):
     _ServerHandle._current = handle
     thread.start()
     return handle
-
-
-def callMirrorImages(src_dir, dst_dir):
-    """
-    Mirror src_dir into dst_dir by running `cp` as a subprocess.
-    Chaquopy's Python can't create files in the backup subdir
-    (SELinux denial) but a subprocess of `cp` runs in a context
-    that has write permission. Returns True on success.
-    """
-    import os
-    import subprocess
-    if not os.path.isdir(src_dir):
-        return False
-    os.makedirs(dst_dir, exist_ok=True)
-    try:
-        # `cp -a` preserves perms and recursive; trailing /. copies
-        # contents (not the dir itself) into the destination.
-        result = subprocess.run(
-            ["cp", "-a", src_dir + "/.", dst_dir + "/"],
-            check=False,
-            capture_output=True,
-        )
-        if result.returncode != 0:
-            print(
-                f"callMirrorImages: cp failed: {result.stderr.decode(errors='replace')}",
-                file=__import__("sys").stderr,
-            )
-            return False
-        return True
-    except Exception as e:
-        print(f"callMirrorImages: {e}", file=__import__("sys").stderr)
-        return False

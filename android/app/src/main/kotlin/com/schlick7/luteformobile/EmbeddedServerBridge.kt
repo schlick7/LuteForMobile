@@ -51,7 +51,7 @@ class EmbeddedServerBridge(
         // Dart side. Returned in getState so the Dart side knows
         // the server artifact is present and can auto-start on
         // app launch when on-device mode is selected.
-        private const val INSTALLED_VERSION = "3.10.1"
+        private const val INSTALLED_VERSION = "3.10.3"
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -384,49 +384,6 @@ class EmbeddedServerBridge(
 
         luteConfigFile.writeText(template)
         Log.d(TAG, "Wrote config to ${luteConfigFile.absolutePath}")
-    }
-
-    /**
-     * Mirror the user images into the backup dir. We do this from
-     * Kotlin (not from the Chaquopy Python process) because
-     * shutil.copytree inside Chaquopy's Python fails with
-     * EACCES on the backup subdir — the Chaquopy process runs
-     * in a SELinux context that can't create files inside
-     * `<dataDir>/backups/userimages_backup/`, even though the
-     * directory is owned by the app and chmod'd to 755. Doing
-     * the copy from the main app process (this Kotlin code)
-     * avoids the SELinux denial entirely.
-     *
-     * Called from the Python backup service via a MethodChannel
-     * call (lute.backup.service imports
-     * EmbeddedServerBridge.mirror_images).
-     */
-    fun mirrorImages(srcDir: File, dstDir: File): Boolean {
-        return try {
-            dstDir.mkdirs()
-            copyDirRecursive(srcDir, dstDir)
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "mirrorImages failed: ${e.message}", e)
-            false
-        }
-    }
-
-    private fun copyDirRecursive(src: File, dst: File) {
-        if (!src.isDirectory) return
-        if (!dst.exists()) dst.mkdirs()
-        src.listFiles()?.forEach { child ->
-            val target = File(dst, child.name)
-            if (child.isDirectory) {
-                copyDirRecursive(child, target)
-            } else {
-                child.inputStream().use { input ->
-                    target.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-            }
-        }
     }
 
     // --- Event sink ---

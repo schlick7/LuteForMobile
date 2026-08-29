@@ -178,19 +178,34 @@ class Service:
 
     def _mirror_images_dir(self, userimagespath, outdir):
         "Copy the images to backup."
+        print(f"[backup] _mirror_images_dir: src={userimagespath!r} outdir={outdir!r}")
         target_dir = os.path.join(outdir, "userimages_backup")
         target_dir = os.path.abspath(target_dir)
+        if not os.path.isdir(userimagespath):
+            print(
+                f"[backup] no userimages dir at {userimagespath!r}; "
+                "skipping image mirror"
+            )
+            return True
         if os.path.exists(target_dir):
+            print(f"[backup] removing stale {target_dir}")
             shutil.rmtree(target_dir)
         os.mkdir(target_dir)
-        # Chaquopy's Python process can't create files inside
-        # the backup subdir (SELinux denies the create operation
-        # even though the dir is owned by the app and chmod'd
-        # to 755). Call back into the Kotlin bridge which
-        # runs in the main app process and has full fs
-        # access.
-        from lute.bridge import mirror_images_from_kotlin
-        return mirror_images_from_kotlin(userimagespath, target_dir)
+        try:
+            shutil.copytree(userimagespath, target_dir, dirs_exist_ok=True)
+            n = sum(
+                len(files)
+                for _, _, files in os.walk(target_dir)
+            )
+            print(f"[backup] mirrored {n} files to {target_dir}")
+            return True
+        except Exception as e:
+            # Track down what actually fails here (this was previously
+            # routed through a Kotlin bridge that no-oped).
+            print(f"[backup] image mirror FAILED: {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
 
     def list_backups(self, outdir) -> List[DatabaseBackupFile]:
         "List all backup files."
