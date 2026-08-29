@@ -78,7 +78,7 @@ There is no in-app "update" button for the server.
 
 LuteForMobile does not track `LuteOrg/lute-v3` directly. The bundled
 tree is taken from **`https://github.com/schlick7/lute-v3` at the
-`fullstats` branch** at the time the APK is built. The in-app About
+`all` branch** at the time the APK is built. The in-app About
 page (`lute/templates/version.html`) and the Dart pin
 (`Settings.luteServerPinnedVersion` in
 `lib/features/settings/models/settings.dart`) are kept in sync.
@@ -116,12 +116,12 @@ cp android/app/src/main/python/lute/backup/service.py                 /tmp/lute-
 cp -r android/app/src/main/python/lute/db/language_defs               /tmp/lute-preserve/language_defs
 
 # 2. Clone the fork and overlay the lute/ tree.
-rm -rf /tmp/lute-v3-fullstats
-git clone --depth 1 --branch fullstats https://github.com/schlick7/lute-v3.git /tmp/lute-v3-fullstats
+rm -rf /tmp/lute-v3-all
+git clone --depth 1 --branch all https://github.com/schlick7/lute-v3.git /tmp/lute-v3-all
 rsync -a --delete \
   --exclude='bridge.py' \
   --exclude='db/language_defs/' \
-  /tmp/lute-v3-fullstats/lute/ \
+  /tmp/lute-v3-all/lute/ \
   android/app/src/main/python/lute/
 
 # 3. Restore the Android-specific files.
@@ -135,7 +135,7 @@ $EDITOR android/app/src/main/python/lute/__init__.py        # __version__ = "<x.
 $EDITOR lib/features/settings/models/settings.dart         # luteServerPinnedVersion = '<x.y.z-foo>'
 
 # 5. Sanity check.
-diff -rq /tmp/lute-v3-fullstats/lute android/app/src/main/python/lute
+diff -rq /tmp/lute-v3-all/lute android/app/src/main/python/lute
 # Expected output: only the three files we patched
 # (app_factory.py, backup/service.py, version.html) and — by design —
 # the language_defs/ tree and bridge.py which are not in the fork.

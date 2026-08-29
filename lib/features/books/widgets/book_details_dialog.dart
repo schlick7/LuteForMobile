@@ -94,7 +94,7 @@ class _BookDetailsDialogState extends ConsumerState<BookDetailsDialog> {
     int defaultSampleSize,
   ) async {
     final settings = ref.read(settingsProvider);
-    // On the on-device (fullstats fork) server, the user-edited
+    // On the on-device (all fork) server, the user-edited
     // stats_calc_sample_size in the lute DB is the source of truth
     // and must not be clobbered by this dance. The fork also gives
     // us full_book=true on /book/table_stats, so the sample-size

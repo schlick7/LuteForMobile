@@ -54,7 +54,7 @@ class Settings {
 
   /// The lute-v3 server version this build of the app is pinned to.
   /// Embedded into the APK as the bundled Python server's source.
-  static const String luteServerPinnedVersion = '3.10.1-fullstats';
+  static const String luteServerPinnedVersion = '3.10.3';
 
   const Settings({
     required this.localUrl,

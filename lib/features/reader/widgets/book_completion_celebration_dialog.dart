@@ -41,7 +41,7 @@ class _BookCompletionCelebrationDialogState
       // Force a full-book recalc — the celebration popup is a
       // one-shot display of the user's final stats, so showing a
       // 5-page sample here would be misleading. On the on-device
-      // (fullstats fork) server this hits the new full_book=true
+      // (all fork) server this hits the new full_book=true
       // endpoint; on remote / Termux it falls back to a server-side
       // full recalc with the user's stats_calc_sample_size, which
       // is what we want.

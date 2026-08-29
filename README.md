@@ -218,8 +218,8 @@ This project is licensed under the MIT License.
   - Thanks to Qwen Code for 2000 free requests
 - Uses [Lute v3](https://github.com/LuteOrg/lute-v3) backend
   (on-device server bundled in the APK is built from the
-  [schlick7/lute-v3](https://github.com/schlick7/lute-v3/tree/fullstats)
-  `fullstats` branch)
+  [schlick7/lute-v3](https://github.com/schlick7/lute-v3/tree/all)
+  `all` branch)
 - Icons from [CupertinoIcons](https://pub.dev/packages/cupertino_icons)
 - Fonts from various open source projects (see font directories for licenses)
 

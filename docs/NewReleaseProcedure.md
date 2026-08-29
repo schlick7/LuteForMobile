@@ -45,7 +45,7 @@ artifact. There is no `scripts/release_lute_server.sh` step.
 To bump the bundled server:
 
 1. Follow the overlay procedure in `docs/on-device-server.md`:
-   - Clone `https://github.com/schlick7/lute-v3` at branch `fullstats`.
+   - Clone `https://github.com/schlick7/lute-v3` at branch `all`.
    - `rsync` its `lute/` tree over `android/app/src/main/python/lute/`,
      excluding `bridge.py` and `db/language_defs/` (both are
      Android-specific and not in the fork).

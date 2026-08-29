@@ -296,7 +296,7 @@ class BooksNotifier extends Notifier<BooksState> {
           timeout: const Duration(seconds: 15),
         );
 
-        // On-device server (the schlick7/lute-v3 `fullstats` fork) supports
+        // On-device server (the schlick7/lute-v3 `all` fork) supports
         // the `full_book=true` + `force_recalc=true` query params on
         // /book/table_stats/<id>, which is much faster than the legacy
         // `stats_calc_sample_size=500` workaround. Use the new endpoint
@@ -424,7 +424,7 @@ class BooksNotifier extends Notifier<BooksState> {
     _refreshRequestedAfterNavigate = false;
 
     final settings = ref.read(settingsProvider);
-    // The on-device (fullstats fork) server has a `full_book=true`
+    // The on-device (all fork) server has a `full_book=true`
     // endpoint, so the 500-sample dance is unnecessary there. The
     // re-entry caller in _refreshBookSimple's finally already routes
     // on-device calls to _refreshBookSimple(fullBook: true) instead.
@@ -533,7 +533,7 @@ class BooksNotifier extends Notifier<BooksState> {
         final currentBookId = state.currentBookId;
         if (currentBookId != null) {
           // Re-entry path: a reader nav requested a refresh while we
-          // were busy. On the on-device (fullstats fork) server, use the
+          // were busy. On the on-device (all fork) server, use the
           // new endpoint instead of the legacy 500-sample workaround.
           // On remote / Termux, keep the workaround — it's the only
           // way to get "full-ish" stats out of a stock lute-v3 server.
@@ -562,7 +562,7 @@ class BooksNotifier extends Notifier<BooksState> {
     try {
       final settings = ref.read(settingsProvider);
       // The lute DB's stats_calc_sample_size is the source of truth.
-      // On the on-device (fullstats fork) server we don't need to
+      // On the on-device (all fork) server we don't need to
       // prime it before listing — the BookStats cache is already
       // populated via the new full_book=true endpoint — and writing
       // here would clobber whatever the user has set in the lute
