@@ -12,12 +12,12 @@ import 'package:lute_for_mobile/features/settings/widgets/on_device_first_run_di
 
 /// Settings card for the "On-device" lute-v3 server option.
 ///
-/// Shows one of:
-///   - Not installed → Download button (with size hint).
-///   - Downloading → progress bar + Cancel.
-///   - Ready (not running) → Start / Check for update / Remove.
+/// The server is bundled into the APK via Chaquopy (no download
+/// step). Shows one of:
+///   - Stopped (ready) → Start, current URL once running.
+///   - Starting → progress indicator.
 ///   - Running → Stop, current URL.
-///   - Error → message + retry.
+///   - Error → message + Retry / Restore from .db.gz / Show logs.
 class OnDeviceServerSection extends ConsumerStatefulWidget {
   const OnDeviceServerSection({super.key});
 
