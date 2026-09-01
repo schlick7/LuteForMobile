@@ -12,7 +12,7 @@ A Flutter mobile frontend for Lute v3 language learning server. Read books and l
 - **PWA Support** - Install as a web app on any device
 - **TTS Support** - ondevice, Kokoro, Supertonic, openai
 - **AI Translation Support** - Local OpenAI Endpoint (Ollama, Llama.cpp, etc.), OpenAI, Gemini
-- **Termux Integration on Android**
+- **Integrated Server Wrapper on Android**
 
 ## Supported Server Features
 - ✅ Reader View
